@@ -57,9 +57,6 @@ class Money extends ValueObject<MoneyProps> {
     defaultValues: {
       currency: "USD",
     },
-    onCreate: (money) => {
-      console.log(`Money created: ${money.amount} ${money.currency}`);
-    },
     rules: (money) => {
       if (money.amount > 1000000) {
         throwValidationError("amount", "Amount cannot exceed 1,000,000");

@@ -5,6 +5,7 @@
 import { Id } from "./id";
 import { DeepProxy } from "./deep-proxy";
 import { ValidationError } from "./validation-error";
+import { IDomainEvent } from "./domain-event";
 import {
   BaseProps,
   SubscriptionConfig,
@@ -16,6 +17,7 @@ import {
   StandardSchema,
   EntityValidation,
 } from "./types";
+import { DomainEventBus } from "./domain-event-bus";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -33,6 +35,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   private validationConfig: Required<ValidationConfig>;
   private entityHooks?: EntityHooks<T, any>;
   private entitySchema?: StandardSchema<T>;
+  private domainEvents: IDomainEvent[] = [];
 
   // Static properties that subclasses can override
   protected static validation?: EntityValidation<any>;
@@ -315,6 +318,38 @@ export abstract class BaseEntity<T extends BaseProps> {
 
   clearHistory(): void {
     this.proxy.clearHistory();
+  }
+
+  /**
+   * Add a domain event to this entity
+   */
+  protected addDomainEvent(event: IDomainEvent): void {
+    this.domainEvents.push(event);
+  }
+
+  public async dispatchAll(bus: DomainEventBus) {
+    await bus.publishAll(this.getUncommittedEvents());
+  }
+
+  /**
+   * Get all uncommitted domain events
+   */
+  getUncommittedEvents(): IDomainEvent[] {
+    return [...this.domainEvents];
+  }
+
+  /**
+   * Clear all domain events (call after publishing)
+   */
+  clearEvents(): void {
+    this.domainEvents = [];
+  }
+
+  /**
+   * Check if entity has uncommitted events
+   */
+  hasUncommittedEvents(): boolean {
+    return this.domainEvents.length > 0;
   }
 
   toJson(): DeepJsonResult<T> {

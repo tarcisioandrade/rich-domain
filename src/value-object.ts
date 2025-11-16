@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { ValidationError } from "./validation-error";
+import { IDomainEvent } from "./domain-event";
 import {
   VOHooks,
   ValidationConfig,
@@ -24,6 +25,7 @@ export abstract class ValueObject<T> {
   private validationConfig: Required<ValidationConfig>;
   private domainHooks?: VOHooks<T, any>;
   private domainSchema?: StandardSchema<T>;
+  private domainEvents: IDomainEvent[] = [];
 
   // Static properties that subclasses can override
   protected static validation?: EntityValidation<any>;
@@ -140,6 +142,34 @@ export abstract class ValueObject<T> {
   equals(other: ValueObject<T>): boolean {
     if (!other || !(other instanceof ValueObject)) return false;
     return JSON.stringify(this.props) === JSON.stringify(other.props);
+  }
+
+  /**
+   * Add a domain event to this value object
+   */
+  protected addDomainEvent(event: IDomainEvent): void {
+    this.domainEvents.push(event);
+  }
+
+  /**
+   * Get all uncommitted domain events
+   */
+  getUncommittedEvents(): IDomainEvent[] {
+    return [...this.domainEvents];
+  }
+
+  /**
+   * Clear all domain events (call after publishing)
+   */
+  clearEvents(): void {
+    this.domainEvents = [];
+  }
+
+  /**
+   * Check if value object has uncommitted events
+   */
+  hasUncommittedEvents(): boolean {
+    return this.domainEvents.length > 0;
   }
 
   toJson(): T {

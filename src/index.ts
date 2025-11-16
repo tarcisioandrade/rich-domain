@@ -15,6 +15,16 @@ export {
   throwValidationError,
 } from "./validation-error";
 
+// Domain Events
+export {
+  DomainEvent,
+  IDomainEvent,
+  DomainEventHandler,
+  IDomainEventHandler,
+} from "./domain-event";
+
+export { DomainEventBus, getEventBus } from "./domain-event-bus";
+
 // Types
 export {
   BaseProps,
