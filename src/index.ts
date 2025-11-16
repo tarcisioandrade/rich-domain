@@ -8,8 +8,6 @@ export { BaseEntity } from "./base-entity";
 export { Entity, Aggregate } from "./entity";
 export { ValueObject } from "./value-object";
 
-// Error Handling
-export { Result, Success, Failure } from "./result";
 export {
   ValidationError,
   ValidationIssue,

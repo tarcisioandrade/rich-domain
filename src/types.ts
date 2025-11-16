@@ -2,9 +2,7 @@
 // Types & Interfaces for Validation
 // ============================================================================
 
-import { Id } from './id';
-import { ValidationError } from './validation-error';
-import { Result } from './result';
+import { Id } from "./id";
 
 // ============================================================================
 // Base Props
@@ -90,11 +88,13 @@ export interface StandardSchemaResult<T> {
 }
 
 export interface StandardSchemaProps<T> {
-  validate: (value: unknown) => StandardSchemaResult<T> | Promise<StandardSchemaResult<T>>;
+  validate: (
+    value: unknown
+  ) => StandardSchemaResult<T> | Promise<StandardSchemaResult<T>>;
 }
 
 export interface StandardSchema<T = unknown> {
-  '~standard': StandardSchemaProps<T>;
+  "~standard": StandardSchemaProps<T>;
 }
 
 // ============================================================================
@@ -114,7 +114,7 @@ export interface EntityHooks<T extends BaseProps, E> {
   onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
   rules?: (entity: E) => void;
-  defaultValues?: Partial<Omit<T, 'id'>>;
+  defaultValues?: Partial<Omit<T, "id">>;
 }
 
 // ============================================================================
@@ -155,11 +155,3 @@ export interface EntityConstructor<T extends BaseProps, E> {
   validation?: EntityValidation<T>;
   hooks?: EntityHooks<T, E>;
 }
-
-// ============================================================================
-// Create Result Type
-// ============================================================================
-
-export type CreateResult<E, ThrowOnError extends boolean> = ThrowOnError extends true
-  ? E
-  : Result<E, ValidationError>;
