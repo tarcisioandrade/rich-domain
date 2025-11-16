@@ -98,18 +98,29 @@ export interface StandardSchema<T = unknown> {
 }
 
 // ============================================================================
-// Entity Validation
+// Domain Validation (for Entities, Aggregates, and Value Objects)
 // ============================================================================
 
-export interface EntityValidation<T> {
+interface DomainValidation<T> {
   schema: StandardSchema<T>;
   config?: ValidationConfig;
 }
 
+export type EntityValidation<T> = DomainValidation<T>;
+export type VOValidation<T> = DomainValidation<T>;
+
 // ============================================================================
-// Entity Hooks
+// Domain Hooks (for Entities, Aggregates, and Value Objects)
 // ============================================================================
 
+export interface VOHooks<T, E> {
+  onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
+  onCreate?: (entity: E) => void;
+  rules?: (entity: E) => void;
+  defaultValues?: Partial<T>;
+}
+
+// Specialized hooks for entities (with BaseProps)
 export interface EntityHooks<T extends BaseProps, E> {
   onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
@@ -152,6 +163,6 @@ export type DeepJsonResult<T> = {
 
 export interface EntityConstructor<T extends BaseProps, E> {
   new (props: T): E;
-  validation?: EntityValidation<T>;
+  validation?: DomainValidation<T>;
   hooks?: EntityHooks<T, E>;
 }
