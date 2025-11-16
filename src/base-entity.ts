@@ -48,7 +48,6 @@ export abstract class BaseEntity<T extends BaseProps> {
 
     this.entityHooks = hooks;
 
-    // Auto-convert schema to Standard Schema if needed
     if (validation?.schema) {
       this.entitySchema = validation.schema;
     }
