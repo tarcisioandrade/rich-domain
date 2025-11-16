@@ -2,9 +2,9 @@
 // Base Entity Class with Standard Schema Validation
 // ============================================================================
 
-import { Id } from './id';
-import { DeepProxy } from './deep-proxy';
-import { ValidationError } from './validation-error';
+import { Id } from "./id";
+import { DeepProxy } from "./deep-proxy";
+import { ValidationError } from "./validation-error";
 import {
   BaseProps,
   SubscriptionConfig,
@@ -15,7 +15,7 @@ import {
   ValidationConfig,
   DEFAULT_VALIDATION_CONFIG,
   StandardSchema,
-} from './types';
+} from "./types";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -38,16 +38,20 @@ export abstract class BaseEntity<T extends BaseProps> {
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
 
-  constructor(props: Partial<Omit<T, 'id'>> & { id?: Id }) {
+  constructor(props: Partial<Omit<T, "id">> & { id?: Id }) {
     // Get static configuration from subclass
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
-      'validation'
+      "validation"
     );
-    const hooks = getStaticProperty<EntityHooks<T, any>>(this, 'hooks');
+    const hooks = getStaticProperty<EntityHooks<T, any>>(this, "hooks");
 
     this.entityHooks = hooks;
-    this.entitySchema = validation?.schema;
+
+    // Auto-convert schema to Standard Schema if needed
+    if (validation?.schema) {
+      this.entitySchema = validation.schema;
+    }
 
     this.validationConfig = {
       ...DEFAULT_VALIDATION_CONFIG,
@@ -96,18 +100,18 @@ export abstract class BaseEntity<T extends BaseProps> {
   private validateProps(props: T): void {
     if (!this.entitySchema) return;
 
-    const result = this.entitySchema['~standard'].validate(props);
+    const result = this.entitySchema["~standard"].validate(props);
 
     if (result instanceof Promise) {
       throw new Error(
-        'Async validation not supported in constructor. Use sync validation schema.'
+        "Async validation not supported in constructor. Use sync validation schema."
       );
     }
 
     if (result.issues && result.issues.length > 0) {
       const validationError = new ValidationError(
-        result.issues.map(issue => ({
-          path: issue.path?.map(p => this.extractPathKey(p)) || [],
+        result.issues.map((issue) => ({
+          path: issue.path?.map((p) => this.extractPathKey(p)) || [],
           message: issue.message,
         }))
       );
@@ -123,17 +127,17 @@ export abstract class BaseEntity<T extends BaseProps> {
 
   private extractPathKey(pathSegment: unknown): string {
     if (pathSegment === null || pathSegment === undefined) {
-      return '';
+      return "";
     }
     // Handle PropertyKey (string | number | symbol)
-    if (typeof pathSegment === 'string' || typeof pathSegment === 'number') {
+    if (typeof pathSegment === "string" || typeof pathSegment === "number") {
       return String(pathSegment);
     }
-    if (typeof pathSegment === 'symbol') {
+    if (typeof pathSegment === "symbol") {
       return pathSegment.toString();
     }
     // Handle object with 'key' property (Zod's PathSegment)
-    if (typeof pathSegment === 'object' && 'key' in pathSegment) {
+    if (typeof pathSegment === "object" && "key" in pathSegment) {
       return String((pathSegment as { key: unknown }).key);
     }
     // Fallback
@@ -159,19 +163,19 @@ export abstract class BaseEntity<T extends BaseProps> {
 
       // Validate with schema
       if (self.entitySchema) {
-        const result = self.entitySchema['~standard'].validate(self.props);
+        const result = self.entitySchema["~standard"].validate(self.props);
 
         if (result instanceof Promise) {
           console.warn(
-            'Async validation on update not supported. Consider using sync validation.'
+            "Async validation on update not supported. Consider using sync validation."
           );
           return;
         }
 
         if (result.issues && result.issues.length > 0) {
           const validationError = new ValidationError(
-            result.issues.map(issue => ({
-              path: issue.path?.map(p => self.extractPathKey(p)) || [],
+            result.issues.map((issue) => ({
+              path: issue.path?.map((p) => self.extractPathKey(p)) || [],
               message: issue.message,
             }))
           );
@@ -183,7 +187,7 @@ export abstract class BaseEntity<T extends BaseProps> {
             }
             throw validationError;
           }
-          console.error('Validation failed on update:', validationError);
+          console.error("Validation failed on update:", validationError);
         }
       }
 
@@ -199,7 +203,7 @@ export abstract class BaseEntity<T extends BaseProps> {
             }
             throw error;
           }
-          console.error('Rules validation failed on update:', error);
+          console.error("Rules validation failed on update:", error);
         }
       }
 
@@ -208,27 +212,66 @@ export abstract class BaseEntity<T extends BaseProps> {
     };
 
     // Subscribe to all changes
-    this.proxy.subscribe('*', validateOnChange);
+    this.proxy.subscribe("*", validateOnChange);
   }
 
   private takeSnapshot(): void {
     this.snapshot = this.deepCloneProps(this.props);
   }
 
-  private deepCloneProps(obj: any): any {
+  private deepCloneProps(obj: any, seen: WeakSet<object> = new WeakSet()): any {
     if (obj === null || obj === undefined) return obj;
+
+    // Primitives
+    if (typeof obj !== "object") return obj;
+
+    // Special cases - don't clone these, just return the reference
     if (obj instanceof Id) return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
-    if (Array.isArray(obj)) return obj.map(item => this.deepCloneProps(item));
-    if (typeof obj === 'object') {
+
+    // Check for circular references
+    if (seen.has(obj)) {
+      return obj; // Return reference to avoid infinite loop
+    }
+
+    // Handle BaseEntity instances - just keep the reference
+    if (obj instanceof BaseEntity) {
+      return obj;
+    }
+
+    // Handle ValueObject instances - just keep the reference (they're immutable)
+    if (
+      obj.constructor &&
+      obj.constructor.name !== "Object" &&
+      obj.constructor.name !== "Array"
+    ) {
+      // Check if it has toJson method (likely a ValueObject or similar)
+      if (
+        typeof obj.toJson === "function" &&
+        typeof obj.equals === "function"
+      ) {
+        return obj; // Keep reference for ValueObjects
+      }
+    }
+
+    seen.add(obj);
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.deepCloneProps(item, seen));
+    }
+
+    // Plain objects only
+    if (obj.constructor === Object) {
       const cloned: any = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
-          cloned[key] = this.deepCloneProps(obj[key]);
+          cloned[key] = this.deepCloneProps(obj[key], seen);
         }
       }
       return cloned;
     }
+
+    // For other object types (custom classes), just keep the reference
     return obj;
   }
 
@@ -259,9 +302,9 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   subscribe(config: SubscriptionConfig<T>): void {
-    Object.keys(config).forEach(key => {
+    Object.keys(config).forEach((key) => {
       const sub = config[key as keyof T];
-      if (sub && 'onChange' in sub) {
+      if (sub && "onChange" in sub) {
         this.proxy.subscribe(key, sub.onChange);
       }
     });
@@ -282,10 +325,10 @@ export abstract class BaseEntity<T extends BaseProps> {
   private deepToJson(obj: any): any {
     if (obj === null || obj === undefined) return obj;
     if (obj instanceof Id) return obj.value;
-    if (Array.isArray(obj)) return obj.map(item => this.deepToJson(item));
+    if (Array.isArray(obj)) return obj.map((item) => this.deepToJson(item));
     if (obj instanceof BaseEntity) return obj.toJson();
-    if (obj && typeof obj.toJson === 'function') return obj.toJson();
-    if (typeof obj === 'object') {
+    if (obj && typeof obj.toJson === "function") return obj.toJson();
+    if (typeof obj === "object") {
       const result: any = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) result[key] = this.deepToJson(obj[key]);
