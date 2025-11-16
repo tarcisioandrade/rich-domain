@@ -97,40 +97,40 @@ class User extends Aggregate<UserProps> {
 
   // Getters e Setters
   get name(): string {
-    return this.properties.name;
+    return this.props.name;
   }
 
   set name(value: string) {
-    this.properties.name = value;
+    this.props.name = value;
   }
 
   get email(): string {
-    return this.properties.email;
+    return this.props.email;
   }
 
   set email(value: string) {
-    this.properties.email = value;
+    this.props.email = value;
   }
 
   get age(): number {
-    return this.properties.age;
+    return this.props.age;
   }
 
   set age(value: number) {
-    this.properties.age = value;
+    this.props.age = value;
   }
 
   get status(): 'active' | 'inactive' {
-    return this.properties.status;
+    return this.props.status;
   }
 
   // Métodos de domínio
   deactivate(): void {
-    this.properties.status = 'inactive';
+    this.props.status = 'inactive';
   }
 
   activate(): void {
-    this.properties.status = 'active';
+    this.props.status = 'active';
   }
 }
 ```
@@ -191,7 +191,7 @@ class UserSafe extends Aggregate<UserProps> {
   };
 
   get name(): string {
-    return this.properties.name;
+    return this.props.name;
   }
 }
 
@@ -404,11 +404,11 @@ interface BlogUserProps extends BaseProps {
 
 class BlogUser extends Entity<BlogUserProps> {
   get posts(): Post[] {
-    return this.properties.posts;
+    return this.props.posts;
   }
 
   set posts(value: Post[]) {
-    this.properties.posts = value;
+    this.props.posts = value;
   }
 }
 
@@ -569,20 +569,6 @@ const schema = type({
 });
 ```
 
-### Adapter Manual
-
-Se sua lib de validação não tem suporte nativo a Standard Schema:
-
-```typescript
-import { fromZod, toStandardSchema } from 'rich-domain';
-
-// Converter Zod manualmente
-const standardSchema = fromZod(zodSchema);
-
-// Auto-detectar e converter
-const schema = toStandardSchema(anySchema);
-```
-
 ## ValidationError
 
 ```typescript
@@ -679,159 +665,6 @@ class ValidationError extends Error {
   hasErrorsForPath(path: string): boolean;
   toJSON(): object;
 }
-```
-
-## Exemplos Completos
-
-### Aggregate Completo
-
-```typescript
-import { z } from 'zod';
-import { 
-  Id, 
-  Aggregate, 
-  Entity,
-  ValueObject,
-  EntityValidation, 
-  EntityHooks, 
-  BaseProps,
-  throwValidationError 
-} from 'rich-domain';
-
-// Value Object
-interface MoneyProps {
-  amount: number;
-  currency: string;
-}
-
-class Money extends ValueObject<MoneyProps> {
-  get amount(): number {
-    return this.props.amount;
-  }
-
-  get currency(): string {
-    return this.props.currency;
-  }
-
-  add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new Error('Cannot add different currencies');
-    }
-    return this.clone({ amount: this.amount + other.amount });
-  }
-}
-
-// Entity
-interface OrderItemProps extends BaseProps {
-  id: Id;
-  productId: string;
-  quantity: number;
-  price: Money;
-}
-
-class OrderItem extends Entity<OrderItemProps> {
-  get productId(): string {
-    return this.properties.productId;
-  }
-
-  get quantity(): number {
-    return this.properties.quantity;
-  }
-
-  get price(): Money {
-    return this.properties.price;
-  }
-
-  get total(): number {
-    return this.price.amount * this.quantity;
-  }
-}
-
-// Aggregate Root
-interface OrderProps extends BaseProps {
-  id: Id;
-  customerId: string;
-  items: OrderItem[];
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered';
-  createdAt: Date;
-}
-
-const orderSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  customerId: z.string().min(1),
-  items: z.array(z.custom<OrderItem>((val) => val instanceof OrderItem)),
-  status: z.enum(['pending', 'confirmed', 'shipped', 'delivered']),
-  createdAt: z.date(),
-});
-
-class Order extends Aggregate<OrderProps> {
-  protected static validation: EntityValidation<OrderProps> = {
-    schema: orderSchema,
-  };
-
-  protected static hooks: EntityHooks<OrderProps, Order> = {
-    defaultValues: {
-      items: [],
-      status: 'pending',
-      createdAt: new Date(),
-    },
-    rules: (entity) => {
-      if (entity.status === 'confirmed' && entity.items.length === 0) {
-        throwValidationError('items', 'Pedido confirmado deve ter itens');
-      }
-    },
-  };
-
-  get customerId(): string {
-    return this.properties.customerId;
-  }
-
-  get items(): OrderItem[] {
-    return this.properties.items;
-  }
-
-  get status(): string {
-    return this.properties.status;
-  }
-
-  get total(): number {
-    return this.items.reduce((sum, item) => sum + item.total, 0);
-  }
-
-  addItem(item: OrderItem): void {
-    this.properties.items = [...this.items, item];
-  }
-
-  removeItem(itemId: Id): void {
-    this.properties.items = this.items.filter(
-      (item) => !item.id.equals(itemId)
-    );
-  }
-
-  confirm(): void {
-    if (this.items.length === 0) {
-      throw new Error('Cannot confirm empty order');
-    }
-    this.properties.status = 'confirmed';
-  }
-}
-
-// Uso
-const order = new Order({
-  customerId: 'customer-123',
-});
-
-order.addItem(
-  new OrderItem({
-    productId: 'product-1',
-    quantity: 2,
-    price: new Money({ amount: 50, currency: 'BRL' }),
-  })
-);
-
-console.log(order.total);  // 100
-order.confirm();
-console.log(order.status); // confirmed
 ```
 
 ## Licença
