@@ -26,7 +26,7 @@ function getStaticProperty<T>(
 }
 
 export abstract class BaseEntity<T extends BaseProps> {
-  protected props: T;
+  private _props: T;
   private proxy: DeepProxy;
   private proxiedProps: T;
   private snapshot: T | null = null;
@@ -74,8 +74,8 @@ export abstract class BaseEntity<T extends BaseProps> {
       this.validateProps(finalProps);
     }
 
-    this.props = finalProps;
-    this.proxy = new DeepProxy(this.props);
+    this._props = finalProps;
+    this.proxy = new DeepProxy(this._props);
     this.proxiedProps = this.proxy.createProxy();
 
     // Execute rules (custom validations)
@@ -156,14 +156,14 @@ export abstract class BaseEntity<T extends BaseProps> {
         );
         if (!shouldContinue) {
           // Revert changes
-          Object.assign(self.props, self.snapshot);
+          Object.assign(self._props, self.snapshot);
           return;
         }
       }
 
       // Validate with schema
       if (self.entitySchema) {
-        const result = self.entitySchema["~standard"].validate(self.props);
+        const result = self.entitySchema["~standard"].validate(self._props);
 
         if (result instanceof Promise) {
           console.warn(
@@ -183,7 +183,7 @@ export abstract class BaseEntity<T extends BaseProps> {
           if (self.validationConfig.throwOnError) {
             // Revert changes before throwing
             if (self.snapshot) {
-              Object.assign(self.props, self.snapshot);
+              Object.assign(self._props, self.snapshot);
             }
             throw validationError;
           }
@@ -199,7 +199,7 @@ export abstract class BaseEntity<T extends BaseProps> {
           if (self.validationConfig.throwOnError) {
             // Revert changes before throwing
             if (self.snapshot) {
-              Object.assign(self.props, self.snapshot);
+              Object.assign(self._props, self.snapshot);
             }
             throw error;
           }
@@ -216,7 +216,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   private takeSnapshot(): void {
-    this.snapshot = this.deepCloneProps(this.props);
+    this.snapshot = this.deepCloneProps(this._props);
   }
 
   private deepCloneProps(obj: any, seen: WeakSet<object> = new WeakSet()): any {
@@ -276,14 +276,14 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   get id(): Id {
-    return this.props.id;
+    return this._props.id;
   }
 
   get isNew(): boolean {
-    return this.props.id.isNew;
+    return this._props.id.isNew;
   }
 
-  protected get properties(): T {
+  protected get props(): T {
     return this.proxiedProps;
   }
 
@@ -319,7 +319,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   toJson(): DeepJsonResult<T> {
-    return this.deepToJson(this.props) as DeepJsonResult<T>;
+    return this.deepToJson(this._props) as DeepJsonResult<T>;
   }
 
   private deepToJson(obj: any): any {

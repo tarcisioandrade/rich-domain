@@ -9,8 +9,8 @@ import {
   Aggregate,
   EntityValidation,
   EntityHooks,
+  ValidationError,
 } from "../src";
-import { throwValidationError, ValidationError } from "../src/validation-error";
 import { Address } from "./utils";
 
 interface UserProps extends BaseProps {
@@ -25,10 +25,7 @@ const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id, { message: "Invalid Id" }),
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email format"),
-  age: z
-    .number()
-    .min(0, "Age cannot be negative")
-    .max(150, "Age is too high"),
+  age: z.number().min(0, "Age cannot be negative").max(150, "Age is too high"),
   status: z.enum(["active", "inactive"]),
 });
 
@@ -47,59 +44,54 @@ class User extends Aggregate<UserProps> {
       age: 18,
       status: "active",
     },
-    onCreate: (entity) => {
-      console.log(`User created: ${entity.name}`);
-    },
+    onCreate: (entity) => {},
     onBeforeUpdate: (entity, snapshot) => {
-      // Prevent changing email once set
       if (snapshot.email !== entity.email) {
-        console.warn("Email change attempted but blocked");
         return false; // Block the update
       }
       return true;
     },
     rules: (entity) => {
-      // Custom business rules
       if (entity.name.toLowerCase() === "admin") {
-        throwValidationError("name", 'Name cannot be "admin"');
+        throw new Error("Name cannot be 'admin'");
       }
     },
   };
 
   get name(): string {
-    return this.properties.name;
+    return this.props.name;
   }
 
   set name(value: string) {
-    this.properties.name = value;
+    this.props.name = value;
   }
 
   get email(): string {
-    return this.properties.email;
+    return this.props.email;
   }
 
   set email(value: string) {
-    this.properties.email = value;
+    this.props.email = value;
   }
 
   get age(): number {
-    return this.properties.age;
+    return this.props.age;
   }
 
   set age(value: number) {
-    this.properties.age = value;
+    this.props.age = value;
   }
 
   get status(): "active" | "inactive" {
-    return this.properties.status;
+    return this.props.status;
   }
 
   deactivate(): void {
-    this.properties.status = "inactive";
+    this.props.status = "inactive";
   }
 
   activate(): void {
-    this.properties.status = "active";
+    this.props.status = "active";
   }
 }
 
@@ -125,11 +117,11 @@ class UserSafe extends Aggregate<UserProps> {
   };
 
   get name(): string {
-    return this.properties.name;
+    return this.props.name;
   }
 
   get email(): string {
-    return this.properties.email;
+    return this.props.email;
   }
 }
 
@@ -170,16 +162,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
           name: "John",
           email: "invalid-email",
         });
-      }).toThrow();
-
-      try {
-        new User({
-          name: "John",
-          email: "invalid-email",
-        });
-      } catch (error) {
-        expect(ValidationError.isValidationError(error)).toBe(true);
-      }
+      }).toThrow(ValidationError);
     });
 
     it("should throw on invalid name (too short)", () => {
@@ -188,16 +171,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
           name: "J",
           email: "john@example.com",
         });
-      }).toThrow();
-
-      try {
-        new User({
-          name: "J",
-          email: "john@example.com",
-        });
-      } catch (error) {
-        expect(ValidationError.isValidationError(error)).toBe(true);
-      }
+      }).toThrow(ValidationError);
     });
 
     it("should throw on custom rule violation", () => {
@@ -206,16 +180,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
           name: "admin",
           email: "admin@example.com",
         });
-      }).toThrow();
-
-      try {
-        new User({
-          name: "admin",
-          email: "admin@example.com",
-        });
-      } catch (error) {
-        expect(ValidationError.isValidationError(error)).toBe(true);
-      }
+      }).toThrow(Error);
     });
 
     it("should not throw when throwOnError is false", () => {
@@ -226,10 +191,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
 
       expect(user).toBeInstanceOf(UserSafe);
       expect(user.hasValidationErrors).toBe(true);
-      expect(ValidationError.isValidationError(user.validationErrors)).toBe(
-        true
-      );
-      expect(user.validationErrors!.issues.length).toBeGreaterThan(0);
+      expect(user.validationErrors).toBeInstanceOf(ValidationError);
+      expect(user.validationErrors?.issues.length).toBeGreaterThan(0);
     });
 
     it("should not have errors when valid and throwOnError is false", () => {
@@ -254,13 +217,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
 
       expect(() => {
         user.name = "J"; // Too short
-      }).toThrow();
-
-      try {
-        user.name = "J";
-      } catch (error) {
-        expect(ValidationError.isValidationError(error)).toBe(true);
-      }
+      }).toThrow(ValidationError);
     });
 
     it("should allow valid updates", () => {
@@ -294,13 +251,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
 
       expect(() => {
         user.name = "admin"; // Blocked by custom rule
-      }).toThrow();
-
-      try {
-        user.name = "admin";
-      } catch (error) {
-        expect(ValidationError.isValidationError(error)).toBe(true);
-      }
+      }).toThrow(Error);
     });
   });
 

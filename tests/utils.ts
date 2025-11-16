@@ -2,7 +2,7 @@
 // Test Entities & Value Objects
 // ============================================================================
 
-import { Aggregate, Entity, Id, ValueObject } from '../src';
+import { Aggregate, Entity, Id, ValueObject } from "../src";
 
 interface AddressProps {
   street: string;
@@ -33,27 +33,27 @@ interface PostProps {
 
 class Post extends Entity<PostProps> {
   get title(): string {
-    return this.properties.title;
+    return this.props.title;
   }
 
   set title(value: string) {
-    this.properties.title = value;
+    this.props.title = value;
   }
 
   get content(): string {
-    return this.properties.content;
+    return this.props.content;
   }
 
   set content(value: string) {
-    this.properties.content = value;
+    this.props.content = value;
   }
 
   get likes(): number {
-    return this.properties.likes;
+    return this.props.likes;
   }
 
   set likes(value: number) {
-    this.properties.likes = value;
+    this.props.likes = value;
   }
 }
 
@@ -65,15 +65,15 @@ interface CommentProps {
 
 class Comment extends Entity<CommentProps> {
   get text(): string {
-    return this.properties.text;
+    return this.props.text;
   }
 
   set text(value: string) {
-    this.properties.text = value;
+    this.props.text = value;
   }
 
   get author(): string {
-    return this.properties.author;
+    return this.props.author;
   }
 }
 
@@ -92,61 +92,59 @@ interface UserProps {
 
 class User extends Aggregate<UserProps> {
   get name(): string {
-    return this.properties.name;
+    return this.props.name;
   }
 
   set name(value: string) {
-    this.properties.name = value;
+    this.props.name = value;
   }
 
   get email(): string {
-    return this.properties.email;
+    return this.props.email;
   }
 
   get posts(): Post[] {
-    return this.properties.posts;
+    return this.props.posts;
   }
 
   set posts(value: Post[]) {
-    this.properties.posts = value;
+    this.props.posts = value;
   }
 
   get address(): Address {
-    return this.properties.address;
+    return this.props.address;
   }
 
   set address(value: Address) {
-    this.properties.address = value;
+    this.props.address = value;
   }
 
   get comments(): Comment[] {
-    return this.properties.comments;
+    return this.props.comments;
   }
 
   set comments(value: Comment[]) {
-    this.properties.comments = value;
+    this.props.comments = value;
   }
 
   public addPost(post: Post) {
-    this.properties.posts.push(post);
+    this.props.posts.push(post);
   }
 
   public addManyPosts(posts: Post[]) {
-    this.properties.posts.push(...posts);
+    this.props.posts.push(...posts);
   }
 
   public removePostById(id: string) {
-    this.properties.posts = this.properties.posts.filter(
-      post => post.id.value !== id
-    );
+    this.props.posts = this.props.posts.filter((post) => post.id.value !== id);
   }
 
   public changeEmail(email: string) {
-    this.properties.email = email;
+    this.props.email = email;
   }
 
   public changeExtra(extra: { age: number; height: number }) {
-    this.properties.extra = extra;
+    this.props.extra = extra;
   }
 }
 
