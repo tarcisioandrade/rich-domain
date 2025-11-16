@@ -1,4 +1,4 @@
-import { randomUUID as uuidv4 } from 'node:crypto';
+import { randomUUID as uuidv4 } from 'crypto';
 import { ConverterAnyBase } from './converter-any-base';
 
 const flickrBase58 =
@@ -35,7 +35,7 @@ const shortenUUID = (longId: string, translator: any, paddingParams: any) => {
 
   return translated.padStart(
     paddingParams.shortIdLength,
-    paddingParams.paddingChar,
+    paddingParams.paddingChar
   );
 };
 
@@ -70,7 +70,7 @@ export function shortId() {
     // Check alphabet for duplicate entries
     if ([...new Set(Array.from(useAlphabet))].length !== useAlphabet.length) {
       throw new Error(
-        'The provided Alphabet has duplicate characters resulting in unreliable results',
+        'The provided Alphabet has duplicate characters resulting in unreliable results'
       );
     }
 

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 import ShortUUID from 'short-uuid';
 import { IdImplementation } from '../interface/types';
 

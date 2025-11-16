@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import assert from 'assert';
 import { Aggregate } from './aggregate';
 import { DomainEvent } from './domain-event';
 
