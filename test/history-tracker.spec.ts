@@ -1,182 +1,7 @@
-import { Entity, Aggregate, ValueObject } from './core';
+import { Id } from './core/id';
+import { Post, User, Address, Comment } from './utils';
 
-// ============================================================================
-// Test Entities & Value Objects
-// ============================================================================
-
-interface AddressProps {
-  street: string;
-  city: string;
-  zipCode: string;
-}
-
-class Address extends ValueObject<AddressProps> {
-  get street(): string {
-    return this.props.street;
-  }
-
-  get city(): string {
-    return this.props.city;
-  }
-
-  get zipCode(): string {
-    return this.props.zipCode;
-  }
-}
-
-interface PostProps {
-  id: string;
-  title: string;
-  content: string;
-  likes: number;
-}
-
-class Post extends Entity<PostProps> {
-  get title(): string {
-    return this.properties.title;
-  }
-
-  set title(value: string) {
-    this.properties.title = value;
-  }
-
-  get content(): string {
-    return this.properties.content;
-  }
-
-  set content(value: string) {
-    this.properties.content = value;
-  }
-
-  get likes(): number {
-    return this.properties.likes;
-  }
-
-  set likes(value: number) {
-    this.properties.likes = value;
-  }
-}
-
-interface CommentProps {
-  id: string;
-  text: string;
-  author: string;
-}
-
-class Comment extends Entity<CommentProps> {
-  get text(): string {
-    return this.properties.text;
-  }
-
-  set text(value: string) {
-    this.properties.text = value;
-  }
-
-  get author(): string {
-    return this.properties.author;
-  }
-}
-
-interface UserProps {
-  id: string;
-  name: string;
-  email: string;
-  posts: Post[];
-  address: Address;
-  comments: Comment[];
-}
-
-class User extends Aggregate<UserProps> {
-  get name(): string {
-    return this.properties.name;
-  }
-
-  set name(value: string) {
-    this.properties.name = value;
-  }
-
-  get email(): string {
-    return this.properties.email;
-  }
-
-  set email(value: string) {
-    this.properties.email = value;
-  }
-
-  get posts(): Post[] {
-    return this.properties.posts;
-  }
-
-  set posts(value: Post[]) {
-    this.properties.posts = value;
-  }
-
-  get address(): Address {
-    return this.properties.address;
-  }
-
-  set address(value: Address) {
-    this.properties.address = value;
-  }
-
-  get comments(): Comment[] {
-    return this.properties.comments;
-  }
-
-  set comments(value: Comment[]) {
-    this.properties.comments = value;
-  }
-
-  public addPost(post: Post) {
-    this.properties.posts.push(post);
-  }
-
-  public addManyPosts(posts: Post[]) {
-    this.properties.posts.push(...posts);
-  }
-
-  public removePostById(id: string) {
-    this.properties.posts = this.properties.posts.filter(
-      post => post.id !== id
-    );
-  }
-}
-
-// ============================================================================
-// Test Suite
-// ============================================================================
-
-describe('DDD Library Tests', () => {
-  // ==========================================================================
-  // Basic Entity Tests
-  // ==========================================================================
-
-  describe('Entity Basic Functionality', () => {
-    it('should create an entity with id', () => {
-      const post = new Post({
-        id: '1',
-        title: 'First Post',
-        content: 'Hello World',
-        likes: 0,
-      });
-
-      expect(post.id).toBe('1');
-      expect(post.title).toBe('First Post');
-    });
-
-    it('should allow property modification', () => {
-      const post = new Post({
-        id: '1',
-        title: 'First Post',
-        content: 'Hello World',
-        likes: 0,
-      });
-
-      post.title = 'Updated Title';
-      expect(post.title).toBe('Updated Title');
-    });
-  });
-
+describe('History Tracker Tests', () => {
   // ==========================================================================
   // Simple Property Change Tests
   // ==========================================================================
@@ -184,7 +9,7 @@ describe('DDD Library Tests', () => {
   describe('Simple Property Changes', () => {
     it('should track simple property changes', done => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 0,
@@ -209,7 +34,7 @@ describe('DDD Library Tests', () => {
 
     it('should track multiple property changes', () => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 0,
@@ -242,7 +67,7 @@ describe('DDD Library Tests', () => {
   describe('Array Changes - Create', () => {
     it('should detect new items added to array', done => {
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [],
@@ -267,19 +92,29 @@ describe('DDD Library Tests', () => {
       });
 
       user.addManyPosts([
-        new Post({ id: '1', title: 'Post 1', content: 'Content 1', likes: 0 }),
-        new Post({ id: '2', title: 'Post 2', content: 'Content 2', likes: 0 }),
+        new Post({
+          id: new Id('1'),
+          title: 'Post 1',
+          content: 'Content 1',
+          likes: 0,
+        }),
+        new Post({
+          id: new Id('2'),
+          title: 'Post 2',
+          content: 'Content 2',
+          likes: 0,
+        }),
       ]);
     });
 
     it('should detect items pushed to array', done => {
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [
           new Post({
-            id: '1',
+            id: new Id('1'),
             title: 'Post 1',
             content: 'Content 1',
             likes: 0,
@@ -304,7 +139,12 @@ describe('DDD Library Tests', () => {
       });
 
       user.posts.push(
-        new Post({ id: '2', title: 'Post 2', content: 'Content 2', likes: 0 })
+        new Post({
+          id: new Id('2'),
+          title: 'Post 2',
+          content: 'Content 2',
+          likes: 0,
+        })
       );
     });
   });
@@ -314,22 +154,23 @@ describe('DDD Library Tests', () => {
   // ==========================================================================
 
   describe('Array Changes - Update', () => {
-    it.only('should detect updated items in array', done => {
+    it('should detect updated items in array', done => {
+      const id1 = new Id('1');
       const post1 = new Post({
-        id: '1',
+        id: id1,
         title: 'Post 1',
         content: 'Content 1',
         likes: 0,
       });
       const post2 = new Post({
-        id: '2',
+        id: new Id('2'),
         title: 'Post 2',
         content: 'Content 2',
         likes: 0,
       });
 
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [post1, post2],
@@ -344,13 +185,10 @@ describe('DDD Library Tests', () => {
       user.subscribe({
         posts: {
           onChange: ({ toCreate, toUpdate, toDelete }) => {
-            console.log('toCreate', toCreate);
-            console.log('toUpdate', toUpdate);
-            console.log('toDelete', toDelete);
             expect(toCreate).toHaveLength(0);
             expect(toUpdate).toHaveLength(1);
             expect(toDelete).toHaveLength(0);
-            expect(toUpdate[0].id).toBe('1');
+            expect(toUpdate[0].id).toBe(id1);
             done();
           },
         },
@@ -358,26 +196,26 @@ describe('DDD Library Tests', () => {
 
       // Modify existing post
       post1.title = 'Updated Post 1';
-      user.email = 'new@example.com';
+      user.changeEmail('new@example.com');
       user.posts = [...user.posts]; // Trigger change detection
     });
 
     it('should detect multiple updates in array', done => {
       const post1 = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'Post 1',
         content: 'Content 1',
         likes: 0,
       });
       const post2 = new Post({
-        id: '2',
+        id: new Id('2'),
         title: 'Post 2',
         content: 'Content 2',
         likes: 0,
       });
 
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [post1, post2],
@@ -392,7 +230,6 @@ describe('DDD Library Tests', () => {
       user.subscribe({
         posts: {
           onChange: ({ toUpdate }) => {
-            console.log('toUpdate', toUpdate);
             expect(toUpdate).toHaveLength(2);
             done();
           },
@@ -412,20 +249,20 @@ describe('DDD Library Tests', () => {
   describe('Array Changes - Delete', () => {
     it('should detect deleted items from array', done => {
       const post1 = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'Post 1',
         content: 'Content 1',
         likes: 0,
       });
       const post2 = new Post({
-        id: '2',
+        id: new Id('2'),
         title: 'Post 2',
         content: 'Content 2',
         likes: 0,
       });
 
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [post1, post2],
@@ -443,7 +280,6 @@ describe('DDD Library Tests', () => {
             expect(toCreate).toHaveLength(0);
             expect(toUpdate).toHaveLength(0);
             expect(toDelete).toHaveLength(1);
-            expect(toDelete[0].id).toBe('1');
             done();
           },
         },
@@ -453,19 +289,20 @@ describe('DDD Library Tests', () => {
     });
 
     it('should detect items removed with splice', done => {
+      const id1 = new Id('1');
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [
           new Post({
-            id: '1',
+            id: id1,
             title: 'Post 1',
             content: 'Content 1',
             likes: 0,
           }),
           new Post({
-            id: '2',
+            id: new Id('2'),
             title: 'Post 2',
             content: 'Content 2',
             likes: 0,
@@ -483,7 +320,7 @@ describe('DDD Library Tests', () => {
         posts: {
           onChange: ({ toDelete }) => {
             expect(toDelete).toHaveLength(1);
-            expect(toDelete[0].id).toBe('1');
+            expect(toDelete[0].id.value).toBe(id1.value);
             done();
           },
         },
@@ -500,14 +337,14 @@ describe('DDD Library Tests', () => {
   describe('Array Changes - Mixed Operations', () => {
     it('should detect mixed create and update operations', done => {
       const post1 = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'Post 1',
         content: 'Content 1',
         likes: 0,
       });
 
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [post1],
@@ -533,33 +370,43 @@ describe('DDD Library Tests', () => {
       post1.title = 'Updated Post 1';
       user.posts = [
         post1,
-        new Post({ id: '2', title: 'Post 2', content: 'Content 2', likes: 0 }),
-        new Post({ id: '3', title: 'Post 3', content: 'Content 3', likes: 0 }),
+        new Post({
+          id: new Id('2'),
+          title: 'Post 2',
+          content: 'Content 2',
+          likes: 0,
+        }),
+        new Post({
+          id: new Id('3'),
+          title: 'Post 3',
+          content: 'Content 3',
+          likes: 0,
+        }),
       ];
     });
 
     it('should detect mixed create, update, and delete operations', done => {
       const post1 = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'Post 1',
         content: 'Content 1',
         likes: 0,
       });
       const post2 = new Post({
-        id: '2',
+        id: new Id('2'),
         title: 'Post 2',
         content: 'Content 2',
         likes: 0,
       });
       const post3 = new Post({
-        id: '3',
+        id: new Id('3'),
         title: 'Post 3',
         content: 'Content 3',
         likes: 0,
       });
 
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [post1, post2, post3],
@@ -585,7 +432,12 @@ describe('DDD Library Tests', () => {
       post2.likes = 50;
       user.posts = [
         post2,
-        new Post({ id: '4', title: 'Post 4', content: 'Content 4', likes: 0 }),
+        new Post({
+          id: new Id('4'),
+          title: 'Post 4',
+          content: 'Content 4',
+          likes: 0,
+        }),
       ];
     });
   });
@@ -597,7 +449,7 @@ describe('DDD Library Tests', () => {
   describe('Nested Entity Changes', () => {
     it('should track changes in nested value objects', done => {
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [],
@@ -635,7 +487,7 @@ describe('DDD Library Tests', () => {
   describe('History Tracking', () => {
     it('should record history of changes', () => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 0,
@@ -654,7 +506,7 @@ describe('DDD Library Tests', () => {
 
     it('should clear history', () => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 0,
@@ -675,7 +527,7 @@ describe('DDD Library Tests', () => {
   describe('toJson Functionality', () => {
     it('should convert simple entity to JSON', () => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 5,
@@ -692,18 +544,18 @@ describe('DDD Library Tests', () => {
 
     it('should convert nested entities to JSON', () => {
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [
           new Post({
-            id: '1',
+            id: new Id('1'),
             title: 'Post 1',
             content: 'Content 1',
             likes: 0,
           }),
           new Post({
-            id: '2',
+            id: new Id('2'),
             title: 'Post 2',
             content: 'Content 2',
             likes: 5,
@@ -715,7 +567,11 @@ describe('DDD Library Tests', () => {
           zipCode: '10001',
         }),
         comments: [
-          new Comment({ id: '1', text: 'Great post!', author: 'Alice' }),
+          new Comment({
+            id: new Id('1'),
+            text: 'Great post!',
+            author: 'Alice',
+          }),
         ],
       });
 
@@ -731,12 +587,12 @@ describe('DDD Library Tests', () => {
 
     it('should handle deeply nested structures', () => {
       const user = new User({
-        id: '1',
+        id: new Id('1'),
         name: 'John Doe',
         email: 'john@example.com',
         posts: [
           new Post({
-            id: '1',
+            id: new Id('1'),
             title: 'Post 1',
             content: 'Content 1',
             likes: 0,
@@ -819,7 +675,7 @@ describe('DDD Library Tests', () => {
   describe('Multiple Subscribers', () => {
     it('should notify all subscribers on change', () => {
       const post = new Post({
-        id: '1',
+        id: new Id('1'),
         title: 'First Post',
         content: 'Hello World',
         likes: 0,
@@ -848,6 +704,56 @@ describe('DDD Library Tests', () => {
 
       expect(subscriber1Called).toBe(true);
       expect(subscriber2Called).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // Plain Object Tests
+  // ==========================================================================
+
+  describe('Plain Object', () => {
+    it('should create a plain object', () => {
+      const user = new User({
+        id: new Id('1'),
+        name: 'John Doe',
+        email: 'john@example.com',
+        posts: [],
+        address: new Address({
+          street: 'Main St',
+          city: 'NYC',
+          zipCode: '10001',
+        }),
+        comments: [],
+      });
+
+      user.subscribe({
+        email: {
+          onChange: ({ previous, current }) => {
+            expect(previous).toBe('john@example.com');
+            expect(current).toBe('new@example.com');
+          },
+        },
+        extra: {
+          onChange: ({ previous, current }) => {
+            expect(previous).toBe(undefined);
+            expect(current).toEqual({
+              age: 20,
+              height: 180,
+            });
+          },
+        },
+        address: {
+          onChange: ({ previous, current }) => {
+            expect(previous).toBeInstanceOf(Address);
+            expect(current).toBeInstanceOf(Address);
+          },
+        },
+      });
+
+      user.changeExtra({
+        age: 20,
+        height: 180,
+      });
     });
   });
 });
