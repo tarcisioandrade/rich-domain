@@ -27,7 +27,8 @@ export {
   ArraySubscription,
   SubscriptionConfig,
   ValidationConfig,
-  EntityValidation,
+  VOHooks,
+  EntityValidation, // Backwards compatibility
   EntityHooks,
   HistoryEntry,
   DeepJsonResult,

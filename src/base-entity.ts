@@ -10,11 +10,11 @@ import {
   SubscriptionConfig,
   HistoryEntry,
   DeepJsonResult,
-  EntityValidation,
   EntityHooks,
   ValidationConfig,
   DEFAULT_VALIDATION_CONFIG,
   StandardSchema,
+  EntityValidation,
 } from "./types";
 
 // Helper to get static properties from constructor
