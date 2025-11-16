@@ -1,98 +1,233 @@
-# 🏛️ DDD TypeScript Library
+# Rich Domain
 
-Uma biblioteca TypeScript completa para desenvolvimento de aplicações usando Domain-Driven Design (DDD) com foco em **experiência excepcional de desenvolvimento** (DX).
+Uma biblioteca TypeScript para Domain-Driven Design (DDD) com suporte a validação via Standard Schema, rastreamento automático de mudanças e sistema de eventos.
 
-## ✨ Características Principais
+## Características
 
-### 🔍 Deep History Tracking com Comportamento Acumulativo
+- 🏗️ **Entities & Aggregates** - Classes base com identidade e ciclo de vida
+- 💎 **Value Objects** - Objetos imutáveis comparados por valor
+- ✅ **Standard Schema Validation** - Integração com Zod, ArkType, Valibot e outras libs
+- 📜 **Change Tracking** - Histórico automático de todas as mudanças
+- 🔔 **Subscriptions** - Sistema de eventos para observar mudanças
+- 🎯 **Hooks** - Interceptação de criação e atualização de entidades
+- 🆔 **Smart IDs** - Identificadores que sabem se a entidade é nova ou existente
 
-Sistema avançado de rastreamento de mudanças que detecta modificações em **múltiplos níveis de profundidade** com **acumulação automática**:
-
-- ✅ Propriedades simples (strings, numbers, booleans)
-- ✅ Entidades aninhadas
-- ✅ Arrays de entidades com detecção precisa de `create`, `update`, `delete`
-- ✅ Value Objects
-- ✅ Estruturas profundamente encadeadas
-- ✅ **Comportamento ACUMULATIVO**: Cada `onChange` mostra o resultado líquido desde o início (ou último `clearHistory()`)
-
-**Exemplo do comportamento acumulativo:**
-
-```typescript
-const user = new User({ posts: [] });
-
-user.subscribe({
-  posts: {
-    onChange: ({ toCreate, toUpdate, toDelete }) => {
-      // Sempre mostra o RESULTADO LÍQUIDO desde o início
-      console.log(toCreate, toUpdate, toDelete);
-    },
-  },
-});
-
-// Operação 1: Adicionar 2 posts
-user.addPost(post1);
-user.addPost(post2);
-// onChange: toCreate = [post1, post2]
-
-// Operação 2: Remover post1
-user.removePostById(post1.id);
-// onChange: toCreate = [post2] ← post1 foi removido da lista de creates!
-
-// Operação 3: Adicionar post3
-user.addPost(post3);
-// onChange: toCreate = [post2, post3] ← Resultado líquido acumulado!
-
-// Resultado final para persistência: Apenas 2 CREATEs (post2, post3)
-// Não precisa criar post1 e depois deletá-lo!
-```
-
-### 📡 Sistema de Subscrição Reativo
-
-Subscribe em mudanças específicas com callbacks tipados:
-
-```typescript
-entity.subscribe({
-  propertyName: {
-    onChange: ({ previous, current, path }) => {
-      // Reagir a mudanças
-    },
-  },
-  arrayProperty: {
-    onChange: ({ toCreate, toUpdate, toDelete, path }) => {
-      // Detecta precisamente quais itens foram criados, atualizados ou deletados
-    },
-  },
-});
-```
-
-### 🎯 Type-Safe JSON Serialization
-
-Método `toJson()` com tipagem extremamente precisa que:
-
-- Converte entidades recursivamente
-- Preserva a estrutura completa
-- Mantém type safety em tempo de compilação
-- Funciona com estruturas profundamente aninhadas
-
-## 📦 Instalação
+## Instalação
 
 ```bash
-# Copie os arquivos para seu projeto
-src/
-  ├── ddd-library.ts      # Core da biblioteca
-  ├── ddd-library.test.ts # Testes unitários
-  └── example.ts          # Exemplos de uso
+npm install rich-domain
 ```
 
-## 🚀 Guia Rápido
+## Quick Start
 
-### 1️⃣ Definindo Value Objects
+### 1. Definindo um Aggregate com Validação
 
 ```typescript
+import { z } from 'zod';
+import { 
+  Id, 
+  Aggregate, 
+  EntityValidation, 
+  EntityHooks, 
+  BaseProps,
+  throwValidationError 
+} from 'rich-domain';
+
+// Define as propriedades
+interface UserProps extends BaseProps {
+  id: Id;
+  name: string;
+  email: string;
+  age: number;
+  status: 'active' | 'inactive';
+}
+
+// Define o schema de validação (Zod, ArkType, Valibot, etc.)
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('Email inválido'),
+  age: z.number().min(0).max(150),
+  status: z.enum(['active', 'inactive']),
+});
+
+// Cria o Aggregate
+class User extends Aggregate<UserProps> {
+  // Configuração de validação
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: {
+      onCreate: true,      // Validar na criação
+      onUpdate: true,      // Validar em atualizações
+      throwOnError: true,  // Lançar erro ou armazenar internamente
+    },
+  };
+
+  // Hooks de ciclo de vida
+  protected static hooks: EntityHooks<UserProps, User> = {
+    // Valores padrão
+    defaultValues: {
+      age: 18,
+      status: 'active',
+    },
+    
+    // Executado após criação bem-sucedida
+    onCreate: (entity) => {
+      console.log(`Usuário criado: ${entity.name}`);
+    },
+    
+    // Executado antes de cada atualização
+    // Retorne false para bloquear a atualização
+    onBeforeUpdate: (entity, snapshot) => {
+      // Exemplo: bloquear mudança de email
+      if (snapshot.email !== entity.email) {
+        console.warn('Mudança de email bloqueada');
+        return false;
+      }
+      return true;
+    },
+    
+    // Regras de negócio customizadas
+    rules: (entity) => {
+      if (entity.name.toLowerCase() === 'admin') {
+        throwValidationError('name', 'Nome não pode ser "admin"');
+      }
+    },
+  };
+
+  // Getters e Setters
+  get name(): string {
+    return this.properties.name;
+  }
+
+  set name(value: string) {
+    this.properties.name = value;
+  }
+
+  get email(): string {
+    return this.properties.email;
+  }
+
+  set email(value: string) {
+    this.properties.email = value;
+  }
+
+  get age(): number {
+    return this.properties.age;
+  }
+
+  set age(value: number) {
+    this.properties.age = value;
+  }
+
+  get status(): 'active' | 'inactive' {
+    return this.properties.status;
+  }
+
+  // Métodos de domínio
+  deactivate(): void {
+    this.properties.status = 'inactive';
+  }
+
+  activate(): void {
+    this.properties.status = 'active';
+  }
+}
+```
+
+### 2. Uso Básico
+
+```typescript
+// Criar usuário (validação automática no constructor)
+const user = new User({
+  name: 'João Silva',
+  email: 'joao@exemplo.com',
+});
+
+console.log(user.name);     // João Silva
+console.log(user.age);      // 18 (valor padrão)
+console.log(user.status);   // active (valor padrão)
+console.log(user.isNew);    // true (ID foi gerado automaticamente)
+
+// Atualizar propriedades (validação automática)
+user.name = 'Maria Silva';  // OK
+user.age = 25;              // OK
+
+// Tentar atualização inválida
+try {
+  user.name = 'A';  // Erro: muito curto
+} catch (error) {
+  console.log(error.issues);
+  // [{ path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' }]
+}
+
+// Serialização
+const json = user.toJson();
+// {
+//   id: "550e8400-e29b-41d4-a716-446655440000",
+//   name: "Maria Silva",
+//   email: "joao@exemplo.com",
+//   age: 25,
+//   status: "active"
+// }
+```
+
+### 3. Tratamento de Erros sem Throw
+
+```typescript
+class UserSafe extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: {
+      throwOnError: false,  // Não lança erro, armazena internamente
+    },
+  };
+
+  protected static hooks: EntityHooks<UserProps, UserSafe> = {
+    defaultValues: {
+      age: 18,
+      status: 'active',
+    },
+  };
+
+  get name(): string {
+    return this.properties.name;
+  }
+}
+
+// Criar com dados inválidos
+const user = new UserSafe({
+  name: 'J',           // Muito curto
+  email: 'invalido',   // Email inválido
+});
+
+// Verificar erros
+if (user.hasValidationErrors) {
+  console.log(user.validationErrors!.issues);
+  // [
+  //   { path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' },
+  //   { path: ['email'], message: 'Email inválido' }
+  // ]
+  
+  // Verificar erro específico
+  if (user.validationErrors!.hasErrorsForPath('email')) {
+    console.log('Email inválido!');
+  }
+}
+```
+
+## Value Objects
+
+Value Objects são objetos imutáveis comparados por valor, não por referência.
+
+```typescript
+import { ValueObject } from 'rich-domain';
+
 interface AddressProps {
   street: string;
   city: string;
   zipCode: string;
+  country: string;
 }
 
 class Address extends ValueObject<AddressProps> {
@@ -103,534 +238,602 @@ class Address extends ValueObject<AddressProps> {
   get city(): string {
     return this.props.city;
   }
+
+  get zipCode(): string {
+    return this.props.zipCode;
+  }
+
+  get country(): string {
+    return this.props.country;
+  }
+
+  get fullAddress(): string {
+    return `${this.street}, ${this.city}, ${this.zipCode}, ${this.country}`;
+  }
+
+  // Criar nova instância com valores atualizados
+  changeCity(newCity: string): Address {
+    return this.clone({ city: newCity });
+  }
 }
+
+// Uso
+const addr1 = new Address({
+  street: 'Av. Paulista, 1000',
+  city: 'São Paulo',
+  zipCode: '01310-100',
+  country: 'Brasil',
+});
+
+const addr2 = new Address({
+  street: 'Av. Paulista, 1000',
+  city: 'São Paulo',
+  zipCode: '01310-100',
+  country: 'Brasil',
+});
+
+// Comparação por valor
+addr1.equals(addr2);  // true
+
+// Imutabilidade - retorna nova instância
+const addr3 = addr1.changeCity('Rio de Janeiro');
+addr1.city;  // São Paulo (não mudou)
+addr3.city;  // Rio de Janeiro
+
+// Serialização
+addr1.toJson();
+// {
+//   street: 'Av. Paulista, 1000',
+//   city: 'São Paulo',
+//   zipCode: '01310-100',
+//   country: 'Brasil'
+// }
 ```
 
-### 2️⃣ Definindo Entidades
+## Sistema de IDs
+
+O `Id` sabe automaticamente se representa uma entidade nova ou existente.
 
 ```typescript
-interface PostProps {
-  id: string;
-  title: string;
-  content: string;
-  likes: number;
-}
+import { Id } from 'rich-domain';
 
-class Post extends Entity<PostProps> {
-  get title(): string {
-    return this.properties.title;
-  }
+// Nova entidade - gera UUID automaticamente
+const newId = new Id();
+console.log(newId.value);   // "550e8400-e29b-41d4-a716-446655440000"
+console.log(newId.isNew);   // true
 
-  set title(value: string) {
-    this.properties.title = value;
-  }
+// Entidade existente - usa ID fornecido
+const existingId = new Id('user-123');
+console.log(existingId.value);  // "user-123"
+console.log(existingId.isNew);  // false
 
-  get likes(): number {
-    return this.properties.likes;
-  }
+// Comparação
+newId.equals(existingId);           // false
+existingId.equals('user-123');      // true
+existingId.equals(new Id('user-123'));  // true
 
-  set likes(value: number) {
-    this.properties.likes = value;
-  }
-}
+// Serialização
+JSON.stringify({ id: newId });  // { "id": "550e8400..." }
+
+// Static methods
+const id1 = Id.create();        // Novo ID
+const id2 = Id.from('abc-123'); // ID existente
 ```
 
-### 3️⃣ Definindo Aggregates com Métodos de Domínio
+## Rastreamento de Mudanças
+
+Todas as mudanças são automaticamente registradas no histórico.
 
 ```typescript
-interface UserProps {
-  id: string;
+const user = new User({
+  name: 'João',
+  email: 'joao@exemplo.com',
+});
+
+// Fazer algumas mudanças
+user.name = 'Maria';
+user.age = 25;
+user.status = 'inactive';
+
+// Ver histórico
+const history = user.getHistory();
+console.log(history);
+// [
+//   {
+//     path: 'name',
+//     previousValue: 'João',
+//     currentValue: 'Maria',
+//     timestamp: 1234567890
+//   },
+//   {
+//     path: 'age',
+//     previousValue: 18,
+//     currentValue: 25,
+//     timestamp: 1234567891
+//   },
+//   {
+//     path: 'status',
+//     previousValue: 'active',
+//     currentValue: 'inactive',
+//     timestamp: 1234567892
+//   }
+// ]
+
+// Limpar histórico
+user.clearHistory();
+user.getHistory();  // []
+```
+
+## Subscriptions (Observadores)
+
+Observe mudanças em propriedades específicas ou arrays.
+
+### Propriedades Simples
+
+```typescript
+const user = new User({
+  name: 'João',
+  email: 'joao@exemplo.com',
+});
+
+user.subscribe({
+  name: {
+    onChange: ({ previous, current, path }) => {
+      console.log(`Nome mudou de "${previous}" para "${current}"`);
+    },
+  },
+  age: {
+    onChange: ({ previous, current }) => {
+      console.log(`Idade mudou de ${previous} para ${current}`);
+    },
+  },
+});
+
+user.name = 'Maria';  // Log: Nome mudou de "João" para "Maria"
+user.age = 30;        // Log: Idade mudou de 18 para 30
+```
+
+### Arrays (Create, Update, Delete)
+
+```typescript
+interface BlogUserProps extends BaseProps {
+  id: Id;
   name: string;
-  email: string;
   posts: Post[];
-  address: Address;
 }
 
-class User extends Aggregate<UserProps> {
-  get name(): string {
-    return this.properties.name;
-  }
-
-  set name(value: string) {
-    this.properties.name = value;
-  }
-
+class BlogUser extends Entity<BlogUserProps> {
   get posts(): Post[] {
     return this.properties.posts;
   }
 
-  // ✅ Métodos de domínio que trigam change detection automaticamente
-  addPost(post: Post): void {
-    this.properties.posts = [...this.properties.posts, post];
-  }
-
-  removePostById(id: string): void {
-    this.properties.posts = this.properties.posts.filter(
-      post => post.id !== id
-    );
-  }
-
-  updatePost(id: string, updates: Partial<PostProps>): void {
-    this.properties.posts = this.properties.posts.map(post => {
-      if (post.id === id) {
-        Object.assign(post, updates);
-      }
-      return post;
-    });
+  set posts(value: Post[]) {
+    this.properties.posts = value;
   }
 }
-```
 
-## 📚 Funcionalidades Detalhadas
-
-### 🔔 Tracking de Propriedades Simples
-
-```typescript
-const post = new Post({
-  id: '1',
-  title: 'My Post',
-  content: 'Content here',
-  likes: 0,
-});
-
-post.subscribe({
-  title: {
-    onChange: ({ previous, current, path }) => {
-      console.log(`Title changed from "${previous}" to "${current}"`);
-    },
-  },
-  likes: {
-    onChange: ({ previous, current, path }) => {
-      console.log(`Likes: ${previous} → ${current}`);
-    },
-  },
-});
-
-post.title = 'Updated Title'; // Trigger onChange
-post.likes = 10; // Trigger onChange
-```
-
-### 📋 Tracking de Arrays - Operações CRUD
-
-A biblioteca detecta com **precisão cirúrgica** quais itens foram criados, atualizados ou deletados.
-
-**✅ TODAS as formas de modificação de array funcionam:**
-
-```typescript
-const user = new User({
-  id: '1',
-  name: 'John',
-  email: 'john@example.com',
-  posts: [],
-  address: new Address({ street: 'Main St', city: 'NYC', zipCode: '10001' }),
+const user = new BlogUser({
+  id: new Id('1'),
+  name: 'João',
+  posts: [
+    new Post({ id: new Id('1'), title: 'Post 1' }),
+    new Post({ id: new Id('2'), title: 'Post 2' }),
+  ],
 });
 
 user.subscribe({
   posts: {
     onChange: ({ toCreate, toUpdate, toDelete, path }) => {
-      console.log(`Created: ${toCreate.length} posts`);
-      console.log(`Updated: ${toUpdate.length} posts`);
-      console.log(`Deleted: ${toDelete.length} posts`);
+      console.log('Posts criados:', toCreate.length);
+      console.log('Posts atualizados:', toUpdate.length);
+      console.log('Posts deletados:', toDelete.length);
     },
   },
 });
 
-// ✅ Métodos de array nativos
-user.posts.push(post1); // Detectado!
-user.posts.splice(0, 1); // Detectado!
-user.posts.pop(); // Detectado!
+// Adicionar post
+user.posts = [
+  ...user.posts,
+  new Post({ id: new Id('3'), title: 'Post 3' }),
+];
+// Log: Posts criados: 1, Posts atualizados: 0, Posts deletados: 0
 
-// ✅ Atribuição direta com métodos funcionais
-user.posts = user.posts.filter(p => p.id !== '1'); // Detectado!
-user.posts = user.posts.map(p => {
-  // Detectado!
-  p.likes = 100;
-  return p;
+// Atualizar post existente
+user.posts[0].title = 'Post 1 Atualizado';
+user.posts = [...user.posts];  // Trigger change detection
+// Log: Posts criados: 0, Posts atualizados: 1, Posts deletados: 0
+
+// Remover post
+user.posts = user.posts.filter(p => p.id.value !== '2');
+// Log: Posts criados: 0, Posts atualizados: 0, Posts deletados: 1
+```
+
+## Configuração de Validação
+
+```typescript
+interface ValidationConfig {
+  onCreate?: boolean;     // Validar na criação (padrão: true)
+  onUpdate?: boolean;     // Validar em atualizações (padrão: true)
+  throwOnError?: boolean; // Lançar erro ou armazenar internamente (padrão: true)
+}
+
+// Exemplo: Validar apenas na criação
+protected static validation = {
+  schema: mySchema,
+  config: {
+    onCreate: true,
+    onUpdate: false,  // Não valida em atualizações
+    throwOnError: true,
+  },
+};
+```
+
+## Hooks
+
+```typescript
+interface EntityHooks<T, E> {
+  // Valores padrão aplicados antes da validação
+  defaultValues?: Partial<T>;
+
+  // Executado após criação bem-sucedida
+  onCreate?: (entity: E) => void;
+
+  // Executado antes de cada update
+  // Retorne false para bloquear o update
+  onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
+
+  // Regras de negócio customizadas
+  // Executado na criação e em cada update
+  rules?: (entity: E) => void;
+}
+```
+
+### Exemplo: Bloqueando Atualizações
+
+```typescript
+protected static hooks: EntityHooks<UserProps, User> = {
+  onBeforeUpdate: (entity, snapshot) => {
+    // Bloquear mudança de email após criação
+    if (snapshot.email !== entity.email) {
+      return false;  // Bloqueia a atualização
+    }
+    
+    // Bloquear desativação se usuário tem posts
+    if (entity.status === 'inactive' && entity.posts.length > 0) {
+      return false;
+    }
+    
+    return true;  // Permite a atualização
+  },
+};
+```
+
+### Exemplo: Regras de Negócio
+
+```typescript
+protected static hooks: EntityHooks<OrderProps, Order> = {
+  rules: (entity) => {
+    // Validações complexas de negócio
+    if (entity.total < 0) {
+      throwValidationError('total', 'Total não pode ser negativo');
+    }
+    
+    if (entity.items.length === 0 && entity.status === 'confirmed') {
+      throwValidationError('items', 'Pedido confirmado deve ter pelo menos um item');
+    }
+    
+    if (entity.discount > entity.subtotal) {
+      throwValidationError('discount', 'Desconto não pode ser maior que o subtotal');
+    }
+  },
+};
+```
+
+## Compatibilidade com Standard Schema
+
+A biblioteca é compatível com qualquer lib que implemente Standard Schema:
+
+### Zod
+
+```typescript
+import { z } from 'zod';
+
+const schema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(2),
+  email: z.string().email(),
 });
-user.posts = user.posts.concat([post2]); // Detectado!
-user.posts = user.posts.slice(0, 2); // Detectado!
+```
 
-// ✅ Métodos de domínio personalizados
-class User extends Aggregate<UserProps> {
-  removePostById(id: string): void {
-    // ✅ Isso agora funciona perfeitamente!
-    this.properties.posts = this.properties.posts.filter(
-      post => post.id !== id
+### Valibot
+
+```typescript
+import * as v from 'valibot';
+
+const schema = v.object({
+  id: v.custom((val) => val instanceof Id),
+  name: v.pipe(v.string(), v.minLength(2)),
+  email: v.pipe(v.string(), v.email()),
+});
+```
+
+### ArkType
+
+```typescript
+import { type } from 'arktype';
+
+const schema = type({
+  id: 'unknown', // Custom validation
+  name: 'string>=2',
+  email: 'email',
+});
+```
+
+### Adapter Manual
+
+Se sua lib de validação não tem suporte nativo a Standard Schema:
+
+```typescript
+import { fromZod, toStandardSchema } from 'rich-domain';
+
+// Converter Zod manualmente
+const standardSchema = fromZod(zodSchema);
+
+// Auto-detectar e converter
+const schema = toStandardSchema(anySchema);
+```
+
+## ValidationError
+
+```typescript
+import { ValidationError, createValidationIssue, throwValidationError } from 'rich-domain';
+
+// Criar erro manualmente
+const error = new ValidationError([
+  { path: ['email'], message: 'Email inválido' },
+  { path: ['name'], message: 'Nome muito curto' },
+]);
+
+// Métodos úteis
+error.getMessages();                    // ['Email inválido', 'Nome muito curto']
+error.hasErrorsForPath('email');        // true
+error.getErrorsForPath('email');        // [{ path: ['email'], message: 'Email inválido' }]
+
+// Verificar se é ValidationError (funciona entre módulos)
+ValidationError.isValidationError(error);  // true
+
+// Helper para criar issue
+const issue = createValidationIssue('email', 'Email inválido');
+// { path: ['email'], message: 'Email inválido' }
+
+// Helper para lançar erro
+throwValidationError('name', 'Nome inválido');  // throws ValidationError
+```
+
+## API Reference
+
+### Id
+
+```typescript
+class Id {
+  constructor(value?: string);
+  
+  get value(): string;
+  get isNew(): boolean;
+  
+  toString(): string;
+  toJSON(): string;
+  equals(other: Id | string): boolean;
+  
+  static create(): Id;
+  static from(value: string): Id;
+}
+```
+
+### BaseEntity / Entity / Aggregate
+
+```typescript
+abstract class BaseEntity<T extends BaseProps> {
+  constructor(props: Partial<Omit<T, 'id'>> & { id?: Id });
+  
+  get id(): Id;
+  get isNew(): boolean;
+  protected get properties(): T;
+  
+  get hasValidationErrors(): boolean;
+  get validationErrors(): ValidationError | undefined;
+  
+  subscribe(config: SubscriptionConfig<T>): void;
+  getHistory(): HistoryEntry[];
+  clearHistory(): void;
+  toJson(): DeepJsonResult<T>;
+}
+```
+
+### ValueObject
+
+```typescript
+abstract class ValueObject<T> {
+  constructor(props: T);
+  
+  protected get props(): T;
+  
+  equals(other: ValueObject<T>): boolean;
+  toJson(): T;
+  protected clone(updates: Partial<T>): this;
+}
+```
+
+### ValidationError
+
+```typescript
+class ValidationError extends Error {
+  readonly issues: ValidationIssue[];
+  
+  constructor(issues: ValidationIssue[], message?: string);
+  
+  static isValidationError(error: unknown): error is ValidationError;
+  
+  getMessages(): string[];
+  getErrorsForPath(path: string): ValidationIssue[];
+  hasErrorsForPath(path: string): boolean;
+  toJSON(): object;
+}
+```
+
+## Exemplos Completos
+
+### Aggregate Completo
+
+```typescript
+import { z } from 'zod';
+import { 
+  Id, 
+  Aggregate, 
+  Entity,
+  ValueObject,
+  EntityValidation, 
+  EntityHooks, 
+  BaseProps,
+  throwValidationError 
+} from 'rich-domain';
+
+// Value Object
+interface MoneyProps {
+  amount: number;
+  currency: string;
+}
+
+class Money extends ValueObject<MoneyProps> {
+  get amount(): number {
+    return this.props.amount;
+  }
+
+  get currency(): string {
+    return this.props.currency;
+  }
+
+  add(other: Money): Money {
+    if (this.currency !== other.currency) {
+      throw new Error('Cannot add different currencies');
+    }
+    return this.clone({ amount: this.amount + other.amount });
+  }
+}
+
+// Entity
+interface OrderItemProps extends BaseProps {
+  id: Id;
+  productId: string;
+  quantity: number;
+  price: Money;
+}
+
+class OrderItem extends Entity<OrderItemProps> {
+  get productId(): string {
+    return this.properties.productId;
+  }
+
+  get quantity(): number {
+    return this.properties.quantity;
+  }
+
+  get price(): Money {
+    return this.properties.price;
+  }
+
+  get total(): number {
+    return this.price.amount * this.quantity;
+  }
+}
+
+// Aggregate Root
+interface OrderProps extends BaseProps {
+  id: Id;
+  customerId: string;
+  items: OrderItem[];
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered';
+  createdAt: Date;
+}
+
+const orderSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  customerId: z.string().min(1),
+  items: z.array(z.custom<OrderItem>((val) => val instanceof OrderItem)),
+  status: z.enum(['pending', 'confirmed', 'shipped', 'delivered']),
+  createdAt: z.date(),
+});
+
+class Order extends Aggregate<OrderProps> {
+  protected static validation: EntityValidation<OrderProps> = {
+    schema: orderSchema,
+  };
+
+  protected static hooks: EntityHooks<OrderProps, Order> = {
+    defaultValues: {
+      items: [],
+      status: 'pending',
+      createdAt: new Date(),
+    },
+    rules: (entity) => {
+      if (entity.status === 'confirmed' && entity.items.length === 0) {
+        throwValidationError('items', 'Pedido confirmado deve ter itens');
+      }
+    },
+  };
+
+  get customerId(): string {
+    return this.properties.customerId;
+  }
+
+  get items(): OrderItem[] {
+    return this.properties.items;
+  }
+
+  get status(): string {
+    return this.properties.status;
+  }
+
+  get total(): number {
+    return this.items.reduce((sum, item) => sum + item.total, 0);
+  }
+
+  addItem(item: OrderItem): void {
+    this.properties.items = [...this.items, item];
+  }
+
+  removeItem(itemId: Id): void {
+    this.properties.items = this.items.filter(
+      (item) => !item.id.equals(itemId)
     );
   }
 
-  addPost(post: Post): void {
-    // ✅ Também funciona!
-    this.properties.posts = [...this.properties.posts, post];
-  }
-}
-
-user.removePostById('1'); // Detectado!
-user.addPost(newPost); // Detectado!
-```
-
-### 🎭 Operações Mistas e Acumulação
-
-O comportamento acumulativo garante que você sempre tenha o resultado líquido:
-
-```typescript
-// Cenário: Usuário gerenciando posts de blog
-const user = new User({ posts: [existingPost] });
-
-user.subscribe({
-  posts: {
-    onChange: ({ toCreate, toUpdate, toDelete }) => {
-      // Sempre reflete o RESULTADO LÍQUIDO desde o início
-      console.log('Net changes:', { toCreate, toUpdate, toDelete });
-    },
-  },
-});
-
-// Fluxo de trabalho:
-// 1. Criar 3 rascunhos
-user.addPost(draft1);
-user.addPost(draft2);
-user.addPost(draft3);
-// → toCreate: [draft1, draft2, draft3]
-
-// 2. Deletar draft1 (mudou de ideia)
-user.removePostById(draft1.id);
-// → toCreate: [draft2, draft3] ← draft1 removido!
-
-// 3. Deletar draft3 também
-user.removePostById(draft3.id);
-// → toCreate: [draft2] ← draft3 removido!
-
-// 4. Adicionar post final
-user.addPost(finalPost);
-// → toCreate: [draft2, finalPost]
-
-// 5. Atualizar post existente
-existingPost.likes = 100;
-user.posts = [...user.posts];
-// → toCreate: [draft2, finalPost], toUpdate: [existingPost]
-
-// 🎯 Para persistência: Apenas 2 CREATEs + 1 UPDATE
-// Não precisa criar e deletar draft1 e draft3!
-```
-
-**Benefícios:**
-
-- ✅ Menos operações no banco de dados
-- ✅ Não cria registros temporários que serão deletados
-- ✅ Perfeito para auto-save e batch operations
-- ✅ Simplifica lógica de persistência
-
-### 🏗️ Entidades Aninhadas
-
-```typescript
-user.subscribe({
-  address: {
-    onChange: ({ previous, current, path }) => {
-      console.log('Address changed!');
-      console.log('Previous:', previous.toJson());
-      console.log('Current:', current.toJson());
-    },
-  },
-});
-
-user.address = new Address({
-  street: 'Broadway',
-  city: 'LA',
-  zipCode: '90001',
-});
-```
-
-### 📜 História de Mudanças e Acumulação
-
-```typescript
-const product = new Product({
-  id: '1',
-  name: 'Laptop',
-  price: 1000,
-  stock: 10,
-});
-
-product.name = 'Gaming Laptop';
-product.price = 1500;
-product.stock = 8;
-
-const history = product.getHistory();
-// [
-//   { path: 'name', previousValue: 'Laptop', currentValue: 'Gaming Laptop', timestamp: ... },
-//   { path: 'price', previousValue: 1000, currentValue: 1500, timestamp: ... },
-//   { path: 'stock', previousValue: 10, currentValue: 8, timestamp: ... }
-// ]
-
-// Limpar histórico reseta a acumulação
-product.clearHistory();
-
-// Agora novas mudanças são comparadas com o estado atual
-product.stock = 5;
-// onChange compara 8 → 5 (não 10 → 5)
-```
-
-### 📄 Serialização JSON Type-Safe
-
-```typescript
-const user = new User({
-  id: '1',
-  name: 'John',
-  email: 'john@example.com',
-  posts: [new Post({ id: '1', title: 'Post 1', content: 'Content', likes: 5 })],
-  address: new Address({ street: 'Main St', city: 'NYC', zipCode: '10001' }),
-});
-
-const json = user.toJson();
-// {
-//   id: '1',
-//   name: 'John',
-//   email: 'john@example.com',
-//   posts: [
-//     { id: '1', title: 'Post 1', content: 'Content', likes: 5 }
-//   ],
-//   address: { street: 'Main St', city: 'NYC', zipCode: '10001' }
-// }
-
-// ✅ Totalmente tipado! TypeScript conhece a estrutura exata
-console.log(json.posts[0].title); // ✅ Type-safe
-console.log(json.address.city); // ✅ Type-safe
-```
-
-### ⚖️ Value Objects - Igualdade por Valor
-
-```typescript
-const address1 = new Address({
-  street: 'Main St',
-  city: 'NYC',
-  zipCode: '10001',
-});
-const address2 = new Address({
-  street: 'Main St',
-  city: 'NYC',
-  zipCode: '10001',
-});
-const address3 = new Address({
-  street: 'Broadway',
-  city: 'NYC',
-  zipCode: '10001',
-});
-
-address1.equals(address2); // true - mesmo conteúdo
-address1.equals(address3); // false - conteúdo diferente
-```
-
-## 🏗️ Arquitetura
-
-### Classes Base
-
-```typescript
-// Value Objects - Objetos imutáveis comparados por valor
-abstract class ValueObject<T>
-
-// Entities - Objetos com identidade única
-class Entity<T extends BaseProps>
-
-// Aggregates - Raiz de agregação com boundaries transacionais
-class Aggregate<T extends BaseProps>
-```
-
-### Sistema de Tracking
-
-```typescript
-class DeepProxy
-  - createProxy(): Cria proxy recursivo para tracking
-  - subscribe(path, callback): Registra listeners
-  - detectArrayChanges(): Detecta CRUD em arrays
-  - getHistory(): Retorna histórico de mudanças
-```
-
-## 🎯 Casos de Uso
-
-### E-commerce - Order Management
-
-```typescript
-class Order extends Aggregate<OrderProps> {
-  addItem(item: OrderItem): void {
-    this.items = [...this.items, item];
-  }
-
-  removeItem(itemId: string): void {
-    this.items = this.items.filter(i => i.id !== itemId);
-  }
-
   confirm(): void {
-    if (this.status !== 'pending') {
-      throw new Error('Only pending orders can be confirmed');
+    if (this.items.length === 0) {
+      throw new Error('Cannot confirm empty order');
     }
-    this.status = 'confirmed';
+    this.properties.status = 'confirmed';
   }
 }
 
-const order = new Order({ ... });
-
-order.subscribe({
-  items: {
-    onChange: ({ toCreate, toUpdate, toDelete }) => {
-      // Sincronizar com repositório
-      // Enviar eventos de domínio
-      // Atualizar estoque
-    }
-  },
-  status: {
-    onChange: ({ current }) => {
-      // Enviar notificação ao cliente
-      // Registrar auditoria
-    }
-  }
+// Uso
+const order = new Order({
+  customerId: 'customer-123',
 });
+
+order.addItem(
+  new OrderItem({
+    productId: 'product-1',
+    quantity: 2,
+    price: new Money({ amount: 50, currency: 'BRL' }),
+  })
+);
+
+console.log(order.total);  // 100
+order.confirm();
+console.log(order.status); // confirmed
 ```
 
-### Blog Platform
+## Licença
 
-```typescript
-class BlogPost extends Aggregate<BlogPostProps> {
-  publish(): void {
-    this.status = 'published';
-    this.publishedAt = new Date();
-  }
-
-  addComment(comment: Comment): void {
-    this.comments = [...this.comments, comment];
-  }
-}
-
-const post = new BlogPost({ ... });
-
-post.subscribe({
-  comments: {
-    onChange: ({ toCreate }) => {
-      // Enviar notificação ao autor
-      // Atualizar contador de comentários
-      toCreate.forEach(comment => {
-        emailService.notifyNewComment(post.authorId, comment);
-      });
-    }
-  }
-});
-```
-
-## 🧪 Testando
-
-A biblioteca inclui testes unitários completos:
-
-```typescript
-describe('DDD Library Tests', () => {
-  it('should track simple property changes', () => { ... });
-  it('should detect new items added to array', () => { ... });
-  it('should detect updated items in array', () => { ... });
-  it('should detect deleted items from array', () => { ... });
-  it('should detect mixed operations', () => { ... });
-  it('should convert to JSON recursively', () => { ... });
-  // ... +30 testes
-});
-```
-
-Execute os testes:
-
-```bash
-npm test
-```
-
-## 🎨 Padrões de Design
-
-### Repository Pattern
-
-```typescript
-interface IOrderRepository {
-  save(order: Order): Promise<void>;
-  findById(id: string): Promise<Order | null>;
-}
-
-class OrderRepository implements IOrderRepository {
-  async save(order: Order): Promise<void> {
-    const changes = order.getHistory();
-
-    // Persist apenas as mudanças
-    for (const change of changes) {
-      await this.persistChange(order.id, change);
-    }
-
-    order.clearHistory();
-  }
-}
-```
-
-### Domain Events
-
-```typescript
-class Order extends Aggregate<OrderProps> {
-  confirm(): void {
-    this.status = 'confirmed';
-    // Emitir evento de domínio
-    this.addDomainEvent(new OrderConfirmedEvent(this.id));
-  }
-}
-
-order.subscribe({
-  status: {
-    onChange: ({ current }) => {
-      if (current === 'confirmed') {
-        eventBus.publish(new OrderConfirmedEvent(order.id));
-      }
-    },
-  },
-});
-```
-
-## 💡 Dicas de Uso
-
-### ✅ Boas Práticas
-
-1. **Sempre use getters/setters** nas entidades para expor propriedades
-2. **Subscribe apenas no necessário** para evitar overhead
-3. **Use Value Objects** para conceitos sem identidade (Money, Address, etc)
-4. **Aggregates devem ser pequenos** - mantenha boundaries claros
-5. **Limpe o histórico** após persistir mudanças
-
-### ❌ Anti-Patterns
-
-1. ❌ Modificar `this.props` diretamente - use `this.properties`
-2. ❌ Criar aggregates muito grandes
-3. ❌ Esquecer de triggerar change detection em arrays (`[...array]`)
-4. ❌ Usar entidades mutáveis como Value Objects
-
-## 🔧 Configuração TypeScript
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
-}
-```
-
-## 📊 Performance
-
-- **Tracking overhead**: ~5-10% em operações normais
-- **Memory footprint**: Mínimo - usa WeakMap internamente
-- **Array detection**: O(n) onde n é o tamanho do array
-- **Deep nesting**: Sem limites de profundidade
-
-## 🤝 Contribuindo
-
-Esta é uma biblioteca de referência. Adapte-a às necessidades do seu projeto!
-
-## 📄 Licença
-
-MIT - Use livremente em seus projetos!
-
----
-
-**Desenvolvido com ❤️ para a melhor DX possível**
+MIT
