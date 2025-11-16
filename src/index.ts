@@ -1,24 +1,44 @@
-export {
-  BaseAdapter as Adapter,
-  BaseAdapter,
-} from './core/application/adapter';
-export { Pagination } from './core/common/pagination';
-export { PaginationCriteria } from './core/common/pagination-criteria';
-export type {
-  Condition,
-  Filtering,
-  OrderByEnum,
-  Ordering,
-  PaginationQuery,
-  PaginationQueryConfig,
-  PaginationResult,
-} from './core/common/pagination-types';
-export * from './domain';
-export * as Domain from './domain';
-export * from './errors';
-export * as Errors from './errors';
-export * from './repository';
-export * as Repository from './repository';
+// ============================================================================
+// Rich Domain Library - Main Exports
+// ============================================================================
 
-export { ApplyRulesOnlyAfterCommitsSync } from './decorators/apply-rules-only-after-ends';
-export type { AutoMapperSerializer } from './core/interface/types';
+// Core Classes
+export { Id } from "./id";
+export { BaseEntity } from "./base-entity";
+export { Entity, Aggregate } from "./entity";
+export { ValueObject } from "./value-object";
+
+// Error Handling
+export { Result, Success, Failure } from "./result";
+export {
+  ValidationError,
+  ValidationIssue,
+  createValidationIssue,
+  throwValidationError,
+} from "./validation-error";
+
+// Types
+export {
+  BaseProps,
+  EntityId,
+  ChangeEvent,
+  ArrayChangeEvent,
+  PropertySubscriber,
+  ArraySubscriber,
+  PropertySubscription,
+  ArraySubscription,
+  SubscriptionConfig,
+  ValidationConfig,
+  EntityValidation,
+  EntityHooks,
+  HistoryEntry,
+  DeepJsonResult,
+  StandardSchema,
+  StandardSchemaProps,
+  StandardSchemaIssue,
+  StandardSchemaResult,
+  DEFAULT_VALIDATION_CONFIG,
+} from "./types";
+
+// Internal (for advanced usage)
+export { DeepProxy } from "./deep-proxy";
