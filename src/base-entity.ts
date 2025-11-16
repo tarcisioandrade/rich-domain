@@ -285,6 +285,36 @@ export abstract class BaseEntity<T extends BaseProps> {
     return this._props.id.isNew;
   }
 
+  /**
+   * Check equality with another entity by comparing IDs
+   * Entities are equal if they have the same ID, regardless of other properties
+   *
+   * @param other - Another entity or an ID to compare with
+   * @returns true if entities have the same ID
+   */
+  equals(other: BaseEntity<T> | Id | string): boolean {
+    if (!other) {
+      return false;
+    }
+
+    // Compare with another entity
+    if (other instanceof BaseEntity) {
+      return this.id.equals(other.id);
+    }
+
+    // Compare with an ID
+    if (other instanceof Id) {
+      return this.id.equals(other);
+    }
+
+    // Compare with a string ID
+    if (typeof other === "string") {
+      return this.id.equals(other);
+    }
+
+    return false;
+  }
+
   protected get props(): T {
     return this.proxiedProps;
   }
