@@ -23,15 +23,15 @@ npm install rich-domain
 ### 1. Definindo um Aggregate com Validação
 
 ```typescript
-import { z } from 'zod';
-import { 
-  Id, 
-  Aggregate, 
-  EntityValidation, 
-  EntityHooks, 
+import { z } from "zod";
+import {
+  Id,
+  Aggregate,
+  EntityValidation,
+  EntityHooks,
   BaseProps,
-  throwValidationError 
-} from 'rich-domain';
+  throwValidationError,
+} from "rich-domain";
 
 // Define as propriedades
 interface UserProps extends BaseProps {
@@ -39,16 +39,16 @@ interface UserProps extends BaseProps {
   name: string;
   email: string;
   age: number;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 }
 
 // Define o schema de validação (Zod, ArkType, Valibot, etc.)
 const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  email: z.string().email('Email inválido'),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
   age: z.number().min(0).max(150),
-  status: z.enum(['active', 'inactive']),
+  status: z.enum(["active", "inactive"]),
 });
 
 // Cria o Aggregate
@@ -57,9 +57,9 @@ class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
     config: {
-      onCreate: true,      // Validar na criação
-      onUpdate: true,      // Validar em atualizações
-      throwOnError: true,  // Lançar erro ou armazenar internamente
+      onCreate: true, // Validar na criação
+      onUpdate: true, // Validar em atualizações
+      throwOnError: true, // Lançar erro ou armazenar internamente
     },
   };
 
@@ -68,29 +68,29 @@ class User extends Aggregate<UserProps> {
     // Valores padrão
     defaultValues: {
       age: 18,
-      status: 'active',
+      status: "active",
     },
-    
+
     // Executado após criação bem-sucedida
     onCreate: (entity) => {
       console.log(`Usuário criado: ${entity.name}`);
     },
-    
+
     // Executado antes de cada atualização
     // Retorne false para bloquear a atualização
     onBeforeUpdate: (entity, snapshot) => {
       // Exemplo: bloquear mudança de email
       if (snapshot.email !== entity.email) {
-        console.warn('Mudança de email bloqueada');
+        console.warn("Mudança de email bloqueada");
         return false;
       }
       return true;
     },
-    
+
     // Regras de negócio customizadas
     rules: (entity) => {
-      if (entity.name.toLowerCase() === 'admin') {
-        throwValidationError('name', 'Nome não pode ser "admin"');
+      if (entity.name.toLowerCase() === "admin") {
+        throwValidationError("name", 'Nome não pode ser "admin"');
       }
     },
   };
@@ -120,17 +120,17 @@ class User extends Aggregate<UserProps> {
     this.props.age = value;
   }
 
-  get status(): 'active' | 'inactive' {
+  get status(): "active" | "inactive" {
     return this.props.status;
   }
 
   // Métodos de domínio
   deactivate(): void {
-    this.props.status = 'inactive';
+    this.props.status = "inactive";
   }
 
   activate(): void {
-    this.props.status = 'active';
+    this.props.status = "active";
   }
 }
 ```
@@ -140,22 +140,22 @@ class User extends Aggregate<UserProps> {
 ```typescript
 // Criar usuário (validação automática no constructor)
 const user = new User({
-  name: 'João Silva',
-  email: 'joao@exemplo.com',
+  name: "João Silva",
+  email: "joao@exemplo.com",
 });
 
-console.log(user.name);     // João Silva
-console.log(user.age);      // 18 (valor padrão)
-console.log(user.status);   // active (valor padrão)
-console.log(user.isNew);    // true (ID foi gerado automaticamente)
+console.log(user.name); // João Silva
+console.log(user.age); // 18 (valor padrão)
+console.log(user.status); // active (valor padrão)
+console.log(user.isNew); // true (ID foi gerado automaticamente)
 
 // Atualizar propriedades (validação automática)
-user.name = 'Maria Silva';  // OK
-user.age = 25;              // OK
+user.name = "Maria Silva"; // OK
+user.age = 25; // OK
 
 // Tentar atualização inválida
 try {
-  user.name = 'A';  // Erro: muito curto
+  user.name = "A"; // Erro: muito curto
 } catch (error) {
   console.log(error.issues);
   // [{ path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' }]
@@ -179,14 +179,14 @@ class UserSafe extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
     config: {
-      throwOnError: false,  // Não lança erro, armazena internamente
+      throwOnError: false, // Não lança erro, armazena internamente
     },
   };
 
   protected static hooks: EntityHooks<UserProps, UserSafe> = {
     defaultValues: {
       age: 18,
-      status: 'active',
+      status: "active",
     },
   };
 
@@ -197,8 +197,8 @@ class UserSafe extends Aggregate<UserProps> {
 
 // Criar com dados inválidos
 const user = new UserSafe({
-  name: 'J',           // Muito curto
-  email: 'invalido',   // Email inválido
+  name: "J", // Muito curto
+  email: "invalido", // Email inválido
 });
 
 // Verificar erros
@@ -208,10 +208,10 @@ if (user.hasValidationErrors) {
   //   { path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' },
   //   { path: ['email'], message: 'Email inválido' }
   // ]
-  
+
   // Verificar erro específico
-  if (user.validationErrors!.hasErrorsForPath('email')) {
-    console.log('Email inválido!');
+  if (user.validationErrors!.hasErrorsForPath("email")) {
+    console.log("Email inválido!");
   }
 }
 ```
@@ -221,7 +221,7 @@ if (user.hasValidationErrors) {
 Value Objects são objetos imutáveis comparados por valor, não por referência.
 
 ```typescript
-import { ValueObject } from 'rich-domain';
+import { ValueObject } from "rich-domain";
 
 interface AddressProps {
   street: string;
@@ -259,26 +259,26 @@ class Address extends ValueObject<AddressProps> {
 
 // Uso
 const addr1 = new Address({
-  street: 'Av. Paulista, 1000',
-  city: 'São Paulo',
-  zipCode: '01310-100',
-  country: 'Brasil',
+  street: "Av. Paulista, 1000",
+  city: "São Paulo",
+  zipCode: "01310-100",
+  country: "Brasil",
 });
 
 const addr2 = new Address({
-  street: 'Av. Paulista, 1000',
-  city: 'São Paulo',
-  zipCode: '01310-100',
-  country: 'Brasil',
+  street: "Av. Paulista, 1000",
+  city: "São Paulo",
+  zipCode: "01310-100",
+  country: "Brasil",
 });
 
 // Comparação por valor
-addr1.equals(addr2);  // true
+addr1.equals(addr2); // true
 
 // Imutabilidade - retorna nova instância
-const addr3 = addr1.changeCity('Rio de Janeiro');
-addr1.city;  // São Paulo (não mudou)
-addr3.city;  // Rio de Janeiro
+const addr3 = addr1.changeCity("Rio de Janeiro");
+addr1.city; // São Paulo (não mudou)
+addr3.city; // Rio de Janeiro
 
 // Serialização
 addr1.toJson();
@@ -295,29 +295,29 @@ addr1.toJson();
 O `Id` sabe automaticamente se representa uma entidade nova ou existente.
 
 ```typescript
-import { Id } from 'rich-domain';
+import { Id } from "rich-domain";
 
 // Nova entidade - gera UUID automaticamente
 const newId = new Id();
-console.log(newId.value);   // "550e8400-e29b-41d4-a716-446655440000"
-console.log(newId.isNew);   // true
+console.log(newId.value); // "550e8400-e29b-41d4-a716-446655440000"
+console.log(newId.isNew); // true
 
 // Entidade existente - usa ID fornecido
-const existingId = new Id('user-123');
-console.log(existingId.value);  // "user-123"
-console.log(existingId.isNew);  // false
+const existingId = new Id("user-123");
+console.log(existingId.value); // "user-123"
+console.log(existingId.isNew); // false
 
 // Comparação
-newId.equals(existingId);           // false
-existingId.equals('user-123');      // true
-existingId.equals(new Id('user-123'));  // true
+newId.equals(existingId); // false
+existingId.equals("user-123"); // true
+existingId.equals(new Id("user-123")); // true
 
 // Serialização
-JSON.stringify({ id: newId });  // { "id": "550e8400..." }
+JSON.stringify({ id: newId }); // { "id": "550e8400..." }
 
 // Static methods
-const id1 = Id.create();        // Novo ID
-const id2 = Id.from('abc-123'); // ID existente
+const id1 = Id.create(); // Novo ID
+const id2 = Id.from("abc-123"); // ID existente
 ```
 
 ## Rastreamento de Mudanças
@@ -326,14 +326,14 @@ Todas as mudanças são automaticamente registradas no histórico.
 
 ```typescript
 const user = new User({
-  name: 'João',
-  email: 'joao@exemplo.com',
+  name: "João",
+  email: "joao@exemplo.com",
 });
 
 // Fazer algumas mudanças
-user.name = 'Maria';
+user.name = "Maria";
 user.age = 25;
-user.status = 'inactive';
+user.status = "inactive";
 
 // Ver histórico
 const history = user.getHistory();
@@ -361,7 +361,7 @@ console.log(history);
 
 // Limpar histórico
 user.clearHistory();
-user.getHistory();  // []
+user.getHistory(); // []
 ```
 
 ## Subscriptions (Observadores)
@@ -372,8 +372,8 @@ Observe mudanças em propriedades específicas ou arrays.
 
 ```typescript
 const user = new User({
-  name: 'João',
-  email: 'joao@exemplo.com',
+  name: "João",
+  email: "joao@exemplo.com",
 });
 
 user.subscribe({
@@ -389,8 +389,8 @@ user.subscribe({
   },
 });
 
-user.name = 'Maria';  // Log: Nome mudou de "João" para "Maria"
-user.age = 30;        // Log: Idade mudou de 18 para 30
+user.name = "Maria"; // Log: Nome mudou de "João" para "Maria"
+user.age = 30; // Log: Idade mudou de 18 para 30
 ```
 
 ### Arrays (Create, Update, Delete)
@@ -413,38 +413,35 @@ class BlogUser extends Entity<BlogUserProps> {
 }
 
 const user = new BlogUser({
-  id: new Id('1'),
-  name: 'João',
+  id: new Id("1"),
+  name: "João",
   posts: [
-    new Post({ id: new Id('1'), title: 'Post 1' }),
-    new Post({ id: new Id('2'), title: 'Post 2' }),
+    new Post({ id: new Id("1"), title: "Post 1" }),
+    new Post({ id: new Id("2"), title: "Post 2" }),
   ],
 });
 
 user.subscribe({
   posts: {
     onChange: ({ toCreate, toUpdate, toDelete, path }) => {
-      console.log('Posts criados:', toCreate.length);
-      console.log('Posts atualizados:', toUpdate.length);
-      console.log('Posts deletados:', toDelete.length);
+      console.log("Posts criados:", toCreate.length);
+      console.log("Posts atualizados:", toUpdate.length);
+      console.log("Posts deletados:", toDelete.length);
     },
   },
 });
 
 // Adicionar post
-user.posts = [
-  ...user.posts,
-  new Post({ id: new Id('3'), title: 'Post 3' }),
-];
+user.posts = [...user.posts, new Post({ id: new Id("3"), title: "Post 3" })];
 // Log: Posts criados: 1, Posts atualizados: 0, Posts deletados: 0
 
 // Atualizar post existente
-user.posts[0].title = 'Post 1 Atualizado';
-user.posts = [...user.posts];  // Trigger change detection
+user.posts[0].title = "Post 1 Atualizado";
+user.posts = [...user.posts]; // Trigger change detection
 // Log: Posts criados: 0, Posts atualizados: 1, Posts deletados: 0
 
 // Remover post
-user.posts = user.posts.filter(p => p.id.value !== '2');
+user.posts = user.posts.filter((p) => p.id.value !== "2");
 // Log: Posts criados: 0, Posts atualizados: 0, Posts deletados: 1
 ```
 
@@ -497,12 +494,12 @@ protected static hooks: EntityHooks<UserProps, User> = {
     if (snapshot.email !== entity.email) {
       return false;  // Bloqueia a atualização
     }
-    
+
     // Bloquear desativação se usuário tem posts
     if (entity.status === 'inactive' && entity.posts.length > 0) {
       return false;
     }
-    
+
     return true;  // Permite a atualização
   },
 };
@@ -517,11 +514,11 @@ protected static hooks: EntityHooks<OrderProps, Order> = {
     if (entity.total < 0) {
       throwValidationError('total', 'Total não pode ser negativo');
     }
-    
+
     if (entity.items.length === 0 && entity.status === 'confirmed') {
       throwValidationError('items', 'Pedido confirmado deve ter pelo menos um item');
     }
-    
+
     if (entity.discount > entity.subtotal) {
       throwValidationError('discount', 'Desconto não pode ser maior que o subtotal');
     }
@@ -536,7 +533,7 @@ A biblioteca é compatível com qualquer lib que implemente Standard Schema:
 ### Zod
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 const schema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
@@ -548,7 +545,7 @@ const schema = z.object({
 ### Valibot
 
 ```typescript
-import * as v from 'valibot';
+import * as v from "valibot";
 
 const schema = v.object({
   id: v.custom((val) => val instanceof Id),
@@ -560,40 +557,44 @@ const schema = v.object({
 ### ArkType
 
 ```typescript
-import { type } from 'arktype';
+import { type } from "arktype";
 
 const schema = type({
-  id: 'unknown', // Custom validation
-  name: 'string>=2',
-  email: 'email',
+  id: "unknown", // Custom validation
+  name: "string>=2",
+  email: "email",
 });
 ```
 
 ## ValidationError
 
 ```typescript
-import { ValidationError, createValidationIssue, throwValidationError } from 'rich-domain';
+import {
+  ValidationError,
+  createValidationIssue,
+  throwValidationError,
+} from "rich-domain";
 
 // Criar erro manualmente
 const error = new ValidationError([
-  { path: ['email'], message: 'Email inválido' },
-  { path: ['name'], message: 'Nome muito curto' },
+  { path: ["email"], message: "Email inválido" },
+  { path: ["name"], message: "Nome muito curto" },
 ]);
 
 // Métodos úteis
-error.getMessages();                    // ['Email inválido', 'Nome muito curto']
-error.hasErrorsForPath('email');        // true
-error.getErrorsForPath('email');        // [{ path: ['email'], message: 'Email inválido' }]
+error.getMessages(); // ['Email inválido', 'Nome muito curto']
+error.hasErrorsForPath("email"); // true
+error.getErrorsForPath("email"); // [{ path: ['email'], message: 'Email inválido' }]
 
 // Verificar se é ValidationError (funciona entre módulos)
-ValidationError.isValidationError(error);  // true
+ValidationError.isValidationError(error); // true
 
 // Helper para criar issue
-const issue = createValidationIssue('email', 'Email inválido');
+const issue = createValidationIssue("email", "Email inválido");
 // { path: ['email'], message: 'Email inválido' }
 
 // Helper para lançar erro
-throwValidationError('name', 'Nome inválido');  // throws ValidationError
+throwValidationError("name", "Nome inválido"); // throws ValidationError
 ```
 
 ## API Reference
@@ -603,14 +604,14 @@ throwValidationError('name', 'Nome inválido');  // throws ValidationError
 ```typescript
 class Id {
   constructor(value?: string);
-  
+
   get value(): string;
   get isNew(): boolean;
-  
+
   toString(): string;
   toJSON(): string;
   equals(other: Id | string): boolean;
-  
+
   static create(): Id;
   static from(value: string): Id;
 }
@@ -620,15 +621,15 @@ class Id {
 
 ```typescript
 abstract class BaseEntity<T extends BaseProps> {
-  constructor(props: Partial<Omit<T, 'id'>> & { id?: Id });
-  
+  constructor(props: Partial<Omit<T, "id">> & { id?: Id });
+
   get id(): Id;
   get isNew(): boolean;
   protected get properties(): T;
-  
+
   get hasValidationErrors(): boolean;
   get validationErrors(): ValidationError | undefined;
-  
+
   subscribe(config: SubscriptionConfig<T>): void;
   getHistory(): HistoryEntry[];
   clearHistory(): void;
@@ -641,9 +642,9 @@ abstract class BaseEntity<T extends BaseProps> {
 ```typescript
 abstract class ValueObject<T> {
   constructor(props: T);
-  
+
   protected get props(): T;
-  
+
   equals(other: ValueObject<T>): boolean;
   toJson(): T;
   protected clone(updates: Partial<T>): this;
@@ -655,11 +656,11 @@ abstract class ValueObject<T> {
 ```typescript
 class ValidationError extends Error {
   readonly issues: ValidationIssue[];
-  
+
   constructor(issues: ValidationIssue[], message?: string);
-  
+
   static isValidationError(error: unknown): error is ValidationError;
-  
+
   getMessages(): string[];
   getErrorsForPath(path: string): ValidationIssue[];
   hasErrorsForPath(path: string): boolean;
