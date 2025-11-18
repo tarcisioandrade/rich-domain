@@ -7,10 +7,10 @@ import { IDomainEvent } from "./domain-event";
 import {
   VOHooks,
   ValidationConfig,
-  DEFAULT_VALIDATION_CONFIG,
   StandardSchema,
   EntityValidation,
 } from "./types";
+import { DEFAULT_VALIDATION_CONFIG } from "./constants";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(

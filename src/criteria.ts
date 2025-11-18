@@ -1,87 +1,20 @@
-// ============================================================================
-// Criteria - Filtros, Ordenação e Paginação
-// ============================================================================
-
-import { FilterValueFor, PathValue, Primitive } from "./types";
+import {
+  FieldPath,
+  Filter,
+  FilterOperator,
+  FilterValueFor,
+  Order,
+  OrderDirection,
+  PaginatedResult,
+  Pagination,
+  PaginationMeta,
+  PathValue,
+  TypedFilter,
+} from "./types";
 
 // ============================================================================
 // Filter Types
 // ============================================================================
-
-export const FilterOperator = [
-  "equals",
-  "notEquals",
-  "greaterThan",
-  "greaterThanOrEqual",
-  "lessThan",
-  "lessThanOrEqual",
-  "contains",
-  "startsWith",
-  "endsWith",
-  "in",
-  "notIn",
-  "between",
-  "isNull",
-  "isNotNull",
-] as const;
-
-export type FilterOperator = (typeof FilterOperator)[number];
-
-interface Filter<TField = string, TValue = unknown> {
-  field: TField;
-  operator: FilterOperator;
-  value: TValue;
-}
-
-export type TypedFilter<T> = {
-  [K in FieldPath<T>]: Filter<K, FilterValueFor<PathValue<T, K>>>;
-}[FieldPath<T>];
-// ============================================================================
-// Order Types
-// ============================================================================
-
-export type OrderDirection = "asc" | "desc";
-
-export interface Order {
-  field: string;
-  direction: OrderDirection;
-}
-
-// ============================================================================
-// Pagination Types
-// ============================================================================
-
-export interface Pagination {
-  page: number;
-  limit: number;
-  offset: number;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-export interface PaginatedResult<T> {
-  data: T[];
-  meta: PaginationMeta;
-}
-
-// ============================================================================
-// Criteria Class
-// ============================================================================
-
-export type FieldPath<T> = {
-  [K in keyof T & string]: T[K] extends Primitive
-    ? K
-    : T[K] extends Array<infer U>
-    ? K | `${K}.${FieldPath<U>}`
-    : K | `${K}.${FieldPath<T[K]>}`;
-}[keyof T & string];
 
 export class Criteria<T = unknown> {
   private _filters: Filter<FieldPath<T>, any>[] = [];

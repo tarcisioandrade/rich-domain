@@ -13,11 +13,11 @@ import {
   DeepJsonResult,
   EntityHooks,
   ValidationConfig,
-  DEFAULT_VALIDATION_CONFIG,
   StandardSchema,
   EntityValidation,
 } from "./types";
 import { DomainEventBus } from "./domain-event-bus";
+import { DEFAULT_VALIDATION_CONFIG } from "./constants";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -62,7 +62,6 @@ export abstract class BaseEntity<T extends BaseProps> {
 
     // Apply defaultValues
     let finalProps = { ...props } as T;
-    
 
     // Generate ID if not provided
     if (!finalProps.id) {

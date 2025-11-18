@@ -313,10 +313,8 @@ describe("Criteria", () => {
 
     it("should create from object", () => {
       const criteria = Criteria.fromObject<TestUser>({
-        filters: [
-          { field: "status", operator: "equals" as const, value: "active" },
-        ],
-        orders: [{ field: "age", direction: "desc" as const }],
+        filters: [{ field: "status", operator: "equals", value: "active" }],
+        orders: [{ field: "age", direction: "desc" }],
         pagination: { page: 1, limit: 10, offset: 0 },
       });
 
@@ -355,7 +353,7 @@ describe("Criteria", () => {
       const data = [{ id: "1" }, { id: "2" }];
       const pagination = { page: 1, limit: 2, offset: 0 };
       const result = createPaginatedResult(data, pagination, 10);
-
+      
       expect(result.data).toEqual(data);
       expect(result.meta.total).toBe(10);
       expect(result.meta.totalPages).toBe(5);
