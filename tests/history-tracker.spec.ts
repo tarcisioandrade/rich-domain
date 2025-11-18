@@ -1,5 +1,5 @@
 import { Id } from "../src";
-import { Post, User, Address } from "./utils";
+import { Post, User, Address, Comment } from "./utils";
 
 describe("History Tracker Tests", () => {
   describe("Simple Property Changes", () => {
@@ -473,6 +473,66 @@ describe("History Tracker Tests", () => {
         city: "LA",
         zipCode: "90001",
       });
+    });
+
+    it("should track correct changes when assign all value", (done) => {
+      const user = new User({
+        id: new Id("1"),
+        name: "John Doe",
+        email: "john@example.com",
+        posts: [],
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [
+          new Comment({
+            text: "Nice post!",
+            author: "Alice",
+          }),
+        ],
+      });
+
+      let count = 0;
+      const MAX_COUNT_TO_EXPECT = 3;
+      user.subscribe({
+        comments: {
+          onChange: ({ toCreate, toDelete, toUpdate }) => {
+            count++;
+            if (count === MAX_COUNT_TO_EXPECT) {
+              expect(toCreate).toHaveLength(2);
+              expect(toDelete).toHaveLength(1);
+              expect(toUpdate).toHaveLength(0);
+              done();
+            }
+          },
+        },
+      });
+
+      user.comments.push(
+        new Comment({
+          text: "Nice post2!",
+          author: "Alice2",
+        })
+      );
+      user.comments.push(
+        new Comment({
+          text: "Nice post3!",
+          author: "Alice3",
+        })
+      );
+
+      user.comments = [
+        new Comment({
+          text: "Nice post2!",
+          author: "Alice2",
+        }),
+        new Comment({
+          text: "Nice post3!",
+          author: "Alice3",
+        }),
+      ];
     });
   });
 

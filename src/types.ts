@@ -125,7 +125,6 @@ export interface EntityHooks<T extends BaseProps, E> {
   onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
   rules?: (entity: E) => void;
-  defaultValues?: Partial<Omit<T, "id">>;
 }
 
 // ============================================================================

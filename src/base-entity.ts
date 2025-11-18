@@ -41,7 +41,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
 
-  constructor(props: Partial<Omit<T, "id">> & { id?: Id }) {
+  constructor(props: Omit<T, "id"> & { id?: Id }) {
     // Get static configuration from subclass
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
@@ -62,9 +62,7 @@ export abstract class BaseEntity<T extends BaseProps> {
 
     // Apply defaultValues
     let finalProps = { ...props } as T;
-    if (hooks?.defaultValues) {
-      finalProps = { ...hooks.defaultValues, ...props } as T;
-    }
+    
 
     // Generate ID if not provided
     if (!finalProps.id) {
