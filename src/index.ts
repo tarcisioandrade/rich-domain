@@ -25,6 +25,28 @@ export {
 
 export { DomainEventBus, getEventBus } from "./domain-event-bus";
 
+// Criteria & Repository
+export {
+  Criteria,
+  TypedFilter,
+  FilterOperator,
+  Order,
+  OrderDirection,
+  Pagination,
+  PaginationMeta,
+  PaginatedResult,
+  createPaginationMeta,
+  createPaginatedResult,
+  applyCriteriaToArray,
+} from "./criteria";
+
+// Repository
+export {
+  Repository,
+  ExtendedRepository,
+  InMemoryRepository,
+} from "./repository";
+
 // Types
 export {
   BaseProps,
@@ -38,7 +60,7 @@ export {
   SubscriptionConfig,
   ValidationConfig,
   VOHooks,
-  EntityValidation, // Backwards compatibility
+  EntityValidation,
   EntityHooks,
   HistoryEntry,
   DeepJsonResult,

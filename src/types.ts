@@ -166,3 +166,45 @@ export interface EntityConstructor<T extends BaseProps, E> {
   validation?: DomainValidation<T>;
   hooks?: EntityHooks<T, E>;
 }
+
+// ============================================================================
+// Deep Key Of Type
+// ============================================================================
+export type Primitive = string | number | boolean | Date | null | undefined;
+
+export type DeepKeyOf<T, K extends keyof T = keyof T> = K extends string
+  ? T[K] extends Primitive
+    ? K
+    : T[K] extends object
+    ? `${K}` | `${K}.${DeepKeyOf<T[K]>}`
+    : never
+  : never;
+
+export type FieldPath<T> = {
+  [K in keyof T & string]: T[K] extends Primitive
+    ? K
+    : T[K] extends Array<infer U>
+    ? K | `${K}.${FieldPath<U>}`
+    : K | `${K}.${FieldPath<T[K]>}`;
+}[keyof T & string];
+
+export type FilterValueFor<T> =
+  | T // equals, notEquals
+  | (T extends number | Date
+      ? [T, T] // between
+      : never)
+  | T[] // in, notIn
+  | null;
+
+
+
+export type PathValue<
+  T,
+  P extends string
+> = P extends `${infer K}.${infer Rest}`
+  ? K extends keyof T
+    ? PathValue<T[K], Rest>
+    : never
+  : P extends keyof T
+  ? T[P]
+  : never;
