@@ -61,7 +61,7 @@ describe("Criteria", () => {
       const criteria = Criteria.create<TestUser>();
       expect(criteria.hasFilters()).toBe(false);
       expect(criteria.hasOrders()).toBe(false);
-      expect(criteria.hasPagination()).toBe(false);
+      expect(criteria.hasPagination()).toBe(true); // Default pagination is set
     });
 
     it("should chain methods fluently", () => {
