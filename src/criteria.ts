@@ -17,7 +17,7 @@ import {
 export class Criteria<T = unknown> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
-  private _pagination?: Pagination;
+  private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
   private _search?: {
     fields: FieldPath<T>[];
     value: string;
@@ -153,7 +153,7 @@ export class Criteria<T = unknown> {
     return this._orders;
   }
 
-  getPagination(): Pagination | undefined {
+  getPagination(): Pagination {
     return this._pagination;
   }
 
@@ -175,7 +175,7 @@ export class Criteria<T = unknown> {
     const cloned = Criteria.create<T>();
     cloned._filters = [...this._filters];
     cloned._orders = [...this._orders];
-    cloned._pagination = this._pagination ? { ...this._pagination } : undefined;
+    cloned._pagination = { ...this._pagination };
     return cloned;
   }
 

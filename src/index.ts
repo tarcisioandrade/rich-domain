@@ -21,6 +21,8 @@ export * from "./paginated-result";
 
 // Repository
 export * from "./repository";
+// Backward compatibility - re-export InMemoryRepository at top level
+export { InMemoryRepository } from "./repository";
 
 // Types
 export * from "./types";

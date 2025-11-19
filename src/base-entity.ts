@@ -312,7 +312,7 @@ export abstract class BaseEntity<T extends BaseProps> {
     return false;
   }
 
-  protected get props(): T {
+  public get props(): T {
     return this.proxiedProps;
   }
 
