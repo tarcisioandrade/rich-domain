@@ -20,6 +20,10 @@ export class Criteria<T = unknown> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination?: Pagination;
+  private _search?: {
+    fields: FieldPath<T>[];
+    value: string;
+  };
 
   private constructor() {}
 
@@ -103,6 +107,26 @@ export class Criteria<T = unknown> {
     return this.orderBy(field, "desc");
   }
 
+  // --------------------------------------------------------------------------
+  // Search (tipado)
+  // --------------------------------------------------------------------------
+
+  search<K extends FieldPath<T>>(fields: K[], value: string): this {
+    this._search = {
+      fields,
+      value,
+    };
+    return this;
+  }
+
+  hasSearch(): boolean {
+    return !!this._search;
+  }
+
+  getSearch() {
+    return this._search;
+  }
+
   // === Pagination ===
 
   paginate(page: number, limit: number): this {
@@ -157,15 +181,12 @@ export class Criteria<T = unknown> {
     return cloned;
   }
 
-  toJSON(): {
-    filters: Filter[];
-    orders: Order[];
-    pagination?: Pagination;
-  } {
+  toJSON() {
     return {
-      filters: [...this._filters],
-      orders: [...this._orders],
-      pagination: this._pagination ? { ...this._pagination } : undefined,
+      filters: this._filters,
+      orders: this._orders,
+      pagination: this._pagination,
+      search: this._search,
     };
   }
 
@@ -173,11 +194,14 @@ export class Criteria<T = unknown> {
     filters?: TypedFilter<T>[];
     orders?: Order[];
     pagination?: Pagination;
+    search?: { fields: FieldPath<T>[]; value: string };
   }): Criteria<T> {
     const criteria = Criteria.create<T>();
     if (obj.filters) criteria._filters = [...obj.filters];
     if (obj.orders) criteria._orders = [...obj.orders];
     if (obj.pagination) criteria._pagination = { ...obj.pagination };
+    if (obj.search) criteria._search = { ...obj.search };
+
     return criteria;
   }
 
@@ -200,7 +224,6 @@ export class Criteria<T = unknown> {
 
       if (!operatorRaw || !field) continue;
 
-      console.log(operatorRaw);
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
       if (!operator) throw new Error(`Invalid filter operator: ${operatorRaw}`);
 
@@ -242,10 +265,17 @@ export class Criteria<T = unknown> {
       });
     }
 
+    if (query.search && query.searchFields) {
+      const fields = (query.searchFields as string)
+        .split(",")
+        .filter(Boolean) as FieldPath<T>[];
+
+      criteria.search(fields, query.search as string);
+    }
+
     return criteria;
   }
 }
-
 // ============================================================================
 // Helper Functions
 // ============================================================================
