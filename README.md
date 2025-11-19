@@ -1,6 +1,6 @@
 # Rich Domain
 
-Uma biblioteca TypeScript para Domain-Driven Design (DDD) com suporte a validação via Standard Schema, rastreamento automático de mudanças e sistema de eventos.
+Uma biblioteca TypeScript para Domain-Driven Design (DDD) com suporte a validação via Standard Schema, rastreamento automático de mudanças, sistema de eventos, e repositories enterprise-ready.
 
 ## Características
 
@@ -11,6 +11,10 @@ Uma biblioteca TypeScript para Domain-Driven Design (DDD) com suporte a validaç
 - 🔔 **Subscriptions** - Sistema de eventos para observar mudanças
 - 🎯 **Hooks** - Interceptação de criação e atualização de entidades
 - 🆔 **Smart IDs** - Identificadores que sabem se a entidade é nova ou existente
+- 🔍 **Criteria Pattern** - Query builder type-safe com filtros, ordenação e paginação
+- 📦 **Repository Pattern** - Abstrações para persistência com suporte a Prisma, TypeORM, etc.
+- 🔄 **Unit of Work** - Gerenciamento de transações cross-repository
+- 📊 **Paginated Results** - Resultados paginados com serialização profunda
 
 ## Instalação
 
@@ -35,7 +39,6 @@ import {
 
 // Define as propriedades
 interface UserProps extends BaseProps {
-  id: Id;
   name: string;
   email: string;
   age: number;
@@ -57,37 +60,26 @@ class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
     config: {
-      onCreate: true, // Validar na criação
-      onUpdate: true, // Validar em atualizações
-      throwOnError: true, // Lançar erro ou armazenar internamente
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
     },
   };
 
   // Hooks de ciclo de vida
   protected static hooks: EntityHooks<UserProps, User> = {
-    // Valores padrão
-    defaultValues: {
-      age: 18,
-      status: "active",
-    },
-
-    // Executado após criação bem-sucedida
     onCreate: (entity) => {
       console.log(`Usuário criado: ${entity.name}`);
     },
 
-    // Executado antes de cada atualização
-    // Retorne false para bloquear a atualização
     onBeforeUpdate: (entity, snapshot) => {
-      // Exemplo: bloquear mudança de email
+      // Bloquear mudança de email
       if (snapshot.email !== entity.email) {
-        console.warn("Mudança de email bloqueada");
         return false;
       }
       return true;
     },
 
-    // Regras de negócio customizadas
     rules: (entity) => {
       if (entity.name.toLowerCase() === "admin") {
         throwValidationError("name", 'Nome não pode ser "admin"');
@@ -95,130 +87,268 @@ class User extends Aggregate<UserProps> {
     },
   };
 
-  // Getters e Setters
-  get name(): string {
-    return this.props.name;
-  }
+  get name() { return this.props.name; }
+  set name(value: string) { this.props.name = value; }
 
-  set name(value: string) {
-    this.props.name = value;
-  }
+  get email() { return this.props.email; }
+  get age() { return this.props.age; }
+  get status() { return this.props.status; }
 
-  get email(): string {
-    return this.props.email;
-  }
-
-  set email(value: string) {
-    this.props.email = value;
-  }
-
-  get age(): number {
-    return this.props.age;
-  }
-
-  set age(value: number) {
-    this.props.age = value;
-  }
-
-  get status(): "active" | "inactive" {
-    return this.props.status;
-  }
-
-  // Métodos de domínio
-  deactivate(): void {
-    this.props.status = "inactive";
-  }
-
-  activate(): void {
-    this.props.status = "active";
-  }
+  activate() { this.props.status = "active"; }
+  deactivate() { this.props.status = "inactive"; }
 }
 ```
 
-### 2. Uso Básico
+### 2. Repository Pattern
+
+#### In-Memory (Para Testes)
 
 ```typescript
-// Criar usuário (validação automática no constructor)
+import { InMemoryRepository, Criteria } from "rich-domain";
+
+const userRepo = new InMemoryRepository<User>();
+
+// Salvar
 const user = new User({
   name: "João Silva",
-  email: "joao@exemplo.com",
+  email: "joao@example.com",
+  age: 30,
+  status: "active",
 });
+await userRepo.save(user);
 
-console.log(user.name); // João Silva
-console.log(user.age); // 18 (valor padrão)
-console.log(user.status); // active (valor padrão)
-console.log(user.isNew); // true (ID foi gerado automaticamente)
+// Buscar por ID
+const found = await userRepo.findById(user.id);
 
-// Atualizar propriedades (validação automática)
-user.name = "Maria Silva"; // OK
-user.age = 25; // OK
+// Buscar com Criteria (type-safe!)
+const result = await userRepo.find(
+  Criteria.create<User>()
+    .whereEquals("status", "active")
+    .where("age", "greaterThan", 18)
+    .orderByDesc("age")
+    .paginate(1, 10)
+);
 
-// Tentar atualização inválida
-try {
-  user.name = "A"; // Erro: muito curto
-} catch (error) {
-  console.log(error.issues);
-  // [{ path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' }]
-}
+console.log(result.data); // Array de User
+console.log(result.meta); // { page, limit, total, totalPages, hasNext, hasPrevious }
 
-// Serialização
-const json = user.toJson();
-// {
-//   id: "550e8400-e29b-41d4-a716-446655440000",
-//   name: "Maria Silva",
-//   email: "joao@exemplo.com",
-//   age: 25,
-//   status: "active"
-// }
+// Serializar para API
+const json = result.toJSON(); // Deep serialization de todos os agregados
+res.json(json);
 ```
 
-### 3. Tratamento de Erros sem Throw
+#### Production (Prisma, TypeORM, etc)
 
 ```typescript
-class UserSafe extends Aggregate<UserProps> {
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: {
-      throwOnError: false, // Não lança erro, armazena internamente
-    },
-  };
+import { BaseRepository, BaseMapper } from "rich-domain";
 
-  protected static hooks: EntityHooks<UserProps, UserSafe> = {
-    defaultValues: {
-      age: 18,
-      status: "active",
-    },
-  };
+// Mapper: Domain ↔ Persistence
+class UserMapper extends BaseMapper<User, PrismaUser> {
+  toDomain(persistence: PrismaUser): User {
+    return new User({
+      id: Id.from(persistence.id),
+      name: persistence.name,
+      email: persistence.email,
+      age: persistence.age,
+      status: persistence.status as "active" | "inactive",
+    });
+  }
 
-  get name(): string {
-    return this.props.name;
+  toPersistence(domain: User): PrismaUser {
+    return {
+      id: domain.id.value,
+      name: domain.name,
+      email: domain.email,
+      age: domain.age,
+      status: domain.status,
+    };
   }
 }
 
-// Criar com dados inválidos
-const user = new UserSafe({
-  name: "J", // Muito curto
-  email: "invalido", // Email inválido
+// Repository
+class UserRepository extends BaseRepository<User, PrismaUser> {
+  constructor(private prisma: PrismaClient) {
+    super(new UserMapper());
+  }
+
+  protected async insertOne(data: PrismaUser) {
+    return this.prisma.user.create({ data });
+  }
+
+  protected async updateOne(id: string, data: PrismaUser) {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  protected async deleteOne(id: string) {
+    await this.prisma.user.delete({ where: { id } });
+  }
+
+  protected async findOneById(id: string) {
+    const persistence = await this.prisma.user.findUnique({ where: { id } });
+    return persistence ? this.mapper.toDomain(persistence) : null;
+  }
+
+  protected async findMany() {
+    const persistence = await this.prisma.user.findMany();
+    return this.mapper.toDomainList!(persistence);
+  }
+
+  protected async applyCriteria(criteria: Criteria<User>) {
+    const where = this.buildWhereClause(criteria);
+    const orderBy = this.buildOrderBy(criteria);
+    const pagination = criteria.getPagination();
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return [data, total];
+  }
+
+  protected async countByCriteria(criteria?: Criteria<User>) {
+    const where = criteria ? this.buildWhereClause(criteria) : {};
+    return this.prisma.user.count({ where });
+  }
+
+  protected async existsById(id: string) {
+    const count = await this.prisma.user.count({ where: { id } });
+    return count > 0;
+  }
+
+  // Helpers para converter Criteria → Prisma
+  private buildWhereClause(criteria: Criteria<User>) {
+    // Ver src/repository/examples/prisma-repository.example.ts
+  }
+
+  private buildOrderBy(criteria: Criteria<User>) {
+    // Ver src/repository/examples/prisma-repository.example.ts
+  }
+}
+
+// Uso
+const prisma = new PrismaClient();
+const userRepo = new UserRepository(prisma);
+
+const result = await userRepo.find(
+  Criteria.create<User>()
+    .whereEquals("status", "active")
+    .orderByDesc("createdAt")
+    .paginate(1, 10)
+);
+```
+
+### 3. Criteria Pattern (Type-Safe Queries)
+
+```typescript
+import { Criteria } from "rich-domain";
+
+// Criar criteria
+const criteria = Criteria.create<User>()
+  // Filtros
+  .whereEquals("status", "active")
+  .where("age", "greaterThan", 18)
+  .where("age", "lessThan", 65)
+  .whereContains("name", "silva")
+  .whereIn("status", ["active", "pending"])
+  .whereBetween("age", 18, 65)
+  .whereNull("deletedAt")
+  .whereNotNull("email")
+
+  // Ordenação
+  .orderBy("name", "asc")
+  .orderByDesc("createdAt")
+
+  // Paginação
+  .paginate(1, 10)
+  .limit(20);
+
+// Busca em múltiplos campos
+criteria.search(["name", "email"], "joão");
+
+// Serialização
+const json = criteria.toJSON();
+
+// Clone
+const cloned = criteria.clone();
+
+// From query params (para APIs)
+const criteriaFromUrl = Criteria.fromQueryParams<User>({
+  "status:equals": "active",
+  "age:greaterThan": "18",
+  orderBy: "name:asc,createdAt:desc",
+  page: "1",
+  limit: "10",
+  search: "joão",
+  searchFields: "name,email",
+});
+```
+
+### 4. Unit of Work (Transações)
+
+```typescript
+import { UnitOfWork } from "rich-domain";
+
+// Executar múltiplas operações em transação
+await uow.transaction(async (ctx) => {
+  const userRepo = uow.getRepository(UserRepository);
+  const orderRepo = uow.getRepository(OrderRepository);
+
+  await userRepo.save(user);
+  await orderRepo.save(order);
+
+  // Auto-commit on success
+  // Auto-rollback on error
 });
 
-// Verificar erros
-if (user.hasValidationErrors) {
-  console.log(user.validationErrors!.issues);
-  // [
-  //   { path: ['name'], message: 'Nome deve ter pelo menos 2 caracteres' },
-  //   { path: ['email'], message: 'Email inválido' }
-  // ]
-
-  // Verificar erro específico
-  if (user.validationErrors!.hasErrorsForPath("email")) {
-    console.log("Email inválido!");
-  }
+// Controle manual
+const ctx = await uow.begin();
+try {
+  await userRepo.save(user);
+  await orderRepo.save(order);
+  await ctx.commit();
+} catch (error) {
+  await ctx.rollback();
+  throw error;
 }
+```
+
+### 5. Paginated Results com Deep Serialization
+
+```typescript
+// Com Entities/Aggregates
+const users = await userRepo.find(criteria);
+// users: PaginatedResult<User>
+
+// Serialização profunda (Ids, nested entities, value objects)
+const json = users.toJSON();
+// {
+//   data: [
+//     { id: "123", name: "João", ... }, // IDs serializados para string
+//     { id: "456", name: "Maria", ... }
+//   ],
+//   meta: {
+//     page: 1,
+//     limit: 10,
+//     total: 100,
+//     totalPages: 10,
+//     hasNext: true,
+//     hasPrevious: false
+//   }
+// }
+
+// Utilitários
+users.isEmpty; // boolean
+users.hasMore; // boolean
+users.map(user => user.name); // Transforma cada item
 ```
 
 ## Value Objects
-
-Value Objects são objetos imutáveis comparados por valor, não por referência.
 
 ```typescript
 import { ValueObject } from "rich-domain";
@@ -227,377 +357,262 @@ interface AddressProps {
   street: string;
   city: string;
   zipCode: string;
-  country: string;
 }
 
 class Address extends ValueObject<AddressProps> {
-  get street(): string {
-    return this.props.street;
-  }
+  get street() { return this.props.street; }
+  get city() { return this.props.city; }
 
-  get city(): string {
-    return this.props.city;
-  }
-
-  get zipCode(): string {
-    return this.props.zipCode;
-  }
-
-  get country(): string {
-    return this.props.country;
-  }
-
-  get fullAddress(): string {
-    return `${this.street}, ${this.city}, ${this.zipCode}, ${this.country}`;
-  }
-
-  // Criar nova instância com valores atualizados
   changeCity(newCity: string): Address {
     return this.clone({ city: newCity });
   }
 }
 
-// Uso
 const addr1 = new Address({
-  street: "Av. Paulista, 1000",
+  street: "Av. Paulista",
   city: "São Paulo",
   zipCode: "01310-100",
-  country: "Brasil",
 });
 
 const addr2 = new Address({
-  street: "Av. Paulista, 1000",
+  street: "Av. Paulista",
   city: "São Paulo",
   zipCode: "01310-100",
-  country: "Brasil",
 });
 
-// Comparação por valor
-addr1.equals(addr2); // true
+addr1.equals(addr2); // true (comparação por valor)
 
-// Imutabilidade - retorna nova instância
 const addr3 = addr1.changeCity("Rio de Janeiro");
-addr1.city; // São Paulo (não mudou)
+addr1.city; // São Paulo (imutável)
 addr3.city; // Rio de Janeiro
-
-// Serialização
-addr1.toJson();
-// {
-//   street: 'Av. Paulista, 1000',
-//   city: 'São Paulo',
-//   zipCode: '01310-100',
-//   country: 'Brasil'
-// }
 ```
 
 ## Sistema de IDs
 
-O `Id` sabe automaticamente se representa uma entidade nova ou existente.
-
 ```typescript
 import { Id } from "rich-domain";
 
-// Nova entidade - gera UUID automaticamente
+// Nova entidade - gera UUID
 const newId = new Id();
-console.log(newId.value); // "550e8400-e29b-41d4-a716-446655440000"
 console.log(newId.isNew); // true
 
-// Entidade existente - usa ID fornecido
+// Entidade existente
 const existingId = new Id("user-123");
-console.log(existingId.value); // "user-123"
 console.log(existingId.isNew); // false
 
 // Comparação
 newId.equals(existingId); // false
 existingId.equals("user-123"); // true
-existingId.equals(new Id("user-123")); // true
-
-// Serialização
-JSON.stringify({ id: newId }); // { "id": "550e8400..." }
 
 // Static methods
-const id1 = Id.create(); // Novo ID
-const id2 = Id.from("abc-123"); // ID existente
+const id1 = Id.create(); // Novo
+const id2 = Id.from("abc-123"); // Existente
 ```
 
-## Rastreamento de Mudanças
-
-Todas as mudanças são automaticamente registradas no histórico.
+## Change Tracking & Subscriptions
 
 ```typescript
 const user = new User({
   name: "João",
-  email: "joao@exemplo.com",
+  email: "joao@example.com",
 });
 
-// Fazer algumas mudanças
-user.name = "Maria";
-user.age = 25;
-user.status = "inactive";
-
-// Ver histórico
-const history = user.getHistory();
-console.log(history);
-// [
-//   {
-//     path: 'name',
-//     previousValue: 'João',
-//     currentValue: 'Maria',
-//     timestamp: 1234567890
-//   },
-//   {
-//     path: 'age',
-//     previousValue: 18,
-//     currentValue: 25,
-//     timestamp: 1234567891
-//   },
-//   {
-//     path: 'status',
-//     previousValue: 'active',
-//     currentValue: 'inactive',
-//     timestamp: 1234567892
-//   }
-// ]
-
-// Limpar histórico
-user.clearHistory();
-user.getHistory(); // []
-```
-
-## Subscriptions (Observadores)
-
-Observe mudanças em propriedades específicas ou arrays.
-
-### Propriedades Simples
-
-```typescript
-const user = new User({
-  name: "João",
-  email: "joao@exemplo.com",
-});
-
+// Subscribe
 user.subscribe({
   name: {
-    onChange: ({ previous, current, path }) => {
-      console.log(`Nome mudou de "${previous}" para "${current}"`);
-    },
-  },
-  age: {
     onChange: ({ previous, current }) => {
-      console.log(`Idade mudou de ${previous} para ${current}`);
+      console.log(`Nome: ${previous} → ${current}`);
     },
   },
 });
 
-user.name = "Maria"; // Log: Nome mudou de "João" para "Maria"
-user.age = 30; // Log: Idade mudou de 18 para 30
+user.name = "Maria"; // Trigger onChange
+
+// History
+const history = user.getHistory();
+// [{ path: 'name', previousValue: 'João', currentValue: 'Maria', timestamp: ... }]
+
+user.clearHistory();
 ```
 
-### Arrays (Create, Update, Delete)
+## Domain Events
 
 ```typescript
-interface BlogUserProps extends BaseProps {
-  id: Id;
-  name: string;
-  posts: Post[];
-}
+import { DomainEvent, DomainEventBus } from "rich-domain";
 
-class BlogUser extends Entity<BlogUserProps> {
-  get posts(): Post[] {
-    return this.props.posts;
-  }
-
-  set posts(value: Post[]) {
-    this.props.posts = value;
+// Definir evento
+class UserCreatedEvent extends DomainEvent {
+  constructor(
+    public readonly userId: Id,
+    public readonly userName: string
+  ) {
+    super("UserCreated", userId);
   }
 }
 
-const user = new BlogUser({
-  id: new Id("1"),
-  name: "João",
-  posts: [
-    new Post({ id: new Id("1"), title: "Post 1" }),
-    new Post({ id: new Id("2"), title: "Post 2" }),
-  ],
+// Criar aggregate
+class User extends Aggregate<UserProps> {
+  static create(props: Omit<UserProps, "id">) {
+    const user = new User({ ...props, id: new Id() });
+
+    // Adicionar evento
+    user.addDomainEvent(
+      new UserCreatedEvent(user.id, user.name)
+    );
+
+    return user;
+  }
+}
+
+// Handler
+class SendWelcomeEmailHandler {
+  async handle(event: UserCreatedEvent) {
+    await sendEmail(event.userName);
+  }
+}
+
+// Registrar handler
+const bus = DomainEventBus.getInstance();
+bus.subscribe(UserCreatedEvent, new SendWelcomeEmailHandler());
+
+// Publicar eventos
+const user = User.create({ name: "João", email: "joao@example.com" });
+await user.dispatchAll(bus);
+```
+
+## Validation
+
+### Com Throw
+
+```typescript
+const user = new User({
+  name: "J", // Muito curto
+  email: "invalid",
+});
+// throws ValidationError
+```
+
+### Sem Throw
+
+```typescript
+class UserSafe extends Aggregate<UserProps> {
+  protected static validation = {
+    schema: userSchema,
+    config: { throwOnError: false },
+  };
+}
+
+const user = new UserSafe({
+  name: "J",
+  email: "invalid",
 });
 
-user.subscribe({
-  posts: {
-    onChange: ({ toCreate, toUpdate, toDelete, path }) => {
-      console.log("Posts criados:", toCreate.length);
-      console.log("Posts atualizados:", toUpdate.length);
-      console.log("Posts deletados:", toDelete.length);
-    },
-  },
-});
-
-// Adicionar post
-user.posts = [...user.posts, new Post({ id: new Id("3"), title: "Post 3" })];
-// Log: Posts criados: 1, Posts atualizados: 0, Posts deletados: 0
-
-// Atualizar post existente
-user.posts[0].title = "Post 1 Atualizado";
-user.posts = [...user.posts]; // Trigger change detection
-// Log: Posts criados: 0, Posts atualizados: 1, Posts deletados: 0
-
-// Remover post
-user.posts = user.posts.filter((p) => p.id.value !== "2");
-// Log: Posts criados: 0, Posts atualizados: 0, Posts deletados: 1
-```
-
-## Configuração de Validação
-
-```typescript
-interface ValidationConfig {
-  onCreate?: boolean;     // Validar na criação (padrão: true)
-  onUpdate?: boolean;     // Validar em atualizações (padrão: true)
-  throwOnError?: boolean; // Lançar erro ou armazenar internamente (padrão: true)
-}
-
-// Exemplo: Validar apenas na criação
-protected static validation = {
-  schema: mySchema,
-  config: {
-    onCreate: true,
-    onUpdate: false,  // Não valida em atualizações
-    throwOnError: true,
-  },
-};
-```
-
-## Hooks
-
-```typescript
-interface EntityHooks<T, E> {
-  // Valores padrão aplicados antes da validação
-  defaultValues?: Partial<T>;
-
-  // Executado após criação bem-sucedida
-  onCreate?: (entity: E) => void;
-
-  // Executado antes de cada update
-  // Retorne false para bloquear o update
-  onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
-
-  // Regras de negócio customizadas
-  // Executado na criação e em cada update
-  rules?: (entity: E) => void;
+if (user.hasValidationErrors) {
+  console.log(user.validationErrors!.getMessages());
+  // ['Nome deve ter pelo menos 2 caracteres', 'Email inválido']
 }
 ```
 
-### Exemplo: Bloqueando Atualizações
-
-```typescript
-protected static hooks: EntityHooks<UserProps, User> = {
-  onBeforeUpdate: (entity, snapshot) => {
-    // Bloquear mudança de email após criação
-    if (snapshot.email !== entity.email) {
-      return false;  // Bloqueia a atualização
-    }
-
-    // Bloquear desativação se usuário tem posts
-    if (entity.status === 'inactive' && entity.posts.length > 0) {
-      return false;
-    }
-
-    return true;  // Permite a atualização
-  },
-};
-```
-
-### Exemplo: Regras de Negócio
-
-```typescript
-protected static hooks: EntityHooks<OrderProps, Order> = {
-  rules: (entity) => {
-    // Validações complexas de negócio
-    if (entity.total < 0) {
-      throwValidationError('total', 'Total não pode ser negativo');
-    }
-
-    if (entity.items.length === 0 && entity.status === 'confirmed') {
-      throwValidationError('items', 'Pedido confirmado deve ter pelo menos um item');
-    }
-
-    if (entity.discount > entity.subtotal) {
-      throwValidationError('discount', 'Desconto não pode ser maior que o subtotal');
-    }
-  },
-};
-```
-
-## Compatibilidade com Standard Schema
-
-A biblioteca é compatível com qualquer lib que implemente Standard Schema:
+## Compatibilidade Standard Schema
 
 ### Zod
-
 ```typescript
 import { z } from "zod";
-
-const schema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(2),
-  email: z.string().email(),
-});
+const schema = z.object({ ... });
 ```
 
 ### Valibot
-
 ```typescript
 import * as v from "valibot";
-
-const schema = v.object({
-  id: v.custom((val) => val instanceof Id),
-  name: v.pipe(v.string(), v.minLength(2)),
-  email: v.pipe(v.string(), v.email()),
-});
+const schema = v.object({ ... });
 ```
 
 ### ArkType
-
 ```typescript
 import { type } from "arktype";
-
-const schema = type({
-  id: "unknown", // Custom validation
-  name: "string>=2",
-  email: "email",
-});
+const schema = type({ ... });
 ```
 
-## ValidationError
+## Estrutura de Arquivos
 
-```typescript
-import {
-  ValidationError,
-  createValidationIssue,
-  throwValidationError,
-} from "rich-domain";
-
-// Criar erro manualmente
-const error = new ValidationError([
-  { path: ["email"], message: "Email inválido" },
-  { path: ["name"], message: "Nome muito curto" },
-]);
-
-// Métodos úteis
-error.getMessages(); // ['Email inválido', 'Nome muito curto']
-error.hasErrorsForPath("email"); // true
-error.getErrorsForPath("email"); // [{ path: ['email'], message: 'Email inválido' }]
-
-// Verificar se é ValidationError (funciona entre módulos)
-ValidationError.isValidationError(error); // true
-
-// Helper para criar issue
-const issue = createValidationIssue("email", "Email inválido");
-// { path: ['email'], message: 'Email inválido' }
-
-// Helper para lançar erro
-throwValidationError("name", "Nome inválido"); // throws ValidationError
-```
+Para exemplos completos, veja:
+- `src/repository/examples/prisma-repository.example.ts` - Implementação Prisma completa
+- `src/repository/examples/README.md` - Documentação detalhada
+- `tests/` - Testes completos de todos os recursos
 
 ## API Reference
+
+### Repository
+
+```typescript
+interface IRepository<TDomain> {
+  findById(id: Id): Promise<TDomain | null>;
+  find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  findAll(criteria?: Criteria<TDomain>): Promise<TDomain[]>;
+  findOne(criteria: Criteria<TDomain>): Promise<TDomain | null>;
+  save(aggregate: TDomain): Promise<void>;
+  saveMany(aggregates: TDomain[]): Promise<void>;
+  delete(aggregate: TDomain): Promise<void>;
+  deleteById(id: Id): Promise<void>;
+  exists(id: Id): Promise<boolean>;
+  count(criteria?: Criteria<TDomain>): Promise<number>;
+}
+```
+
+### Criteria
+
+```typescript
+class Criteria<T> {
+  static create<T>(): Criteria<T>;
+
+  // Filters
+  where(field, operator, value?): this;
+  whereEquals(field, value): this;
+  whereContains(field, value): this;
+  whereIn(field, values): this;
+  whereBetween(field, min, max): this;
+  whereNull(field): this;
+  whereNotNull(field): this;
+
+  // Ordering
+  orderBy(field, direction?): this;
+  orderByAsc(field): this;
+  orderByDesc(field): this;
+
+  // Pagination
+  paginate(page, limit): this;
+  limit(limit): this;
+
+  // Search
+  search(fields, value): this;
+
+  // Utils
+  clone(): Criteria<T>;
+  toJSON(): object;
+
+  static fromObject<T>(obj): Criteria<T>;
+  static fromQueryParams<T>(query): Criteria<T>;
+}
+```
+
+### PaginatedResult
+
+```typescript
+class PaginatedResult<T> {
+  readonly data: T[];
+  readonly meta: PaginationMeta;
+
+  static create<T>(data, pagination, total): PaginatedResult<T>;
+  static createMeta(pagination, total): PaginationMeta;
+  static fromArray<T>(items, criteria): PaginatedResult<T>;
+
+  toJSON(): PaginatedJsonResult<T>; // Deep serialization
+  map<U>(fn): PaginatedResult<U>;
+
+  get isEmpty(): boolean;
+  get hasMore(): boolean;
+}
+```
 
 ### Id
 
@@ -617,16 +632,12 @@ class Id {
 }
 ```
 
-### BaseEntity / Entity / Aggregate
+### BaseEntity
 
 ```typescript
 abstract class BaseEntity<T extends BaseProps> {
-  constructor(props: Partial<Omit<T, "id">> & { id?: Id });
-
   get id(): Id;
   get isNew(): boolean;
-  protected get properties(): T;
-
   get hasValidationErrors(): boolean;
   get validationErrors(): ValidationError | undefined;
 
@@ -634,6 +645,12 @@ abstract class BaseEntity<T extends BaseProps> {
   getHistory(): HistoryEntry[];
   clearHistory(): void;
   toJson(): DeepJsonResult<T>;
+
+  // Domain Events
+  protected addDomainEvent(event: IDomainEvent): void;
+  getUncommittedEvents(): IDomainEvent[];
+  clearEvents(): void;
+  async dispatchAll(bus: DomainEventBus): Promise<void>;
 }
 ```
 
@@ -641,9 +658,7 @@ abstract class BaseEntity<T extends BaseProps> {
 
 ```typescript
 abstract class ValueObject<T> {
-  constructor(props: T);
-
-  protected get props(): T;
+  protected readonly props: T;
 
   equals(other: ValueObject<T>): boolean;
   toJson(): T;
@@ -651,23 +666,47 @@ abstract class ValueObject<T> {
 }
 ```
 
-### ValidationError
+## Testing
 
 ```typescript
-class ValidationError extends Error {
-  readonly issues: ValidationIssue[];
+import { InMemoryRepository } from "rich-domain";
 
-  constructor(issues: ValidationIssue[], message?: string);
+describe("UserService", () => {
+  const userRepo = new InMemoryRepository<User>();
+  const service = new UserService(userRepo);
 
-  static isValidationError(error: unknown): error is ValidationError;
+  beforeEach(() => userRepo.clear());
 
-  getMessages(): string[];
-  getErrorsForPath(path: string): ValidationIssue[];
-  hasErrorsForPath(path: string): boolean;
-  toJSON(): object;
-}
+  it("should create user", async () => {
+    const user = await service.createUser({
+      name: "João",
+      email: "joao@example.com",
+    });
+
+    expect(user.id.isNew).toBe(false);
+    expect(await userRepo.exists(user.id)).toBe(true);
+  });
+});
 ```
+
+## Roadmap
+
+- [ ] TypeORM repository example
+- [ ] MongoDB repository example
+- [ ] Drizzle ORM repository example
+- [ ] GraphQL integration utilities
+- [ ] Advanced caching strategies
+
+## Contribuindo
+
+Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes.
 
 ## Licença
 
 MIT
+
+## Links
+
+- [Documentação Completa](https://github.com/yourusername/rich-domain)
+- [Exemplos](./src/repository/examples)
+- [Issues](https://github.com/yourusername/rich-domain/issues)

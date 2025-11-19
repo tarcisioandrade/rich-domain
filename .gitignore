@@ -5,3 +5,5 @@ dist
 *.txt
 .claude
 CLAUDE.md
+**/examples
+coverage

@@ -40,10 +40,6 @@ class User extends Aggregate<UserProps> {
   };
 
   protected static hooks: EntityHooks<UserProps, User> = {
-    defaultValues: {
-      age: 18,
-      status: "active",
-    },
     onCreate: (entity) => {},
     onBeforeUpdate: (entity, snapshot) => {
       if (snapshot.email !== entity.email) {
@@ -109,12 +105,7 @@ class UserSafe extends Aggregate<UserProps> {
     },
   };
 
-  protected static hooks: EntityHooks<UserProps, UserSafe> = {
-    defaultValues: {
-      age: 18,
-      status: "active",
-    },
-  };
+  protected static hooks: EntityHooks<UserProps, UserSafe> = {};
 
   get name(): string {
     return this.props.name;
@@ -146,21 +137,13 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(user.isNew).toBe(true);
     });
 
-    it("should apply default values", () => {
-      const user = new User({
-        name: "Jane Doe",
-        email: "jane@example.com",
-      });
-
-      expect(user.age).toBe(18); // Default value
-      expect(user.status).toBe("active"); // Default value
-    });
-
     it("should throw on invalid email", () => {
       expect(() => {
         new User({
           name: "John",
           email: "invalid-email",
+          age: 30,
+          status: "active",
         });
       }).toThrow(ValidationError);
     });
@@ -170,6 +153,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
         new User({
           name: "J",
           email: "john@example.com",
+          age: 30,
+          status: "active",
         });
       }).toThrow(ValidationError);
     });
@@ -179,6 +164,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
         new User({
           name: "admin",
           email: "admin@example.com",
+          age: 30,
+          status: "active",
         });
       }).toThrow(Error);
     });
@@ -187,6 +174,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new UserSafe({
         name: "J", // Too short
         email: "invalid",
+        age: 30,
+        status: "active",
       });
 
       expect(user).toBeInstanceOf(UserSafe);
@@ -199,6 +188,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new UserSafe({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       expect(user).toBeInstanceOf(UserSafe);
@@ -213,6 +204,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       expect(() => {
@@ -224,6 +217,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       user.name = "Jane Doe";
@@ -234,6 +229,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       // Email change should be blocked by onBeforeUpdate
@@ -247,6 +244,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       expect(() => {
@@ -279,6 +278,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
+        age: 30,
+        status: "active",
       });
 
       user.name = "Jane Doe";

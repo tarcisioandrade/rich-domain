@@ -1,5 +1,5 @@
 import { Entity, Id } from "../src";
-import { User } from "./utils";
+import { Address, User } from "./utils";
 
 // ============================================================================
 // Tests
@@ -11,8 +11,30 @@ describe("Entity Equality by ID", () => {
   describe("Basic Equality", () => {
     it("should be equal when entities have the same ID", () => {
       const id = new Id("user-123");
-      const user1 = new User({ id, name: "John", email: "john@example.com" });
-      const user2 = new User({ id, name: "Jane", email: "jane@example.com" });
+      const user1 = new User({
+        id,
+        name: "John",
+        email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
+      });
+      const user2 = new User({
+        id,
+        name: "Jane",
+        email: "jane@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
+      });
 
       expect(user1.equals(user2)).toBe(true);
       expect(user2.equals(user1)).toBe(true);
@@ -20,11 +42,29 @@ describe("Entity Equality by ID", () => {
 
     it("should be equal when comparing with same ID instance", () => {
       const id = Id.from("user-123");
-      const user1 = new User({ id, name: "John", email: "john@example.com" });
+      const user1 = new User({
+        id,
+        name: "John",
+        email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
+      });
       const user2 = new User({
         id: Id.from("user-123"),
         name: "Jane",
         email: "jane@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user1.equals(user2)).toBe(true);
@@ -35,11 +75,25 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-1"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
       const user2 = new User({
         id: Id.from("user-2"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user1.equals(user2)).toBe(false);
@@ -51,6 +105,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals(user)).toBe(true);
@@ -64,6 +125,13 @@ describe("Entity Equality by ID", () => {
         id,
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals(id)).toBe(true);
@@ -75,6 +143,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals(Id.from("user-456"))).toBe(false);
@@ -87,6 +162,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals("user-123")).toBe(true);
@@ -97,6 +179,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals("user-456")).toBe(false);
@@ -109,6 +198,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals(null as any)).toBe(false);
@@ -119,6 +215,13 @@ describe("Entity Equality by ID", () => {
         id: Id.from("user-123"),
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user.equals(undefined as any)).toBe(false);
@@ -128,10 +231,24 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
       const user2 = new User({
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       // Different auto-generated IDs
@@ -149,6 +266,13 @@ describe("Entity Equality by ID", () => {
         id,
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
       const order = new Order({ id, total: 100, status: "pending" });
 
@@ -164,11 +288,25 @@ describe("Entity Equality by ID", () => {
         id,
         name: "John",
         email: "john@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
       const user2 = new User({
         id,
         name: "Jane",
         email: "jane@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(user1.equals(user2)).toBe(true);
@@ -188,16 +326,37 @@ describe("Entity Equality by ID", () => {
           id: Id.from("1"),
           name: "John",
           email: "john@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
         new User({
           id: Id.from("2"),
           name: "Jane",
           email: "jane@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
         new User({
           id: Id.from("3"),
           name: "Bob",
           email: "bob@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
       ];
 
@@ -214,16 +373,37 @@ describe("Entity Equality by ID", () => {
           id: Id.from("1"),
           name: "John",
           email: "john@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
         new User({
           id: Id.from("2"),
           name: "Jane",
           email: "jane@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
         new User({
           id: Id.from("1"),
           name: "Johnny",
           email: "johnny@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
       ];
 
@@ -241,11 +421,25 @@ describe("Entity Equality by ID", () => {
           id: Id.from("1"),
           name: "John",
           email: "john@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
         new User({
           id: Id.from("2"),
           name: "Jane",
           email: "jane@example.com",
+          address: new Address({
+            street: "Main St",
+            city: "NYC",
+            zipCode: "10001",
+          }),
+          comments: [],
+          posts: [],
         }),
       ];
 
@@ -253,11 +447,25 @@ describe("Entity Equality by ID", () => {
         id: Id.from("1"),
         name: "Different Name",
         email: "different@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
       const user3 = new User({
         id: Id.from("3"),
         name: "Bob",
         email: "bob@example.com",
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
+        posts: [],
       });
 
       expect(users.some((u) => u.equals(user1))).toBe(true); // Exists (same ID)

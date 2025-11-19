@@ -8,46 +8,26 @@ export { BaseEntity } from "./base-entity";
 export { Entity, Aggregate } from "./entity";
 export { ValueObject } from "./value-object";
 
-export {
-  ValidationError,
-  ValidationIssue,
-  createValidationIssue,
-  throwValidationError,
-} from "./validation-error";
+export * from "./validation-error";
 
 // Domain Events
-export {
-  DomainEvent,
-  IDomainEvent,
-  DomainEventHandler,
-  IDomainEventHandler,
-} from "./domain-event";
+export * from "./domain-event";
 
-export { DomainEventBus, getEventBus } from "./domain-event-bus";
+export * from "./domain-event-bus";
+
+// Criteria & Repository
+export * from "./criteria";
+export * from "./paginated-result";
+
+// Repository
+export * from "./repository";
+// Backward compatibility - re-export InMemoryRepository at top level
+export { InMemoryRepository } from "./repository";
 
 // Types
-export {
-  BaseProps,
-  EntityId,
-  ChangeEvent,
-  ArrayChangeEvent,
-  PropertySubscriber,
-  ArraySubscriber,
-  PropertySubscription,
-  ArraySubscription,
-  SubscriptionConfig,
-  ValidationConfig,
-  VOHooks,
-  EntityValidation, // Backwards compatibility
-  EntityHooks,
-  HistoryEntry,
-  DeepJsonResult,
-  StandardSchema,
-  StandardSchemaProps,
-  StandardSchemaIssue,
-  StandardSchemaResult,
-  DEFAULT_VALIDATION_CONFIG,
-} from "./types";
+export * from "./types";
+
+export * from "./constants";
 
 // Internal (for advanced usage)
 export { DeepProxy } from "./deep-proxy";

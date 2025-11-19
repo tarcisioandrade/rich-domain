@@ -1,6 +1,6 @@
 {
   "name": "rich-domain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Rich Domain Library with Standard Schema validation support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,6 +8,7 @@
     "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
+    "coverage": "jest --coverage",
     "lint": "eslint src",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
