@@ -17,6 +17,7 @@ export * from "./domain-event-bus";
 
 // Criteria & Repository
 export * from "./criteria";
+export * from "./paginated-result";
 
 // Repository
 export * from "./repository";

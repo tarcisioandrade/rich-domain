@@ -70,11 +70,6 @@ export interface PaginationMeta {
   hasPrevious: boolean;
 }
 
-export interface PaginatedResult<T> {
-  data: T[];
-  meta: PaginationMeta;
-}
-
 export type FieldPath<T> = {
   [K in keyof T & string]: T[K] extends Primitive
     ? K

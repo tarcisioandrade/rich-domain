@@ -5,9 +5,7 @@ import {
   FilterValueFor,
   Order,
   OrderDirection,
-  PaginatedResult,
   Pagination,
-  PaginationMeta,
   PathValue,
   TypedFilter,
 } from "./types";
@@ -276,174 +274,10 @@ export class Criteria<T = unknown> {
     return criteria;
   }
 }
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Create pagination metadata from total count
- */
-export function createPaginationMeta(
-  pagination: Pagination,
-  total: number
-): PaginationMeta {
-  const totalPages = Math.ceil(total / pagination.limit);
-
-  return {
-    page: pagination.page,
-    limit: pagination.limit,
-    total,
-    totalPages,
-    hasNext: pagination.page < totalPages,
-    hasPrevious: pagination.page > 1,
-  };
-}
-
-/**
- * Create a paginated result
- */
-export function createPaginatedResult<T>(
-  data: T[],
-  pagination: Pagination,
-  total: number
-): PaginatedResult<T> {
-  return {
-    data,
-    meta: createPaginationMeta(pagination, total),
-  };
-}
-
-/**
- * Apply criteria to an in-memory array (useful for testing)
- */
-export function applyCriteriaToArray<T>(
-  items: T[],
-  criteria: Criteria<T>
-): PaginatedResult<T> {
-  let result = [...items];
-
-  // Apply filters
-  for (const filter of criteria.getFilters()) {
-    result = result.filter((item) => applyFilter(item, filter));
-  }
-
-  const total = result.length;
-
-  // Apply ordering
-  for (const order of criteria.getOrders().reverse()) {
-    result.sort((a, b) => {
-      const aVal = getNestedValue(a, order.field);
-      const bVal = getNestedValue(b, order.field);
-
-      let comparison = 0;
-      if (aVal < bVal) comparison = -1;
-      if (aVal > bVal) comparison = 1;
-
-      return order.direction === "desc" ? -comparison : comparison;
-    });
-  }
-
-  // Apply pagination
-  const pagination = criteria.getPagination();
-  if (pagination) {
-    result = result.slice(
-      pagination.offset,
-      pagination.offset + pagination.limit
-    );
-    return createPaginatedResult(result, pagination, total);
-  }
-
-  // No pagination - return all with default meta
-  return createPaginatedResult(
-    result,
-    { page: 1, limit: result.length, offset: 0 },
-    total
-  );
-}
-
-function applyFilter<T>(item: T, filter: Filter): boolean {
-  const value = getNestedValue(item, filter.field);
-
-  const isValueDate = value instanceof Date;
-
-  const parseValue = (v: any) => {
-    if (isValueDate && typeof v === "string") return new Date(v);
-    if (isValueDate && typeof v === "number") return new Date(v);
-    return v;
-  };
-
-  switch (filter.operator) {
-    case "equals":
-      return value === filter.value;
-
-    case "notEquals":
-      return value !== filter.value;
-
-    case "greaterThan": {
-      const compareTo = parseValue(filter.value);
-      return isValueDate ? value > compareTo : value > (filter.value as any);
-    }
-
-    case "greaterThanOrEqual": {
-      const compareTo = parseValue(filter.value);
-      return isValueDate ? value >= compareTo : value >= (filter.value as any);
-    }
-
-    case "lessThan":
-      const lt = parseValue(filter.value);
-      return isValueDate ? value < lt : value < (filter.value as any);
-
-    case "lessThanOrEqual":
-      const lte = parseValue(filter.value);
-      return isValueDate ? value <= lte : value <= (filter.value as any);
-
-    case "contains":
-      return String(value)
-        .toLowerCase()
-        .includes(String(filter.value).toLowerCase());
-
-    case "startsWith":
-      return String(value)
-        .toLowerCase()
-        .startsWith(String(filter.value).toLowerCase());
-
-    case "endsWith":
-      return String(value)
-        .toLowerCase()
-        .endsWith(String(filter.value).toLowerCase());
-
-    case "in":
-      return Array.isArray(filter.value) && filter.value.includes(value);
-
-    case "notIn":
-      return Array.isArray(filter.value) && !filter.value.includes(value);
-
-    case "between":
-      if (Array.isArray(filter.value) && filter.value.length === 2) {
-        const [min, max] = filter.value.map(parseValue);
-        return isValueDate
-          ? value >= min && value <= max
-          : value >= filter.value[0] && value <= filter.value[1];
-      }
-      return false;
-
-    case "isNull":
-      return value === null || value === undefined;
-
-    case "isNotNull":
-      return value !== null && value !== undefined;
-
-    default:
-      return true;
-  }
-}
-
-function getNestedValue(obj: any, path: string): any {
-  return path.split(".").reduce((current, key) => {
-    if (current === null || current === undefined) return undefined;
-    return current[key];
-  }, obj);
-}
 
 function parseQueryValue(value: string): any {
   if (!isNaN(Number(value))) return Number(value); // number
