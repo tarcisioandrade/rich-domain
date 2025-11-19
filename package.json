@@ -8,6 +8,7 @@
     "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
+    "check": "tsc --noEmit",
     "coverage": "jest --coverage",
     "lint": "eslint src",
     "prepublishOnly": "npm run build",
