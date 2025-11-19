@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.2.0...v0.2.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* update TypeScript configuration for module resolution and add check script ([4c0951f](https://github.com/tarcisioandrade/rich-domain/commit/4c0951fa3ce7551fc9182a7e584578053d0137a7))
+
+
+### Chores
+
+* add ignoreDeprecations option to TypeScript configuration ([a66e528](https://github.com/tarcisioandrade/rich-domain/commit/a66e5289c33972f0449f9eb6d9e6fb85054888c4))
+
 ## [0.2.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.0...v0.2.0) (2025-11-19)
 
 
