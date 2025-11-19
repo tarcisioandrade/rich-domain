@@ -1,0 +1,148 @@
+// ============================================================================
+// Unit of Work - Simple transaction management
+// ============================================================================
+
+import type { IUnitOfWork, TransactionContext } from "../types";
+
+/**
+ * Abstract Unit of Work
+ * Provides transaction management across multiple repositories
+ *
+ * @example
+ * ```ts
+ * // Using transaction helper (recommended)
+ * await uow.transaction(async (ctx) => {
+ *   const userRepo = uow.getRepository(UserRepository);
+ *   const orderRepo = uow.getRepository(OrderRepository);
+ *
+ *   await userRepo.save(user);
+ *   await orderRepo.save(order);
+ *
+ *   // Auto-commits on success, rolls back on error
+ * });
+ *
+ * // Manual control
+ * const ctx = await uow.begin();
+ * try {
+ *   await userRepo.save(user);
+ *   await orderRepo.save(order);
+ *   await ctx.commit();
+ * } catch (error) {
+ *   await ctx.rollback();
+ *   throw error;
+ * }
+ * ```
+ */
+export abstract class UnitOfWork implements IUnitOfWork {
+  protected currentContext: TransactionContext | null = null;
+  protected repositoryCache: Map<string, any> = new Map();
+
+  abstract begin(): Promise<TransactionContext>;
+
+  /**
+   * Execute work within a transaction
+   * Auto-commits on success, rolls back on error
+   */
+  async transaction<T>(
+    work: (ctx: TransactionContext) => Promise<T>
+  ): Promise<T> {
+    const ctx = await this.begin();
+
+    try {
+      const result = await work(ctx);
+      await ctx.commit();
+      return result;
+    } catch (error) {
+      if (ctx.isActive()) {
+        await ctx.rollback();
+      }
+      throw error;
+    } finally {
+      this.currentContext = null;
+      this.repositoryCache.clear();
+    }
+  }
+
+  /**
+   * Get repository instance (cached per transaction)
+   */
+  getRepository<TRepo>(
+    RepositoryClass: new (...args: any[]) => TRepo
+  ): TRepo {
+    const key = RepositoryClass.name;
+
+    if (this.repositoryCache.has(key)) {
+      return this.repositoryCache.get(key);
+    }
+
+    const repo = this.createRepository(RepositoryClass);
+    this.repositoryCache.set(key, repo);
+    return repo;
+  }
+
+  /**
+   * Create repository instance - implement in subclass
+   */
+  protected abstract createRepository<TRepo>(
+    RepositoryClass: new (...args: any[]) => TRepo
+  ): TRepo;
+}
+
+/**
+ * Base Transaction Context
+ */
+export abstract class BaseTransactionContext implements TransactionContext {
+  protected _isActive = true;
+
+  abstract commit(): Promise<void>;
+  abstract rollback(): Promise<void>;
+
+  isActive(): boolean {
+    return this._isActive;
+  }
+
+  protected markInactive(): void {
+    this._isActive = false;
+  }
+}
+
+/**
+ * In-Memory Unit of Work (for testing)
+ */
+export class InMemoryUnitOfWork extends UnitOfWork {
+  private committed = false;
+  private rolledBack = false;
+
+  async begin(): Promise<TransactionContext> {
+    this.currentContext = new InMemoryTransactionContext();
+    this.committed = false;
+    this.rolledBack = false;
+    return this.currentContext;
+  }
+
+  protected createRepository<TRepo>(
+    RepositoryClass: new (...args: any[]) => TRepo
+  ): TRepo {
+    // For in-memory, just create a new instance
+    // In real implementation, pass transaction client
+    return new RepositoryClass();
+  }
+
+  isCommitted(): boolean {
+    return this.committed;
+  }
+
+  isRolledBack(): boolean {
+    return this.rolledBack;
+  }
+}
+
+class InMemoryTransactionContext extends BaseTransactionContext {
+  async commit(): Promise<void> {
+    this.markInactive();
+  }
+
+  async rollback(): Promise<void> {
+    this.markInactive();
+  }
+}
