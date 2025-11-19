@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.0...v0.2.0) (2025-11-19)
+
+
+### Features
+
+* add repository and unit of work modules with transaction management and clean exports ([83b652c](https://github.com/tarcisioandrade/rich-domain/commit/83b652cf751c2824799cfc961b282413ac7667f7))
+* add search functionality to Criteria class with related methods ([1445e09](https://github.com/tarcisioandrade/rich-domain/commit/1445e092141c538766af39ec7de13421bf318393))
+* implement abstract base repository and mapper for domain persistence ([f6b06ca](https://github.com/tarcisioandrade/rich-domain/commit/f6b06ca59292d9290e438717acaf2eaf361f63a7))
+* implement criteria with filtering, ordering, and pagination ([bb42425](https://github.com/tarcisioandrade/rich-domain/commit/bb42425cc9e763ced350c3e6ee86954a5239cfb6))
+* implement InMemoryRepository for testing with CRUD operations and criteria support ([a9d0cf6](https://github.com/tarcisioandrade/rich-domain/commit/a9d0cf63e68ab40d2944b6f26792ebfc456db176))
+
+
+### Bug Fixes
+
+* disable no-unsafe-function-type rule in ESLint configuration ([f185ed9](https://github.com/tarcisioandrade/rich-domain/commit/f185ed920eda8e1f1c205aed8d7f1091cd03fbee))
+
+
+### Chores
+
+* add coverage directory to .gitignore ([7a895f0](https://github.com/tarcisioandrade/rich-domain/commit/7a895f0ca777c27056f5bfd5adeed0b44049c60e))
+* enhance Jest configuration and add coverage script to package.json ([d3b08d9](https://github.com/tarcisioandrade/rich-domain/commit/d3b08d97a4ecb650825e0b99d307203a5449ee96))
+* update .gitignore to exclude example directories ([26c2d41](https://github.com/tarcisioandrade/rich-domain/commit/26c2d4140403877dabbd8a8b2b86250fa459f9b5))
+* update version to 0.1.0 and add release scripts ([bb0aafa](https://github.com/tarcisioandrade/rich-domain/commit/bb0aafa85b5527d8ac3a582fcb75c489e7a4aa7a))
+
+
+### Refactoring
+
+* drop default values ([a7e130a](https://github.com/tarcisioandrade/rich-domain/commit/a7e130af3a7ece31bb7bdf38afd7e05ed724bf3c))
+* move pagination logic to a new PaginatedResult class and update criteria tests ([96639e1](https://github.com/tarcisioandrade/rich-domain/commit/96639e15c9e7aa2794f7439741150d1a8b087d39))
+* reorganize types and constants, introduce new criteria types ([170e93a](https://github.com/tarcisioandrade/rich-domain/commit/170e93a2b9f68c21e02818f87171df242018a130))
+* update access modifiers and default values in BaseEntity and Criteria classes ([75cde9d](https://github.com/tarcisioandrade/rich-domain/commit/75cde9d162adc1ad8d142140186592c155415c2e))
+
+
+### Documentation
+
+* enhance README with new features ([0a49e63](https://github.com/tarcisioandrade/rich-domain/commit/0a49e6339bd36ae0c3193f8a3389906b139e56b3))
+
 ## 0.1.0 (2025-11-16)
 
 
