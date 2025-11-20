@@ -2,8 +2,8 @@
 // Deep Proxy - Core Change Tracking
 // ============================================================================
 
-import { Id } from './id';
-import { HistoryEntry } from './types';
+import { Id } from "./id";
+import { HistoryEntry } from "./types";
 
 export class DeepProxy {
   private history: HistoryEntry[] = [];
@@ -17,7 +17,7 @@ export class DeepProxy {
 
   constructor(
     private target: any,
-    private path: string = '',
+    private path: string = "",
     private rootProxy?: DeepProxy
   ) {
     if (!rootProxy) this.rootProxy = this;
@@ -32,16 +32,16 @@ export class DeepProxy {
           : String(prop);
 
         if (
-          prop === '__isProxy' ||
-          prop === '__originalTarget' ||
-          prop === '__path' ||
-          prop === 'constructor' ||
-          prop === 'prototype'
+          prop === "__isProxy" ||
+          prop === "__originalTarget" ||
+          prop === "__path" ||
+          prop === "constructor" ||
+          prop === "prototype"
         ) {
           return value;
         }
 
-        if (typeof value === 'function') return value.bind(target);
+        if (typeof value === "function") return value.bind(target);
 
         if (Array.isArray(value)) {
           if (!this.rootProxy!.trackedArraysCloned.has(currentPath)) {
@@ -50,7 +50,7 @@ export class DeepProxy {
           return this.createArrayProxy(value, currentPath);
         }
 
-        if (value && typeof value === 'object' && !value.__isProxy) {
+        if (value && typeof value === "object" && !value.__isProxy) {
           const nestedProxy = new DeepProxy(value, currentPath, this.rootProxy);
           return nestedProxy.createProxy();
         }
@@ -109,7 +109,7 @@ export class DeepProxy {
     };
 
     const proxy = new Proxy(this.target, handler);
-    Object.defineProperty(proxy, '__isProxy', { value: true, writable: false });
+    Object.defineProperty(proxy, "__isProxy", { value: true, writable: false });
     return proxy;
   }
 
@@ -140,15 +140,15 @@ export class DeepProxy {
     return new Proxy(array, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
-        if (typeof value === 'function') {
+        if (typeof value === "function") {
           const mutatingMethods = [
-            'push',
-            'pop',
-            'shift',
-            'unshift',
-            'splice',
-            'sort',
-            'reverse',
+            "push",
+            "pop",
+            "shift",
+            "unshift",
+            "splice",
+            "sort",
+            "reverse",
           ];
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
@@ -163,7 +163,7 @@ export class DeepProxy {
           }
           return value.bind(target);
         }
-        if (typeof value === 'object' && value !== null && !value.__isProxy) {
+        if (typeof value === "object" && value !== null && !value.__isProxy) {
           const nestedPath = `${path}[${String(prop)}]`;
           const nestedProxy = new DeepProxy(value, nestedPath, self.rootProxy);
           return nestedProxy.createProxy();
@@ -186,7 +186,7 @@ export class DeepProxy {
   }
 
   subscribe(path: string, callback: Function): void {
-    if (path === '*') {
+    if (path === "*") {
       this.rootProxy!.globalSubscribers.add(callback);
       return;
     }
@@ -206,7 +206,7 @@ export class DeepProxy {
   }
 
   unsubscribe(path: string, callback: Function): void {
-    if (path === '*') {
+    if (path === "*") {
       this.rootProxy!.globalSubscribers.delete(callback);
       return;
     }
@@ -240,7 +240,11 @@ export class DeepProxy {
       return;
     }
 
-    const changes = this.detectArrayChanges(clonedInitial, originalInitial, newArray);
+    const changes = this.detectArrayChanges(
+      clonedInitial,
+      originalInitial,
+      newArray
+    );
     subs.forEach((cb) => cb({ ...changes, path }));
   }
 
@@ -293,10 +297,10 @@ export class DeepProxy {
 
   private deepClone(obj: any): any {
     if (obj === null || obj === undefined) return obj;
-    if (typeof obj !== 'object') return obj;
+    if (typeof obj !== "object") return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
     if (obj instanceof Id) return obj.value;
-    if (obj.toJson && typeof obj.toJson === 'function') return obj.toJson();
+    if (obj.toJson && typeof obj.toJson === "function") return obj.toJson();
     if (Array.isArray(obj)) return obj.map((item) => this.deepClone(item));
     const cloned: any = {};
     for (const key in obj) {
@@ -309,7 +313,7 @@ export class DeepProxy {
     if (!item) return undefined;
     if (item.id instanceof Id) return item.id.value;
     if (item.id !== undefined) return String(item.id);
-    if (typeof item === 'object' && 'id' in item) {
+    if (typeof item === "object" && "id" in item) {
       const id = item.id;
       return id instanceof Id ? id.value : String(id);
     }
