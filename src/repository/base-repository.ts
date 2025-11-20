@@ -2,12 +2,10 @@
 // Base Repository - Abstract implementation with common logic
 // ============================================================================
 
-import type { Id } from "../id";
 import type { Aggregate } from "../entity";
 import type { Criteria } from "../criteria";
 import { PaginatedResult } from "../paginated-result";
-import type { IRepository } from "../types";
-import type { IMapper } from "./mapper";
+import { Mapper } from "../mapper";
 
 /**
  * Abstract base repository
@@ -33,120 +31,34 @@ import type { IMapper } from "./mapper";
  * }
  * ```
  */
-export abstract class BaseRepository<
-  TDomain extends Aggregate<any>,
-  TPersistence = any
-> implements IRepository<TDomain>
-{
-  constructor(protected readonly mapper: IMapper<TDomain, TPersistence>) {}
 
-  // ============================================================================
-  // Abstract methods - Must be implemented by subclasses
-  // ============================================================================
+export abstract class ReadRepository<Agg extends Aggregate<any>> {
+  abstract find(criteria: Criteria<Agg>): Promise<PaginatedResult<Agg>>;
+  abstract findById(id: string): Promise<Agg | null>;
+  abstract count(criteria: Criteria<Agg>): Promise<number>;
+  abstract exists(id: string): Promise<boolean>;
+}
 
-  /**
-   * Insert new record in database
-   */
-  protected abstract insertOne(data: TPersistence): Promise<TPersistence>;
+export abstract class WriteRepository<Agg extends Aggregate<any>> {
+  abstract create(entity: Agg): Promise<void>;
+  abstract update(entity: Agg): Promise<void>;
+  abstract delete(entity: Agg): Promise<void>;
+}
 
-  /**
-   * Update existing record in database
-   */
-  protected abstract updateOne(
-    id: string,
-    data: TPersistence
-  ): Promise<TPersistence>;
+export abstract class WriteAndRead<Agg extends Aggregate<any>> {
+  abstract find(criteria: Criteria<Agg>): Promise<PaginatedResult<Agg>>;
+  abstract findById(id: string): Promise<Agg | null>;
+  abstract create(entity: Agg): Promise<void>;
+  abstract update(entity: Agg): Promise<void>;
+  abstract delete(entity: Agg): Promise<void>;
+  abstract count(criteria: Criteria<Agg>): Promise<number>;
+  abstract exists(id: string): Promise<boolean>;
+}
 
-  /**
-   * Delete record from database
-   */
-  protected abstract deleteOne(id: string): Promise<void>;
-
-  /**
-   * Find record by ID in database
-   */
-  protected abstract findOneById(id: string): Promise<TDomain | null>;
-
-  /**
-   * Find all records in database (no filtering)
-   */
-  protected abstract findMany(): Promise<TDomain[]>;
-
-  /**
-   * Apply criteria to query (filtering, ordering, pagination)
-   * Returns [data, total]
-   */
-  protected abstract applyCriteria(
-    criteria: Criteria<TDomain>
-  ): Promise<PaginatedResult<TDomain>>;
-
-  /**
-   * Count records matching criteria
-   */
-  protected abstract countByCriteria(
-    criteria?: Criteria<TDomain>
-  ): Promise<number>;
-
-  /**
-   * Check if record exists by ID
-   */
-  protected abstract existsById(id: string): Promise<boolean>;
-
-  // ============================================================================
-  // Public API - Implemented using abstract methods
-  // ============================================================================
-
-  async findById(id: Id): Promise<TDomain | null> {
-    const domain = await this.findOneById(id.value);
-    if (!domain) return null;
-    return domain;
-  }
-
-  async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>> {
-    return await this.applyCriteria(criteria);
-  }
-
-  async findAll(criteria?: Criteria<TDomain>): Promise<TDomain[]> {
-    if (criteria) {
-      const result = await this.find(criteria);
-      return result.data;
-    }
-
-    const domains = await this.findMany();
-    return domains;
-  }
-
-  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
-    // Limit to 1 result
-    const limitedCriteria = criteria.clone().limit(1);
-    const result = await this.find(limitedCriteria);
-
-    return result.data.length > 0 ? result.data[0] : null;
-  }
-
-  async save(aggregate: TDomain): Promise<void> {
-    const persistence = this.mapper.toPersistence(aggregate);
-
-    if (aggregate.isNew) {
-      await this.insertOne(persistence);
-    } else {
-      await this.updateOne(aggregate.id.value, persistence);
-    }
-  }
-
-  async delete(aggregate: TDomain): Promise<void> {
-    await this.deleteOne(aggregate.id.value);
-  }
-
-  async deleteById(id: Id): Promise<void> {
-    await this.deleteOne(id.value);
-  }
-
-  async exists(id: Id): Promise<boolean> {
-    return this.existsById(id.value);
-  }
-
-  async count(criteria?: Criteria<TDomain>): Promise<number> {
-    return this.countByCriteria(criteria);
-  }
+export abstract class Repository<
+  TDomain extends Aggregate<any>
+> extends WriteAndRead<TDomain> {
+  protected abstract readonly mapperToDomain: Mapper<unknown, TDomain>;
+  protected abstract readonly mapperToPersistence: Mapper<TDomain, unknown>;
+  abstract get model(): any;
 }

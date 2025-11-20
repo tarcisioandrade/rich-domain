@@ -7,6 +7,7 @@ export { Id } from "./id";
 export { BaseEntity } from "./base-entity";
 export { Entity, Aggregate } from "./entity";
 export { ValueObject } from "./value-object";
+export { Mapper } from "./mapper";
 
 export * from "./validation-error";
 

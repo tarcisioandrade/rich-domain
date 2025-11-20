@@ -1,7 +1,3 @@
-// ============================================================================
-// PaginatedResult - Container for paginated data with deep serialization
-// ============================================================================
-
 import { Id } from "./id";
 import type { Criteria } from "./criteria";
 import type { Pagination, PaginationMeta, Filter } from "./types";
@@ -66,10 +62,7 @@ export class PaginatedResult<T> {
   /**
    * Applies criteria to an in-memory array (useful for testing)
    */
-  static fromArray<T>(
-    items: T[],
-    criteria: Criteria<T>
-  ): PaginatedResult<T> {
+  static fromArray<T>(items: T[], criteria: Criteria<T>): PaginatedResult<T> {
     let result = [...items];
 
     // Apply filters

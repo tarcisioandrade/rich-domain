@@ -2,11 +2,11 @@
 // In-Memory Repository - Perfect for testing
 // ============================================================================
 
-import type { Id } from "../id";
 import type { Aggregate } from "../entity";
 import type { Criteria } from "../criteria";
 import { PaginatedResult } from "../paginated-result";
-import type { IRepository } from "../types";
+import { Repository } from "./base-repository";
+import { Mapper } from "../mapper";
 
 /**
  * In-memory repository implementation
@@ -23,13 +23,25 @@ import type { IRepository } from "../types";
  * );
  * ```
  */
-export class InMemoryRepository<TDomain extends Aggregate<any>>
-  implements IRepository<TDomain>
-{
+export class InMemoryRepository<
+  TDomain extends Aggregate<any>
+> extends Repository<TDomain> {
   protected items: Map<string, TDomain> = new Map();
 
-  async findById(id: Id): Promise<TDomain | null> {
-    return this.items.get(id.value) || null;
+  constructor(
+    protected readonly mapperToDomain: Mapper<unknown, TDomain>,
+    protected readonly mapperToPersistence: Mapper<TDomain, unknown>
+  ) {
+    super();
+  }
+
+  get model(): any {
+    // your database table name
+    return "inMemory";
+  }
+
+  async findById(id: string): Promise<TDomain | null> {
+    return this.items.get(id) || null;
   }
 
   async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>> {
@@ -51,13 +63,17 @@ export class InMemoryRepository<TDomain extends Aggregate<any>>
     return result.data.length > 0 ? result.data[0] : null;
   }
 
-  async save(aggregate: TDomain): Promise<void> {
+  async create(aggregate: TDomain): Promise<void> {
     this.items.set(aggregate.id.value, aggregate);
   }
 
-  async saveMany(aggregates: TDomain[]): Promise<void> {
+  async update(entity: TDomain): Promise<void> {
+    this.items.set(entity.id.value, entity);
+  }
+
+  async createMany(aggregates: TDomain[]): Promise<void> {
     for (const aggregate of aggregates) {
-      await this.save(aggregate);
+      await this.create(aggregate);
     }
   }
 
@@ -65,12 +81,8 @@ export class InMemoryRepository<TDomain extends Aggregate<any>>
     this.items.delete(aggregate.id.value);
   }
 
-  async deleteById(id: Id): Promise<void> {
-    this.items.delete(id.value);
-  }
-
-  async exists(id: Id): Promise<boolean> {
-    return this.items.has(id.value);
+  async exists(id: string): Promise<boolean> {
+    return this.items.has(id);
   }
 
   async count(criteria?: Criteria<TDomain>): Promise<number> {

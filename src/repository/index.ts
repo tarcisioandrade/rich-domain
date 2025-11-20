@@ -3,11 +3,10 @@
 // ============================================================================
 
 // Mapper
-export { BaseMapper } from "./mapper";
-export type { IMapper } from "./mapper";
+export { Mapper } from "../mapper";
 
 // Base implementations
-export { BaseRepository } from "./base-repository";
+export { Repository as BaseRepository } from "./base-repository";
 export { InMemoryRepository } from "./in-memory-repository";
 
 // Unit of Work

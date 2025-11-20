@@ -1,5 +1,5 @@
 import { Aggregate } from "../entity";
-import { IRepository } from "./repository";
+import { Repository } from "../repository/base-repository";
 
 /**
  * Transaction context for Unit of Work
@@ -41,6 +41,6 @@ export interface IUnitOfWork {
    * Get repository within transaction context
    */
   getRepository<TDomain extends Aggregate<any>>(
-    repository: new (...args: any[]) => IRepository<TDomain>
-  ): IRepository<TDomain>;
+    repository: new (...args: any[]) => Repository<TDomain>
+  ): Repository<TDomain>;
 }

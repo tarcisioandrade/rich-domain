@@ -2,6 +2,9 @@
   "name": "@woltz/rich-domain",
   "version": "0.2.1",
   "description": "Rich Domain Library with Standard Schema validation support",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

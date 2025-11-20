@@ -1,9 +1,6 @@
 import { Id, Aggregate, Criteria, BaseProps, PaginatedResult } from "../src";
-import {
-  InMemoryRepository,
-  BaseRepository,
-  BaseMapper,
-} from "../src/repository";
+import { InMemoryRepository, Mapper } from "../src/repository";
+import { Repository } from "../src/repository/base-repository";
 
 // ============================================================================
 // Test Domain Models
@@ -73,9 +70,8 @@ type UserPersistence = {
 // ============================================================================
 // Mapper Implementation
 // ============================================================================
-
-class UserMapper extends BaseMapper<User, UserPersistence> {
-  toDomain(persistence: UserPersistence): User {
+class UserToDomainMapper extends Mapper<UserPersistence, User> {
+  public build(persistence: UserPersistence): User {
     return User.create({
       id: Id.from(persistence.id),
       name: persistence.name,
@@ -84,8 +80,10 @@ class UserMapper extends BaseMapper<User, UserPersistence> {
       status: persistence.status as "active" | "inactive",
     });
   }
+}
 
-  toPersistence(domain: User): UserPersistence {
+class UserToPersistenceMapper extends Mapper<User, UserPersistence> {
+  public build(domain: User): UserPersistence {
     return {
       id: domain.id.value,
       name: domain.name,
@@ -102,41 +100,51 @@ class UserMapper extends BaseMapper<User, UserPersistence> {
 // Mock Repository Implementation
 // ============================================================================
 
-class MockUserRepository extends BaseRepository<User, UserPersistence> {
+class MockUserRepository extends Repository<User> {
   private store: Map<string, UserPersistence> = new Map();
 
-  constructor() {
-    super(new UserMapper());
+  constructor(
+    protected readonly mapperToDomain: Mapper<UserPersistence, User>,
+    protected readonly mapperToPersistence: Mapper<User, UserPersistence>
+  ) {
+    super();
   }
 
-  protected async insertOne(data: UserPersistence): Promise<UserPersistence> {
-    this.store.set(data.id, data);
-    return data;
+  get model() {
+    return "users";
   }
 
-  protected async updateOne(
-    id: string,
-    data: UserPersistence
-  ): Promise<UserPersistence> {
-    this.store.set(id, { ...data, updatedAt: new Date() });
-    return data;
+  async create(entity: User) {
+    const persistence = this.mapperToPersistence.build(entity);
+    this.store.set(entity.id.value, persistence);
   }
 
-  protected async deleteOne(id: string): Promise<void> {
-    this.store.delete(id);
+  async delete(entity: User): Promise<void> {
+    this.store.delete(entity.id.value);
   }
 
-  protected async findOneById(id: string): Promise<User | null> {
+  async count(criteria: Criteria<User>): Promise<number> {
+    return this.applyCriteria(criteria).then((result) => result.meta.total);
+  }
+
+  async exists(id: string): Promise<boolean> {
+    return this.store.has(id);
+  }
+
+  async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
+    const result = await this.applyCriteria(criteria);
+    return result;
+  }
+
+  async findById(id: string): Promise<User | null> {
     const persistence = this.store.get(id);
     if (!persistence) return null;
-    return this.mapper.toDomain(persistence);
+    return this.mapperToDomain.build(persistence);
   }
 
-  protected async findMany(): Promise<User[]> {
-    const persistence = Array.from(this.store.values());
-    return this.mapper.toDomainList
-      ? this.mapper.toDomainList(persistence)
-      : persistence.map((p) => this.mapper.toDomain(p));
+  async update(entity: User): Promise<void> {
+    const persistence = this.mapperToPersistence.build(entity);
+    this.store.set(entity.id.value, persistence);
   }
 
   protected async applyCriteria(criteria: Criteria<User>) {
@@ -183,9 +191,7 @@ class MockUserRepository extends BaseRepository<User, UserPersistence> {
       pagination.offset + pagination.limit
     );
 
-    const domains = this.mapper.toDomainList
-      ? this.mapper.toDomainList(results)
-      : results.map((p) => this.mapper.toDomain(p));
+    const domains = results.map((p) => this.mapperToDomain.build(p));
 
     return PaginatedResult.create(domains, pagination, total);
   }
@@ -221,7 +227,10 @@ describe("Repository", () => {
     let user3: User;
 
     beforeEach(() => {
-      repository = new InMemoryRepository<User>();
+      repository = new InMemoryRepository<User>(
+        new UserToDomainMapper(),
+        new UserToPersistenceMapper()
+      );
 
       user1 = User.create({
         name: "Alice",
@@ -251,8 +260,8 @@ describe("Repository", () => {
 
     describe("save and findById", () => {
       it("should save and retrieve user", async () => {
-        await repository.save(user1);
-        const found = await repository.findById(user1.id);
+        await repository.create(user1);
+        const found = await repository.findById(user1.id.value);
 
         expect(found).toBeDefined();
         expect(found?.id.equals(user1.id)).toBe(true);
@@ -260,16 +269,16 @@ describe("Repository", () => {
       });
 
       it("should return null for non-existent id", async () => {
-        const found = await repository.findById(new Id());
+        const found = await repository.findById(new Id().value);
         expect(found).toBeNull();
       });
 
       it("should update existing user", async () => {
-        await repository.save(user1);
+        await repository.create(user1);
         user1.setName("Alice Updated");
-        await repository.save(user1);
+        await repository.create(user1);
 
-        const found = await repository.findById(user1.id);
+        const found = await repository.findById(user1.id.value);
         expect(found?.name).toBe("Alice Updated");
       });
     });
@@ -281,18 +290,18 @@ describe("Repository", () => {
       });
 
       it("should return all users", async () => {
-        await repository.save(user1);
-        await repository.save(user2);
-        await repository.save(user3);
+        await repository.create(user1);
+        await repository.create(user2);
+        await repository.create(user3);
 
         const users = await repository.findAll();
         expect(users).toHaveLength(3);
       });
 
       it("should return users matching criteria", async () => {
-        await repository.save(user1);
-        await repository.save(user2);
-        await repository.save(user3);
+        await repository.create(user1);
+        await repository.create(user2);
+        await repository.create(user3);
 
         const criteria = Criteria.create<User>().whereEquals(
           "status",
@@ -307,9 +316,9 @@ describe("Repository", () => {
 
     describe("find with Criteria", () => {
       beforeEach(async () => {
-        await repository.save(user1);
-        await repository.save(user2);
-        await repository.save(user3);
+        await repository.create(user1);
+        await repository.create(user2);
+        await repository.create(user3);
       });
 
       it("should filter by equals", async () => {
@@ -364,8 +373,8 @@ describe("Repository", () => {
 
     describe("findOne", () => {
       it("should find first matching user", async () => {
-        await repository.save(user1);
-        await repository.save(user2);
+        await repository.create(user1);
+        await repository.create(user2);
 
         const criteria = Criteria.create<User>().whereEquals(
           "status",
@@ -390,40 +399,40 @@ describe("Repository", () => {
 
     describe("delete", () => {
       it("should delete by aggregate", async () => {
-        await repository.save(user1);
+        await repository.create(user1);
         await repository.delete(user1);
 
-        const found = await repository.findById(user1.id);
+        const found = await repository.findById(user1.id.value);
         expect(found).toBeNull();
       });
 
       it("should delete by id", async () => {
-        await repository.save(user1);
-        await repository.deleteById(user1.id);
+        await repository.create(user1);
+        await repository.delete(user1);
 
-        const found = await repository.findById(user1.id);
+        const found = await repository.findById(user1.id.value);
         expect(found).toBeNull();
       });
     });
 
     describe("exists", () => {
       it("should return true when user exists", async () => {
-        await repository.save(user1);
-        const exists = await repository.exists(user1.id);
+        await repository.create(user1);
+        const exists = await repository.exists(user1.id.value);
         expect(exists).toBe(true);
       });
 
       it("should return false when user does not exist", async () => {
-        const exists = await repository.exists(new Id());
+        const exists = await repository.exists(new Id().value);
         expect(exists).toBe(false);
       });
     });
 
     describe("count", () => {
       beforeEach(async () => {
-        await repository.save(user1);
-        await repository.save(user2);
-        await repository.save(user3);
+        await repository.create(user1);
+        await repository.create(user2);
+        await repository.create(user3);
       });
 
       it("should count all users", async () => {
@@ -443,7 +452,7 @@ describe("Repository", () => {
 
     describe("saveMany", () => {
       it("should save multiple users", async () => {
-        await repository.saveMany([user1, user2, user3]);
+        await repository.createMany([user1, user2, user3]);
 
         const users = await repository.findAll();
         expect(users).toHaveLength(3);
@@ -456,7 +465,10 @@ describe("Repository", () => {
     let user: User;
 
     beforeEach(() => {
-      repository = new MockUserRepository();
+      repository = new MockUserRepository(
+        new UserToDomainMapper(),
+        new UserToPersistenceMapper()
+      );
       user = User.create({
         name: "John",
         email: "john@example.com",
@@ -471,15 +483,15 @@ describe("Repository", () => {
 
     it("should save new user (insert)", async () => {
       expect(user.isNew).toBe(true);
-      await repository.save(user);
+      await repository.create(user);
 
-      const found = await repository.findById(user.id);
+      const found = await repository.findById(user.id.value);
       expect(found).toBeDefined();
       expect(found?.name).toBe("John");
     });
 
     it("should update existing user", async () => {
-      await repository.save(user);
+      await repository.create(user);
 
       // Simulate existing user
       const existingUser = User.create({
@@ -490,16 +502,16 @@ describe("Repository", () => {
         status: "inactive",
       });
 
-      await repository.save(existingUser);
+      await repository.create(existingUser);
 
-      const found = await repository.findById(user.id);
+      const found = await repository.findById(user.id.value);
       expect(found?.name).toBe("John Updated");
       expect(found?.age).toBe(29);
     });
 
     it("should convert between domain and persistence", async () => {
-      await repository.save(user);
-      const found = await repository.findById(user.id);
+      await repository.create(user);
+      const found = await repository.findById(user.id.value);
 
       // Should be a domain object
       expect(found).toBeInstanceOf(User);
@@ -520,7 +532,7 @@ describe("Repository", () => {
         status: "inactive",
       });
 
-      await Promise.all([repository.save(user1), repository.save(user2)]);
+      await Promise.all([repository.create(user1), repository.create(user2)]);
 
       const result = await repository.find(
         Criteria.create<User>()
@@ -535,10 +547,12 @@ describe("Repository", () => {
   });
 
   describe("Mapper", () => {
-    let mapper: UserMapper;
+    let toDomainMapper: UserToDomainMapper;
+    let toPersistenceMapper: UserToPersistenceMapper;
 
     beforeEach(() => {
-      mapper = new UserMapper();
+      toDomainMapper = new UserToDomainMapper();
+      toPersistenceMapper = new UserToPersistenceMapper();
     });
 
     it("should convert from persistence to domain", () => {
@@ -552,7 +566,7 @@ describe("Repository", () => {
         updatedAt: new Date(),
       };
 
-      const domain = mapper.toDomain(persistence);
+      const domain = toDomainMapper.build(persistence);
 
       expect(domain).toBeInstanceOf(User);
       expect(domain.id.value).toBe("123");
@@ -571,7 +585,7 @@ describe("Repository", () => {
         status: "active",
       });
 
-      const persistence = mapper.toPersistence(domain);
+      const persistence = toPersistenceMapper.build(domain);
 
       expect(persistence.id).toBe("123");
       expect(persistence.name).toBe("John");
@@ -604,7 +618,7 @@ describe("Repository", () => {
         },
       ];
 
-      const domainList = mapper.toDomainList(persistenceList);
+      const domainList = persistenceList.map((p) => toDomainMapper.build(p));
 
       expect(domainList).toHaveLength(2);
       expect(domainList[0]).toBeInstanceOf(User);
@@ -630,7 +644,7 @@ describe("Repository", () => {
         }),
       ];
 
-      const persistenceList = mapper.toPersistenceList(domainList);
+      const persistenceList = domainList.map((d) => toPersistenceMapper.build(d));
 
       expect(persistenceList).toHaveLength(2);
       expect(persistenceList[0].id).toBe("1");
