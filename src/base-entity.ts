@@ -60,7 +60,6 @@ export abstract class BaseEntity<T extends BaseProps> {
       ...validation?.config,
     };
 
-    // Apply defaultValues
     let finalProps = { ...props } as T;
 
     // Generate ID if not provided

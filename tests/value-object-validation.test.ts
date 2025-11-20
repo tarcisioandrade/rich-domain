@@ -54,9 +54,6 @@ class Money extends ValueObject<MoneyProps> {
   };
 
   protected static hooks: VOHooks<MoneyProps, Money> = {
-    defaultValues: {
-      currency: "USD",
-    },
     rules: (money) => {
       if (money.amount > 1000000) {
         throwValidationError("amount", "Amount cannot exceed 1,000,000");
@@ -132,12 +129,6 @@ describe("ValueObject with Validation", () => {
     it("should create money with valid data", () => {
       const money = new Money({ amount: 100, currency: "USD" });
       expect(money.amount).toBe(100);
-      expect(money.currency).toBe("USD");
-    });
-
-    it("should apply default currency", () => {
-      const money = new Money({ amount: 50 } as any);
-      expect(money.amount).toBe(50);
       expect(money.currency).toBe("USD");
     });
 

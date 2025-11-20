@@ -50,11 +50,7 @@ export abstract class ValueObject<T> {
       ...validation?.config,
     };
 
-    // Apply defaultValues
     let finalProps = { ...props } as T;
-    if (hooks?.defaultValues) {
-      finalProps = { ...hooks.defaultValues, ...props } as T;
-    }
 
     // Validate schema on creation
     if (this.domainSchema && this.validationConfig.onCreate) {

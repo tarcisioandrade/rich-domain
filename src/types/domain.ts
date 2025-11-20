@@ -15,12 +15,10 @@ interface DomainValidation<T> {
 export type EntityValidation<T> = DomainValidation<T>;
 export type VOValidation<T> = DomainValidation<T>;
 
-
 export interface VOHooks<T, E> {
   onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
   rules?: (entity: E) => void;
-  defaultValues?: Partial<T>;
 }
 
 // Specialized hooks for entities (with BaseProps)
