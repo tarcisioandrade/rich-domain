@@ -87,15 +87,29 @@ class User extends Aggregate<UserProps> {
     },
   };
 
-  get name() { return this.props.name; }
-  set name(value: string) { this.props.name = value; }
+  get name() {
+    return this.props.name;
+  }
+  set name(value: string) {
+    this.props.name = value;
+  }
 
-  get email() { return this.props.email; }
-  get age() { return this.props.age; }
-  get status() { return this.props.status; }
+  get email() {
+    return this.props.email;
+  }
+  get age() {
+    return this.props.age;
+  }
+  get status() {
+    return this.props.status;
+  }
 
-  activate() { this.props.status = "active"; }
-  deactivate() { this.props.status = "inactive"; }
+  activate() {
+    this.props.status = "active";
+  }
+  deactivate() {
+    this.props.status = "inactive";
+  }
 }
 ```
 
@@ -345,7 +359,7 @@ const json = users.toJSON();
 // Utilitários
 users.isEmpty; // boolean
 users.hasMore; // boolean
-users.map(user => user.name); // Transforma cada item
+users.map((user) => user.name); // Transforma cada item
 ```
 
 ## Value Objects
@@ -360,8 +374,12 @@ interface AddressProps {
 }
 
 class Address extends ValueObject<AddressProps> {
-  get street() { return this.props.street; }
-  get city() { return this.props.city; }
+  get street() {
+    return this.props.street;
+  }
+  get city() {
+    return this.props.city;
+  }
 
   changeCity(newCity: string): Address {
     return this.clone({ city: newCity });
@@ -394,11 +412,11 @@ import { Id } from "rich-domain";
 
 // Nova entidade - gera UUID
 const newId = new Id();
-console.log(newId.isNew); // true
+console.log(newuser.isNew()); // true
 
 // Entidade existente
 const existingId = new Id("user-123");
-console.log(existingId.isNew); // false
+console.log(existinguser.isNew()); // false
 
 // Comparação
 newId.equals(existingId); // false
@@ -442,10 +460,7 @@ import { DomainEvent, DomainEventBus } from "rich-domain";
 
 // Definir evento
 class UserCreatedEvent extends DomainEvent {
-  constructor(
-    public readonly userId: Id,
-    public readonly userName: string
-  ) {
+  constructor(public readonly userId: Id, public readonly userName: string) {
     super("UserCreated", userId);
   }
 }
@@ -456,9 +471,7 @@ class User extends Aggregate<UserProps> {
     const user = new User({ ...props, id: new Id() });
 
     // Adicionar evento
-    user.addDomainEvent(
-      new UserCreatedEvent(user.id, user.name)
-    );
+    user.addDomainEvent(new UserCreatedEvent(user.id, user.name));
 
     return user;
   }
@@ -516,18 +529,21 @@ if (user.hasValidationErrors) {
 ## Compatibilidade Standard Schema
 
 ### Zod
+
 ```typescript
 import { z } from "zod";
 const schema = z.object({ ... });
 ```
 
 ### Valibot
+
 ```typescript
 import * as v from "valibot";
 const schema = v.object({ ... });
 ```
 
 ### ArkType
+
 ```typescript
 import { type } from "arktype";
 const schema = type({ ... });
@@ -536,6 +552,7 @@ const schema = type({ ... });
 ## Estrutura de Arquivos
 
 Para exemplos completos, veja:
+
 - `src/repository/examples/prisma-repository.example.ts` - Implementação Prisma completa
 - `src/repository/examples/README.md` - Documentação detalhada
 - `tests/` - Testes completos de todos os recursos
@@ -683,7 +700,7 @@ describe("UserService", () => {
       email: "joao@example.com",
     });
 
-    expect(user.id.isNew).toBe(false);
+    expect(user.user.isNew()).toBe(false);
     expect(await userRepo.exists(user.id)).toBe(true);
   });
 });

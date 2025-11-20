@@ -482,7 +482,7 @@ describe("Repository", () => {
     });
 
     it("should save new user (insert)", async () => {
-      expect(user.isNew).toBe(true);
+      expect(user.isNew()).toBe(true);
       await repository.create(user);
 
       const found = await repository.findById(user.id.value);
@@ -644,7 +644,9 @@ describe("Repository", () => {
         }),
       ];
 
-      const persistenceList = domainList.map((d) => toPersistenceMapper.build(d));
+      const persistenceList = domainList.map((d) =>
+        toPersistenceMapper.build(d)
+      );
 
       expect(persistenceList).toHaveLength(2);
       expect(persistenceList[0].id).toBe("1");

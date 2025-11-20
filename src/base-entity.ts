@@ -278,8 +278,8 @@ export abstract class BaseEntity<T extends BaseProps> {
     return this._props.id;
   }
 
-  get isNew(): boolean {
-    return this._props.id.isNew;
+  public isNew(): boolean {
+    return this._props.id.isNew();
   }
 
   /**

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from "crypto";
 // ============================================================================
 // Id Class - Smart Identity Management
 // ============================================================================
@@ -14,11 +14,11 @@ export class Id {
    * @example
    * // New entity (generates UUID)
    * const newId = new Id();
-   * newId.isNew // true
+   * newuser.isNew() // true
    *
    * // Existing entity (uses provided ID)
    * const existingId = new Id("550e8400-e29b-41d4-a716-446655440000");
-   * existingId.isNew // false
+   * existinguser.isNew() // false
    */
   constructor(value?: string) {
     if (value !== undefined) {
@@ -42,7 +42,7 @@ export class Id {
   /**
    * Check if this ID represents a new entity
    */
-  get isNew(): boolean {
+  public isNew(): boolean {
     return this._isNew;
   }
 

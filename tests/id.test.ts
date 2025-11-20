@@ -1,17 +1,17 @@
-import { Id } from '../src';
-import { Address, Post, User } from './utils';
+import { Id } from "../src";
+import { Address, Post, User } from "./utils";
 
 // ============================================================================
 // Id Class Tests
 // ============================================================================
 
-describe('Id Class', () => {
-  describe('Construction', () => {
-    it('should generate UUID when no value provided', () => {
+describe("Id Class", () => {
+  describe("Construction", () => {
+    it("should generate UUID when no value provided", () => {
       const id = new Id();
 
       expect(id.value).toBeDefined();
-      expect(typeof id.value).toBe('string');
+      expect(typeof id.value).toBe("string");
       expect(id.value.length).toBeGreaterThan(0);
       // UUID v4 format check
       expect(id.value).toMatch(
@@ -19,26 +19,26 @@ describe('Id Class', () => {
       );
     });
 
-    it('should mark as new when no value provided', () => {
+    it("should mark as new when no value provided", () => {
       const id = new Id();
 
-      expect(id.isNew).toBe(true);
+      expect(id.isNew()).toBe(true);
     });
 
-    it('should use provided value', () => {
-      const existingId = '550e8400-e29b-41d4-a716-446655440000';
+    it("should use provided value", () => {
+      const existingId = "550e8400-e29b-41d4-a716-446655440000";
       const id = new Id(existingId);
 
       expect(id.value).toBe(existingId);
     });
 
-    it('should mark as NOT new when value provided', () => {
-      const id = new Id('existing-id');
+    it("should mark as NOT new when value provided", () => {
+      const id = new Id("existing-id");
 
-      expect(id.isNew).toBe(false);
+      expect(id.isNew()).toBe(false);
     });
 
-    it('should generate unique IDs', () => {
+    it("should generate unique IDs", () => {
       const id1 = new Id();
       const id2 = new Id();
       const id3 = new Id();
@@ -49,53 +49,53 @@ describe('Id Class', () => {
     });
   });
 
-  describe('Static Methods', () => {
-    it('should create new Id with Id.create()', () => {
+  describe("Static Methods", () => {
+    it("should create new Id with Id.create()", () => {
       const id = Id.create();
 
-      expect(id.isNew).toBe(true);
+      expect(id.isNew()).toBe(true);
       expect(id.value).toBeDefined();
     });
 
-    it('should create existing Id with Id.from()', () => {
-      const id = Id.from('existing-id');
+    it("should create existing Id with Id.from()", () => {
+      const id = Id.from("existing-id");
 
-      expect(id.isNew).toBe(false);
-      expect(id.value).toBe('existing-id');
+      expect(id.isNew()).toBe(false);
+      expect(id.value).toBe("existing-id");
     });
   });
 
-  describe('String Conversion', () => {
-    it('should convert to string with toString()', () => {
-      const id = new Id('test-id');
+  describe("String Conversion", () => {
+    it("should convert to string with toString()", () => {
+      const id = new Id("test-id");
 
-      expect(id.toString()).toBe('test-id');
-      expect(String(id)).toBe('test-id');
+      expect(id.toString()).toBe("test-id");
+      expect(String(id)).toBe("test-id");
     });
 
-    it('should convert to JSON', () => {
-      const id = new Id('test-id');
+    it("should convert to JSON", () => {
+      const id = new Id("test-id");
 
-      expect(id.toJSON()).toBe('test-id');
+      expect(id.toJSON()).toBe("test-id");
       expect(JSON.stringify(id)).toBe('"test-id"');
     });
   });
 
-  describe('Equality', () => {
-    it('should compare with another Id', () => {
-      const id1 = new Id('same-id');
-      const id2 = new Id('same-id');
-      const id3 = new Id('different-id');
+  describe("Equality", () => {
+    it("should compare with another Id", () => {
+      const id1 = new Id("same-id");
+      const id2 = new Id("same-id");
+      const id3 = new Id("different-id");
 
       expect(id1.equals(id2)).toBe(true);
       expect(id1.equals(id3)).toBe(false);
     });
 
-    it('should compare with string', () => {
-      const id = new Id('test-id');
+    it("should compare with string", () => {
+      const id = new Id("test-id");
 
-      expect(id.equals('test-id')).toBe(true);
-      expect(id.equals('other-id')).toBe(false);
+      expect(id.equals("test-id")).toBe(true);
+      expect(id.equals("other-id")).toBe(false);
     });
   });
 });
@@ -104,104 +104,104 @@ describe('Id Class', () => {
 // Entity with Id Tests
 // ============================================================================
 
-describe('Entity with Id Class', () => {
-  describe('New Entity', () => {
-    it('should be new when Id is auto-generated', () => {
+describe("Entity with Id Class", () => {
+  describe("New Entity", () => {
+    it("should be new when Id is auto-generated", () => {
       const post = new Post({
         id: new Id(), // No value = new
-        title: 'New Post',
-        content: 'Content',
+        title: "New Post",
+        content: "Content",
         likes: 0,
       });
 
-      expect(post.isNew).toBe(true);
-      expect(post.id.isNew).toBe(true);
+      expect(post.isNew()).toBe(true);
+      expect(post.id.isNew()).toBe(true);
     });
 
-    it('should auto-generate unique IDs', () => {
+    it("should auto-generate unique IDs", () => {
       const post1 = new Post({
         id: new Id(),
-        title: 'Post 1',
-        content: 'Content',
+        title: "Post 1",
+        content: "Content",
         likes: 0,
       });
 
       const post2 = new Post({
         id: new Id(),
-        title: 'Post 2',
-        content: 'Content',
+        title: "Post 2",
+        content: "Content",
         likes: 0,
       });
 
       expect(post1.id.value).not.toBe(post2.id.value);
-      expect(post1.isNew).toBe(true);
-      expect(post2.isNew).toBe(true);
+      expect(post1.isNew()).toBe(true);
+      expect(post2.isNew()).toBe(true);
     });
 
-    it('should work with Id.create()', () => {
+    it("should work with Id.create()", () => {
       const post = new Post({
         id: Id.create(),
-        title: 'New Post',
-        content: 'Content',
+        title: "New Post",
+        content: "Content",
         likes: 0,
       });
 
-      expect(post.isNew).toBe(true);
+      expect(post.isNew()).toBe(true);
     });
   });
 
-  describe('Existing Entity', () => {
-    it('should NOT be new when Id value is provided', () => {
+  describe("Existing Entity", () => {
+    it("should NOT be new when Id value is provided", () => {
       const post = new Post({
-        id: new Id('existing-post-id'), // Value provided = not new
-        title: 'Existing Post',
-        content: 'Content',
+        id: new Id("existing-post-id"), // Value provided = not new
+        title: "Existing Post",
+        content: "Content",
         likes: 10,
       });
 
-      expect(post.isNew).toBe(false);
-      expect(post.id.isNew).toBe(false);
+      expect(post.isNew()).toBe(false);
+      expect(post.id.isNew()).toBe(false);
     });
 
-    it('should work with Id.from()', () => {
+    it("should work with Id.from()", () => {
       const post = new Post({
-        id: Id.from('existing-post-id'),
-        title: 'Existing Post',
-        content: 'Content',
+        id: Id.from("existing-post-id"),
+        title: "Existing Post",
+        content: "Content",
         likes: 10,
       });
 
-      expect(post.isNew).toBe(false);
+      expect(post.isNew()).toBe(false);
     });
   });
 
-  describe('toJson()', () => {
-    it('should serialize Id to string', () => {
+  describe("toJson()", () => {
+    it("should serialize Id to string", () => {
       const post = new Post({
-        id: new Id('post-123'),
-        title: 'Test Post',
-        content: 'Content',
+        id: new Id("post-123"),
+        title: "Test Post",
+        content: "Content",
         likes: 5,
       });
 
       const json = post.toJson();
 
-      expect(json.id).toBe('post-123');
-      expect(typeof json.id).toBe('string');
+      expect(json.id).toBe("post-123");
+      expect(typeof json.id).toBe("string");
     });
   });
 
-  describe('Id Comparison in Arrays', () => {
-    it('should detect changes in arrays using Id', done => {
+  describe("Id Comparison in Arrays", () => {
+    it("should detect changes in arrays using Id", (done) => {
       const user = new User({
-        id: new Id('user-1'),
-        name: 'John',
-        email: 'john@example.com',
+        id: new Id("user-1"),
+        name: "John",
+        email: "john@example.com",
         posts: [],
         address: new Address({
-          street: 'Main St',
-          city: 'NYC',
-          zipCode: '10001',
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
         }),
         comments: [],
       });
@@ -219,38 +219,38 @@ describe('Entity with Id Class', () => {
       user.addManyPosts([
         new Post({
           id: new Id(),
-          title: 'Post 1',
-          content: 'Content 1',
+          title: "Post 1",
+          content: "Content 1",
           likes: 0,
         }),
         new Post({
           id: new Id(),
-          title: 'Post 2',
-          content: 'Content 2',
+          title: "Post 2",
+          content: "Content 2",
           likes: 0,
         }),
       ]);
     });
 
-    it('should track deletes correctly with Id', done => {
-      const postId = new Id('post-to-delete');
+    it("should track deletes correctly with Id", (done) => {
+      const postId = new Id("post-to-delete");
 
       const user = new User({
-        id: new Id('user-1'),
-        name: 'John',
-        email: 'john@example.com',
+        id: new Id("user-1"),
+        name: "John",
+        email: "john@example.com",
         posts: [
           new Post({
             id: postId,
-            title: 'Post 1',
-            content: 'Content 1',
+            title: "Post 1",
+            content: "Content 1",
             likes: 0,
           }),
         ],
         address: new Address({
-          street: 'Main St',
-          city: 'NYC',
-          zipCode: '10001',
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
         }),
         comments: [],
       });
@@ -275,67 +275,67 @@ describe('Entity with Id Class', () => {
 // Aggregate with Id Tests
 // ============================================================================
 
-describe('Aggregate with Id Class', () => {
-  it('should be new when Id is auto-generated', () => {
+describe("Aggregate with Id Class", () => {
+  it("should be new when Id is auto-generated", () => {
     const user = new User({
       id: new Id(),
-      name: 'John',
-      email: 'john@example.com',
+      name: "John",
+      email: "john@example.com",
       posts: [],
       address: new Address({
-        street: 'Main St',
-        city: 'NYC',
-        zipCode: '10001',
+        street: "Main St",
+        city: "NYC",
+        zipCode: "10001",
       }),
       comments: [],
     });
 
-    expect(user.isNew).toBe(true);
+    expect(user.isNew()).toBe(true);
   });
 
-  it('should NOT be new when Id value is provided', () => {
+  it("should NOT be new when Id value is provided", () => {
     const user = new User({
-      id: new Id('existing-user'),
-      name: 'John',
-      email: 'john@example.com',
+      id: new Id("existing-user"),
+      name: "John",
+      email: "john@example.com",
       posts: [],
       address: new Address({
-        street: 'Main St',
-        city: 'NYC',
-        zipCode: '10001',
+        street: "Main St",
+        city: "NYC",
+        zipCode: "10001",
       }),
       comments: [],
     });
 
-    expect(user.isNew).toBe(false);
+    expect(user.isNew()).toBe(false);
   });
 
-  it('should serialize Id in nested entities', () => {
+  it("should serialize Id in nested entities", () => {
     const user = new User({
-      id: new Id('user-1'),
-      name: 'John',
-      email: 'john@example.com',
+      id: new Id("user-1"),
+      name: "John",
+      email: "john@example.com",
       posts: [
         new Post({
-          id: new Id('post-1'),
-          title: 'Post 1',
-          content: 'Content',
+          id: new Id("post-1"),
+          title: "Post 1",
+          content: "Content",
           likes: 0,
         }),
       ],
       comments: [],
       address: new Address({
-        street: 'Main St',
-        city: 'NYC',
-        zipCode: '10001',
+        street: "Main St",
+        city: "NYC",
+        zipCode: "10001",
       }),
     });
 
     const json = user.toJson();
 
-    expect(json.id).toBe('user-1');
-    expect(json.posts[0].id).toBe('post-1');
-    expect(typeof json.id).toBe('string');
-    expect(typeof json.posts[0].id).toBe('string');
+    expect(json.id).toBe("user-1");
+    expect(json.posts[0].id).toBe("post-1");
+    expect(typeof json.id).toBe("string");
+    expect(typeof json.posts[0].id).toBe("string");
   });
 });

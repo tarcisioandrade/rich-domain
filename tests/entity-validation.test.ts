@@ -134,7 +134,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(user.name).toBe("John Doe");
       expect(user.email).toBe("john@example.com");
       expect(user.age).toBe(25);
-      expect(user.isNew).toBe(true);
+      expect(user.isNew()).toBe(true);
     });
 
     it("should throw on invalid email", () => {
