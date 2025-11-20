@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.2](https://github.com/tarcisioandrade/rich-domain/compare/v0.2.1...v0.2.2) (2025-11-20)
+
+
+### Features
+
+* introduce Mapper class and refactor repository structure for improved abstraction and clarity ([f88538b](https://github.com/tarcisioandrade/rich-domain/commit/f88538bcde21dcd72714d24acdc7c8c38fb371f3))
+
+
+### Chores
+
+* change-package-name ([e5aea77](https://github.com/tarcisioandrade/rich-domain/commit/e5aea77a60fd0504d569e9c437aa3d1f99cbe961))
+
 ### [0.2.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.2.0...v0.2.1) (2025-11-19)
 
 
