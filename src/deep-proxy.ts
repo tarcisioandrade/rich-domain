@@ -152,7 +152,19 @@ export class DeepProxy {
           ];
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
+              // Capture state before mutation
+              const oldArray = target.slice();
+
               const result = value.apply(target, args);
+
+              // Add to history
+              self.rootProxy!.history.push({
+                path: path,
+                previousValue: oldArray,
+                currentValue: target.slice(),
+                timestamp: Date.now(),
+              });
+
               if (!self.rootProxy!.trackedArraysCloned.has(path)) {
                 self.rootProxy!.storeArrayState(path, target);
               }
@@ -172,7 +184,19 @@ export class DeepProxy {
       },
       set(target, prop, newValue, receiver) {
         if (!isNaN(Number(prop))) {
+          // Capture state before change
+          const oldArray = target.slice();
+
           const result = Reflect.set(target, prop, newValue, receiver);
+
+          // Add to history
+          self.rootProxy!.history.push({
+            path: path,
+            previousValue: oldArray,
+            currentValue: target.slice(),
+            timestamp: Date.now(),
+          });
+
           if (!self.rootProxy!.trackedArraysCloned.has(path)) {
             self.rootProxy!.storeArrayState(path, target);
           }
@@ -197,10 +221,47 @@ export class DeepProxy {
     this.rootProxy!.subscribers.get(path)!.add(callback);
 
     const actualValue = this.rootProxy!.target[path];
-    if (
-      Array.isArray(actualValue) &&
-      !this.rootProxy!.trackedArraysCloned.has(path)
-    ) {
+    const isArray = Array.isArray(actualValue);
+
+    // Fire callback immediately if there's a historical change for this path
+    const lastChange = this.rootProxy!.getLastChangeForPath(path);
+    if (lastChange) {
+      if (isArray) {
+        // For arrays, we need to detect changes and fire with toCreate/toUpdate/toDelete
+        const previousArray = Array.isArray(lastChange.previousValue)
+          ? lastChange.previousValue
+          : [];
+        const currentArray = Array.isArray(lastChange.currentValue)
+          ? lastChange.currentValue
+          : actualValue;
+
+        // Store the initial state before the change for comparison
+        if (!this.rootProxy!.trackedArraysCloned.has(path)) {
+          this.rootProxy!.storeArrayState(path, previousArray);
+        }
+
+        // Detect changes between previous and current
+        const changes = this.rootProxy!.detectArrayChanges(
+          this.rootProxy!.trackedArraysCloned.get(path) ||
+            this.rootProxy!.cloneArray(previousArray),
+          previousArray,
+          currentArray
+        );
+
+        callback({ ...changes, path });
+
+        // Update tracked state to current
+        this.rootProxy!.storeArrayState(path, currentArray);
+      } else {
+        // For non-arrays, use the simple property change format
+        callback({
+          previous: lastChange.previousValue,
+          current: lastChange.currentValue,
+          path: lastChange.path,
+        });
+      }
+    } else if (isArray && !this.rootProxy!.trackedArraysCloned.has(path)) {
+      // No historical changes, just store initial state
       this.rootProxy!.storeArrayState(path, actualValue);
     }
   }
@@ -300,7 +361,7 @@ export class DeepProxy {
     if (typeof obj !== "object") return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
     if (obj instanceof Id) return obj.value;
-    if (obj.toJson && typeof obj.toJson === "function") return obj.toJson();
+    if (obj.toJSON && typeof obj.toJSON === "function") return obj.toJSON();
     if (Array.isArray(obj)) return obj.map((item) => this.deepClone(item));
     const cloned: any = {};
     for (const key in obj) {
@@ -326,8 +387,39 @@ export class DeepProxy {
     return JSON.stringify(json1) !== JSON.stringify(json2);
   }
 
+  private normalizeAndStringify(obj: any): string {
+    if (obj === null || typeof obj !== "object") {
+      return JSON.stringify(obj);
+    }
+
+    if (Array.isArray(obj)) {
+      const normalizedArray = obj.map((item) =>
+        this.normalizeAndStringify(item)
+      );
+      return `[${normalizedArray.join(",")}]`;
+    }
+
+    const keys = Object.keys(obj).sort();
+    const normalizedParts: string[] = [];
+
+    for (const key of keys) {
+      normalizedParts.push(`"${key}":${this.normalizeAndStringify(obj[key])}`);
+    }
+
+    return `{${normalizedParts.join(",")}}`;
+  }
+
   getHistory(): HistoryEntry[] {
     return [...this.history];
+  }
+
+  getLastChangeForPath(path: string): HistoryEntry | undefined {
+    for (let i = this.history.length - 1; i >= 0; i--) {
+      if (this.history[i].path === path) {
+        return this.history[i];
+      }
+    }
+    return undefined;
   }
 
   clearHistory(): void {
