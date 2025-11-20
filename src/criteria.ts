@@ -1,6 +1,7 @@
 import {
   FieldPath,
   Filter,
+  FILTER_OPERATORS,
   FilterOperator,
   FilterValueFor,
   Order,
@@ -221,7 +222,6 @@ export class Criteria<T = unknown> {
       const [field, operatorRaw] = key.split(":");
 
       if (!operatorRaw || !field) continue;
-
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
       if (!operator) throw new Error(`Invalid filter operator: ${operatorRaw}`);
 
@@ -287,5 +287,5 @@ function parseQueryValue(value: string): any {
 }
 
 function isOperator(value: string): value is FilterOperator {
-  return FilterOperator.includes(value as FilterOperator);
+  return FILTER_OPERATORS.includes(value as FilterOperator);
 }

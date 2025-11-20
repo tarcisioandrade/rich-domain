@@ -1,6 +1,6 @@
 import { Primitive } from "./utils";
 
-export const FilterOperator = [
+export const FILTER_OPERATORS = [
   "equals",
   "notEquals",
   "greaterThan",
@@ -36,7 +36,7 @@ export type PathValue<
   ? T[P]
   : never;
 
-export type FilterOperator = (typeof FilterOperator)[number];
+export type FilterOperator = (typeof FILTER_OPERATORS)[number];
 
 export interface Filter<TField = string, TValue = unknown> {
   field: TField;
