@@ -1,4 +1,4 @@
-import { Id } from "../src";
+import { Entity, Id } from "../src";
 import { Post, User, Address, Comment } from "./utils";
 
 describe("toJson Functionality", () => {
@@ -87,5 +87,17 @@ describe("toJson Functionality", () => {
     expect(typeof json).toBe("object");
     expect(Array.isArray(json.posts)).toBe(true);
     expect(json.posts[0].id).toBe("1");
+  });
+
+  it("should serialize date correctly", () => {
+    class Test extends Entity<{ id: Id; createdAt: Date }> {}
+
+    const test = new Test({
+      id: new Id("1"),
+      createdAt: new Date(),
+    });
+
+    const json = test.toJson();
+    expect(json.createdAt).toBe(test.props.createdAt.toISOString());
   });
 });

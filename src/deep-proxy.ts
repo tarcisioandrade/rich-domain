@@ -361,7 +361,7 @@ export class DeepProxy {
     if (typeof obj !== "object") return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
     if (obj instanceof Id) return obj.value;
-    if (obj.toJSON && typeof obj.toJSON === "function") return obj.toJSON();
+    if (obj.toJson && typeof obj.toJson === "function") return obj.toJson();
     if (Array.isArray(obj)) return obj.map((item) => this.deepClone(item));
     const cloned: any = {};
     for (const key in obj) {

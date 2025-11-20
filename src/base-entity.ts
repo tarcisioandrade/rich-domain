@@ -386,6 +386,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   private deepToJson(obj: any): any {
     if (obj === null || obj === undefined) return obj;
     if (obj instanceof Id) return obj.value;
+    if (obj instanceof Date) return obj.toISOString();
     if (Array.isArray(obj)) return obj.map((item) => this.deepToJson(item));
     if (obj instanceof BaseEntity) return obj.toJson();
     if (obj && typeof obj.toJson === "function") return obj.toJson();
