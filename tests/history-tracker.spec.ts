@@ -4,28 +4,68 @@ import { Post, User, Address, Comment } from "./utils";
 describe("History Tracker Tests", () => {
   describe("Simple Property Changes", () => {
     it("should track simple property changes", (done) => {
-      const post = new Post({
+      const user = new User({
         id: new Id("1"),
-        title: "First Post",
-        content: "Hello World",
-        likes: 0,
+        name: "John Doe",
+        email: "john@example.com",
+        posts: [
+          new Post({
+            id: new Id("1"),
+            title: "First Post",
+            content: "Hello World",
+            likes: 0,
+          }),
+        ],
+        address: new Address({
+          street: "Main St",
+          city: "NYC",
+          zipCode: "10001",
+        }),
+        comments: [],
       });
 
-      let changeCount = 0;
+      user.changeEmail("new@example.com");
+      user.name = "New Name";
+      user.addPost(
+        new Post({
+          id: new Id("2"),
+          title: "Second Post",
+          content: "Hello World 2",
+          likes: 0,
+        })
+      );
 
-      post.subscribe({
-        title: {
-          onChange: ({ previous, current, path }) => {
-            changeCount++;
-            expect(previous).toBe("First Post");
-            expect(current).toBe("Updated Title");
-            expect(path).toBe("title");
-            done();
+      function dispatch(entity: User) {
+        entity.subscribe({
+          email: {
+            onChange: ({ previous, current, path }) => {
+              expect(previous).toBe("john@example.com");
+              expect(current).toBe("new@example.com");
+              expect(path).toBe("email");
+            },
           },
-        },
-      });
+          posts: {
+            onChange: ({ toCreate, toUpdate, toDelete }) => {
+              expect(toCreate).toHaveLength(1);
+              expect(toUpdate).toHaveLength(1);
+              expect(toDelete).toHaveLength(0);
+            },
+          },
+          name: {
+            onChange: ({ previous, current, path }) => {
+              expect(previous).toBe("John Doe");
+              expect(current).toBe("New Name");
+              expect(path).toBe("name");
+            },
+          },
+        });
+      }
+      user.posts[0].title = "Updated Title";
+      dispatch(user);
 
-      post.title = "Updated Title";
+      setTimeout(() => {
+        done();
+      }, 100);
     });
 
     it("should track multiple property changes", () => {
