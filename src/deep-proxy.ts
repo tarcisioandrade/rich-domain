@@ -382,9 +382,9 @@ export class DeepProxy {
   }
 
   private hasChanged(obj1: any, obj2: any): boolean {
-    const json1 = this.deepClone(obj1);
-    const json2 = this.deepClone(obj2);
-    return JSON.stringify(json1) !== JSON.stringify(json2);
+    const json1 = this.normalizeAndStringify(this.deepClone(obj1));
+    const json2 = this.normalizeAndStringify(this.deepClone(obj2));
+    return json1 !== json2;
   }
 
   private normalizeAndStringify(obj: any): string {
