@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.2.2...v1.0.0) (2025-11-20)
+
+
+### Features
+
+* enhance DeepProxy with history tracking and array change detection ([721444c](https://github.com/tarcisioandrade/rich-domain/commit/721444cec2a5deb683ea79c044f9ea0dc840d75b))
+
+
+### Bug Fixes
+
+* date serialization to deepToJson ([be77cc6](https://github.com/tarcisioandrade/rich-domain/commit/be77cc6815c6effba999063bba9f4d73ba59d778))
+* rename FilterOperator to FILTER_OPERATORS for consistency and update related references ([5f3c784](https://github.com/tarcisioandrade/rich-domain/commit/5f3c784d0a35a3b24cf37cbc8a727dc68a96579e))
+
+
+### Chores
+
+* update TypeScript configuration to use CommonJS module and Node resolution ([c3f39cd](https://github.com/tarcisioandrade/rich-domain/commit/c3f39cdd9cc2c76653197a8b7b6e8ec3fd794ecf))
+
+
+### Tests
+
+* update history tracker tests to include user property changes and post management ([29bdab1](https://github.com/tarcisioandrade/rich-domain/commit/29bdab14b7b43f32576a821851ba97618848ab7b))
+
+
+### Refactoring
+
+* change isNew property to a public method for improved access ([186defd](https://github.com/tarcisioandrade/rich-domain/commit/186defddad9740fc036acbebbb09fce2feb795db))
+* optimize hasChanged method by introducing normalization and stringification ([0162b92](https://github.com/tarcisioandrade/rich-domain/commit/0162b92d6d3613026a02830e992e0d6072258d82))
+* simplify repository exports and remove outdated comments ([9b3c3dc](https://github.com/tarcisioandrade/rich-domain/commit/9b3c3dc05ae883ea4559ca59af7f3f666bbfe61b))
+
 ### [0.2.2](https://github.com/tarcisioandrade/rich-domain/compare/v0.2.1...v0.2.2) (2025-11-20)
 
 
