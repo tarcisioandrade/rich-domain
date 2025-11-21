@@ -40,12 +40,12 @@ export class DomainEventBus {
   /**
    * Subscribe to a specific event type
    */
-  subscribe<T extends IDomainEvent>(
-    eventType: EventConstructor<T> | string,
-    handler: DomainEventHandler<T> | IDomainEventHandler<T>
-  ): void {
-    const eventName =
-      typeof eventType === "string" ? eventType : eventType.name;
+  subscribe<T extends IDomainEvent>(props: {
+    event: EventConstructor<T> | string;
+    handler: DomainEventHandler<T> | IDomainEventHandler<T>;
+  }): void {
+    const { event, handler } = props;
+    const eventName = typeof event === "string" ? event : event.name;
 
     if (!this.handlers.has(eventName)) {
       this.handlers.set(eventName, new Set());
@@ -58,7 +58,9 @@ export class DomainEventBus {
    * Subscribe to all events (wildcard)
    */
   subscribeAll(
-    handler: DomainEventHandler<IDomainEvent> | IDomainEventHandler<IDomainEvent>
+    handler:
+      | DomainEventHandler<IDomainEvent>
+      | IDomainEventHandler<IDomainEvent>
   ): void {
     this.wildcardHandlers.add(handler);
   }
@@ -86,7 +88,9 @@ export class DomainEventBus {
    * Unsubscribe from all events
    */
   unsubscribeAll(
-    handler: DomainEventHandler<IDomainEvent> | IDomainEventHandler<IDomainEvent>
+    handler:
+      | DomainEventHandler<IDomainEvent>
+      | IDomainEventHandler<IDomainEvent>
   ): void {
     this.wildcardHandlers.delete(handler);
   }
@@ -149,10 +153,7 @@ export class DomainEventBus {
         await handler.handle(event);
       }
     } catch (error) {
-      console.error(
-        `Error handling event ${event.eventName}:`,
-        error
-      );
+      console.error(`Error handling event ${event.eventName}:`, error);
       // Don't throw - we don't want one handler failure to break others
     }
   }

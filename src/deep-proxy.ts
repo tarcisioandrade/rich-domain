@@ -4,6 +4,7 @@
 
 import { Id } from "./id";
 import { HistoryEntry } from "./types";
+import assert from "node:assert";
 
 export class DeepProxy {
   private history: HistoryEntry[] = [];
@@ -27,6 +28,8 @@ export class DeepProxy {
     const handler: ProxyHandler<any> = {
       get: (target, prop, receiver) => {
         const value = Reflect.get(target, prop, receiver);
+        assert(this.rootProxy, "Root proxy is required");
+
         const currentPath = this.path
           ? `${this.path}.${String(prop)}`
           : String(prop);
@@ -44,8 +47,8 @@ export class DeepProxy {
         if (typeof value === "function") return value.bind(target);
 
         if (Array.isArray(value)) {
-          if (!this.rootProxy!.trackedArraysCloned.has(currentPath)) {
-            this.rootProxy!.storeArrayState(currentPath, value);
+          if (!this.rootProxy.trackedArraysCloned.has(currentPath)) {
+            this.rootProxy.storeArrayState(currentPath, value);
           }
           return this.createArrayProxy(value, currentPath);
         }
@@ -62,16 +65,18 @@ export class DeepProxy {
         const currentPath = this.path
           ? `${this.path}.${String(prop)}`
           : String(prop);
+        assert(this.rootProxy, "Root proxy is required");
+
         const oldValue = Reflect.get(target, prop, receiver);
         const isArrayAssignment = Array.isArray(newValue);
 
         if (!isArrayAssignment && oldValue === newValue) return true;
 
-        if (!this.rootProxy!.originalValues.has(currentPath)) {
-          this.rootProxy!.originalValues.set(currentPath, oldValue);
+        if (!this.rootProxy.originalValues.has(currentPath)) {
+          this.rootProxy.originalValues.set(currentPath, oldValue);
         }
 
-        this.rootProxy!.history.push({
+        this.rootProxy.history.push({
           path: currentPath,
           previousValue: oldValue,
           currentValue: newValue,
@@ -81,28 +86,28 @@ export class DeepProxy {
         const result = Reflect.set(target, prop, newValue, receiver);
 
         if (isArrayAssignment) {
-          if (!this.rootProxy!.trackedArraysCloned.has(currentPath)) {
+          if (!this.rootProxy.trackedArraysCloned.has(currentPath)) {
             if (Array.isArray(oldValue)) {
-              this.rootProxy!.storeArrayState(currentPath, oldValue);
+              this.rootProxy.storeArrayState(currentPath, oldValue);
             } else {
-              this.rootProxy!.storeArrayState(currentPath, []);
+              this.rootProxy.storeArrayState(currentPath, []);
             }
           }
-          this.rootProxy!.scheduleNotification(() =>
+          this.rootProxy.scheduleNotification(() =>
             this.rootProxy!.notifyArrayChange(currentPath, newValue)
           );
         } else {
-          this.rootProxy!.scheduleNotification(() =>
+          this.rootProxy.scheduleNotification(() =>
             this.rootProxy!.notifySubscribers(currentPath, oldValue, newValue)
           );
         }
 
         // Notify global subscribers
-        this.rootProxy!.scheduleNotification(() =>
+        this.rootProxy.scheduleNotification(() =>
           this.rootProxy!.notifyGlobalSubscribers()
         );
 
-        this.rootProxy!.flushNotifications();
+        this.rootProxy.flushNotifications();
 
         return result;
       },
@@ -140,6 +145,8 @@ export class DeepProxy {
     return new Proxy(array, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
+        assert(self.rootProxy, "Root proxy is required");
+
         if (typeof value === "function") {
           const mutatingMethods = [
             "push",
@@ -153,23 +160,24 @@ export class DeepProxy {
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
               // Capture state before mutation
+              assert(self.rootProxy, "Root proxy is required");
               const oldArray = target.slice();
 
               const result = value.apply(target, args);
 
               // Add to history
-              self.rootProxy!.history.push({
+              self.rootProxy.history.push({
                 path: path,
                 previousValue: oldArray,
                 currentValue: target.slice(),
                 timestamp: Date.now(),
               });
 
-              if (!self.rootProxy!.trackedArraysCloned.has(path)) {
-                self.rootProxy!.storeArrayState(path, target);
+              if (!self.rootProxy.trackedArraysCloned.has(path)) {
+                self.rootProxy.storeArrayState(path, target);
               }
-              self.rootProxy!.notifyArrayChange(path, target);
-              self.rootProxy!.notifyGlobalSubscribers();
+              self.rootProxy.notifyArrayChange(path, target);
+              self.rootProxy.notifyGlobalSubscribers();
               return result;
             };
           }
@@ -184,24 +192,25 @@ export class DeepProxy {
       },
       set(target, prop, newValue, receiver) {
         if (!isNaN(Number(prop))) {
+          assert(self.rootProxy, "Root proxy is required");
           // Capture state before change
           const oldArray = target.slice();
 
           const result = Reflect.set(target, prop, newValue, receiver);
 
           // Add to history
-          self.rootProxy!.history.push({
+          self.rootProxy.history.push({
             path: path,
             previousValue: oldArray,
             currentValue: target.slice(),
             timestamp: Date.now(),
           });
 
-          if (!self.rootProxy!.trackedArraysCloned.has(path)) {
-            self.rootProxy!.storeArrayState(path, target);
+          if (!self.rootProxy.trackedArraysCloned.has(path)) {
+            self.rootProxy.storeArrayState(path, target);
           }
-          self.rootProxy!.notifyArrayChange(path, target);
-          self.rootProxy!.notifyGlobalSubscribers();
+          self.rootProxy.notifyArrayChange(path, target);
+          self.rootProxy.notifyGlobalSubscribers();
           return result;
         }
         return Reflect.set(target, prop, newValue, receiver);
@@ -210,21 +219,24 @@ export class DeepProxy {
   }
 
   subscribe(path: string, callback: Function): void {
+    assert(this.rootProxy, "Root proxy is required");
+
     if (path === "*") {
-      this.rootProxy!.globalSubscribers.add(callback);
+      this.rootProxy.globalSubscribers.add(callback);
       return;
     }
 
-    if (!this.rootProxy!.subscribers.has(path)) {
-      this.rootProxy!.subscribers.set(path, new Set());
+    if (!this.rootProxy.subscribers.has(path)) {
+      this.rootProxy.subscribers.set(path, new Set());
     }
-    this.rootProxy!.subscribers.get(path)!.add(callback);
 
-    const actualValue = this.rootProxy!.target[path];
+    this.rootProxy.subscribers.get(path)!.add(callback);
+
+    const actualValue = this.rootProxy.target[path];
     const isArray = Array.isArray(actualValue);
 
     // Fire callback immediately if there's a historical change for this path
-    const lastChange = this.rootProxy!.getLastChangeForPath(path);
+    const lastChange = this.rootProxy.getLastChangeForPath(path);
     if (lastChange) {
       if (isArray) {
         // For arrays, we need to detect changes and fire with toCreate/toUpdate/toDelete
@@ -236,14 +248,14 @@ export class DeepProxy {
           : actualValue;
 
         // Store the initial state before the change for comparison
-        if (!this.rootProxy!.trackedArraysCloned.has(path)) {
-          this.rootProxy!.storeArrayState(path, previousArray);
+        if (!this.rootProxy.trackedArraysCloned.has(path)) {
+          this.rootProxy.storeArrayState(path, previousArray);
         }
 
         // Detect changes between previous and current
-        const changes = this.rootProxy!.detectArrayChanges(
-          this.rootProxy!.trackedArraysCloned.get(path) ||
-            this.rootProxy!.cloneArray(previousArray),
+        const changes = this.rootProxy.detectArrayChanges(
+          this.rootProxy.trackedArraysCloned.get(path) ||
+            this.rootProxy.cloneArray(previousArray),
           previousArray,
           currentArray
         );
@@ -251,7 +263,7 @@ export class DeepProxy {
         callback({ ...changes, path });
 
         // Update tracked state to current
-        this.rootProxy!.storeArrayState(path, currentArray);
+        this.rootProxy.storeArrayState(path, currentArray);
       } else {
         // For non-arrays, use the simple property change format
         callback({
@@ -260,19 +272,20 @@ export class DeepProxy {
           path: lastChange.path,
         });
       }
-    } else if (isArray && !this.rootProxy!.trackedArraysCloned.has(path)) {
+    } else if (isArray && !this.rootProxy.trackedArraysCloned.has(path)) {
       // No historical changes, just store initial state
-      this.rootProxy!.storeArrayState(path, actualValue);
+      this.rootProxy.storeArrayState(path, actualValue);
     }
   }
 
   unsubscribe(path: string, callback: Function): void {
+    assert(this.rootProxy, "Root proxy is required");
     if (path === "*") {
-      this.rootProxy!.globalSubscribers.delete(callback);
+      this.rootProxy.globalSubscribers.delete(callback);
       return;
     }
 
-    const subs = this.rootProxy!.subscribers.get(path);
+    const subs = this.rootProxy.subscribers.get(path);
     if (subs) {
       subs.delete(callback);
     }

@@ -2,11 +2,18 @@
   "name": "@woltz/rich-domain",
   "version": "1.0.0",
   "description": "Rich Domain Library with Standard Schema validation support",
+  "homepage": "https://github.com/tarcisioandrade/rich-domain",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -32,8 +39,6 @@
     "standard-schema",
     "typescript"
   ],
-  "author": "Tarcisio Andrade",
-  "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",

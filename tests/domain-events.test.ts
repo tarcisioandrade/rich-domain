@@ -94,27 +94,6 @@ class User extends Aggregate<UserProps> {
   }
 }
 
-interface OrderProps extends BaseProps {
-  id: Id;
-  total: number;
-}
-
-class Order extends Aggregate<OrderProps> {
-  get total(): number {
-    return this.props.total;
-  }
-
-  static place(total: number): Order {
-    const order = new Order({ total });
-    order.addDomainEvent(new OrderPlacedEvent(order.id, total));
-    return order;
-  }
-}
-
-// ============================================================================
-// Tests
-// ============================================================================
-
 describe("Domain Events", () => {
   let eventBus: DomainEventBus;
 
@@ -223,7 +202,7 @@ describe("Domain Events", () => {
     it("should subscribe and publish events with function handler", async () => {
       const handler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, handler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
       await eventBus.publish(event);
@@ -244,7 +223,7 @@ describe("Domain Events", () => {
       }
 
       const handler = new UserCreatedHandler();
-      eventBus.subscribe(UserCreatedEvent, handler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
       await eventBus.publish(event);
@@ -255,7 +234,7 @@ describe("Domain Events", () => {
     it("should subscribe by event name string", async () => {
       const handler = jest.fn();
 
-      eventBus.subscribe("UserCreatedEvent", handler);
+      eventBus.subscribe({ event: "UserCreatedEvent", handler });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
       await eventBus.publish(event);
@@ -268,9 +247,9 @@ describe("Domain Events", () => {
       const handler2 = jest.fn();
       const handler3 = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, handler1);
-      eventBus.subscribe(UserCreatedEvent, handler2);
-      eventBus.subscribe(UserCreatedEvent, handler3);
+      eventBus.subscribe({ event: UserCreatedEvent, handler: handler1 });
+      eventBus.subscribe({ event: UserCreatedEvent, handler: handler2 });
+      eventBus.subscribe({ event: UserCreatedEvent, handler: handler3 });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
       await eventBus.publish(event);
@@ -284,8 +263,8 @@ describe("Domain Events", () => {
       const userHandler = jest.fn();
       const orderHandler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, userHandler);
-      eventBus.subscribe(OrderPlacedEvent, orderHandler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler: userHandler });
+      eventBus.subscribe({ event: OrderPlacedEvent, handler: orderHandler });
 
       const userEvent = new UserCreatedEvent(
         new Id(),
@@ -316,7 +295,7 @@ describe("Domain Events", () => {
       const specificHandler = jest.fn();
       const wildcardHandler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, specificHandler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler: specificHandler });
       eventBus.subscribeAll(wildcardHandler);
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
@@ -329,7 +308,7 @@ describe("Domain Events", () => {
     it("should unsubscribe handler", async () => {
       const handler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, handler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler });
       eventBus.unsubscribe(UserCreatedEvent, handler);
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
@@ -353,8 +332,8 @@ describe("Domain Events", () => {
     it("should publish multiple events", async () => {
       const handler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, handler);
-      eventBus.subscribe(UserActivatedEvent, handler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler });
+      eventBus.subscribe({ event: UserActivatedEvent, handler });
 
       const events = [
         new UserCreatedEvent(new Id(), "test@example.com", "Test"),
@@ -367,9 +346,9 @@ describe("Domain Events", () => {
     });
 
     it("should get handler count", () => {
-      eventBus.subscribe(UserCreatedEvent, jest.fn());
-      eventBus.subscribe(UserCreatedEvent, jest.fn());
-      eventBus.subscribe(OrderPlacedEvent, jest.fn());
+      eventBus.subscribe({ event: UserCreatedEvent, handler: jest.fn() });
+      eventBus.subscribe({ event: UserCreatedEvent, handler: jest.fn() });
+      eventBus.subscribe({ event: OrderPlacedEvent, handler: jest.fn() });
 
       expect(eventBus.getHandlerCount(UserCreatedEvent)).toBe(2);
       expect(eventBus.getHandlerCount(OrderPlacedEvent)).toBe(1);
@@ -384,7 +363,7 @@ describe("Domain Events", () => {
         results.push(`Handled: ${event.email}`);
       };
 
-      eventBus.subscribe(UserCreatedEvent, asyncHandler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler: asyncHandler });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
       await eventBus.publish(event);
@@ -398,8 +377,8 @@ describe("Domain Events", () => {
       });
       const goodHandler = jest.fn();
 
-      eventBus.subscribe(UserCreatedEvent, errorHandler);
-      eventBus.subscribe(UserCreatedEvent, goodHandler);
+      eventBus.subscribe({ event: UserCreatedEvent, handler: errorHandler });
+      eventBus.subscribe({ event: UserCreatedEvent, handler: goodHandler });
 
       const event = new UserCreatedEvent(new Id(), "test@example.com", "Test");
 
@@ -417,13 +396,21 @@ describe("Domain Events", () => {
       const emailsSent: string[] = [];
 
       // Subscribe to user created events
-      eventBus.subscribe(UserCreatedEvent, (event) => {
-        emailsSent.push(`Welcome email sent to ${event.email}`);
+      eventBus.subscribe({
+        event: UserCreatedEvent,
+        handler: (event) => {
+          emailsSent.push(`Welcome email sent to ${event.email}`);
+        },
       });
 
       // Subscribe to user activated events
-      eventBus.subscribe(UserActivatedEvent, async (event) => {
-        emailsSent.push(`Activation email sent for user ${event.aggregateId}`);
+      eventBus.subscribe({
+        event: UserActivatedEvent,
+        handler: async (event) => {
+          emailsSent.push(
+            `Activation email sent for user ${event.aggregateId}`
+          );
+        },
       });
 
       // Create and activate user
