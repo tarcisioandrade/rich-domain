@@ -5,7 +5,7 @@
 import { Id } from "./id";
 import { DeepProxy } from "./deep-proxy";
 import { ValidationError } from "./validation-error";
-import { IDomainEvent } from "./domain-event";
+import { IDomainEvent } from ".";
 import {
   BaseProps,
   SubscriptionConfig,

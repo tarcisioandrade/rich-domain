@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { ValidationError } from "./validation-error";
-import { IDomainEvent } from "./domain-event";
+import { IDomainEvent } from ".";
 import {
   VOHooks,
   ValidationConfig,

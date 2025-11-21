@@ -3,7 +3,6 @@ import {
   Aggregate,
   DomainEvent,
   DomainEventBus,
-  getEventBus,
   IDomainEventHandler,
   BaseProps,
 } from "../src";
@@ -98,7 +97,7 @@ describe("Domain Events", () => {
   let eventBus: DomainEventBus;
 
   beforeEach(() => {
-    eventBus = getEventBus();
+    eventBus = DomainEventBus.getInstance();
     eventBus.clearAllHandlers();
   });
 

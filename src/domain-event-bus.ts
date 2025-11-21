@@ -1,12 +1,4 @@
-// ============================================================================
-// Domain Event Bus - Pub/Sub for Domain Events
-// ============================================================================
-
-import {
-  IDomainEvent,
-  DomainEventHandler,
-  IDomainEventHandler,
-} from "./domain-event";
+import { IDomainEvent, DomainEventHandler, IDomainEventHandler } from ".";
 
 type EventConstructor<T extends IDomainEvent = IDomainEvent> = new (
   ...args: any[]
@@ -157,11 +149,4 @@ export class DomainEventBus {
       // Don't throw - we don't want one handler failure to break others
     }
   }
-}
-
-/**
- * Convenience function to get the event bus instance
- */
-export function getEventBus(): DomainEventBus {
-  return DomainEventBus.getInstance();
 }
