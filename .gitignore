@@ -7,3 +7,8 @@ dist
 CLAUDE.md
 **/examples
 coverage
+
+# Package specific
+packages/*/dist
+packages/*/coverage
+packages/*/node_modules

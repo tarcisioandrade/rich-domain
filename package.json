@@ -1,44 +1,22 @@
 {
-  "name": "@woltz/rich-domain",
+  "name": "@woltz/monorepo",
   "version": "1.0.0",
-  "description": "Rich Domain Library with Standard Schema validation support",
-  "homepage": "https://github.com/tarcisioandrade/rich-domain",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "author": "Tarcisio Andrade",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tarcisioandrade/rich-domain.git"
-  },
-  "scripts": {
-    "build": "tsc",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "check": "tsc --noEmit",
-    "coverage": "jest --coverage",
-    "lint": "eslint src",
-    "prepublishOnly": "npm run build",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:major": "standard-version --release-as major",
-    "release:patch": "standard-version --release-as patch",
-    "release:first": "standard-version --first-release",
-    "prepare": "husky"
-  },
-  "keywords": [
-    "ddd",
-    "domain-driven-design",
-    "entity",
-    "aggregate",
-    "value-object",
-    "validation",
-    "standard-schema",
-    "typescript"
+  "private": true,
+  "description": "Woltz monorepo containing DDD libraries",
+  "workspaces": [
+    "packages/*"
   ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "test:watch": "npm run test:watch --workspaces",
+    "check": "npm run check --workspaces",
+    "coverage": "npm run coverage --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "prepare": "husky",
+    "publish:rich-domain": "npm publish --workspace=@woltz/rich-domain"
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
@@ -51,11 +29,7 @@
     "jest": "^29.7.0",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.1.2",
-    "typescript": "^5.4.3",
-    "zod": "^3.24.0"
-  },
-  "peerDependencies": {
-    "typescript": ">=4.7.0"
+    "typescript": "^5.4.3"
   },
   "engines": {
     "node": ">=20.0.0"

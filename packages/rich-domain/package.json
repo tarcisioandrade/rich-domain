@@ -1,0 +1,51 @@
+{
+  "name": "@woltz/rich-domain",
+  "version": "1.0.0",
+  "description": "Rich Domain Library with Standard Schema validation support",
+  "homepage": "https://github.com/tarcisioandrade/rich-domain",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "check": "tsc --noEmit",
+    "coverage": "jest --coverage",
+    "lint": "eslint src",
+    "clean": "rm -rf dist coverage",
+    "prepublishOnly": "npm run build",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch"
+  },
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "entity",
+    "aggregate",
+    "value-object",
+    "validation",
+    "standard-schema",
+    "typescript"
+  ],
+  "devDependencies": {
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
