@@ -61,6 +61,11 @@ export interface Pagination {
   offset: number;
 }
 
+export interface Search<T> {
+  fields: FieldPath<T>[];
+  value: string;
+}
+
 export interface PaginationMeta {
   page: number;
   limit: number;

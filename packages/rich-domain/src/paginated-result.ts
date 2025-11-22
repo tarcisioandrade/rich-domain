@@ -70,7 +70,20 @@ export class PaginatedResult<T> {
       result = result.filter((item) => applyFilter(item, filter));
     }
 
-    const total = result.length;
+    let total = result.length;
+
+    const search = criteria.getSearch();
+    if (search) {
+      result = result.filter((item) => {
+        return search.fields.some((field) => {
+          return String(getNestedValue(item, field))
+            .toLowerCase()
+            .includes(search.value.toLowerCase());
+        });
+      });
+
+      total = result.length;
+    }
 
     // Apply ordering
     for (const order of criteria.getOrders().reverse()) {

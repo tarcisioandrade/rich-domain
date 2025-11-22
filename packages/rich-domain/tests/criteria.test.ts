@@ -113,6 +113,14 @@ describe("Criteria", () => {
       expect(result.data.every((u) => u.status === "inactive")).toBe(true);
     });
 
+    it("should filter by search", () => {
+      const criteria = Criteria.create<TestUser>().search(["name"], "Bob");
+
+      const result = PaginatedResult.fromArray(testUsers, criteria);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe("Bob");
+    });
+
     it("should filter by greaterThan", () => {
       const criteria = Criteria.create<TestUser>().where(
         "age",

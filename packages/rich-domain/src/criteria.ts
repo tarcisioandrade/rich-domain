@@ -9,6 +9,7 @@ import {
   OrderDirection,
   Pagination,
   PathValue,
+  Search,
   TypedFilter,
 } from "./types";
 
@@ -20,10 +21,7 @@ export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
-  private _search?: {
-    fields: FieldPath<T>[];
-    value: string;
-  };
+  private _search?: Search<T>
 
   private constructor() {}
 
@@ -245,7 +243,7 @@ export class Criteria<T = any> {
         continue;
       }
 
-      criteria.where(field as any, operator, parseQueryValue(value));
+      criteria.where(field as FieldPath<T>, operator, parseQueryValue(value));
     }
 
     // Pagination
@@ -261,7 +259,7 @@ export class Criteria<T = any> {
       const sortParts = query.orderBy.split(",");
       sortParts.forEach((part: string) => {
         const [field, direction] = part.split(":");
-        criteria.orderBy(field as any, (direction as OrderDirection) || "asc");
+        criteria.orderBy(field as FieldPath<T>, (direction as OrderDirection) || "asc");
       });
     }
 

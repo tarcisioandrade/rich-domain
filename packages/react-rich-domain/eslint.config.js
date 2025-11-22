@@ -8,17 +8,22 @@ export default [
       "node_modules/**",
       "coverage/**",
       "**/*.test.ts",
+      "**/*.test.tsx",
       "**/*.spec.ts",
+      "**/*.spec.tsx",
     ],
   },
   {
-    files: ["src/**/*.ts"],
+    files: ["src/**/*.ts", "src/**/*.tsx"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
         ecmaVersion: 2020,
         sourceType: "module",
         project: "./tsconfig.json",
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
       globals: {
         console: "readonly",
