@@ -22,7 +22,7 @@
     "check": "tsc --noEmit",
     "coverage": "jest --coverage",
     "lint": "eslint src",
-    "clean": "rm -rf dist coverage",
+    "clean": "rm -rf dist coverage node_modules",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
