@@ -4,8 +4,8 @@ import {
   DomainEvent,
   DomainEventBus,
   IDomainEventHandler,
-  BaseProps,
 } from "../src";
+import { BaseProps } from "../src/types";
 
 // ============================================================================
 // Test Events

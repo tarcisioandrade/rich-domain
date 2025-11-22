@@ -1,6 +1,8 @@
-import { Id, Aggregate, Criteria, BaseProps, PaginatedResult } from "../src";
-import { InMemoryRepository, Mapper } from "../src/repository";
+import { Id, Aggregate, Criteria, PaginatedResult } from "../src";
+import { Mapper } from "../src/repository";
 import { Repository } from "../src/repository/base-repository";
+import { BaseProps } from "../src/types";
+import { InMemoryRepository } from "./utils";
 
 // ============================================================================
 // Test Domain Models

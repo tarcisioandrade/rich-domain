@@ -4,7 +4,6 @@
 
 // Core Classes
 export { Id } from "./id";
-export { BaseEntity } from "./base-entity";
 export { Entity, Aggregate } from "./entity";
 export { ValueObject } from "./value-object";
 export { Mapper } from "./mapper";
@@ -24,9 +23,24 @@ export * from "./paginated-result";
 export * from "./repository";
 
 // Types
-export * from "./types";
-
-export * from "./constants";
+export {
+  DomainEventHandler,
+  EntityHooks,
+  Filter,
+  EntityValidation,
+  IDomainEvent,
+  VOValidation,
+  VOHooks,
+  ValidationConfig,
+  Primitive,
+  TransactionContext,
+  PaginationMeta,
+  Pagination,
+  OrderDirection,
+  Order,
+  IUnitOfWork,
+  IDomainEventHandler,
+  EntityId,
+} from "./types";
 
 // Internal (for advanced usage)
-export { DeepProxy } from "./deep-proxy";

@@ -1,4 +1,4 @@
-import { BaseProps } from "..";
+import { BaseProps } from "./domain";
 import { IsArray, NonUndefined, UnwrapArray } from "./utils";
 
 export interface ChangeEvent<T> {

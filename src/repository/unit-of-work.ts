@@ -66,9 +66,7 @@ export abstract class UnitOfWork implements IUnitOfWork {
   /**
    * Get repository instance (cached per transaction)
    */
-  getRepository<TRepo>(
-    RepositoryClass: new (...args: any[]) => TRepo
-  ): TRepo {
+  getRepository<TRepo>(RepositoryClass: new (...args: any[]) => TRepo): TRepo {
     const key = RepositoryClass.name;
 
     if (this.repositoryCache.has(key)) {
@@ -103,46 +101,5 @@ export abstract class BaseTransactionContext implements TransactionContext {
 
   protected markInactive(): void {
     this._isActive = false;
-  }
-}
-
-/**
- * In-Memory Unit of Work (for testing)
- */
-export class InMemoryUnitOfWork extends UnitOfWork {
-  private committed = false;
-  private rolledBack = false;
-
-  async begin(): Promise<TransactionContext> {
-    this.currentContext = new InMemoryTransactionContext();
-    this.committed = false;
-    this.rolledBack = false;
-    return this.currentContext;
-  }
-
-  protected createRepository<TRepo>(
-    RepositoryClass: new (...args: any[]) => TRepo
-  ): TRepo {
-    // For in-memory, just create a new instance
-    // In real implementation, pass transaction client
-    return new RepositoryClass();
-  }
-
-  isCommitted(): boolean {
-    return this.committed;
-  }
-
-  isRolledBack(): boolean {
-    return this.rolledBack;
-  }
-}
-
-class InMemoryTransactionContext extends BaseTransactionContext {
-  async commit(): Promise<void> {
-    this.markInactive();
-  }
-
-  async rollback(): Promise<void> {
-    this.markInactive();
   }
 }

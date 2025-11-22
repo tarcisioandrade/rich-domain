@@ -5,13 +5,13 @@
 import { z } from "zod";
 import {
   Id,
-  BaseProps,
   Aggregate,
   EntityValidation,
   EntityHooks,
   ValidationError,
 } from "../src";
 import { Address } from "./utils";
+import { BaseProps } from "../src/types";
 
 interface UserProps extends BaseProps {
   id: Id;

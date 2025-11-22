@@ -2,7 +2,17 @@
 // Test Entities & Value Objects
 // ============================================================================
 
-import { Aggregate, Entity, Id, ValueObject } from "../src";
+import {
+  Aggregate,
+  Criteria,
+  Entity,
+  Id,
+  Mapper,
+  PaginatedResult,
+  Repository,
+  UnitOfWork,
+  ValueObject,
+} from "../src";
 
 interface AddressProps {
   street: string;
@@ -148,4 +158,97 @@ class User extends Aggregate<UserProps> {
   }
 }
 
-export { User, Post, Comment, Address };
+class InMemoryRepository<
+  TDomain extends Aggregate<any>
+> extends Repository<TDomain> {
+  protected items: Map<string, TDomain> = new Map();
+  readonly uow: UnitOfWork;
+  constructor(
+    protected readonly mapperToDomain: Mapper<unknown, TDomain>,
+    protected readonly mapperToPersistence: Mapper<TDomain, unknown>
+  ) {
+    super();
+    this.uow = {} as UnitOfWork;
+  }
+
+  get model(): any {
+    // your database table name
+    return "inMemory";
+  }
+
+  async findById(id: string): Promise<TDomain | null> {
+    return this.items.get(id) || null;
+  }
+
+  async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>> {
+    const allItems = Array.from(this.items.values());
+    return PaginatedResult.fromArray(allItems, criteria);
+  }
+
+  async findAll(criteria?: Criteria<TDomain>): Promise<TDomain[]> {
+    if (criteria) {
+      const result = await this.find(criteria);
+      return result.data;
+    }
+
+    return Array.from(this.items.values());
+  }
+
+  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
+    const result = await this.find(criteria.clone().limit(1));
+    return result.data.length > 0 ? result.data[0] : null;
+  }
+
+  async create(aggregate: TDomain): Promise<void> {
+    this.items.set(aggregate.id.value, aggregate);
+  }
+
+  async update(entity: TDomain): Promise<void> {
+    this.items.set(entity.id.value, entity);
+  }
+
+  async createMany(aggregates: TDomain[]): Promise<void> {
+    for (const aggregate of aggregates) {
+      await this.create(aggregate);
+    }
+  }
+
+  async delete(aggregate: TDomain): Promise<void> {
+    this.items.delete(aggregate.id.value);
+  }
+
+  async exists(id: string): Promise<boolean> {
+    return this.items.has(id);
+  }
+
+  async count(criteria?: Criteria<TDomain>): Promise<number> {
+    if (criteria) {
+      const result = await this.find(criteria);
+      return result.meta.total;
+    }
+    return this.items.size;
+  }
+
+  /**
+   * Clear all items (useful for test cleanup)
+   */
+  clear(): void {
+    this.items.clear();
+  }
+
+  /**
+   * Get all items as array (useful for debugging)
+   */
+  getAll(): TDomain[] {
+    return Array.from(this.items.values());
+  }
+
+  /**
+   * Get items count
+   */
+  size(): number {
+    return this.items.size;
+  }
+}
+
+export { User, Post, Comment, Address, InMemoryRepository };

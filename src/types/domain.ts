@@ -1,5 +1,6 @@
-import { StandardSchema, ValidationConfig } from "..";
+import { ValidationConfig } from "..";
 import { Id } from "../id";
+import { StandardSchema } from "./standard-schema";
 
 export type EntityId = string | number;
 
