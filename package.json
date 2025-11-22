@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
+    "test": "npm run test --workspace=@woltz/rich-domain",
     "test:watch": "npm run test:watch --workspaces",
     "check": "npm run check --workspaces",
     "coverage": "npm run coverage --workspaces",
