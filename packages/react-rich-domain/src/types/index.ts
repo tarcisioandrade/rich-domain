@@ -8,6 +8,7 @@ import type {
   Pagination,
   Search,
 } from "@woltz/rich-domain";
+import { FilterValueFor, PathValue } from "@woltz/rich-domain/dist/types";
 
 /**
  * Configuration options for useCriteria hook
@@ -26,27 +27,17 @@ export interface UseCriteriaOptions<T> {
   /**
    * Initial filters to apply
    */
-  initialFilters?: Array<{
-    field: FieldPath<T>;
-    operator: FilterOperator;
-    value?: any;
-  }>;
+  initialFilters?: Filter<FieldPath<T>, any>[];
 
   /**
    * Initial sorting
    */
-  initialSort?: Array<{
-    field: FieldPath<T>;
-    direction: OrderDirection;
-  }>;
+  initialSort?: Order[];
 
   /**
    * Initial search configuration
    */
-  initialSearch?: {
-    fields: FieldPath<T>[];
-    value: string;
-  };
+  initialSearch?: Search<T>;
 
   /**
    * Callback fired when criteria changes
@@ -81,7 +72,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Current sorting
    */
-  sorting: Array<Order>;
+  sorting: Order[];
 
   /**
    * Current pagination state
@@ -94,12 +85,12 @@ export interface UseCriteriaReturn<T> {
   search: Search<T> | null;
 
   /**
-   * Add a filter
+   * Add a filter. If a filter for the same field exists, it will be replaced.
    */
-  addFilter: (
-    field: FieldPath<T>,
+  addFilter: <K extends FieldPath<T>>(
+    field: K,
     operator: FilterOperator,
-    value?: any
+    value?: FilterValueFor<PathValue<T, K>>
   ) => void;
 
   /**
@@ -108,22 +99,19 @@ export interface UseCriteriaReturn<T> {
   removeFilter: (index: number) => void;
 
   /**
+   * Remove a filter by field name
+   */
+  removeFilterByField: (field: FieldPath<T>) => void;
+
+  /**
    * Clear all filters
    */
   clearFilters: () => void;
 
-  /**
-   * Set a specific filter (replaces existing at index)
-   */
-  updateFilter: (
-    index: number,
-    field: FieldPath<T>,
-    operator: FilterOperator,
-    value?: any
-  ) => void;
+
 
   /**
-   * Add sorting
+   * Add sorting. If sorting for the same field exists, it will be replaced.
    */
   addSort: (field: FieldPath<T>, direction?: OrderDirection) => void;
 
@@ -131,6 +119,11 @@ export interface UseCriteriaReturn<T> {
    * Remove sort by index
    */
   removeSort: (index: number) => void;
+
+  /**
+   * Remove sort by field name
+   */
+  removeSortByField: (field: FieldPath<T>) => void;
 
   /**
    * Clear all sorting

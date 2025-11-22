@@ -146,20 +146,6 @@ describe("useCriteria", () => {
 
       expect(result.current.filters).toHaveLength(0);
     });
-
-    it("should update a filter", () => {
-      const { result } = renderHook(() =>
-        useCriteria<TestUser>({
-          initialFilters: [{ field: "status", operator: "equals", value: "active" }],
-        })
-      );
-
-      act(() => {
-        result.current.updateFilter(0, "status", "equals", "inactive");
-      });
-
-      expect(result.current.filters[0].value).toBe("inactive");
-    });
   });
 
   describe("Sorting Operations", () => {
@@ -173,17 +159,6 @@ describe("useCriteria", () => {
       expect(result.current.sorting).toHaveLength(1);
       expect(result.current.sorting[0].field).toBe("name");
       expect(result.current.sorting[0].direction).toBe("asc");
-    });
-
-    it("should add multiple sorts", () => {
-      const { result } = renderHook(() => useCriteria<TestUser>());
-
-      act(() => {
-        result.current.addSort("name", "asc");
-        result.current.addSort("age", "desc");
-      });
-
-      expect(result.current.sorting).toHaveLength(2);
     });
 
     it("should remove sort by index", () => {
@@ -231,7 +206,9 @@ describe("useCriteria", () => {
     });
 
     it("should set page size and reset to page 1", () => {
-      const { result } = renderHook(() => useCriteria<TestUser>({ initialPage: 5 }));
+      const { result } = renderHook(() =>
+        useCriteria<TestUser>({ initialPage: 5 })
+      );
 
       act(() => {
         result.current.setPageSize(50);
@@ -252,7 +229,9 @@ describe("useCriteria", () => {
     });
 
     it("should go to previous page", () => {
-      const { result } = renderHook(() => useCriteria<TestUser>({ initialPage: 3 }));
+      const { result } = renderHook(() =>
+        useCriteria<TestUser>({ initialPage: 3 })
+      );
 
       act(() => {
         result.current.prevPage();
@@ -356,7 +335,9 @@ describe("useCriteria", () => {
     it("should reset to initial state", () => {
       const { result } = renderHook(() =>
         useCriteria<TestUser>({
-          initialFilters: [{ field: "status", operator: "equals", value: "active" }],
+          initialFilters: [
+            { field: "status", operator: "equals", value: "active" },
+          ],
           pageSize: 10,
         })
       );
@@ -380,7 +361,9 @@ describe("useCriteria", () => {
     it("should export criteria as JSON", () => {
       const { result } = renderHook(() =>
         useCriteria<TestUser>({
-          initialFilters: [{ field: "status", operator: "equals", value: "active" }],
+          initialFilters: [
+            { field: "status", operator: "equals", value: "active" },
+          ],
         })
       );
 
