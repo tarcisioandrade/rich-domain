@@ -9,6 +9,7 @@ import {
   OrderDirection,
   Pagination,
   PathValue,
+  Search,
   TypedFilter,
 } from "./types";
 
@@ -20,10 +21,7 @@ export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
-  private _search?: {
-    fields: FieldPath<T>[];
-    value: string;
-  };
+  private _search?: Search<T>
 
   private constructor() {}
 

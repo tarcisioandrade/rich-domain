@@ -41,6 +41,9 @@ export {
   IUnitOfWork,
   IDomainEventHandler,
   EntityId,
+  FieldPath,
+  FilterOperator,
+  Search,
 } from "./types";
 
 // Internal (for advanced usage)
