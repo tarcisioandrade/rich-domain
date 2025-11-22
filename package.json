@@ -1,15 +1,16 @@
 {
   "name": "@woltz/monorepo",
   "version": "1.0.0",
-  "private": true,
+  "private": false,
   "description": "Woltz monorepo containing DDD libraries",
   "workspaces": [
     "packages/*",
-    "examples/**/prisma"
+    "examples/**/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspace=@woltz/rich-domain",
+    "build": "npm run build --workspace=@woltz/rich-domain && npm run build --workspace=@woltz/react-rich-domain && npm run build --workspaces",
+    "postinstall": "npm run build",
+    "test": "npm run test --workspace=@woltz/rich-domain && npm run test --workspace=@woltz/react-rich-domain",
     "test:watch": "npm run test:watch --workspace=@woltz/rich-domain",
     "check": "npm run check --workspace=@woltz/rich-domain",
     "coverage": "npm run coverage --workspace=@woltz/rich-domain",
