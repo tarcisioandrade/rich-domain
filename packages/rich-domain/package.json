@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Rich Domain Library with Standard Schema validation support",
   "homepage": "https://github.com/tarcisioandrade/rich-domain",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "Tarcisio Andrade",

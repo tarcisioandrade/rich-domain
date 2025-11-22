@@ -243,7 +243,7 @@ export class Criteria<T = any> {
         continue;
       }
 
-      criteria.where(field as any, operator, parseQueryValue(value));
+      criteria.where(field as FieldPath<T>, operator, parseQueryValue(value));
     }
 
     // Pagination
@@ -259,7 +259,7 @@ export class Criteria<T = any> {
       const sortParts = query.orderBy.split(",");
       sortParts.forEach((part: string) => {
         const [field, direction] = part.split(":");
-        criteria.orderBy(field as any, (direction as OrderDirection) || "asc");
+        criteria.orderBy(field as FieldPath<T>, (direction as OrderDirection) || "asc");
       });
     }
 

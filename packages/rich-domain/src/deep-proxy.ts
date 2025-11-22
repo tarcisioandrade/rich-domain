@@ -4,7 +4,6 @@
 
 import { Id } from "./id";
 import { HistoryEntry } from "./types";
-import assert from "node:assert";
 
 export class DeepProxy {
   private history: HistoryEntry[] = [];
@@ -28,7 +27,7 @@ export class DeepProxy {
     const handler: ProxyHandler<any> = {
       get: (target, prop, receiver) => {
         const value = Reflect.get(target, prop, receiver);
-        assert(this.rootProxy, "Root proxy is required");
+        if (!this.rootProxy) throw new Error("Root proxy is required");
 
         const currentPath = this.path
           ? `${this.path}.${String(prop)}`
@@ -65,7 +64,7 @@ export class DeepProxy {
         const currentPath = this.path
           ? `${this.path}.${String(prop)}`
           : String(prop);
-        assert(this.rootProxy, "Root proxy is required");
+        if (!this.rootProxy) throw new Error("Root proxy is required");
 
         const oldValue = Reflect.get(target, prop, receiver);
         const isArrayAssignment = Array.isArray(newValue);
@@ -145,7 +144,7 @@ export class DeepProxy {
     return new Proxy(array, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
-        assert(self.rootProxy, "Root proxy is required");
+        if (!self.rootProxy) throw new Error("Root proxy is required");
 
         if (typeof value === "function") {
           const mutatingMethods = [
@@ -160,7 +159,7 @@ export class DeepProxy {
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
               // Capture state before mutation
-              assert(self.rootProxy, "Root proxy is required");
+              if (!self.rootProxy) throw new Error("Root proxy is required");
               const oldArray = target.slice();
 
               const result = value.apply(target, args);
@@ -192,7 +191,7 @@ export class DeepProxy {
       },
       set(target, prop, newValue, receiver) {
         if (!isNaN(Number(prop))) {
-          assert(self.rootProxy, "Root proxy is required");
+          if (!self.rootProxy) throw new Error("Root proxy is required");
           // Capture state before change
           const oldArray = target.slice();
 
@@ -219,7 +218,7 @@ export class DeepProxy {
   }
 
   subscribe(path: string, callback: Function): void {
-    assert(this.rootProxy, "Root proxy is required");
+    if (!this.rootProxy) throw new Error("Root proxy is required");
 
     if (path === "*") {
       this.rootProxy.globalSubscribers.add(callback);
@@ -279,7 +278,7 @@ export class DeepProxy {
   }
 
   unsubscribe(path: string, callback: Function): void {
-    assert(this.rootProxy, "Root proxy is required");
+    if (!this.rootProxy) throw new Error("Root proxy is required");
     if (path === "*") {
       this.rootProxy.globalSubscribers.delete(callback);
       return;
