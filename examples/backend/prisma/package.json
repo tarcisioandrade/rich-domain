@@ -9,6 +9,7 @@
     "dev": "tsx watch src/server",
     "build": "tsc",
     "start": "node dist/server.js",
+    "check": "tsc --noEmit",
     "start:worker": "bun tsx watch src/worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
