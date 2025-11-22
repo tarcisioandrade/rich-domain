@@ -13,8 +13,8 @@ export * from "./validation-error";
 
 // Domain Events
 export * from "./domain-event";
-
 export * from "./domain-event-bus";
+export * from "./exceptions";
 
 // Criteria
 export * from "./criteria";

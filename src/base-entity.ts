@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { DomainEventBus } from "./domain-event-bus";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants";
+import { DomainError } from "./exceptions";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -101,7 +102,7 @@ export abstract class BaseEntity<T extends BaseProps> {
     const result = this.entitySchema["~standard"].validate(props);
 
     if (result instanceof Promise) {
-      throw new Error(
+      throw new DomainError(
         "Async validation not supported in constructor. Use sync validation schema."
       );
     }

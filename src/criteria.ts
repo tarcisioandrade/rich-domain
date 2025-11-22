@@ -1,3 +1,4 @@
+import { InvalidCriteriaError } from "./exceptions";
 import {
   FieldPath,
   Filter,
@@ -15,7 +16,7 @@ import {
 // Filter Types
 // ============================================================================
 
-export class Criteria<T = unknown> {
+export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
@@ -29,7 +30,7 @@ export class Criteria<T = unknown> {
   /**
    * Create a new Criteria instance
    */
-  static create<T = unknown>(): Criteria<T> {
+  static create<T = any>(): Criteria<T> {
     return new Criteria<T>();
   }
 
@@ -223,7 +224,8 @@ export class Criteria<T = unknown> {
 
       if (!operatorRaw || !field) continue;
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
-      if (!operator) throw new Error(`Invalid filter operator: ${operatorRaw}`);
+      if (!operator)
+        throw new InvalidCriteriaError(`Invalid filter operator`, operatorRaw);
 
       let parsedValue: any = value;
 

@@ -11,6 +11,7 @@ import {
   EntityValidation,
 } from "./types";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants";
+import { DomainError } from "./exceptions";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -80,7 +81,7 @@ export abstract class ValueObject<T> {
     const result = this.domainSchema["~standard"].validate(props);
 
     if (result instanceof Promise) {
-      throw new Error(
+      throw new DomainError(
         "Async validation not supported in constructor. Use sync validation schema."
       );
     }
