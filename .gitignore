@@ -5,5 +5,17 @@ dist
 *.txt
 .claude
 CLAUDE.md
-**/examples
 coverage
+
+# Package specific
+packages/*/dist
+packages/*/coverage
+packages/*/node_modules
+
+# Examples
+examples/**/node_modules
+examples/**/dist
+examples/**/coverage
+examples/**/.env
+examples/**/*.db
+examples/**/*.db-journal
