@@ -1,6 +1,7 @@
 import { Pagination } from "../src";
 import { Criteria } from "../src/criteria";
 import { PaginatedResult } from "../src/paginated-result";
+import { CriteriaAdapter } from "../src/types";
 import { Post } from "./utils";
 
 interface TestUser {
@@ -10,6 +11,17 @@ interface TestUser {
   age: number;
   status: "active" | "inactive";
   createdAt: Date;
+}
+
+interface UserWithPostsDto {
+  id: string;
+  name: string;
+  posts: { title: string; content: string }[];
+  leads: {
+    contact: {
+      name: string;
+    };
+  }[];
 }
 
 const testUsers: TestUser[] = [
@@ -453,15 +465,9 @@ describe("Criteria", () => {
   });
 
   describe("Quantifiers", () => {
-    interface UserWithPosts {
-      id: string;
-      name: string;
-      posts: { title: string; content: string }[];
-    }
-
     describe("Fluent API methods", () => {
       it("should create filter with whereSome", () => {
-        const criteria = Criteria.create<UserWithPosts>().whereSome(
+        const criteria = Criteria.create<UserWithPostsDto>().whereSome(
           "posts.title",
           "contains",
           "test"
@@ -477,7 +483,7 @@ describe("Criteria", () => {
       });
 
       it("should create filter with whereEvery", () => {
-        const criteria = Criteria.create<UserWithPosts>().whereEvery(
+        const criteria = Criteria.create<UserWithPostsDto>().whereEvery(
           "posts.title",
           "contains",
           "test"
@@ -489,7 +495,7 @@ describe("Criteria", () => {
       });
 
       it("should create filter with whereNone", () => {
-        const criteria = Criteria.create<UserWithPosts>().whereNone(
+        const criteria = Criteria.create<UserWithPostsDto>().whereNone(
           "posts.title",
           "contains",
           "test"
@@ -501,7 +507,7 @@ describe("Criteria", () => {
       });
 
       it("should create filter without quantifier using where", () => {
-        const criteria = Criteria.create<UserWithPosts>().where(
+        const criteria = Criteria.create<UserWithPostsDto>().where(
           "posts.title",
           "contains",
           "test"
@@ -519,7 +525,8 @@ describe("Criteria", () => {
           "posts.title:contains@some": "test",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -534,7 +541,8 @@ describe("Criteria", () => {
           "posts.title:equals@every": "test",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -546,7 +554,8 @@ describe("Criteria", () => {
           "posts.title:contains@none": "spam",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -558,7 +567,8 @@ describe("Criteria", () => {
           "posts.title:in@some": "test1,test2,test3",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -572,7 +582,8 @@ describe("Criteria", () => {
           "posts.likes:between@some": "10,100",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -586,7 +597,8 @@ describe("Criteria", () => {
           "posts.title:contains": "test",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(1);
@@ -602,7 +614,7 @@ describe("Criteria", () => {
         };
 
         expect(() => {
-          Criteria.fromQueryParams<UserWithPosts>(queryParams);
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         }).toThrow("Invalid quantifier");
       });
 
@@ -613,7 +625,8 @@ describe("Criteria", () => {
           "name:contains": "John",
         };
 
-        const criteria = Criteria.fromQueryParams<UserWithPosts>(queryParams);
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
         const filters = criteria.getFilters();
 
         expect(filters).toHaveLength(3);
@@ -625,7 +638,7 @@ describe("Criteria", () => {
 
     describe("fromObject with quantifier", () => {
       it("should create criteria from object with quantifier", () => {
-        const criteria = Criteria.fromObject<UserWithPosts>({
+        const criteria = Criteria.fromObject<UserWithPostsDto>({
           filters: [
             {
               field: "posts.title",
@@ -642,7 +655,7 @@ describe("Criteria", () => {
       });
 
       it("should preserve quantifier when cloning", () => {
-        const original = Criteria.create<UserWithPosts>().whereSome(
+        const original = Criteria.create<UserWithPostsDto>().whereSome(
           "posts.title",
           "contains",
           "test"
@@ -658,7 +671,7 @@ describe("Criteria", () => {
 
     describe("toJSON with quantifier", () => {
       it("should serialize quantifier to JSON", () => {
-        const criteria = Criteria.create<UserWithPosts>()
+        const criteria = Criteria.create<UserWithPostsDto>()
           .whereSome("posts.title", "contains", "test")
           .whereEvery("posts.content", "equals", "content");
 
@@ -668,6 +681,75 @@ describe("Criteria", () => {
         expect(json.filters[0].options?.quantifier).toBe("some");
         expect(json.filters[1].options?.quantifier).toBe("every");
       });
+    });
+  });
+
+  describe("Adapter", () => {
+    type UserInDatabase = {
+      id: string;
+      name: string;
+      user_posts: { title: string; content: string }[];
+      leads: {
+        contact: {
+          fullName: string;
+        };
+      };
+    };
+    const UserWithPostsAdapter: CriteriaAdapter<
+      UserWithPostsDto,
+      UserInDatabase
+    > = {
+      posts: "user_posts",
+      "leads.contact.name": "leads.contact.fullName",
+    };
+
+    let criteria: Criteria<UserWithPostsDto>;
+    beforeEach(() => {
+      criteria =
+        Criteria.create<UserWithPostsDto>().useAdapter(UserWithPostsAdapter);
+    });
+
+    it("should resolve field path", () => {
+      const filters = criteria
+        .where("leads.contact.name", "contains", "John")
+        .getFilters();
+
+      expect(filters[0].field).toBe("leads.contact.fullName");
+    });
+
+    it("should resolve field path from query params", () => {
+      const queryParams = {
+        "posts:contains": "test",
+      };
+
+      const result = Criteria.fromQueryParams<UserWithPostsDto>(
+        queryParams,
+        UserWithPostsAdapter
+      );
+      const filters = result.getFilters();
+
+      expect(filters).toHaveLength(1);
+      expect(filters[0].field).toBe("user_posts");
+      expect(filters[0].operator).toBe("contains");
+      expect(filters[0].value).toBe("test");
+    });
+
+    it("should resolve field path from object", () => {
+      const criteria = Criteria.fromObject<UserWithPostsDto>(
+        {
+          filters: [
+            {
+              field: "posts",
+              operator: "in",
+              value: [{ title: "test", content: "test" }],
+            },
+          ],
+        },
+        UserWithPostsAdapter
+      );
+      const filters = criteria.getFilters();
+      expect(filters).toHaveLength(1);
+      expect(filters[0].field).toBe("user_posts");
     });
   });
 });

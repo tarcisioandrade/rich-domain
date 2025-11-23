@@ -19,7 +19,6 @@ export const FILTER_OPERATORS = [
 
 export type FilterOperator = (typeof FILTER_OPERATORS)[number];
 
-// Operator types by primitive type
 export type StringOperators =
   | "equals"
   | "notEquals"
@@ -61,7 +60,6 @@ export type BooleanOperators = "equals" | "notEquals" | "isNull" | "isNotNull";
 
 export type ArrayOperators = "in" | "notIn" | "isNull" | "isNotNull";
 
-// Conditional type that maps value types to their valid operators
 export type OperatorsForType<T> = T extends string
   ? StringOperators
   : T extends number
@@ -72,14 +70,12 @@ export type OperatorsForType<T> = T extends string
   ? BooleanOperators
   : T extends Array<any>
   ? ArrayOperators
-  : FilterOperator; // fallback for unknown types
+  : FilterOperator;
 
 export type FilterValueFor<T> =
-  | T // equals, notEquals
-  | (T extends number | Date
-      ? [T, T] // between
-      : never)
-  | T[] // in, notIn
+  | T
+  | (T extends number | Date ? [T, T] : never)
+  | T[]
   | null;
 
 export type PathValue<
@@ -110,6 +106,10 @@ export type TypedFilter<T> = {
     options?: CriteriaOptions;
   };
 }[FieldPath<T>];
+
+export type CriteriaAdapter<Input, Output> = {
+  [K in FieldPath<Input>]?: FieldPath<Output>;
+};
 
 export type OrderDirection = "asc" | "desc";
 

@@ -1,5 +1,6 @@
 import { InvalidCriteriaError } from "./exceptions";
 import {
+  CriteriaAdapter,
   CriteriaOptions,
   FieldPath,
   Filter,
@@ -20,28 +21,28 @@ import {
 } from "./utils/criteria-operator-validation";
 import { parseQueryValue } from "./utils/helpers";
 
-// ============================================================================
-// Filter Types
-// ============================================================================
-
 export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
   private _search?: Search<T>;
+  private _adapter?: CriteriaAdapter<any, any>;
 
   private constructor() {}
 
-  /**
-   * Create a new Criteria instance
-   */
   static create<T = any>(): Criteria<T> {
     return new Criteria<T>();
   }
 
-  /**
-   * Add a filter condition (strictly typed - autocomplete will show only valid operators for the field type)
-   */
+  useAdapter<A extends CriteriaAdapter<any, any>>(map: A): this {
+    this._adapter = map;
+    return this;
+  }
+
+  getAdapter(): CriteriaAdapter<any, any> | undefined {
+    return this._adapter;
+  }
+
   where<K extends FieldPath<T>>(
     field: K,
     operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
@@ -58,15 +59,13 @@ export class Criteria<T = any> {
     this.validateOperator(operator, value);
 
     this._filters.push({
-      field,
+      field: this.resolveFieldPath(field),
       operator,
       value,
       options,
     });
     return this;
   }
-
-  // === Shorthand methods (tipados) ===
 
   whereEquals<K extends FieldPath<T>>(field: K, value: PathValue<T, K>): this {
     return this.where(
@@ -114,7 +113,7 @@ export class Criteria<T = any> {
   whereSome<K extends FieldPath<T>>(
     field: K,
     operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
-    value?: FilterValueFor<PathValue<T, K>>,
+    value?: FilterValueFor<PathValue<T, K>>
   ): this {
     return this.where(field, operator, value, { quantifier: "some" });
   }
@@ -135,14 +134,12 @@ export class Criteria<T = any> {
     return this.where(field, operator, value, { quantifier: "none" });
   }
 
-  // === OrderBy ===
-
   orderBy<K extends FieldPath<T>>(
     field: K,
     direction: OrderDirection = "asc"
   ): this {
     this._orders.push({
-      field: String(field),
+      field: this.resolveFieldPath(field),
       direction,
     });
     return this;
@@ -156,13 +153,9 @@ export class Criteria<T = any> {
     return this.orderBy(field, "desc");
   }
 
-  // --------------------------------------------------------------------------
-  // Search (tipado)
-  // --------------------------------------------------------------------------
-
   search<K extends FieldPath<T>>(fields: K[], value: string): this {
     this._search = {
-      fields,
+      fields: fields.map(this.resolveFieldPath),
       value,
     };
     return this;
@@ -173,10 +166,13 @@ export class Criteria<T = any> {
   }
 
   getSearch() {
-    return this._search;
+    return this._search
+      ? {
+          fields: this._search.fields.map(this.resolveFieldPath),
+          value: this._search.value,
+        }
+      : undefined;
   }
-
-  // === Pagination ===
 
   paginate(page: number, limit: number): this {
     if (page < 1) page = 1;
@@ -194,14 +190,20 @@ export class Criteria<T = any> {
     return this.paginate(1, limit);
   }
 
-  // === Getters ===
-
   getFilters(): Filter[] {
-    return this._filters;
+    return this._filters.map((filter) => ({
+      field: this.resolveFieldPath(filter.field),
+      operator: filter.operator,
+      value: filter.value,
+      options: filter.options,
+    }));
   }
 
   getOrders(): Order[] {
-    return this._orders;
+    return this._orders.map((order) => ({
+      field: this.resolveFieldPath(order.field as FieldPath<T>),
+      direction: order.direction,
+    }));
   }
 
   getPagination(): Pagination {
@@ -220,53 +222,132 @@ export class Criteria<T = any> {
     return this._pagination !== undefined;
   }
 
-  // === Utilities ===
-
   clone(): Criteria<T> {
     const cloned = Criteria.create<T>();
-    cloned._filters = [...this._filters];
-    cloned._orders = [...this._orders];
+    cloned._filters = [
+      ...this._filters.map((filter) => ({
+        field: this.resolveFieldPath(filter.field),
+        operator: filter.operator,
+        value: filter.value,
+        options: filter.options,
+      })),
+    ];
+    cloned._orders = [
+      ...this._orders.map((order) => ({
+        field: this.resolveFieldPath(order.field as FieldPath<T>),
+        direction: order.direction,
+      })),
+    ];
     cloned._pagination = { ...this._pagination };
+    cloned._search = this._search
+      ? {
+          fields: this._search.fields.map(this.resolveFieldPath),
+          value: this._search.value,
+        }
+      : undefined;
+
+    if (this._adapter) {
+      cloned.useAdapter(this._adapter);
+    }
+
     return cloned;
   }
 
   toJSON() {
     return {
-      filters: this._filters,
-      orders: this._orders,
+      filters: this._filters.map((filter) => ({
+        field: this.resolveFieldPath(filter.field),
+        operator: filter.operator,
+        value: filter.value,
+        options: filter.options,
+      })),
+      orders: this._orders.map((order) => ({
+        field: this.resolveFieldPath(order.field as FieldPath<T>),
+        direction: order.direction,
+      })),
       pagination: this._pagination,
-      search: this._search,
+      search: this._search
+        ? {
+            fields: this._search.fields.map(this.resolveFieldPath),
+            value: this._search.value,
+          }
+        : undefined,
     };
   }
 
-  static fromObject<T>(obj: {
-    filters?: TypedFilter<T>[];
-    orders?: Order[];
-    pagination?: Pagination;
-    search?: { fields: FieldPath<T>[]; value: string };
-  }): Criteria<T> {
+  static fromObject<T>(
+    obj: {
+      filters?: TypedFilter<T>[];
+      orders?: Order[];
+      pagination?: Pagination;
+      search?: { fields: FieldPath<T>[]; value: string };
+    },
+    adapter?: CriteriaAdapter<any, any>
+  ): Criteria<T> {
     const criteria = Criteria.create<T>();
+
+    if (adapter) {
+      criteria.useAdapter(adapter);
+    }
 
     if (obj.filters) {
       for (const filter of obj.filters) {
+        filter.field = criteria.resolveFieldPath(filter.field);
         criteria.validateOperator(filter.operator, filter.value);
       }
       criteria._filters = [...obj.filters];
     }
-    if (obj.orders) criteria._orders = [...obj.orders];
+    if (obj.orders)
+      criteria._orders = [
+        ...obj.orders.map((order) => ({
+          field: criteria.resolveFieldPath(order.field as FieldPath<T>),
+          direction: order.direction,
+        })),
+      ];
     if (obj.pagination) criteria._pagination = { ...obj.pagination };
-    if (obj.search) criteria._search = { ...obj.search };
+    if (obj.search)
+      criteria._search = {
+        ...obj.search,
+        fields: obj.search.fields.map(criteria.resolveFieldPath),
+      };
 
     return criteria;
   }
 
-  static fromQueryParams<T>(query: Record<string, any>): Criteria<T> {
+  protected resolveFieldPath(field: FieldPath<T>): FieldPath<T> {
+    if (!this?._adapter) return field;
+
+    if (this._adapter[field]) {
+      return this._adapter[field] as FieldPath<T>;
+    }
+
+    const parts = field.split(".");
+    for (let i = parts.length; i > 0; i--) {
+      const prefix = parts.slice(0, i).join(".");
+      if (this._adapter[prefix]) {
+        const rest = parts.slice(i).join(".");
+        return rest
+          ? (`${this._adapter[prefix]}.${rest}` as FieldPath<T>)
+          : (this._adapter[prefix] as FieldPath<T>);
+      }
+    }
+
+    return field;
+  }
+
+  static fromQueryParams<T>(
+    query: Record<string, any>,
+    adapter?: CriteriaAdapter<any, any>
+  ): Criteria<T> {
     const criteria = Criteria.create<T>();
 
+    if (adapter) {
+      criteria.useAdapter(adapter);
+    }
+
     for (const [key, value] of Object.entries(query)) {
-      // Pagination
       if (key === "page") {
-        continue; // We'll handle pagination after
+        continue;
       }
       if (key === "limit") {
         continue;
@@ -279,18 +360,17 @@ export class Criteria<T = any> {
 
       if (!operatorWithQuantifier || !field) continue;
 
-      // Parse operator and quantifier: operator@quantifier
       const [operatorRaw, quantifierRaw] = operatorWithQuantifier.split("@");
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
       if (!operator) {
         throw new InvalidCriteriaError(`Invalid filter operator`, operatorRaw);
       }
 
-      // Validate quantifier if provided
       const validQuantifiers = ["some", "every", "none"];
-      const quantifier = quantifierRaw && validQuantifiers.includes(quantifierRaw)
-        ? (quantifierRaw as "some" | "every" | "none")
-        : undefined;
+      const quantifier =
+        quantifierRaw && validQuantifiers.includes(quantifierRaw)
+          ? (quantifierRaw as CriteriaOptions["quantifier"])
+          : undefined;
 
       if (quantifierRaw && !quantifier) {
         throw new InvalidCriteriaError(
@@ -305,15 +385,20 @@ export class Criteria<T = any> {
 
       let parsedValue: any = value;
 
+      const resolvedField = criteria.resolveFieldPath(field as FieldPath<T>);
+
       if (operator === "between") {
         parsedValue = value
           .split(",")
           .map((v: any) => parseQueryValue(v.trim()));
         if (parsedValue.length === 2) {
           criteria.where(
-            field as any,
+            resolvedField,
             "between" as OperatorsForType<PathValue<T, FieldPath<T>>>,
-            [parsedValue[0], parsedValue[1]] as [PathValue<T, FieldPath<T>>, PathValue<T, FieldPath<T>>],
+            [parsedValue[0], parsedValue[1]] as [
+              PathValue<T, FieldPath<T>>,
+              PathValue<T, FieldPath<T>>
+            ],
             options
           );
         }
@@ -343,7 +428,6 @@ export class Criteria<T = any> {
       );
     }
 
-    // Pagination
     const page = query.page ? parseInt(query.page) : undefined;
     const limit = query.limit ? parseInt(query.limit) : undefined;
 
@@ -351,7 +435,6 @@ export class Criteria<T = any> {
       criteria.paginate(page, limit);
     }
 
-    // Sorting
     if (query.orderBy) {
       const sortParts = query.orderBy.split(",");
       sortParts.forEach((part: string) => {
@@ -368,7 +451,8 @@ export class Criteria<T = any> {
         .split(",")
         .filter(Boolean) as FieldPath<T>[];
 
-      criteria.search(fields, query.search as string);
+      const resolvedFields = fields.map(criteria.resolveFieldPath);
+      criteria.search(resolvedFields, query.search as string);
     }
 
     return criteria;
@@ -386,7 +470,3 @@ export class Criteria<T = any> {
     }
   }
 }
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
