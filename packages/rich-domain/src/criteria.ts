@@ -1,5 +1,6 @@
 import { InvalidCriteriaError } from "./exceptions";
 import {
+  CriteriaOptions,
   FieldPath,
   Filter,
   FilterOperator,
@@ -44,13 +45,15 @@ export class Criteria<T = any> {
   where<K extends FieldPath<T>>(
     field: K,
     operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
-    value?: FilterValueFor<PathValue<T, K>>
+    value?: FilterValueFor<PathValue<T, K>>,
+    options?: CriteriaOptions
   ): this;
 
   where<K extends FieldPath<T>>(
     field: K,
     operator: FilterOperator,
-    value?: FilterValueFor<PathValue<T, K>>
+    value?: FilterValueFor<PathValue<T, K>>,
+    options?: CriteriaOptions
   ): this {
     this.validateOperator(operator, value);
 
@@ -58,6 +61,7 @@ export class Criteria<T = any> {
       field,
       operator,
       value,
+      options,
     });
     return this;
   }
@@ -105,6 +109,30 @@ export class Criteria<T = any> {
 
   whereNotNull<K extends FieldPath<T>>(field: K): this {
     return this.where(field, "isNotNull" as OperatorsForType<PathValue<T, K>>);
+  }
+
+  whereSome<K extends FieldPath<T>>(
+    field: K,
+    operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
+    value?: FilterValueFor<PathValue<T, K>>,
+  ): this {
+    return this.where(field, operator, value, { quantifier: "some" });
+  }
+
+  whereEvery<K extends FieldPath<T>>(
+    field: K,
+    operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
+    value?: FilterValueFor<PathValue<T, K>>
+  ): this {
+    return this.where(field, operator, value, { quantifier: "every" });
+  }
+
+  whereNone<K extends FieldPath<T>>(
+    field: K,
+    operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
+    value?: FilterValueFor<PathValue<T, K>>
+  ): this {
+    return this.where(field, operator, value, { quantifier: "none" });
   }
 
   // === OrderBy ===
@@ -247,13 +275,33 @@ export class Criteria<T = any> {
         continue;
       }
 
-      const [field, operatorRaw] = key.split(":");
+      const [field, operatorWithQuantifier] = key.split(":");
 
-      if (!operatorRaw || !field) continue;
+      if (!operatorWithQuantifier || !field) continue;
+
+      // Parse operator and quantifier: operator@quantifier
+      const [operatorRaw, quantifierRaw] = operatorWithQuantifier.split("@");
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
       if (!operator) {
         throw new InvalidCriteriaError(`Invalid filter operator`, operatorRaw);
       }
+
+      // Validate quantifier if provided
+      const validQuantifiers = ["some", "every", "none"];
+      const quantifier = quantifierRaw && validQuantifiers.includes(quantifierRaw)
+        ? (quantifierRaw as "some" | "every" | "none")
+        : undefined;
+
+      if (quantifierRaw && !quantifier) {
+        throw new InvalidCriteriaError(
+          `Invalid quantifier. Valid values: ${validQuantifiers.join(", ")}`,
+          quantifierRaw
+        );
+      }
+
+      const options: CriteriaOptions | undefined = quantifier
+        ? { quantifier }
+        : undefined;
 
       let parsedValue: any = value;
 
@@ -262,7 +310,12 @@ export class Criteria<T = any> {
           .split(",")
           .map((v: any) => parseQueryValue(v.trim()));
         if (parsedValue.length === 2) {
-          criteria.whereBetween(field as any, parsedValue[0], parsedValue[1]);
+          criteria.where(
+            field as any,
+            "between" as OperatorsForType<PathValue<T, FieldPath<T>>>,
+            [parsedValue[0], parsedValue[1]] as [PathValue<T, FieldPath<T>>, PathValue<T, FieldPath<T>>],
+            options
+          );
         }
         continue;
       }
@@ -272,7 +325,8 @@ export class Criteria<T = any> {
         criteria.where(
           field as any,
           operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-          parsedValue
+          parsedValue,
+          options
         );
         continue;
       }
@@ -284,7 +338,8 @@ export class Criteria<T = any> {
       criteria.where(
         field as FieldPath<T>,
         operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        parsedFinalValue
+        parsedFinalValue,
+        options
       );
     }
 
