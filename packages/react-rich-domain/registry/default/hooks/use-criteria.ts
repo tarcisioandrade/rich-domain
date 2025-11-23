@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Criteria,
   type FieldPath,
-  type FilterOperator,
   type OrderDirection,
   type Filter,
   type Order,
   type FilterValueFor,
   type PathValue,
+  type OperatorsForType,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -21,7 +21,7 @@ import {
   syncCriteriaWithUrl,
 } from "../utils/persistence";
 
-export function useCriteria<T = any>(
+export function useCriteria<T = unknown>(
   options: UseCriteriaOptions<T> = {}
 ): UseCriteriaReturn<T> {
   const {
@@ -45,7 +45,7 @@ export function useCriteria<T = any>(
 
   const buildCriteria = useCallback(
     (parts: {
-      filters: Filter<string, any>[];
+      filters: Filter<string, unknown>[];
       orders: Order[];
       pagination: { page: number; limit: number; offset: number };
       search?: { fields: FieldPath<T>[]; value: string } | null;
@@ -53,7 +53,11 @@ export function useCriteria<T = any>(
       const criteria = Criteria.create<T>();
 
       parts.filters.forEach((f) =>
-        criteria.where(f.field as FieldPath<T>, f.operator, f.value)
+        criteria.where(
+          f.field as FieldPath<T>,
+          f.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+          f.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+        )
       );
       parts.orders.forEach((o) =>
         criteria.orderBy(o.field as FieldPath<T>, o.direction)
@@ -81,7 +85,11 @@ export function useCriteria<T = any>(
     const criteria = Criteria.create<T>().paginate(initialPage, pageSize);
 
     initialFilters.forEach((filter) => {
-      criteria.where(filter.field, filter.operator, filter.value as any);
+      criteria.where(
+        filter.field,
+        filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+      );
     });
 
     initialSort.forEach((sort) => {
@@ -128,7 +136,7 @@ export function useCriteria<T = any>(
   const addFilter = useCallback(
     <K extends FieldPath<T>>(
       field: K,
-      operator: FilterOperator,
+      operator: OperatorsForType<PathValue<T, K>>,
       value?: FilterValueFor<PathValue<T, K>>
     ) => {
       setCriteria((prev) => {
@@ -363,7 +371,11 @@ export function useCriteria<T = any>(
     );
 
     config.initialFilters.forEach((filter) => {
-      newCriteria.where(filter.field, filter.operator, filter.value as any);
+      newCriteria.where(
+        filter.field,
+        filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+      );
     });
 
     config.initialSort.forEach((sort) => {

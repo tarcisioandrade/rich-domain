@@ -17,6 +17,63 @@ export const FILTER_OPERATORS = [
   "isNotNull",
 ] as const;
 
+export type FilterOperator = (typeof FILTER_OPERATORS)[number];
+
+// Operator types by primitive type
+export type StringOperators =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "startsWith"
+  | "endsWith"
+  | "in"
+  | "notIn"
+  | "isNull"
+  | "isNotNull";
+
+export type NumberOperators =
+  | "equals"
+  | "notEquals"
+  | "greaterThan"
+  | "greaterThanOrEqual"
+  | "lessThan"
+  | "lessThanOrEqual"
+  | "in"
+  | "notIn"
+  | "between"
+  | "isNull"
+  | "isNotNull";
+
+export type DateOperators =
+  | "equals"
+  | "notEquals"
+  | "greaterThan"
+  | "greaterThanOrEqual"
+  | "lessThan"
+  | "lessThanOrEqual"
+  | "in"
+  | "notIn"
+  | "between"
+  | "isNull"
+  | "isNotNull";
+
+export type BooleanOperators = "equals" | "notEquals" | "isNull" | "isNotNull";
+
+export type ArrayOperators = "in" | "notIn" | "isNull" | "isNotNull";
+
+// Conditional type that maps value types to their valid operators
+export type OperatorsForType<T> = T extends string
+  ? StringOperators
+  : T extends number
+  ? NumberOperators
+  : T extends Date
+  ? DateOperators
+  : T extends boolean
+  ? BooleanOperators
+  : T extends Array<any>
+  ? ArrayOperators
+  : FilterOperator; // fallback for unknown types
+
 export type FilterValueFor<T> =
   | T // equals, notEquals
   | (T extends number | Date
@@ -36,16 +93,18 @@ export type PathValue<
   ? T[P]
   : never;
 
-export type FilterOperator = (typeof FILTER_OPERATORS)[number];
-
 export interface Filter<TField = string, TValue = unknown> {
   field: TField;
-  operator: FilterOperator;
+  operator: unknown extends TValue ? FilterOperator : OperatorsForType<TValue>;
   value: TValue;
 }
 
 export type TypedFilter<T> = {
-  [K in FieldPath<T>]: Filter<K, FilterValueFor<PathValue<T, K>>>;
+  [K in FieldPath<T>]: {
+    field: K;
+    operator: OperatorsForType<NonNullable<PathValue<T, K>>>;
+    value: FilterValueFor<NonNullable<PathValue<T, K>>>;
+  };
 }[FieldPath<T>];
 
 export type OrderDirection = "asc" | "desc";
@@ -75,10 +134,16 @@ export interface PaginationMeta {
   hasPrevious: boolean;
 }
 
-export type FieldPath<T> = {
-  [K in keyof T & string]: T[K] extends Primitive
-    ? K
-    : T[K] extends Array<infer U>
-    ? K | `${K}.${FieldPath<U>}`
-    : K | `${K}.${FieldPath<T[K]>}`;
-}[keyof T & string];
+type ExcludeBuiltInKeys<T> = Exclude<keyof T, keyof any[] | number | symbol>;
+
+export type FieldPath<T> = T extends Primitive
+  ? never
+  : {
+      [K in ExcludeBuiltInKeys<T> & string]: NonNullable<T[K]> extends Primitive
+        ? K
+        : NonNullable<T[K]> extends Array<infer U>
+        ? U extends Primitive
+          ? K
+          : K | `${K}.${FieldPath<U>}`
+        : K | `${K}.${FieldPath<NonNullable<T[K]>>}`;
+    }[ExcludeBuiltInKeys<T> & string];

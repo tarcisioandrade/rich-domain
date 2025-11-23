@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check": "tsc --noEmit",
     "clean": "rm -rf dist coverage node_modules",
     "lint": "eslint .",
     "preview": "vite preview"

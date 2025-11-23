@@ -46,6 +46,10 @@ export {
   Search,
   FilterValueFor,
   PathValue,
+  OperatorsForType,
+  DateOperators,
+  NumberOperators,
+  StringOperators,
+  BooleanOperators,
+  ArrayOperators,
 } from "./types";
-
-// Internal (for advanced usage)
