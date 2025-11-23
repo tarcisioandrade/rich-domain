@@ -20,7 +20,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && npm run registry:build",
     "dev": "tsup --watch",
     "start": "http-server -p 3000",
     "test": "vitest",

@@ -2,9 +2,9 @@ import { InvalidCriteriaError } from "./exceptions";
 import {
   FieldPath,
   Filter,
-  FILTER_OPERATORS,
   FilterOperator,
   FilterValueFor,
+  OperatorsForType,
   Order,
   OrderDirection,
   Pagination,
@@ -12,6 +12,12 @@ import {
   Search,
   TypedFilter,
 } from "./types";
+import {
+  isValidOperatorForType,
+  getValidOperatorsForType,
+  isOperator,
+} from "./utils/criteria-operator-validation";
+import { parseQueryValue } from "./utils/helpers";
 
 // ============================================================================
 // Filter Types
@@ -21,7 +27,7 @@ export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
-  private _search?: Search<T>
+  private _search?: Search<T>;
 
   private constructor() {}
 
@@ -33,13 +39,21 @@ export class Criteria<T = any> {
   }
 
   /**
-   * Add a filter condition
+   * Add a filter condition (strictly typed - autocomplete will show only valid operators for the field type)
    */
+  where<K extends FieldPath<T>>(
+    field: K,
+    operator: OperatorsForType<NonNullable<PathValue<T, K>>>,
+    value?: FilterValueFor<PathValue<T, K>>
+  ): this;
+
   where<K extends FieldPath<T>>(
     field: K,
     operator: FilterOperator,
     value?: FilterValueFor<PathValue<T, K>>
   ): this {
+    this.validateOperator(operator, value);
+
     this._filters.push({
       field,
       operator,
@@ -51,18 +65,26 @@ export class Criteria<T = any> {
   // === Shorthand methods (tipados) ===
 
   whereEquals<K extends FieldPath<T>>(field: K, value: PathValue<T, K>): this {
-    return this.where(field, "equals", value);
+    return this.where(
+      field,
+      "equals" as OperatorsForType<PathValue<T, K>>,
+      value
+    );
   }
 
   whereContains<K extends FieldPath<T>>(
     field: K,
     value: PathValue<T, K>
   ): this {
-    return this.where(field, "contains", value);
+    return this.where(
+      field,
+      "contains" as OperatorsForType<PathValue<T, K>>,
+      value
+    );
   }
 
   whereIn<K extends FieldPath<T>>(field: K, values: PathValue<T, K>[]): this {
-    return this.where(field, "in", values);
+    return this.where(field, "in" as OperatorsForType<PathValue<T, K>>, values);
   }
 
   whereBetween<K extends FieldPath<T>>(
@@ -70,18 +92,19 @@ export class Criteria<T = any> {
     min: PathValue<T, K>,
     max: PathValue<T, K>
   ): this {
-    return this.where(field, "between", [min, max] as [
-      PathValue<T, K>,
-      PathValue<T, K>
-    ]);
+    return this.where(
+      field,
+      "between" as OperatorsForType<PathValue<T, K>>,
+      [min, max] as [PathValue<T, K>, PathValue<T, K>]
+    );
   }
 
   whereNull<K extends FieldPath<T>>(field: K): this {
-    return this.where(field, "isNull");
+    return this.where(field, "isNull" as OperatorsForType<PathValue<T, K>>);
   }
 
   whereNotNull<K extends FieldPath<T>>(field: K): this {
-    return this.where(field, "isNotNull");
+    return this.where(field, "isNotNull" as OperatorsForType<PathValue<T, K>>);
   }
 
   // === OrderBy ===
@@ -195,7 +218,13 @@ export class Criteria<T = any> {
     search?: { fields: FieldPath<T>[]; value: string };
   }): Criteria<T> {
     const criteria = Criteria.create<T>();
-    if (obj.filters) criteria._filters = [...obj.filters];
+
+    if (obj.filters) {
+      for (const filter of obj.filters) {
+        criteria.validateOperator(filter.operator, filter.value);
+      }
+      criteria._filters = [...obj.filters];
+    }
     if (obj.orders) criteria._orders = [...obj.orders];
     if (obj.pagination) criteria._pagination = { ...obj.pagination };
     if (obj.search) criteria._search = { ...obj.search };
@@ -222,8 +251,9 @@ export class Criteria<T = any> {
 
       if (!operatorRaw || !field) continue;
       const operator = isOperator(operatorRaw) ? operatorRaw : null;
-      if (!operator)
+      if (!operator) {
         throw new InvalidCriteriaError(`Invalid filter operator`, operatorRaw);
+      }
 
       let parsedValue: any = value;
 
@@ -239,11 +269,32 @@ export class Criteria<T = any> {
 
       if (operator === "in" || operator === "notIn") {
         parsedValue = value.split(",").map(parseQueryValue);
-        criteria.where(field as any, operator, parsedValue);
+        criteria.where(
+          field as any,
+          operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+          parsedValue
+        );
         continue;
       }
 
-      criteria.where(field as FieldPath<T>, operator, parseQueryValue(value));
+      const parsedFinalValue = parseQueryValue(value);
+
+      // Runtime validation for query params
+      if (!isValidOperatorForType(parsedFinalValue, operator)) {
+        const validOps = getValidOperatorsForType(parsedFinalValue);
+        throw new InvalidCriteriaError(
+          `Operator "${operator}" is not valid for type "${typeof parsedFinalValue}" in query parameter "${key}". Valid operators: ${validOps.join(
+            ", "
+          )}`,
+          operator
+        );
+      }
+
+      criteria.where(
+        field as FieldPath<T>,
+        operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+        parsedFinalValue
+      );
     }
 
     // Pagination
@@ -259,7 +310,10 @@ export class Criteria<T = any> {
       const sortParts = query.orderBy.split(",");
       sortParts.forEach((part: string) => {
         const [field, direction] = part.split(":");
-        criteria.orderBy(field as FieldPath<T>, (direction as OrderDirection) || "asc");
+        criteria.orderBy(
+          field as FieldPath<T>,
+          (direction as OrderDirection) || "asc"
+        );
       });
     }
 
@@ -273,19 +327,20 @@ export class Criteria<T = any> {
 
     return criteria;
   }
+
+  private validateOperator(operator: FilterOperator, value: any): void {
+    if (value !== undefined && !isValidOperatorForType(value, operator)) {
+      const validOps = getValidOperatorsForType(value);
+      throw new InvalidCriteriaError(
+        `Operator "${operator}" is not valid for type "${typeof value}". Valid operators: ${validOps.join(
+          ", "
+        )}`,
+        operator
+      );
+    }
+  }
 }
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-function parseQueryValue(value: string): any {
-  if (!isNaN(Number(value))) return Number(value); // number
-  if (value === "true" || value === "false") return value === "true"; // boolean
-  if (!isNaN(Date.parse(value))) return new Date(value); // Date
-  return value; // string
-}
-
-function isOperator(value: string): value is FilterOperator {
-  return FILTER_OPERATORS.includes(value as FilterOperator);
-}
