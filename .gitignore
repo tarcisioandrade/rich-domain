@@ -19,3 +19,4 @@ examples/**/coverage
 examples/**/.env
 examples/**/*.db
 examples/**/*.db-journal
+examples/**/tester/*
