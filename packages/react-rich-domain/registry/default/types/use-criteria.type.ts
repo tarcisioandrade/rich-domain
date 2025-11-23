@@ -9,6 +9,7 @@ import type {
   FilterValueFor,
   PathValue,
   OperatorsForType,
+  CriteriaOptions,
 } from "@woltz/rich-domain";
 
 /**
@@ -91,7 +92,8 @@ export interface UseCriteriaReturn<T> {
   addFilter: <K extends FieldPath<T>>(
     field: K,
     operator: OperatorsForType<PathValue<T, K>>,
-    value?: FilterValueFor<PathValue<T, K>>
+    value?: FilterValueFor<PathValue<T, K>>,
+    options?: CriteriaOptions
   ) => void;
 
   /**
