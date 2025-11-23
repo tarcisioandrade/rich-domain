@@ -279,16 +279,7 @@ export class Criteria<T = any> {
 
       const parsedFinalValue = parseQueryValue(value);
 
-      // Runtime validation for query params
-      if (!isValidOperatorForType(parsedFinalValue, operator)) {
-        const validOps = getValidOperatorsForType(parsedFinalValue);
-        throw new InvalidCriteriaError(
-          `Operator "${operator}" is not valid for type "${typeof parsedFinalValue}" in query parameter "${key}". Valid operators: ${validOps.join(
-            ", "
-          )}`,
-          operator
-        );
-      }
+      criteria.validateOperator(operator, parsedFinalValue);
 
       criteria.where(
         field as FieldPath<T>,

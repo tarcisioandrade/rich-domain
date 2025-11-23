@@ -64,12 +64,6 @@ export class PaginatedResult<T> {
    */
   static fromArray<T>(items: T[], criteria: Criteria<T>): PaginatedResult<T> {
     let result = [...items];
-
-    // Apply filters
-    for (const filter of criteria.getFilters()) {
-      result = result.filter((item) => applyFilter(item, filter));
-    }
-
     let total = result.length;
 
     const search = criteria.getSearch();
@@ -78,10 +72,15 @@ export class PaginatedResult<T> {
         return search.fields.some((field) => {
           return String(getNestedValue(item, field))
             .toLowerCase()
-            .includes(search.value.toLowerCase());
+            .includes(search.value.trim().toLowerCase());
         });
       });
+      total = result.length;
+    }
 
+    // Apply filters
+    for (const filter of criteria.getFilters()) {
+      result = result.filter((item) => applyFilter(item, filter));
       total = result.length;
     }
 
@@ -101,7 +100,7 @@ export class PaginatedResult<T> {
 
     // Apply pagination
     const pagination = criteria.getPagination();
-    if (pagination) {
+    if (pagination && !criteria.hasSearch()) {
       result = result.slice(
         pagination.offset,
         pagination.offset + pagination.limit

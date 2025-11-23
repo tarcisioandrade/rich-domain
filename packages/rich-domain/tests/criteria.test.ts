@@ -56,6 +56,20 @@ const testUsers: TestUser[] = [
 ];
 
 describe("Criteria", () => {
+  describe("Search", () => {
+    it("should search by all items ignoring pagination and limit", () => {
+      const criteria = Criteria.create<TestUser>()
+        .search(["name"], "Eve")
+        .paginate(3, 1);
+      const result = PaginatedResult.fromArray(testUsers, criteria);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe("Eve");
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(1);
+    });
+  });
   describe("Fluent API", () => {
     it("should create empty criteria", () => {
       const criteria = Criteria.create<TestUser>();
@@ -297,7 +311,7 @@ describe("Criteria", () => {
 
       expect(result.data).toHaveLength(2);
       expect(result.data.map((u) => u.name)).toEqual(["Bob", "Diana"]);
-      expect(result.meta.total).toBe(3); // Total active users
+      expect(result.meta.total).toBe(3);
       expect(result.meta.totalPages).toBe(2);
     });
   });
