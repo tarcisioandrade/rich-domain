@@ -1,5 +1,10 @@
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default [
   {
@@ -22,6 +27,7 @@ export default [
         ecmaVersion: 2020,
         sourceType: "module",
         project: "./tsconfig.json",
+        tsconfigRootDir: __dirname,
         ecmaFeatures: {
           jsx: true,
         },

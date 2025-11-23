@@ -18,6 +18,6 @@
     "declaration": true,
     "outDir": "./dist"
   },
-  "include": ["registry/**/*"],
+  "include": ["./registry/**/*.ts", "./registry/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

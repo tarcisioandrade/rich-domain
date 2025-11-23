@@ -27,7 +27,7 @@ export interface UseCriteriaOptions<T> {
   /**
    * Initial filters to apply
    */
-  initialFilters?: Filter<FieldPath<T>, any>[];
+  initialFilters?: Filter<FieldPath<T>, unknown>[];
 
   /**
    * Initial sorting
@@ -67,7 +67,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Current filters
    */
-  filters: Array<Filter<string, any>>;
+  filters: Array<Filter<string, unknown>>;
 
   /**
    * Current sorting

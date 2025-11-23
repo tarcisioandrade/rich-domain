@@ -81,7 +81,7 @@ export function useCriteria<T = any>(
     const criteria = Criteria.create<T>().paginate(initialPage, pageSize);
 
     initialFilters.forEach((filter) => {
-      criteria.where(filter.field, filter.operator, filter.value);
+      criteria.where(filter.field, filter.operator, filter.value as any);
     });
 
     initialSort.forEach((sort) => {
@@ -363,7 +363,7 @@ export function useCriteria<T = any>(
     );
 
     config.initialFilters.forEach((filter) => {
-      newCriteria.where(filter.field, filter.operator, filter.value);
+      newCriteria.where(filter.field, filter.operator, filter.value as any);
     });
 
     config.initialSort.forEach((sort) => {
