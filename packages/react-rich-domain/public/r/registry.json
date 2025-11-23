@@ -14,19 +14,19 @@
           "path": "registry/default/hooks/use-criteria.ts",
           "type": "registry:hook",
           "description": "A hook to use criteria from @woltz/rich-domain.",
-          "target": "~/src/hooks"
+          "target": "~/src/hooks/use-criteria.ts"
         },
         {
           "path": "registry/default/types/use-criteria.type.ts",
           "type": "registry:file",
           "description": "A type for the use criteria hook.",
-          "target": "~/src/types"
+          "target": "~/src/types/use-criteria.type.ts"
         },
         {
           "path": "registry/default/utils/persistence.ts",
           "type": "registry:file",
           "description": "A utility to persist criteria in localStorage and URL query params.",
-          "target": "~/src/utils"
+          "target": "~/src/utils/persistence.ts"
         }
       ]
     }
