@@ -125,6 +125,18 @@ export interface UseCriteriaReturn<T> {
   removeSortByField: (field: FieldPath<T>) => void;
 
   /**
+   * Get filter by field name
+   */
+  getFilterByField: <K extends FieldPath<T>>(
+    field: K
+  ) => Filter<string, FilterValueFor<PathValue<T, K>>> | undefined;
+
+  /**
+   * Get sort by field name
+   */
+  getSortByField: <K extends FieldPath<T>>(field: K) => Order | undefined;
+
+  /**
    * Clear all sorting
    */
   clearSort: () => void;
