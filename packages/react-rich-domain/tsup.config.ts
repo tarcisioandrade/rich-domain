@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["registry/index.ts"],
   format: ["cjs", "esm"],
   dts: true,
   splitting: false,
@@ -9,5 +9,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: false,
-  external: ["react", "rich-domain"],
+  external: ["react", "react-dom"],
 });

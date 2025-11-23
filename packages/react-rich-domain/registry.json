@@ -1,0 +1,34 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "@woltz/react-rich-domain",
+  "homepage": "https://github.com/tarcisioandrade/rich-domain",
+  "items": [
+    {
+      "name": "use-criteria",
+      "type": "registry:block",
+      "title": "Use Criteria",
+      "description": "A hook to use criteria from @woltz/rich-domain.",
+      "dependencies": ["@woltz/rich-domain"],
+      "files": [
+        {
+          "path": "registry/default/hooks/use-criteria.ts",
+          "type": "registry:hook",
+          "description": "A hook to use criteria from @woltz/rich-domain.",
+          "target": "~/src/hooks"
+        },
+        {
+          "path": "registry/default/types/use-criteria.type.ts",
+          "type": "registry:file",
+          "description": "A type for the use criteria hook.",
+          "target": "~/src/types"
+        },
+        {
+          "path": "registry/default/utils/persistence.ts",
+          "type": "registry:file",
+          "description": "A utility to persist criteria in localStorage and URL query params.",
+          "target": "~/src/utils"
+        }
+      ]
+    }
+  ]
+}

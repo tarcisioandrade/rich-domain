@@ -9,7 +9,10 @@ import {
   type FilterValueFor,
   type PathValue,
 } from "@woltz/rich-domain";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "../types";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "../types/use-criteria.type";
 import {
   loadCriteriaFromStorage,
   loadCriteriaFromUrl,

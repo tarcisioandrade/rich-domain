@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { useCriteria } from "../src/hooks/use-criteria";
+import { useCriteria } from "../registry/default/hooks/use-criteria";
 
 interface TestUser {
   id: string;
