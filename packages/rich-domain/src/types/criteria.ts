@@ -75,10 +75,19 @@ export interface PaginationMeta {
   hasPrevious: boolean;
 }
 
-export type FieldPath<T> = {
-  [K in keyof T & string]: T[K] extends Primitive
-    ? K
-    : T[K] extends Array<infer U>
-    ? K | `${K}.${FieldPath<U>}`
-    : K | `${K}.${FieldPath<T[K]>}`;
-}[keyof T & string];
+type ExcludeBuiltInKeys<T> = Exclude<
+  keyof T,
+  keyof any[] | number | symbol
+>;
+
+export type FieldPath<T> = T extends Primitive
+  ? never
+  : {
+      [K in ExcludeBuiltInKeys<T> & string]: NonNullable<T[K]> extends Primitive
+        ? K
+        : NonNullable<T[K]> extends Array<infer U>
+        ? U extends Primitive
+          ? K
+          : K | `${K}.${FieldPath<U>}`
+        : K | `${K}.${FieldPath<NonNullable<T[K]>>}`;
+    }[ExcludeBuiltInKeys<T> & string];
