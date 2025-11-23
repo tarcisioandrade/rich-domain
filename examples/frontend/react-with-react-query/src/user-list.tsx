@@ -1,7 +1,7 @@
-import { useCriteria } from "@woltz/react-rich-domain";
 import { getUsers, type TestUser } from "./service/get-users";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useCriteria } from "./hooks/use-criteria";
 
 export function UserList() {
   const {
