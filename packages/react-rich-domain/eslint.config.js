@@ -7,6 +7,7 @@ export default [
       "dist/**",
       "node_modules/**",
       "coverage/**",
+      "public/**",
       "**/*.test.ts",
       "**/*.test.tsx",
       "**/*.spec.ts",
@@ -14,7 +15,7 @@ export default [
     ],
   },
   {
-    files: ["src/**/*.ts", "src/**/*.tsx"],
+    files: ["registry/**/*.ts", "registry/**/*.tsx"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
