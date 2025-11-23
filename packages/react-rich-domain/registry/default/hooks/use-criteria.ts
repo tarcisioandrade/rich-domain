@@ -7,7 +7,7 @@ import {
   type Order,
   type FilterValueFor,
   type PathValue,
-  OperatorsForType,
+  type OperatorsForType,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -21,7 +21,7 @@ import {
   syncCriteriaWithUrl,
 } from "../utils/persistence";
 
-export function useCriteria<T = any>(
+export function useCriteria<T = unknown>(
   options: UseCriteriaOptions<T> = {}
 ): UseCriteriaReturn<T> {
   const {
@@ -45,7 +45,7 @@ export function useCriteria<T = any>(
 
   const buildCriteria = useCallback(
     (parts: {
-      filters: Filter<string, any>[];
+      filters: Filter<string, unknown>[];
       orders: Order[];
       pagination: { page: number; limit: number; offset: number };
       search?: { fields: FieldPath<T>[]; value: string } | null;
@@ -56,7 +56,7 @@ export function useCriteria<T = any>(
         criteria.where(
           f.field as FieldPath<T>,
           f.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-          f.value
+          f.value as FilterValueFor<PathValue<T, FieldPath<T>>>
         )
       );
       parts.orders.forEach((o) =>
@@ -88,7 +88,7 @@ export function useCriteria<T = any>(
       criteria.where(
         filter.field,
         filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        filter.value as any
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
       );
     });
 
@@ -374,7 +374,7 @@ export function useCriteria<T = any>(
       newCriteria.where(
         filter.field,
         filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        filter.value as any
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
       );
     });
 
