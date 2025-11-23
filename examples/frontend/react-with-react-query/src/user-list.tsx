@@ -2,41 +2,65 @@ import { getUsers, type TestUser } from "./service/get-users";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useCriteria } from "./hooks/use-criteria";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+} from "./components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select";
+import { cn } from "./lib/utils";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { XIcon } from "lucide-react";
 
 export function UserList() {
   const {
     criteria,
     filters,
     sorting,
-    pagination,
+    removeFilterByField,
+    removeSortByField,
     search,
     addFilter,
-    removeFilter,
     clearFilters,
     addSort,
-    reset,
-    setPageSize,
+    getSortByField,
     nextPage,
     prevPage,
     setSearch,
+    getFilterByField,
     clearSearch,
   } = useCriteria<TestUser>({
     pageSize: 10,
     initialFilters: [{ field: "status", operator: "equals", value: "active" }],
-    persistKey: "user-list-criteria",
-    onChange: (criteria) => {
-      console.log("Criteria changed:", criteria.toJSON());
-    },
+    syncWithUrl: true,
   });
 
-  const { data, isLoading, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ["users", criteria.toJSON()],
     queryFn: () => getUsers(criteria),
   });
 
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState<string | undefined>(
+    search?.value ?? ""
+  );
 
-  const handleSearch = () => {
+  const handleSearch = (searchValue: string) => {
+    setSearchValue(searchValue);
     if (searchValue.trim()) {
       setSearch(["name"], searchValue);
     } else {
@@ -44,105 +68,131 @@ export function UserList() {
     }
   };
 
-  const handleAgeFilter = () => {
-    addFilter("age", "greaterThan", 18);
-  };
+  const defaultStatusFilter = getFilterByField("status");
+  const defaultAgeSort = getSortByField("age")?.direction;
 
   return (
-    <div className="user-list">
-      <h1>User List</h1>
+    <section className="max-w-lg mx-auto mt-10">
+      <div className="flex justify-between items-center gap-2 mb-10">
+        <div className="flex justify-between items-center gap-2">
+          <Select
+            onValueChange={(value: "active" | "inactive") => {
+              addFilter("status", "equals", value);
+            }}
+            value={defaultStatusFilter?.value as string | undefined}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Active Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
 
-      <div className="search-box">
-        <input
+          <Select
+            onValueChange={(value: "asc" | "desc") => {
+              addSort("age", value);
+            }}
+            defaultValue={defaultAgeSort}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Order by Age" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Asc</SelectItem>
+              <SelectItem value="desc">Desc</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Input
           type="text"
-          placeholder="Search by name or email..."
+          placeholder="Search"
           value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          onChange={(e) => handleSearch(e.target.value)}
         />
-        <button onClick={handleSearch}>Search</button>
-        {search && (
-          <button onClick={clearSearch}>
-            Clear Search (searching: "{search.value}")
-          </button>
+        {filters.length > 0 && (
+          <Button variant="secondary" onClick={clearFilters}>
+            Limpar Filtros
+          </Button>
         )}
       </div>
-
-      <div className="filters">
-        <h3>Filters</h3>
-        <button onClick={() => addFilter("status", "equals", "active")}>
-          Active Users
-        </button>
-        <button onClick={() => addFilter("status", "equals", "inactive")}>
-          Inactive Users
-        </button>
-        <button onClick={handleAgeFilter}>Age &gt; 18</button>
-        <button onClick={clearFilters}>Clear All Filters</button>
-        <button onClick={reset}>Initial State</button>
-
-        <div className="active-filters">
-          <strong>Active Filters: {filters.length}</strong>
-          {filters.map((filter, index) => (
-            <div key={index} className="filter-badge">
-              {String(filter.field)} {filter.operator} {String(filter.value)}
-              <button onClick={() => removeFilter(index)}>×</button>
+      {/* Filters with remove button */}
+      <div className="mb-6">
+        <div>
+          {filters.map((filter, index: number) => (
+            <div key={index}>
+              <span className="font-bold">{filter.field}</span>{" "}
+              <span className="font-medium text-green-500">
+                {filter.operator}
+              </span>{" "}
+              <span className="font-medium text-blue-500">
+                {filter.value as string}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeFilterByField("status")}
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div>
+          {sorting.map((sort, index: number) => (
+            <div key={index}>
+              <span className="font-bold">{sort.field}</span>{" "}
+              <span className="font-medium text-green-500">
+                {sort.direction}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeSortByField("age")}
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
             </div>
           ))}
         </div>
       </div>
-
-      <div className="sorting">
-        <h3>Sort By</h3>
-        <button onClick={() => addSort("name", "asc")}>Name (A-Z)</button>
-        <button onClick={() => addSort("name", "desc")}>Name (Z-A)</button>
-        <button onClick={() => addSort("age", "asc")}>Age (Low to High)</button>
-
-        <div className="active-sorts">
-          <strong>Active Sorts: {sorting.length}</strong>
-          {sorting.map((sort, index) => (
-            <div key={index} className="sort-badge">
-              {String(sort.field)} ({sort.direction})
-            </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Age</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data?.data?.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell>{user.name}</TableCell>
+              <TableCell>{user.age}</TableCell>
+              <TableCell
+                className={cn(
+                  user.status === "active" ? "text-green-500" : "text-red-500"
+                )}
+              >
+                {user.status}
+              </TableCell>
+            </TableRow>
           ))}
-        </div>
-      </div>
-
-      <div className="data-table">
-        <p>Current Criteria:</p>
-        <pre>{JSON.stringify(criteria.toJSON(), null, 2)}</pre>
-        {isLoading && <p>Loading...</p>}
-        {data?.data.map((user) => (
-          <ul key={user.id}>
-            <li>{user.name}</li>
-            <li>{user.age}</li>
-            <li>{user.status}</li>
-          </ul>
-        ))}
-        {error && <p>Error: {error.message}</p>}
-        {data?.data.length === 0 && <p>No users found</p>}
-      </div>
-
-      <div className="pagination">
-        <button disabled={!data?.meta.hasPrevious} onClick={prevPage}>
-          Previous
-        </button>
-        <span>
-          Page {pagination.page} | Per page: {pagination.limit}
-        </span>
-        <button disabled={!data?.meta.hasNext} onClick={nextPage}>
-          Next
-        </button>
-
-        <select
-          value={pagination.limit}
-          onChange={(e) => setPageSize(Number(e.target.value))}
-        >
-          <option value={5}>5 per page</option>
-          <option value={10}>10 per page</option>
-          <option value={20}>20 per page</option>
-          <option value={50}>50 per page</option>
-        </select>
-      </div>
-    </div>
+        </TableBody>
+      </Table>
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <Button disabled={!data?.meta.hasPrevious} onClick={prevPage}>
+              Previous
+            </Button>
+          </PaginationItem>
+          <Button disabled={!data?.meta.hasNext} onClick={nextPage}>
+            Next
+          </Button>
+        </PaginationContent>
+      </Pagination>
+    </section>
   );
 }

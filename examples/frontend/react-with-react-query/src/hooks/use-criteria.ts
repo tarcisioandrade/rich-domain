@@ -165,6 +165,22 @@ export function useCriteria<T = unknown>(
     [buildCriteria]
   );
 
+  const getFilterByField = useCallback(
+    <K extends FieldPath<T>>(field: K) => {
+      return filters.find((f) => f.field === field) as
+        | Filter<string, FilterValueFor<PathValue<T, K>>>
+        | undefined;
+    },
+    [filters]
+  );
+
+  const getSortByField = useCallback(
+    <K extends FieldPath<T>>(field: K) => {
+      return sorting.find((s) => s.field === field) as Order | undefined;
+    },
+    [sorting]
+  );
+
   const removeFilter = useCallback(
     (index: number) => {
       setCriteria((prev) => {
@@ -413,6 +429,7 @@ export function useCriteria<T = unknown>(
     addSort,
     removeSort,
     removeSortByField,
+    getSortByField,
     clearSort,
     setPage,
     setPageSize,
@@ -423,5 +440,6 @@ export function useCriteria<T = unknown>(
     reset,
     toJSON,
     clone,
+    getFilterByField,
   };
 }
