@@ -1,6 +1,7 @@
 import { Pagination } from "../src";
 import { Criteria } from "../src/criteria";
 import { PaginatedResult } from "../src/paginated-result";
+import { CriteriaAdapter } from "../src/types";
 import { Post } from "./utils";
 
 interface TestUser {
@@ -10,6 +11,17 @@ interface TestUser {
   age: number;
   status: "active" | "inactive";
   createdAt: Date;
+}
+
+interface UserWithPostsDto {
+  id: string;
+  name: string;
+  posts: { title: string; content: string }[];
+  leads: {
+    contact: {
+      name: string;
+    };
+  }[];
 }
 
 const testUsers: TestUser[] = [
@@ -449,6 +461,295 @@ describe("Criteria", () => {
       expect(criteria.getOrders()).toHaveLength(1);
       expect(criteria.getPagination()?.page).toBe(1);
       expect(criteria.getPagination()?.limit).toBe(2);
+    });
+  });
+
+  describe("Quantifiers", () => {
+    describe("Fluent API methods", () => {
+      it("should create filter with whereSome", () => {
+        const criteria = Criteria.create<UserWithPostsDto>().whereSome(
+          "posts.title",
+          "contains",
+          "test"
+        );
+
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].field).toBe("posts.title");
+        expect(filters[0].operator).toBe("contains");
+        expect(filters[0].value).toBe("test");
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should create filter with whereEvery", () => {
+        const criteria = Criteria.create<UserWithPostsDto>().whereEvery(
+          "posts.title",
+          "contains",
+          "test"
+        );
+
+        const filters = criteria.getFilters();
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("every");
+      });
+
+      it("should create filter with whereNone", () => {
+        const criteria = Criteria.create<UserWithPostsDto>().whereNone(
+          "posts.title",
+          "contains",
+          "test"
+        );
+
+        const filters = criteria.getFilters();
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("none");
+      });
+
+      it("should create filter without quantifier using where", () => {
+        const criteria = Criteria.create<UserWithPostsDto>().where(
+          "posts.title",
+          "contains",
+          "test"
+        );
+
+        const filters = criteria.getFilters();
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options).toBeUndefined();
+      });
+    });
+
+    describe("fromQueryParams with quantifier", () => {
+      it("should parse quantifier from query params with @some", () => {
+        const queryParams = {
+          "posts.title:contains@some": "test",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].field).toBe("posts.title");
+        expect(filters[0].operator).toBe("contains");
+        expect(filters[0].value).toBe("test");
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should parse quantifier from query params with @every", () => {
+        const queryParams = {
+          "posts.title:equals@every": "test",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("every");
+      });
+
+      it("should parse quantifier from query params with @none", () => {
+        const queryParams = {
+          "posts.title:contains@none": "spam",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("none");
+      });
+
+      it("should work with in operator and quantifier", () => {
+        const queryParams = {
+          "posts.title:in@some": "test1,test2,test3",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].operator).toBe("in");
+        expect(filters[0].value).toEqual(["test1", "test2", "test3"]);
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should work with between operator and quantifier", () => {
+        const queryParams = {
+          "posts.likes:between@some": "10,100",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].operator).toBe("between");
+        expect(filters[0].value).toEqual([10, 100]);
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should maintain backward compatibility without quantifier", () => {
+        const queryParams = {
+          "posts.title:contains": "test",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].field).toBe("posts.title");
+        expect(filters[0].operator).toBe("contains");
+        expect(filters[0].value).toBe("test");
+        expect(filters[0].options).toBeUndefined();
+      });
+
+      it("should throw error for invalid quantifier", () => {
+        const queryParams = {
+          "posts.title:contains@invalid": "test",
+        };
+
+        expect(() => {
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        }).toThrow("Invalid quantifier");
+      });
+
+      it("should handle multiple filters with mixed quantifiers", () => {
+        const queryParams = {
+          "posts.title:contains@some": "test",
+          "posts.content:equals@every": "content",
+          "name:contains": "John",
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(3);
+        expect(filters[0].options?.quantifier).toBe("some");
+        expect(filters[1].options?.quantifier).toBe("every");
+        expect(filters[2].options).toBeUndefined();
+      });
+    });
+
+    describe("fromObject with quantifier", () => {
+      it("should create criteria from object with quantifier", () => {
+        const criteria = Criteria.fromObject<UserWithPostsDto>({
+          filters: [
+            {
+              field: "posts.title",
+              operator: "contains",
+              value: "test",
+              options: { quantifier: "some" },
+            },
+          ],
+        });
+
+        const filters = criteria.getFilters();
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should preserve quantifier when cloning", () => {
+        const original = Criteria.create<UserWithPostsDto>().whereSome(
+          "posts.title",
+          "contains",
+          "test"
+        );
+
+        const cloned = original.clone();
+        const filters = cloned.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+    });
+
+    describe("toJSON with quantifier", () => {
+      it("should serialize quantifier to JSON", () => {
+        const criteria = Criteria.create<UserWithPostsDto>()
+          .whereSome("posts.title", "contains", "test")
+          .whereEvery("posts.content", "equals", "content");
+
+        const json = criteria.toJSON();
+
+        expect(json.filters).toHaveLength(2);
+        expect(json.filters[0].options?.quantifier).toBe("some");
+        expect(json.filters[1].options?.quantifier).toBe("every");
+      });
+    });
+  });
+
+  describe("Adapter", () => {
+    type UserInDatabase = {
+      id: string;
+      name: string;
+      user_posts: { title: string; content: string }[];
+      leads: {
+        contact: {
+          fullName: string;
+        };
+      };
+    };
+    const UserWithPostsAdapter: CriteriaAdapter<
+      UserWithPostsDto,
+      UserInDatabase
+    > = {
+      posts: "user_posts",
+      "leads.contact.name": "leads.contact.fullName",
+    };
+
+    let criteria: Criteria<UserWithPostsDto>;
+    beforeEach(() => {
+      criteria =
+        Criteria.create<UserWithPostsDto>().useAdapter(UserWithPostsAdapter);
+    });
+
+    it("should resolve field path", () => {
+      const filters = criteria
+        .where("leads.contact.name", "contains", "John")
+        .getFilters();
+
+      expect(filters[0].field).toBe("leads.contact.fullName");
+    });
+
+    it("should resolve field path from query params", () => {
+      const queryParams = {
+        "posts:contains": "test",
+      };
+
+      const result = Criteria.fromQueryParams<UserWithPostsDto>(
+        queryParams,
+        UserWithPostsAdapter
+      );
+      const filters = result.getFilters();
+
+      expect(filters).toHaveLength(1);
+      expect(filters[0].field).toBe("user_posts");
+      expect(filters[0].operator).toBe("contains");
+      expect(filters[0].value).toBe("test");
+    });
+
+    it("should resolve field path from object", () => {
+      const criteria = Criteria.fromObject<UserWithPostsDto>(
+        {
+          filters: [
+            {
+              field: "posts",
+              operator: "in",
+              value: [{ title: "test", content: "test" }],
+            },
+          ],
+        },
+        UserWithPostsAdapter
+      );
+      const filters = criteria.getFilters();
+      expect(filters).toHaveLength(1);
+      expect(filters[0].field).toBe("user_posts");
     });
   });
 });

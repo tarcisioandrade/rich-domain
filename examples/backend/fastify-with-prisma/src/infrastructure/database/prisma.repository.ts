@@ -5,6 +5,8 @@ import {
   Mapper,
   Criteria,
   PaginatedResult,
+  FilterOperator,
+  CriteriaOptions,
 } from "@woltz/rich-domain";
 import { PrismaUnitOfWork } from "./unit-of-work";
 
@@ -94,83 +96,26 @@ export abstract class PrismaRepository<
     });
   }
 
-  protected applyCriteria(criteria: Criteria) {
+  protected applyCriteria(criteria: Criteria<any>) {
     const where: any = {};
     const args: {
       where: any;
-      take: number | undefined;
-      skip: number | undefined;
-      orderBy: { [key: string]: "asc" | "desc" }[] | undefined;
-    } = {
-      where,
-      take: undefined,
-      skip: undefined,
-      orderBy: undefined,
-    };
+      take?: number;
+      skip?: number;
+      orderBy?: { [key: string]: "asc" | "desc" }[];
+    } = { where };
 
     for (const filter of criteria.getFilters()) {
       const { field, operator, value } = filter;
 
-      switch (operator) {
-        case "equals":
-          where[field] = value;
-          break;
+      const condition = buildNestedPrismaCondition(
+        field,
+        operator,
+        value,
+        filter.options?.quantifier
+      );
 
-        case "notEquals":
-          where[field] = { not: String(value) };
-          break;
-
-        case "contains":
-          where[field] = { contains: String(value), mode: "insensitive" };
-          break;
-
-        case "startsWith":
-          where[field] = { startsWith: String(value) };
-          break;
-
-        case "endsWith":
-          where[field] = { endsWith: String(value) };
-          break;
-
-        case "greaterThan":
-          where[field] = { gt: value };
-          break;
-
-        case "greaterThanOrEqual":
-          where[field] = { gte: value };
-          break;
-
-        case "lessThan":
-          where[field] = { lt: value };
-          break;
-
-        case "lessThanOrEqual":
-          where[field] = { lte: value };
-          break;
-
-        case "between":
-          where[field] = {
-            gte: (value as number[])[0],
-            lte: (value as number[])[1],
-          };
-          break;
-
-        case "in":
-          where[field] = { in: value };
-          break;
-
-        case "notIn":
-          where[field] = { notIn: value };
-          break;
-
-        case "isNull":
-          where[field] = null;
-          break;
-
-        case "isNotNull":
-          where[field] = { not: null };
-          break;
-      }
+      mergeDeep(where, condition);
     }
 
     if (criteria.hasSearch()) {
@@ -191,10 +136,10 @@ export abstract class PrismaRepository<
       }));
     }
 
-    const p = criteria.getPagination();
-    if (p) {
-      args.skip = p.offset;
-      args.take = p.limit;
+    const pagination = criteria.getPagination();
+    if (pagination) {
+      args.skip = pagination.offset;
+      args.take = pagination.limit;
     }
 
     return args;
@@ -210,8 +155,105 @@ function buildNestedContains(path: string, value: string) {
   };
 
   for (let i = parts.length - 1; i >= 0; i--) {
-    node = { [parts[i] as string]: node };
+    const parent = parts[i];
+
+    if (parent && looksLikeCollectionField(parent)) {
+      node = { [parent]: { some: node } };
+    } else {
+      node = { [parent as string]: node };
+    }
   }
 
   return node;
+}
+
+function buildOperatorForPrisma(operator: FilterOperator, value: any) {
+  switch (operator) {
+    case "equals":
+      return value;
+
+    case "notEquals":
+      return { not: value };
+
+    case "contains":
+      return { contains: String(value), mode: "insensitive" };
+
+    case "startsWith":
+      return { startsWith: String(value) };
+
+    case "endsWith":
+      return { endsWith: String(value) };
+
+    case "greaterThan":
+      return { gt: value };
+
+    case "greaterThanOrEqual":
+      return { gte: value };
+
+    case "lessThan":
+      return { lt: value };
+
+    case "lessThanOrEqual":
+      return { lte: value };
+
+    case "between":
+      return { gte: value[0], lte: value[1] };
+
+    case "in":
+      return { in: value, mode: "insensitive" };
+
+    case "notIn":
+      return { notIn: value, mode: "insensitive" };
+
+    case "isNull":
+      return null;
+
+    case "isNotNull":
+      return { not: null };
+  }
+}
+
+function buildNestedPrismaCondition(
+  fieldPath: string,
+  operator: FilterOperator,
+  value: any,
+  quantifier?: CriteriaOptions["quantifier"]
+) {
+  const parts = fieldPath.split(".");
+  const last = parts.pop()!;
+  const leaf = buildOperatorForPrisma(operator, value);
+
+  let node: any = { [last]: leaf };
+
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const parent = parts[i];
+
+    if (parent && looksLikeCollectionField(parent)) {
+      const q = quantifier ?? "some";
+      node = { [parent as string]: { [q]: node } };
+    } else {
+      node = { [parent as string]: node };
+    }
+  }
+
+  return node;
+}
+
+function looksLikeCollectionField(field: string) {
+  return field.endsWith("s");
+}
+
+function mergeDeep(target: any, source: any) {
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] &&
+      typeof source[key] === "object" &&
+      !Array.isArray(source[key])
+    ) {
+      if (!target[key]) target[key] = {};
+      mergeDeep(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
 }

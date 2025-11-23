@@ -52,4 +52,5 @@ export {
   StringOperators,
   BooleanOperators,
   ArrayOperators,
+  CriteriaOptions,
 } from "./types";

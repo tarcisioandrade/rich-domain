@@ -8,6 +8,7 @@ import {
   type FilterValueFor,
   type PathValue,
   type OperatorsForType,
+  CriteriaOptions,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -137,7 +138,8 @@ export function useCriteria<T = unknown>(
     <K extends FieldPath<T>>(
       field: K,
       operator: OperatorsForType<PathValue<T, K>>,
-      value?: FilterValueFor<PathValue<T, K>>
+      value?: FilterValueFor<PathValue<T, K>>,
+      options?: CriteriaOptions
     ) => {
       setCriteria((prev) => {
         const currentFilters = prev.getFilters();
@@ -149,9 +151,9 @@ export function useCriteria<T = unknown>(
         let newFilters;
         if (existingIndex !== -1) {
           newFilters = [...currentFilters];
-          newFilters[existingIndex] = { field, operator, value };
+          newFilters[existingIndex] = { field, operator, value, options };
         } else {
-          newFilters = [...currentFilters, { field, operator, value }];
+          newFilters = [...currentFilters, { field, operator, value, options }];
         }
 
         return buildCriteria({
@@ -390,7 +392,8 @@ export function useCriteria<T = unknown>(
       newCriteria.where(
         filter.field,
         filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>,
+        filter.options
       );
     });
 

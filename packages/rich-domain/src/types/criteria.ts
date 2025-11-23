@@ -19,7 +19,6 @@ export const FILTER_OPERATORS = [
 
 export type FilterOperator = (typeof FILTER_OPERATORS)[number];
 
-// Operator types by primitive type
 export type StringOperators =
   | "equals"
   | "notEquals"
@@ -61,7 +60,6 @@ export type BooleanOperators = "equals" | "notEquals" | "isNull" | "isNotNull";
 
 export type ArrayOperators = "in" | "notIn" | "isNull" | "isNotNull";
 
-// Conditional type that maps value types to their valid operators
 export type OperatorsForType<T> = T extends string
   ? StringOperators
   : T extends number
@@ -72,14 +70,12 @@ export type OperatorsForType<T> = T extends string
   ? BooleanOperators
   : T extends Array<any>
   ? ArrayOperators
-  : FilterOperator; // fallback for unknown types
+  : FilterOperator;
 
 export type FilterValueFor<T> =
-  | T // equals, notEquals
-  | (T extends number | Date
-      ? [T, T] // between
-      : never)
-  | T[] // in, notIn
+  | T
+  | (T extends number | Date ? [T, T] : never)
+  | T[]
   | null;
 
 export type PathValue<
@@ -87,7 +83,9 @@ export type PathValue<
   P extends string
 > = P extends `${infer K}.${infer Rest}`
   ? K extends keyof T
-    ? PathValue<T[K], Rest>
+    ? T[K] extends Array<infer U>
+      ? PathValue<U, Rest>
+      : PathValue<T[K], Rest>
     : never
   : P extends keyof T
   ? T[P]
@@ -97,6 +95,7 @@ export interface Filter<TField = string, TValue = unknown> {
   field: TField;
   operator: unknown extends TValue ? FilterOperator : OperatorsForType<TValue>;
   value: TValue;
+  options?: CriteriaOptions;
 }
 
 export type TypedFilter<T> = {
@@ -104,8 +103,13 @@ export type TypedFilter<T> = {
     field: K;
     operator: OperatorsForType<NonNullable<PathValue<T, K>>>;
     value: FilterValueFor<NonNullable<PathValue<T, K>>>;
+    options?: CriteriaOptions;
   };
 }[FieldPath<T>];
+
+export type CriteriaAdapter<Input, Output> = {
+  [K in FieldPath<Input>]?: FieldPath<Output>;
+};
 
 export type OrderDirection = "asc" | "desc";
 
@@ -132,6 +136,10 @@ export interface PaginationMeta {
   totalPages: number;
   hasNext: boolean;
   hasPrevious: boolean;
+}
+
+export interface CriteriaOptions {
+  quantifier?: "some" | "every" | "none";
 }
 
 type ExcludeBuiltInKeys<T> = Exclude<keyof T, keyof any[] | number | symbol>;

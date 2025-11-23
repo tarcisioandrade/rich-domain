@@ -9,6 +9,8 @@ import { PrismaUserToDomainMapper } from "../../database/mappers/user-to-domain.
 import { ChangeNameUseCase } from "../../../application/use-cases/user/change-name.use-case";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
+import { Prisma, User } from "@prisma/client";
+import { CriteriaAdapter } from "@woltz/rich-domain/dist/types";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -22,6 +24,22 @@ const getUserParamsSchema = z.object({
 const changeNameSchema = z.object({
   name: z.string().min(1),
 });
+
+type UserListDto = User & {
+  fullName: string;
+  posts: { title: string; mainContent: string }[];
+};
+
+type UserWithPosts = Prisma.UserGetPayload<{
+  include: {
+    posts: true;
+  };
+}>;
+
+const UserListAdapter: CriteriaAdapter<UserListDto, UserWithPosts> = {
+  fullName: "name",
+  "posts.mainContent": "posts.content",
+};
 
 export async function userRoutes(app: FastifyInstance) {
   const userRepository = new PrismaUserRepository(
@@ -67,7 +85,7 @@ export async function userRoutes(app: FastifyInstance) {
   app.get("/users", async (request, reply) => {
     try {
       const query = request.query as Record<string, any>;
-      const criteria = Criteria.fromQueryParams(query);
+      const criteria = Criteria.fromQueryParams(query, UserListAdapter);
       const listUsersUseCase = new ListUsersUseCase(userRepository);
       const users = await listUsersUseCase.execute(criteria);
 
