@@ -2,19 +2,7 @@
 // Id Class - Smart Identity Management
 // ============================================================================
 
-function randomUUID(): string {
-  // If we are in the browser, use the browser's crypto API
-  // @ts-expect-error - window.crypto is not defined in the browser
-  if (typeof window !== "undefined" && window.crypto) {
-    // @ts-expect-error - window.crypto is not defined in the browser
-    return window.crypto.randomUUID();
-  }
-  // If we are in the server, use the crypto library
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-
-  return crypto.randomUUID();
-}
+import UUID from "./crypto";
 
 export class Id {
   private readonly _value: string;
@@ -88,7 +76,7 @@ export class Id {
    */
   private generateUUID(): string {
     // Simple UUID v4 implementation
-    return randomUUID();
+    return UUID();
   }
 
   /**
