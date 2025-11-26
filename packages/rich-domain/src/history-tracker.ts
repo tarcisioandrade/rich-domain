@@ -1,0 +1,985 @@
+import { Id } from "./id";
+import { Entity } from "./entity";
+import { ValueObject } from "./value-object";
+import { HistoryEntry } from "./types";
+import {
+  TrackedEntityMetadata,
+  EntityChangeState,
+} from "./types/change-tracker";
+import { AggregateChanges } from "./aggregate-changes";
+
+/**
+ * Tracks changes in Aggregates using Proxy.
+ *
+ * Features:
+ * - Tracks changes in primitive properties
+ * - Tracks changes in nested entities (1:1)
+ * - Tracks changes in collections (1:N)
+ * - Supports Value Objects with identityKey
+ * - Calculates depth automatically
+ * - Generates AggregateChanges for persistence
+ *
+ * @example
+ * ```typescript
+ * class User extends Aggregate<UserProps> {
+ *   private tracker = new HistoryTracker(this.props, 'User');
+ *
+ *   getChanges(): AggregateChanges<UserProps> {
+ *     return this.tracker.getChanges();
+ *   }
+ * }
+ * ```
+ */
+export class HistoryTracker {
+  private history: HistoryEntry[] = [];
+  private subscribers: Map<string, Set<Function>> = new Map();
+  private originalValues: Map<string, any> = new Map();
+  private trackedArrays: Map<string, ArrayState> = new Map();
+  private trackedEntities: Map<string, TrackedItem> = new Map();
+  private globalSubscribers: Set<Function> = new Set();
+  private updateInProgress: boolean = false;
+  private pendingNotifications: Array<() => void> = [];
+
+  constructor(
+    private target: any,
+    private rootEntityName: string,
+    private path: string = "",
+    private depth: number = 0,
+    private parentId?: string,
+    private parentEntity?: string,
+    private rootTracker?: HistoryTracker
+  ) {
+    if (!rootTracker) {
+      this.rootTracker = this;
+    }
+    this.captureInitialState();
+  }
+
+  private captureInitialState(): void {
+    if (this.depth > 0) return; // Only capture at root
+
+    this.captureEntityState(this.target, this.rootEntityName, "", 0);
+  }
+
+  private captureEntityState(
+    obj: any,
+    entityName: string,
+    path: string,
+    depth: number,
+    parentId?: string,
+    parentEntity?: string
+  ): void {
+    if (!obj || typeof obj !== "object") return;
+
+    const id = this.getEntityId(obj);
+    const key = path || "root";
+
+    this.trackedEntities.set(key, {
+      entity: obj,
+      metadata: {
+        entityName,
+        depth,
+        parentId,
+        parentEntity,
+        path,
+      },
+      originalState: this.deepClone(obj),
+    });
+
+    const propsToScan = obj.props || obj;
+
+    for (const [propName, value] of Object.entries(propsToScan)) {
+      if (propName === "id") continue;
+
+      const propPath = path ? `${path}.${propName}` : propName;
+
+      if (Array.isArray(value)) {
+        this.captureArrayState(value, propPath, depth + 1, id, entityName);
+      } else if (this.isEntityOrVO(value)) {
+        const nestedName = this.getEntityName(value);
+        this.captureEntityState(
+          value,
+          nestedName,
+          propPath,
+          depth + 1,
+          id,
+          entityName
+        );
+      }
+    }
+  }
+
+  private captureArrayState(
+    arr: any[],
+    path: string,
+    depth: number,
+    parentId?: string,
+    parentEntity?: string
+  ): void {
+    const entityName = arr.length > 0 ? this.getEntityName(arr[0]) : "Unknown";
+
+    this.trackedArrays.set(path, {
+      cloned: this.cloneArray(arr),
+      original: arr.slice(),
+      metadata: {
+        entityName,
+        depth,
+        parentId,
+        parentEntity,
+        path,
+      },
+    });
+
+    arr.forEach((item, index) => {
+      if (this.isEntityOrVO(item)) {
+        const itemPath = `${path}[${index}]`;
+        this.captureEntityState(
+          item,
+          this.getEntityName(item),
+          itemPath,
+          depth,
+          parentId,
+          parentEntity
+        );
+      }
+    });
+  }
+
+  createProxy(): any {
+    const handler: ProxyHandler<any> = {
+      get: (target, prop, receiver) => {
+        const value = Reflect.get(target, prop, receiver);
+
+        if (this.shouldSkipProperty(prop)) {
+          return value;
+        }
+
+        if (typeof value === "function") {
+          return value.bind(target);
+        }
+
+        const currentPath = this.buildPath(String(prop));
+
+        if (Array.isArray(value)) {
+          return this.createArrayProxy(value, currentPath);
+        }
+
+        if (this.isEntityOrVO(value)) {
+          const nestedTracker = new HistoryTracker(
+            value,
+            this.getEntityName(value),
+            currentPath,
+            this.depth + 1,
+            this.getEntityId(this.target),
+            this.rootEntityName,
+            this.rootTracker
+          );
+          return nestedTracker.createProxy();
+        }
+
+        return value;
+      },
+
+      set: (target, prop, newValue, receiver) => {
+        const currentPath = this.buildPath(String(prop));
+        const oldValue = Reflect.get(target, prop, receiver);
+
+        if (!Array.isArray(newValue) && oldValue === newValue) {
+          return true;
+        }
+
+        if (!this.getRootTracker().originalValues.has(currentPath)) {
+          this.getRootTracker().originalValues.set(currentPath, oldValue);
+        }
+
+        this.getRootTracker().history.push({
+          path: currentPath,
+          previousValue: oldValue,
+          currentValue: newValue,
+          timestamp: Date.now(),
+        });
+
+        const result = Reflect.set(target, prop, newValue, receiver);
+
+        if (Array.isArray(newValue)) {
+          this.handleArrayAssignment(currentPath, oldValue, newValue);
+        } else if (this.isEntityOrVO(newValue) || this.isEntityOrVO(oldValue)) {
+          this.handleEntityChange(currentPath, oldValue, newValue);
+        } else {
+          this.getRootTracker().notifySubscribers(
+            currentPath,
+            oldValue,
+            newValue
+          );
+        }
+
+        this.getRootTracker().notifyGlobalSubscribers();
+
+        return result;
+      },
+    };
+
+    const proxy = new Proxy(this.target, handler);
+    Object.defineProperty(proxy, "__isProxy", { value: true, writable: false });
+    return proxy;
+  }
+
+  private createArrayProxy(array: any[], path: string): any[] {
+    const tracker = this;
+    const rootTracker = this.getRootTracker();
+
+    if (!rootTracker.trackedArrays.has(path)) {
+      const parentId = this.getEntityId(this.target);
+      rootTracker.captureArrayState(
+        array,
+        path,
+        this.depth + 1,
+        parentId,
+        this.rootEntityName
+      );
+    }
+
+    return new Proxy(array, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+
+        if (typeof value === "function") {
+          const mutatingMethods = [
+            "push",
+            "pop",
+            "shift",
+            "unshift",
+            "splice",
+            "sort",
+            "reverse",
+          ];
+
+          if (mutatingMethods.includes(String(prop))) {
+            return function (...args: any[]) {
+              const oldArray = target.slice();
+              const result = value.apply(target, args);
+
+              rootTracker.history.push({
+                path,
+                previousValue: oldArray,
+                currentValue: target.slice(),
+                timestamp: Date.now(),
+              });
+
+              rootTracker.notifyArrayChange(path, target);
+              rootTracker.notifyGlobalSubscribers();
+
+              return result;
+            };
+          }
+          return value.bind(target);
+        }
+
+        if (!isNaN(Number(prop)) && tracker.isEntityOrVO(value)) {
+          const nestedPath = `${path}[${String(prop)}]`;
+          const nestedTracker = new HistoryTracker(
+            value,
+            tracker.getEntityName(value),
+            nestedPath,
+            tracker.depth + 1,
+            tracker.getEntityId(tracker.target),
+            tracker.rootEntityName,
+            rootTracker
+          );
+          return nestedTracker.createProxy();
+        }
+
+        return value;
+      },
+
+      set(target, prop, newValue, receiver) {
+        if (!isNaN(Number(prop))) {
+          const oldArray = target.slice();
+          const result = Reflect.set(target, prop, newValue, receiver);
+
+          rootTracker.history.push({
+            path,
+            previousValue: oldArray,
+            currentValue: target.slice(),
+            timestamp: Date.now(),
+          });
+
+          rootTracker.notifyArrayChange(path, target);
+          rootTracker.notifyGlobalSubscribers();
+
+          return result;
+        }
+        return Reflect.set(target, prop, newValue, receiver);
+      },
+    });
+  }
+
+  /**
+   * Returns all detected changes as AggregateChanges.
+   *
+   * Analyzes:
+   * - Changes in primitive properties of the root
+   * - Changes in 1:1 entities (create, update, delete, replaced)
+   * - Changes in collections (create, update, delete of items)
+   *
+   * @returns {AggregateChanges} All operations, ordered.
+   */
+  getChanges(): AggregateChanges {
+    const changes = new AggregateChanges();
+    const rootTracker = this.getRootTracker();
+
+    this.analyzeRootChanges(changes, rootTracker);
+    this.analyzeCollectionChanges(changes, rootTracker);
+    this.analyzeEntityChanges(changes, rootTracker);
+
+    return changes;
+  }
+
+  private analyzeRootChanges(
+    changes: AggregateChanges,
+    rootTracker: HistoryTracker
+  ): void {
+    const changedFields: Record<string, any> = {};
+    let hasChanges = false;
+
+    for (const [path, originalValue] of rootTracker.originalValues) {
+      // Only direct root properties (no '.' or '[' in path)
+      if (path.includes(".") || path.includes("[")) continue;
+
+      const currentValue = this.target[path];
+
+      if (!this.isEqual(originalValue, currentValue)) {
+        changedFields[path] = currentValue;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      const id = this.getEntityId(this.target);
+      if (id) {
+        changes.addUpdate(
+          this.rootEntityName,
+          id,
+          this.target,
+          changedFields,
+          0
+        );
+      }
+    }
+  }
+
+  private analyzeCollectionChanges(
+    changes: AggregateChanges,
+    rootTracker: HistoryTracker
+  ): void {
+    const allTrackedArrays = new Map<string, ArrayState>();
+    const processedArrays = new Set<any>();
+
+    for (const [path, arrayState] of rootTracker.trackedArrays) {
+      const currentArray = this.getValueAtPath(this.target, path);
+      if (Array.isArray(currentArray) && !processedArrays.has(currentArray)) {
+        allTrackedArrays.set(path, arrayState);
+        processedArrays.add(currentArray);
+      }
+    }
+
+    this.collectNestedArrays(
+      this.target,
+      "",
+      allTrackedArrays,
+      processedArrays
+    );
+
+    for (const [path, arrayState] of allTrackedArrays) {
+      const currentArray = this.getValueAtPath(this.target, path);
+      if (!Array.isArray(currentArray)) continue;
+
+      const { created, updated, deleted } = this.detectArrayChanges(
+        arrayState.cloned,
+        arrayState.original,
+        currentArray
+      );
+
+      const { depth, parentId, parentEntity } = arrayState.metadata;
+
+      for (const item of created) {
+        const itemEntityName = this.getEntityName(item);
+        changes.addCreate(itemEntityName, item, depth, parentId, parentEntity);
+      }
+
+      for (const item of updated) {
+        const id = this.getEntityId(item);
+        if (id) {
+          const original = arrayState.cloned.find(
+            (o) => this.getEntityId(o) === id
+          );
+          const changedFields = this.detectChangedFields(original, item);
+          if (Object.keys(changedFields).length > 0) {
+            const itemEntityName = this.getEntityName(item);
+            changes.addUpdate(itemEntityName, id, item, changedFields, depth);
+          }
+        }
+      }
+
+      for (const item of deleted) {
+        const id = this.getEntityId(item);
+        const key = this.getItemKey(item);
+        if (id || key) {
+          const itemEntityName = this.getEntityName(item);
+          const deleteId = id || key!;
+          changes.addDelete(itemEntityName, deleteId, item, depth);
+        }
+      }
+    }
+  }
+
+  private collectNestedArrays(
+    obj: any,
+    basePath: string,
+    allArrays: Map<string, ArrayState>,
+    processedArrays: Set<any>
+  ): void {
+    if (!obj || typeof obj !== "object") return;
+
+    if (obj.proxy && obj.proxy instanceof HistoryTracker) {
+      const tracker = obj.proxy as HistoryTracker;
+      for (const [arrayPath, arrayState] of tracker.trackedArrays) {
+        const actualArray = this.getValueAtPath(obj, arrayPath);
+        if (Array.isArray(actualArray) && !processedArrays.has(actualArray)) {
+          const fullPath = basePath ? `${basePath}.${arrayPath}` : arrayPath;
+          if (!allArrays.has(fullPath)) {
+            allArrays.set(fullPath, arrayState);
+            processedArrays.add(actualArray);
+          }
+        }
+      }
+    }
+
+    for (const [propName, value] of Object.entries(obj)) {
+      if (propName === "id" || propName === "proxy" || propName === "_props")
+        continue;
+
+      const propPath = basePath ? `${basePath}.${propName}` : propName;
+
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (this.isEntityOrVO(item)) {
+            this.collectNestedArrays(
+              item,
+              `${propPath}[${index}]`,
+              allArrays,
+              processedArrays
+            );
+          }
+        });
+      } else if (this.isEntityOrVO(value)) {
+        this.collectNestedArrays(value, propPath, allArrays, processedArrays);
+      }
+    }
+  }
+
+  private analyzeEntityChanges(
+    changes: AggregateChanges,
+    rootTracker: HistoryTracker
+  ): void {
+    for (const [path, trackedItem] of rootTracker.trackedEntities) {
+      if (path === "root") continue; // Skip root, already handled
+
+      if (path.includes("[")) continue; // Skip array items
+
+      const currentValue = this.getValueAtPath(this.target, path);
+      const originalValue = trackedItem.originalState;
+      const { entityName, depth, parentId, parentEntity } =
+        trackedItem.metadata;
+
+      const state = this.detectEntityChangeState(originalValue, currentValue);
+
+      switch (state) {
+        case "created":
+          changes.addCreate(
+            entityName,
+            currentValue,
+            depth,
+            parentId,
+            parentEntity
+          );
+          break;
+
+        case "deleted":
+          const id = this.getEntityId(originalValue);
+          if (id) {
+            changes.addDelete(entityName, id, originalValue, depth);
+          }
+          break;
+
+        case "replaced":
+          const oldId = this.getEntityId(originalValue);
+          if (oldId) {
+            changes.addDelete(entityName, oldId, originalValue, depth);
+          }
+          changes.addCreate(
+            entityName,
+            currentValue,
+            depth,
+            parentId,
+            parentEntity
+          );
+          break;
+
+        case "updated":
+          const updateId = this.getEntityId(currentValue);
+          if (updateId) {
+            const changedFields = this.detectChangedFields(
+              originalValue,
+              currentValue
+            );
+            if (Object.keys(changedFields).length > 0) {
+              changes.addUpdate(
+                entityName,
+                updateId,
+                currentValue,
+                changedFields,
+                depth
+              );
+            }
+          }
+          break;
+      }
+    }
+  }
+
+  private detectEntityChangeState(
+    previous: any,
+    current: any
+  ): EntityChangeState {
+    if (previous === null && current !== null) {
+      return "created";
+    }
+
+    if (previous !== null && current === null) {
+      return "deleted";
+    }
+
+    if (previous !== null && current !== null) {
+      const prevId = this.getEntityId(previous);
+      const currId = this.getEntityId(current);
+
+      if (prevId && currId && prevId === currId) {
+        return this.hasChanged(previous, current) ? "updated" : "unchanged";
+      } else {
+        return "replaced";
+      }
+    }
+
+    return "unchanged";
+  }
+
+  private detectArrayChanges(
+    oldCloned: any[],
+    oldOriginal: any[],
+    newArray: any[]
+  ): { created: any[]; updated: any[]; deleted: any[] } {
+    const created: any[] = [];
+    const updated: any[] = [];
+    const deleted: any[] = [];
+
+    const oldMap = new Map<string, any>();
+    const newMap = new Map<string, any>();
+
+    oldCloned.forEach((item) => {
+      const key = this.getItemKey(item);
+      if (key) oldMap.set(key, item);
+    });
+
+    newArray.forEach((item) => {
+      const key = this.getItemKey(item);
+      if (key) newMap.set(key, item);
+    });
+
+    newArray.forEach((item) => {
+      const key = this.getItemKey(item);
+      if (!key) {
+        created.push(item);
+      } else if (!oldMap.has(key)) {
+        created.push(item);
+      } else if (this.hasChanged(oldMap.get(key), item)) {
+        updated.push(item);
+      }
+    });
+
+    oldOriginal.forEach((item) => {
+      const key = this.getItemKey(item);
+      if (key && !newMap.has(key)) {
+        deleted.push(item);
+      }
+    });
+    return { created, updated, deleted };
+  }
+
+  private detectChangedFields(
+    original: any,
+    current: any
+  ): Record<string, any> {
+    const changes: Record<string, any> = {};
+
+    if (!original || !current) return changes;
+
+    const origProps = original.props || original;
+    const currProps = current.props || current;
+
+    for (const key of Object.keys(currProps)) {
+      if (key === "id") continue;
+
+      const origValue = origProps[key];
+      const currValue = currProps[key];
+
+      if (Array.isArray(currValue) || this.isEntityOrVO(currValue)) {
+        continue;
+      }
+
+      if (!this.isEqual(origValue, currValue)) {
+        changes[key] = currValue;
+      }
+    }
+
+    return changes;
+  }
+
+  private getRootTracker(): HistoryTracker {
+    return this.rootTracker || this;
+  }
+
+  private buildPath(prop: string): string {
+    return this.path ? `${this.path}.${prop}` : prop;
+  }
+
+  private shouldSkipProperty(prop: string | symbol): boolean {
+    const skipProps = [
+      "__isProxy",
+      "__tracker",
+      "__originalTarget",
+      "__path",
+      "constructor",
+      "prototype",
+    ];
+    return skipProps.includes(String(prop));
+  }
+
+  private getValueAtPath(obj: any, path: string): any {
+    if (!path) return obj;
+
+    const parts = path.split(/[.\[\]]+/).filter(Boolean);
+    let current = obj;
+
+    for (const part of parts) {
+      if (current === null || current === undefined) return undefined;
+      current = current[part];
+    }
+
+    return current;
+  }
+
+  private getItemKey(item: any): string | undefined {
+    const id = this.getEntityId(item);
+    if (id) return id;
+
+    if (item instanceof ValueObject && item.hasIdentityKey()) {
+      return item.getIdentityKey() || undefined;
+    }
+
+    return undefined;
+  }
+
+  private getEntityId(item: any): string | undefined {
+    if (!item) return undefined;
+    if (item.id instanceof Id) return item.id.value;
+    if (item.id !== undefined) return String(item.id);
+    return undefined;
+  }
+
+  private getEntityName(item: any): string {
+    if (!item) return "Unknown";
+    return item.constructor?.name || "Unknown";
+  }
+
+  private isEntityOrVO(value: any): boolean {
+    if (value === null || value === undefined) return false;
+    return value instanceof Entity || value instanceof ValueObject;
+  }
+
+  private isEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (a instanceof Id && b instanceof Id) return a.value === b.value;
+    if (a instanceof Date && b instanceof Date)
+      return a.getTime() === b.getTime();
+
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch {
+      return this.deepEqual(a, b);
+    }
+  }
+
+  private deepEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (a == null || b == null) return a === b;
+    if (typeof a !== typeof b) return false;
+    if (typeof a !== "object") return a === b;
+
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    if (Array.isArray(a)) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (!this.deepEqual(a[i], b[i])) return false;
+      }
+      return true;
+    }
+
+    const keysA = Object.keys(a).filter((key) => {
+      const value = a[key];
+      return (
+        typeof value !== "object" ||
+        value instanceof Date ||
+        value instanceof Id ||
+        value === null
+      );
+    });
+    const keysB = Object.keys(b).filter((key) => {
+      const value = b[key];
+      return (
+        typeof value !== "object" ||
+        value instanceof Date ||
+        value instanceof Id ||
+        value === null
+      );
+    });
+
+    if (keysA.length !== keysB.length) return false;
+
+    for (const key of keysA) {
+      if (!keysB.includes(key)) return false;
+      if (!this.isEqual(a[key], b[key])) return false;
+    }
+
+    return true;
+  }
+
+  private hasChanged(obj1: any, obj2: any): boolean {
+    const json1 = this.normalizeAndStringify(this.deepClone(obj1));
+    const json2 = this.normalizeAndStringify(this.deepClone(obj2));
+    return json1 !== json2;
+  }
+
+  private cloneArray(arr: any[]): any[] {
+    return arr.map((item) => this.deepClone(item));
+  }
+
+  private deepClone(obj: any): any {
+    if (obj === null || obj === undefined || typeof obj !== "object") {
+      return obj;
+    }
+
+    if (obj instanceof Id) {
+      return obj.value;
+    }
+
+    if (typeof obj.toJson === "function") {
+      return obj.toJson();
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.deepClone(item));
+    }
+
+    if (obj instanceof Date) {
+      return new Date(obj.getTime());
+    }
+
+    try {
+      return structuredClone(obj);
+    } catch {
+      const cloned: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          cloned[key] = this.deepClone(obj[key]);
+        }
+      }
+      return cloned;
+    }
+  }
+
+  private normalizeAndStringify(obj: any): string {
+    if (obj === null || typeof obj !== "object") {
+      return JSON.stringify(obj);
+    }
+
+    if (Array.isArray(obj)) {
+      return `[${obj
+        .map((item) => this.normalizeAndStringify(item))
+        .join(",")}]`;
+    }
+
+    const keys = Object.keys(obj).sort();
+    const parts = keys.map(
+      (key) => `"${key}":${this.normalizeAndStringify(obj[key])}`
+    );
+    return `{${parts.join(",")}}`;
+  }
+
+  private handleArrayAssignment(
+    path: string,
+    oldValue: any,
+    newValue: any[]
+  ): void {
+    const rootTracker = this.getRootTracker();
+
+    if (!rootTracker.trackedArrays.has(path)) {
+      const parentId = this.getEntityId(this.target);
+      rootTracker.captureArrayState(
+        Array.isArray(oldValue) ? oldValue : [],
+        path,
+        this.depth + 1,
+        parentId,
+        this.rootEntityName
+      );
+    }
+
+    this.scheduleNotification(() =>
+      rootTracker.notifyArrayChange(path, newValue)
+    );
+  }
+
+  private handleEntityChange(path: string, oldValue: any, newValue: any): void {
+    const rootTracker = this.getRootTracker();
+    const entityName = newValue
+      ? this.getEntityName(newValue)
+      : this.getEntityName(oldValue);
+
+    rootTracker.trackedEntities.set(path, {
+      entity: newValue,
+      metadata: {
+        entityName,
+        depth: this.depth + 1,
+        parentId: this.getEntityId(this.target),
+        parentEntity: this.rootEntityName,
+        path,
+      },
+      originalState: rootTracker.trackedEntities.get(path)?.originalState,
+    });
+  }
+
+  private scheduleNotification(notification: () => void): void {
+    this.getRootTracker().pendingNotifications.push(notification);
+    this.flushNotifications();
+  }
+
+  private flushNotifications(): void {
+    const rootTracker = this.getRootTracker();
+    if (rootTracker.updateInProgress) return;
+
+    rootTracker.updateInProgress = true;
+    try {
+      const notifications = [...rootTracker.pendingNotifications];
+      rootTracker.pendingNotifications = [];
+      notifications.forEach((notify) => notify());
+    } finally {
+      rootTracker.updateInProgress = false;
+    }
+  }
+
+  subscribe(path: string, callback: Function): void {
+    const rootTracker = this.getRootTracker();
+
+    if (path === "*") {
+      rootTracker.globalSubscribers.add(callback);
+      return;
+    }
+
+    if (!rootTracker.subscribers.has(path)) {
+      rootTracker.subscribers.set(path, new Set());
+    }
+    rootTracker.subscribers.get(path)!.add(callback);
+  }
+
+  unsubscribe(path: string, callback: Function): void {
+    const rootTracker = this.getRootTracker();
+
+    if (path === "*") {
+      rootTracker.globalSubscribers.delete(callback);
+      return;
+    }
+
+    rootTracker.subscribers.get(path)?.delete(callback);
+  }
+
+  private notifySubscribers(path: string, oldValue: any, newValue: any): void {
+    const subs = this.subscribers.get(path);
+    if (subs) {
+      subs.forEach((cb) => cb({ previous: oldValue, current: newValue, path }));
+    }
+  }
+
+  private notifyGlobalSubscribers(): void {
+    this.globalSubscribers.forEach((cb) => cb());
+  }
+
+  private notifyArrayChange(path: string, newArray: any[]): void {
+    const subs = this.subscribers.get(path);
+    if (!subs) return;
+
+    const arrayState = this.trackedArrays.get(path);
+    if (!arrayState) return;
+
+    const changes = this.detectArrayChanges(
+      arrayState.cloned,
+      arrayState.original,
+      newArray
+    );
+
+    subs.forEach((cb) =>
+      cb({
+        toCreate: changes.created,
+        toUpdate: changes.updated,
+        toDelete: changes.deleted,
+        path,
+      })
+    );
+  }
+
+  getHistory(): HistoryEntry[] {
+    return [...this.getRootTracker().history];
+  }
+
+  clearHistory(): void {
+    const rootTracker = this.getRootTracker();
+    rootTracker.history = [];
+    rootTracker.originalValues.clear();
+    rootTracker.trackedArrays.clear();
+    rootTracker.trackedEntities.clear();
+    this.captureInitialState();
+  }
+
+  /**
+   * Marks the current state as "clean" (no changes).
+   * Useful after persisting to the database.
+   */
+  markAsClean(): void {
+    this.clearHistory();
+  }
+
+  getTarget(): any {
+    return this.target;
+  }
+}
+
+interface TrackedItem {
+  entity: any;
+  metadata: TrackedEntityMetadata;
+  originalState: any;
+}
+
+interface ArrayState {
+  cloned: any[];
+  original: any[];
+  metadata: TrackedEntityMetadata;
+}

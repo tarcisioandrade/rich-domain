@@ -3,7 +3,6 @@
 // ============================================================================
 
 import { Id } from "./id";
-import { DeepProxy } from "./deep-proxy";
 import { ValidationError } from "./validation-error";
 import { IDomainEvent } from ".";
 import {
@@ -19,6 +18,8 @@ import {
 import { DomainEventBus } from "./domain-event-bus";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants";
 import { DomainError } from "./exceptions";
+import { HistoryTracker } from "./history-tracker";
+import { AggregateChanges } from "./aggregate-changes";
 
 // Helper to get static properties from constructor
 function getStaticProperty<T>(
@@ -30,7 +31,7 @@ function getStaticProperty<T>(
 
 export abstract class BaseEntity<T extends BaseProps> {
   private _props: T;
-  private proxy: DeepProxy;
+  private proxy: HistoryTracker;
   private proxiedProps: T;
   private snapshot: T | null = null;
   private validationConfig: Required<ValidationConfig>;
@@ -74,7 +75,8 @@ export abstract class BaseEntity<T extends BaseProps> {
     }
 
     this._props = finalProps;
-    this.proxy = new DeepProxy(this._props);
+
+    this.proxy = new HistoryTracker(this._props, this.constructor.name);
     this.proxiedProps = this.proxy.createProxy();
 
     // Execute rules (custom validations)
@@ -339,12 +341,16 @@ export abstract class BaseEntity<T extends BaseProps> {
     });
   }
 
+  getChanges(): AggregateChanges<T> {
+    return this.proxy.getChanges();
+  }
+
   getHistory(): HistoryEntry[] {
     return this.proxy.getHistory();
   }
 
   clearHistory(): void {
-    this.proxy.clearHistory();
+    this.proxy.markAsClean();
   }
 
   /**

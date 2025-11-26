@@ -1,5 +1,5 @@
 // ============================================================================
-// Value Object - Immutable Domain Objects
+// Value Object - Immutable Domain Objects (Updated with identityKey support)
 // ============================================================================
 
 import { ValidationError } from "./validation-error";
@@ -21,6 +21,12 @@ function getStaticProperty<T>(
   return instance.constructor[propertyName];
 }
 
+/**
+ * Tipo para a chave de identidade de um Value Object
+ * Pode ser uma única chave ou um array de chaves (chave composta)
+ */
+export type IdentityKeyDefinition<T> = keyof T | (keyof T)[];
+
 export abstract class ValueObject<T> {
   protected readonly props!: T;
   private validationConfig: Required<ValidationConfig>;
@@ -31,6 +37,26 @@ export abstract class ValueObject<T> {
   // Static properties that subclasses can override
   protected static validation?: EntityValidation<any>;
   protected static hooks?: VOHooks<any, any>;
+
+  /**
+   * Chave de identidade para identificação em coleções.
+   *
+   * Usado pelo HistoryTracker para detectar mudanças em arrays de Value Objects.
+   *
+   * @example
+   * ```typescript
+   * // Chave simples
+   * class TagReference extends ValueObject<{ tagId: string }> {
+   *   static readonly identityKey = 'tagId' as const;
+   * }
+   *
+   * // Chave composta
+   * class Like extends ValueObject<{ postId: string; userId: string }> {
+   *   static readonly identityKey = ['postId', 'userId'] as const;
+   * }
+   * ```
+   */
+  protected static identityKey?: IdentityKeyDefinition<any>;
 
   constructor(props: T) {
     // Get static configuration from subclass
@@ -139,6 +165,55 @@ export abstract class ValueObject<T> {
   equals(other: ValueObject<T>): boolean {
     if (!other || !(other instanceof ValueObject)) return false;
     return JSON.stringify(this.props) === JSON.stringify(other.props);
+  }
+
+  /**
+   * Retorna a chave de identidade deste Value Object.
+   *
+   * Usado para identificação em coleções quando `identityKey` está definido.
+   *
+   * @returns String com a chave de identidade ou null se não definido
+   *
+   * @example
+   * ```typescript
+   * const like = new Like({ postId: 'p1', userId: 'u1' });
+   * like.getIdentityKey(); // 'p1:u1'
+   *
+   * const tag = new TagReference({ tagId: 'tag-123' });
+   * tag.getIdentityKey(); // 'tag-123'
+   * ```
+   */
+  getIdentityKey(): string | null {
+    const keyDef = getStaticProperty<IdentityKeyDefinition<T>>(
+      this,
+      "identityKey"
+    );
+
+    if (!keyDef) {
+      return null;
+    }
+
+    if (Array.isArray(keyDef)) {
+      // Chave composta
+      return keyDef.map((k) => String(this.props[k])).join(":");
+    }
+
+    // Chave simples
+    return String(this.props[keyDef]);
+  }
+
+  /**
+   * Verifica se este Value Object tem uma chave de identidade definida
+   */
+  hasIdentityKey(): boolean {
+    return getStaticProperty<IdentityKeyDefinition<T>>(this, "identityKey") !== undefined;
+  }
+
+  /**
+   * Retorna a definição da chave de identidade (se houver)
+   */
+  static getIdentityKeyDefinition<P>(): IdentityKeyDefinition<P> | undefined {
+    return (this as any).identityKey;
   }
 
   /**
