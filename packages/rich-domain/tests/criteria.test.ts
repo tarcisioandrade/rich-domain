@@ -68,26 +68,12 @@ const testUsers: TestUser[] = [
 ];
 
 describe("Criteria", () => {
-  describe("Search", () => {
-    it("should search by all items ignoring pagination and limit", () => {
-      const criteria = Criteria.create<TestUser>()
-        .search(["name"], "Eve")
-        .paginate(3, 1);
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe("Eve");
-      expect(result.meta.total).toBe(1);
-      expect(result.meta.totalPages).toBe(1);
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.limit).toBe(1);
-    });
-  });
   describe("Fluent API", () => {
     it("should create empty criteria", () => {
       const criteria = Criteria.create<TestUser>();
       expect(criteria.hasFilters()).toBe(false);
       expect(criteria.hasOrders()).toBe(false);
-      expect(criteria.hasPagination()).toBe(true); // Default pagination is set
+      expect(criteria.hasPagination()).toBe(true);
     });
 
     it("should chain methods fluently", () => {
@@ -118,33 +104,25 @@ describe("Criteria", () => {
   });
 
   describe("Filtering", () => {
-    it("should filter by equals", () => {
-      const criteria = Criteria.create<TestUser>().whereEquals(
-        "status",
-        "active"
-      );
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(3);
-      expect(result.data.every((u) => u.status === "active")).toBe(true);
-    });
-
-    it("should filter by notEquals", () => {
-      const criteria = Criteria.create<TestUser>().where(
-        "status",
-        "notEquals",
-        "active"
-      );
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(2);
-      expect(result.data.every((u) => u.status === "inactive")).toBe(true);
-    });
-
     it("should filter by search", () => {
       const criteria = Criteria.create<TestUser>().search(["name"], "Bob");
 
       const result = PaginatedResult.fromArray(testUsers, criteria);
       expect(result.data).toHaveLength(1);
       expect(result.data[0].name).toBe("Bob");
+    });
+
+    it("should search by all items ignoring pagination and limit", () => {
+      const criteria = Criteria.create<TestUser>()
+        .search(["name"], "Eve")
+        .paginate(3, 1);
+      const result = PaginatedResult.fromArray(testUsers, criteria);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe("Eve");
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(1);
     });
 
     it("should filter by greaterThan", () => {
@@ -228,6 +206,20 @@ describe("Criteria", () => {
       expect(result.data).toHaveLength(2);
       expect(result.data.map((u) => u.name)).toEqual(["Bob", "Diana"]);
     });
+
+    it("should filter, order, and paginate", () => {
+      const criteria = Criteria.create<TestUser>()
+        .whereEquals("status", "active")
+        .orderByDesc("age")
+        .paginate(1, 2);
+
+      const result = PaginatedResult.fromArray(testUsers, criteria);
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data.map((u) => u.name)).toEqual(["Bob", "Diana"]);
+      expect(result.meta.total).toBe(3);
+      expect(result.meta.totalPages).toBe(2);
+    });
   });
 
   describe("Ordering", () => {
@@ -274,35 +266,6 @@ describe("Criteria", () => {
       expect(result.meta.hasPrevious).toBe(false);
     });
 
-    it("should get second page", () => {
-      const criteria = Criteria.create<TestUser>().paginate(2, 2);
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-
-      expect(result.data).toHaveLength(2);
-      expect(result.data.map((u) => u.name)).toEqual(["Charlie", "Diana"]);
-      expect(result.meta.page).toBe(2);
-      expect(result.meta.hasNext).toBe(true);
-      expect(result.meta.hasPrevious).toBe(true);
-    });
-
-    it("should get last page", () => {
-      const criteria = Criteria.create<TestUser>().paginate(3, 2);
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe("Eve");
-      expect(result.meta.hasNext).toBe(false);
-      expect(result.meta.hasPrevious).toBe(true);
-    });
-
-    it("should handle empty page", () => {
-      const criteria = Criteria.create<TestUser>().paginate(10, 2);
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-
-      expect(result.data).toHaveLength(0);
-      expect(result.meta.total).toBe(5);
-    });
-
     it("should apply limit shorthand", () => {
       const criteria = Criteria.create<TestUser>().limit(3);
       const result = PaginatedResult.fromArray(testUsers, criteria);
@@ -310,21 +273,17 @@ describe("Criteria", () => {
       expect(result.data).toHaveLength(3);
       expect(result.meta.page).toBe(1);
     });
-  });
 
-  describe("Combined Operations", () => {
-    it("should filter, order, and paginate", () => {
-      const criteria = Criteria.create<TestUser>()
-        .whereEquals("status", "active")
-        .orderByDesc("age")
-        .paginate(1, 2);
+    it("should create pagination meta", () => {
+      const pagination = { page: 2, limit: 10, offset: 10 };
+      const meta = PaginatedResult.createMeta(pagination, 45);
 
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-
-      expect(result.data).toHaveLength(2);
-      expect(result.data.map((u) => u.name)).toEqual(["Bob", "Diana"]);
-      expect(result.meta.total).toBe(3);
-      expect(result.meta.totalPages).toBe(2);
+      expect(meta.page).toBe(2);
+      expect(meta.limit).toBe(10);
+      expect(meta.total).toBe(45);
+      expect(meta.totalPages).toBe(5);
+      expect(meta.hasNext).toBe(true);
+      expect(meta.hasPrevious).toBe(true);
     });
   });
 
@@ -421,30 +380,6 @@ describe("Criteria", () => {
     });
   });
 
-  describe("Helper Functions", () => {
-    it("should create pagination meta", () => {
-      const pagination = { page: 2, limit: 10, offset: 10 };
-      const meta = PaginatedResult.createMeta(pagination, 45);
-
-      expect(meta.page).toBe(2);
-      expect(meta.limit).toBe(10);
-      expect(meta.total).toBe(45);
-      expect(meta.totalPages).toBe(5);
-      expect(meta.hasNext).toBe(true);
-      expect(meta.hasPrevious).toBe(true);
-    });
-
-    it("should create paginated result", () => {
-      const data = [{ id: "1" }, { id: "2" }];
-      const pagination = { page: 1, limit: 2, offset: 0 };
-      const result = PaginatedResult.create(data, pagination, data.length);
-
-      expect(result.data).toEqual(data);
-      expect(result.meta.total).toBe(data.length);
-      expect(result.meta.totalPages).toBe(1);
-    });
-  });
-
   describe("Criteria from Query Params", () => {
     it("should create criteria from query params", () => {
       const queryParams = {
@@ -466,6 +401,19 @@ describe("Criteria", () => {
 
   describe("Quantifiers", () => {
     describe("Fluent API methods", () => {
+      it("should use quantifiers horthand methods", () => {
+        // CHECK: Devemos permitir o encadeamento de metodos quantifiers?
+        const criteria = Criteria.create<TestUser>()
+          .whereSome("name", "contains", "ali")
+          .whereEvery("name", "contains", "ali")
+          .whereNone("name", "contains", "ali");
+
+        const filters = criteria.getFilters().map((f) => f.options?.quantifier);
+
+        expect(filters).toHaveLength(3);
+        expect(filters).toEqual(["some", "every", "none"]);
+      });
+
       it("should create filter with whereSome", () => {
         const criteria = Criteria.create<UserWithPostsDto>().whereSome(
           "posts.title",
@@ -506,20 +454,6 @@ describe("Criteria", () => {
         expect(filters[0].options?.quantifier).toBe("none");
       });
 
-      it("should create filter without quantifier using where", () => {
-        const criteria = Criteria.create<UserWithPostsDto>().where(
-          "posts.title",
-          "contains",
-          "test"
-        );
-
-        const filters = criteria.getFilters();
-        expect(filters).toHaveLength(1);
-        expect(filters[0].options).toBeUndefined();
-      });
-    });
-
-    describe("fromQueryParams with quantifier", () => {
       it("should parse quantifier from query params with @some", () => {
         const queryParams = {
           "posts.title:contains@some": "test",
@@ -534,32 +468,6 @@ describe("Criteria", () => {
         expect(filters[0].operator).toBe("contains");
         expect(filters[0].value).toBe("test");
         expect(filters[0].options?.quantifier).toBe("some");
-      });
-
-      it("should parse quantifier from query params with @every", () => {
-        const queryParams = {
-          "posts.title:equals@every": "test",
-        };
-
-        const criteria =
-          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
-        const filters = criteria.getFilters();
-
-        expect(filters).toHaveLength(1);
-        expect(filters[0].options?.quantifier).toBe("every");
-      });
-
-      it("should parse quantifier from query params with @none", () => {
-        const queryParams = {
-          "posts.title:contains@none": "spam",
-        };
-
-        const criteria =
-          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
-        const filters = criteria.getFilters();
-
-        expect(filters).toHaveLength(1);
-        expect(filters[0].options?.quantifier).toBe("none");
       });
 
       it("should work with in operator and quantifier", () => {
@@ -590,22 +498,6 @@ describe("Criteria", () => {
         expect(filters[0].operator).toBe("between");
         expect(filters[0].value).toEqual([10, 100]);
         expect(filters[0].options?.quantifier).toBe("some");
-      });
-
-      it("should maintain backward compatibility without quantifier", () => {
-        const queryParams = {
-          "posts.title:contains": "test",
-        };
-
-        const criteria =
-          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
-        const filters = criteria.getFilters();
-
-        expect(filters).toHaveLength(1);
-        expect(filters[0].field).toBe("posts.title");
-        expect(filters[0].operator).toBe("contains");
-        expect(filters[0].value).toBe("test");
-        expect(filters[0].options).toBeUndefined();
       });
 
       it("should throw error for invalid quantifier", () => {

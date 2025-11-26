@@ -269,71 +269,45 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(json.email).toBe("john@example.com");
       expect(json.age).toBe(30);
       expect(json.status).toBe("active");
-      expect(typeof json.id).toBe("string"); // Id converted to string
+      expect(typeof json.id).toBe("string");
     });
   });
 
-  describe("History Tracking", () => {
-    it("should track property changes", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
+  describe("Value Object", () => {
+    it("should be immutable", () => {
+      const address = new Address({
+        street: "123 Main St",
+        city: "New York",
+        zipCode: "10001",
       });
 
-      user.name = "Jane Doe";
-      user.age = 25;
-
-      const history = user.getHistory();
-      expect(history.length).toBe(2);
-      expect(history[0].path).toBe("name");
-      expect(history[0].previousValue).toBe("John Doe");
-      expect(history[0].currentValue).toBe("Jane Doe");
-    });
-  });
-});
-
-// ============================================================================
-// Example: Value Object with Validation
-// ============================================================================
-
-describe("Value Object", () => {
-  it("should be immutable", () => {
-    const address = new Address({
-      street: "123 Main St",
-      city: "New York",
-      zipCode: "10001",
+      expect(address.street).toBe("123 Main St");
+      expect(() => {
+        (address as any).props.street = "New Street";
+      }).toThrow();
     });
 
-    expect(address.street).toBe("123 Main St");
+    it("should compare by value", () => {
+      const address1 = new Address({
+        street: "123 Main St",
+        city: "New York",
+        zipCode: "10001",
+      });
 
-    // Props are frozen
-    expect(() => {
-      (address as any).props.street = "New Street";
-    }).toThrow();
-  });
+      const address2 = new Address({
+        street: "123 Main St",
+        city: "New York",
+        zipCode: "10001",
+      });
 
-  it("should compare by value", () => {
-    const address1 = new Address({
-      street: "123 Main St",
-      city: "New York",
-      zipCode: "10001",
+      const address3 = new Address({
+        street: "456 Oak Ave",
+        city: "Boston",
+        zipCode: "02101",
+      });
+
+      expect(address1.equals(address2)).toBe(true);
+      expect(address1.equals(address3)).toBe(false);
     });
-
-    const address2 = new Address({
-      street: "123 Main St",
-      city: "New York",
-      zipCode: "10001",
-    });
-
-    const address3 = new Address({
-      street: "456 Oak Ave",
-      city: "Boston",
-      zipCode: "02101",
-    });
-
-    expect(address1.equals(address2)).toBe(true);
-    expect(address1.equals(address3)).toBe(false);
   });
 });

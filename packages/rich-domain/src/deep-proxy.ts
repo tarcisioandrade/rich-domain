@@ -369,17 +369,38 @@ export class DeepProxy {
   }
 
   private deepClone(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj !== "object") return obj;
-    if (obj instanceof Date) return new Date(obj.getTime());
-    if (obj instanceof Id) return obj.value;
-    if (obj.toJson && typeof obj.toJson === "function") return obj.toJson();
-    if (Array.isArray(obj)) return obj.map((item) => this.deepClone(item));
-    const cloned: any = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) cloned[key] = this.deepClone(obj[key]);
+    if (obj === null || obj === undefined || typeof obj !== "object") {
+      return obj;
     }
-    return cloned;
+
+    if (obj instanceof Id) {
+      return obj.value;
+    }
+
+    if (typeof obj.toJson === "function") {
+      return obj.toJson();
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.deepClone(item));
+    }
+
+    if (obj instanceof Date) {
+      return new Date(obj.getTime());
+    }
+
+    try {
+      return structuredClone(obj);
+    } catch (err) {
+      console.error(err);
+      const cloned: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          cloned[key] = this.deepClone(obj[key]);
+        }
+      }
+      return cloned;
+    }
   }
 
   private getItemId(item: any): string | undefined {
