@@ -32,7 +32,7 @@ export class CreatePostUseCase {
       published: false,
     });
 
-    await this.postRepository.create(post);
+    await this.postRepository.createOrUpdate(post);
 
     return post;
   }

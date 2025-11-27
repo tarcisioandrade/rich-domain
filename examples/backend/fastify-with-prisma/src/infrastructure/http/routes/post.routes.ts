@@ -12,6 +12,8 @@ import { PrismaUserToPersistenceMapper } from "../../database/mappers/user-to-pe
 import { PrismaUserToDomainMapper } from "../../database/mappers/user-to-domain.mapper";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
+import { UpdatePostUseCase } from "../../../application/use-cases/post/update-post.use-case";
+import { PostSchema } from "../../../domain/post/post.entity";
 
 const createPostSchema = z.object({
   title: z.string().min(1),
@@ -19,19 +21,22 @@ const createPostSchema = z.object({
   authorId: z.string().uuid(),
 });
 
+const OnlyIdSchema = z.object({
+  id: z.string().uuid(),
+});
+
 const getPostParamsSchema = z.object({
   id: z.string().uuid(),
 });
 
 export async function postRoutes(app: FastifyInstance) {
-
   const postRepository = new PrismaPostRepository(
-    new PrismaPostToPersistenceMapper(),
+    new PrismaPostToPersistenceMapper(prisma),
     new PrismaPostToDomainMapper(),
     prisma
   );
   const userRepository = new PrismaUserRepository(
-    new PrismaUserToPersistenceMapper(),
+    new PrismaUserToPersistenceMapper(prisma),
     new PrismaUserToDomainMapper(),
     prisma
   );
@@ -95,6 +100,24 @@ export async function postRoutes(app: FastifyInstance) {
       const post = await publishPostUseCase.execute(params.id);
 
       return reply.send(post.toJson());
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: error.errors });
+      }
+      return reply.status(404).send({
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
+  app.patch("/posts/:id", async (request, reply) => {
+    try {
+      const params = OnlyIdSchema.parse(request.params);
+      const body = PostSchema.partial().parse(request.body);
+      const updatePostUseCase = new UpdatePostUseCase(postRepository);
+      await updatePostUseCase.execute(params.id, body);
+
+      return reply.send({ message: "Post updated successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: error.errors });

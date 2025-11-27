@@ -12,6 +12,6 @@ export class ChangeNameUseCase {
 
     user.updateName(name);
 
-    await this.userRepository.update(user);
+    await this.userRepository.createOrUpdate(user);
   }
 }

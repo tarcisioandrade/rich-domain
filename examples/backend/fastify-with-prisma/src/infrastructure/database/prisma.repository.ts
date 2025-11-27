@@ -17,7 +17,7 @@ export abstract class PrismaRepository<
   public readonly uow: PrismaUnitOfWork;
 
   constructor(
-    protected readonly mapperToPersistence: Mapper<TDomain, unknown>,
+    protected readonly mapperToPersistence: Mapper<TDomain, void>,
     protected readonly mapperToDomain: Mapper<TPersistence, TDomain>,
     private readonly prisma: PrismaClient
   ) {
@@ -86,6 +86,10 @@ export abstract class PrismaRepository<
     return (this.context[this.model] as any).create({
       data,
     });
+  }
+
+  async createOrUpdate(entity: TDomain) {
+    await this.mapperToPersistence.build(entity);
   }
 
   async update(entity: TDomain) {

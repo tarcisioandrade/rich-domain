@@ -32,7 +32,7 @@ export class CreateUserUseCase {
         posts: [],
       });
 
-      await this.userRepository.create(user);
+      await this.userRepository.createOrUpdate(user);
       await user.dispatchAll(EVENT_BUS);
 
       return user;

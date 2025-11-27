@@ -12,7 +12,7 @@ export class PublishPostUseCase {
 
     post.publish();
 
-    await this.postRepository.update(post);
+    await this.postRepository.createOrUpdate(post);
 
     return post;
   }

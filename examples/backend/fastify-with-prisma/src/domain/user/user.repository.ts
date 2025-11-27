@@ -5,4 +5,5 @@ import { WriteAndRead } from "@woltz/rich-domain/dist/repository/base-repository
 export abstract class UserRepository extends WriteAndRead<User> {
   abstract uow: UnitOfWork;
   abstract findByEmail(email: string): Promise<User | null>;
+  abstract createOrUpdate(entity: User): Promise<void>;
 }

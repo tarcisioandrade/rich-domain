@@ -8,7 +8,7 @@ export class PrismaPostToDomainMapper extends Mapper<PostSchema, Post> {
     return Post.restore({
       id: new Id(post.id),
       title: post.title,
-      content: post.content,
+      content: post.main_content,
       published: post.published,
       authorId: post.authorId,
       createdAt: post.createdAt,
