@@ -14,6 +14,7 @@ import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { UpdatePostUseCase } from "../../../application/use-cases/post/update-post.use-case";
 import { PostSchema } from "../../../domain/post/post.entity";
+import { PrismaUnitOfWork } from "../../database/unit-of-work";
 
 const createPostSchema = z.object({
   title: z.string().min(1),
@@ -30,15 +31,18 @@ const getPostParamsSchema = z.object({
 });
 
 export async function postRoutes(app: FastifyInstance) {
+  const uow = new PrismaUnitOfWork(prisma);
   const postRepository = new PrismaPostRepository(
     new PrismaPostToPersistenceMapper(prisma),
     new PrismaPostToDomainMapper(),
-    prisma
+    prisma,
+    uow
   );
   const userRepository = new PrismaUserRepository(
     new PrismaUserToPersistenceMapper(prisma),
     new PrismaUserToDomainMapper(),
-    prisma
+    prisma,
+    uow
   );
 
   app.post("/posts", async (request, reply) => {

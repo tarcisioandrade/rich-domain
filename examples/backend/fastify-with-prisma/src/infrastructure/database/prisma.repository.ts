@@ -14,25 +14,20 @@ export abstract class PrismaRepository<
   TDomain extends Aggregate<any>,
   TPersistence
 > extends Repository<TDomain> {
-  public readonly uow: PrismaUnitOfWork;
-
   constructor(
     protected readonly mapperToPersistence: Mapper<TDomain, void>,
     protected readonly mapperToDomain: Mapper<TPersistence, TDomain>,
-    private readonly prisma: PrismaClient
+    private readonly prisma: PrismaClient,
+    private readonly uow: PrismaUnitOfWork
   ) {
     super();
-    this.uow = new PrismaUnitOfWork(this.prisma);
   }
 
   protected abstract includes: unknown;
 
   get context() {
-    const transactionalContext = this.uow.getCurrentContext();
-    if (transactionalContext) {
-      return transactionalContext.client;
-    }
-    return this.prisma;
+    const ctx = this.uow.getCurrentContext();
+    return ctx?.client ?? this.prisma;
   }
 
   async count(criteria: Criteria<TDomain>): Promise<number> {

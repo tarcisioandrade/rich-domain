@@ -10,6 +10,7 @@ import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { Prisma, User } from "@prisma/client";
 import { CriteriaAdapter } from "@woltz/rich-domain/dist/types";
+import { PrismaUnitOfWork } from "../../database/unit-of-work";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -41,16 +42,18 @@ const UserListAdapter: CriteriaAdapter<UserListDto, UserWithPosts> = {
 };
 
 export async function userRoutes(app: FastifyInstance) {
+  const uow = new PrismaUnitOfWork(prisma);
   const userRepository = new PrismaUserRepository(
     new PrismaUserToPersistenceMapper(prisma),
     new PrismaUserToDomainMapper(),
-    prisma
+    prisma,
+    uow
   );
 
   app.post("/users", async (request, reply) => {
     try {
       const body = createUserSchema.parse(request.body);
-      const createUserUseCase = new CreateUserUseCase(userRepository);
+      const createUserUseCase = new CreateUserUseCase(userRepository, uow);
       const user = await createUserUseCase.execute(body);
 
       return reply.status(201).send(user.toJson());

@@ -1,34 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { RepositoryError, UnitOfWork, } from "@woltz/rich-domain";
 import { PrismaTransactionContext } from "./prisma-transaction-context";
+import { AsyncLocalStorage } from "node:async_hooks";
 
-export class PrismaUnitOfWork extends UnitOfWork {
-  constructor(private readonly prisma: PrismaClient) {
-    super();
-  }
+export const UOWStorage = new AsyncLocalStorage<{
+  ctx: PrismaTransactionContext | null;
+}>();
 
-  async begin(): Promise<PrismaTransactionContext> {
-    const ctx = new PrismaTransactionContext(this.prisma);
-    this.currentContext = ctx;
-    return ctx;
-  }
-
-  protected createRepository<TRepo>(
-    RepositoryClass: new (...args: any[]) => TRepo
-  ): TRepo {
-    if (!this.currentContext) {
-      throw new RepositoryError(
-        "Cannot get repository outside of a UnitOfWork transaction"
-      );
-    }
-
-    const ctx = this.currentContext as PrismaTransactionContext;
-
-    return new RepositoryClass(ctx.client);
-  }
+export class PrismaUnitOfWork {
+  constructor(private readonly prisma: PrismaClient) {}
 
   getCurrentContext(): PrismaTransactionContext | null {
-    return this.currentContext as PrismaTransactionContext | null;
+    return UOWStorage.getStore()?.ctx ?? null;
   }
 
   async transaction<T>(
@@ -36,19 +18,10 @@ export class PrismaUnitOfWork extends UnitOfWork {
   ): Promise<T> {
     return this.prisma.$transaction(async (tx) => {
       const ctx = new PrismaTransactionContext(tx as PrismaClient);
-      this.currentContext = ctx;
-      ctx.client
-      try {
-        const result = await work(ctx);
-        ctx.commit();
-        return result;
-      } catch (err) {
-        if (ctx.isActive()) ctx.rollback();
-        throw err;
-      } finally {
-        this.currentContext = null;
-        this.repositoryCache.clear();
-      }
+
+      return UOWStorage.run({ ctx }, async () => {
+        return await work(ctx);
+      });
     });
   }
 }

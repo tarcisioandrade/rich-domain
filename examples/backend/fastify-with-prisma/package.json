@@ -10,6 +10,7 @@
     "postinstall": "prisma generate",
     "build": "tsc",
     "start": "node dist/server.js",
+    "lint": "echo 'no linting available'",
     "clean": "rm -rf dist coverage node_modules",
     "check": "tsc --noEmit",
     "start:worker": "bun tsx watch src/worker.ts",

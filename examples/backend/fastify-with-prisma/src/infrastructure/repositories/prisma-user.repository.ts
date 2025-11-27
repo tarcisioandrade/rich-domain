@@ -5,6 +5,7 @@ import { PrismaRepository } from "../database/prisma.repository";
 import { PrismaUserToDomainMapper } from "../database/mappers/user-to-domain.mapper";
 import { PrismaUserToPersistenceMapper } from "../database/mappers/user-to-persistence.mapper";
 import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaUnitOfWork } from "../database/unit-of-work";
 
 export class PrismaUserRepository
   extends PrismaRepository<User, UserSchema>
@@ -13,9 +14,10 @@ export class PrismaUserRepository
   constructor(
     protected readonly mapperToPersistence: PrismaUserToPersistenceMapper,
     protected readonly mapperToDomain: PrismaUserToDomainMapper,
-    prisma: PrismaClient
+    prisma: PrismaClient,
+    uow: PrismaUnitOfWork
   ) {
-    super(mapperToPersistence, mapperToDomain, prisma);
+    super(mapperToPersistence, mapperToDomain, prisma, uow);
   }
 
   get model() {
