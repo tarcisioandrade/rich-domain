@@ -13,6 +13,7 @@ import {
   PathValue,
   Search,
   TypedFilter,
+  TypedOrder,
 } from "./types";
 import {
   isValidOperatorForType,
@@ -278,7 +279,7 @@ export class Criteria<T = any> {
   static fromObject<T>(
     obj: {
       filters?: TypedFilter<T>[];
-      orders?: Order[];
+      orders?: TypedOrder<T>[];
       pagination?: Pagination;
       search?: { fields: FieldPath<T>[]; value: string };
     },
