@@ -8,24 +8,27 @@ export class Id {
   private readonly _value: string;
   private readonly _isNew: boolean;
 
+
   /**
    * Create a new Id
    * @param value - Optional existing ID value. If not provided, generates a new UUID.
-   *
-   * @example
-   * // New entity (generates UUID)
-   * const newId = new Id();
-   * newuser.isNew() // true
-   *
-   * // Existing entity (uses provided ID)
-   * const existingId = new Id("550e8400-e29b-41d4-a716-446655440000");
-   * existinguser.isNew() // false
-   */
-  constructor(value?: string) {
+  *
+  * @example
+  * // New entity (generates UUID)
+  * const newId = new Id();
+  * newuser.isNew() // true
+  *
+  * // Existing entity (uses provided ID)
+  * const existingId = new Id("550e8400-e29b-41d4-a716-446655440000");
+  * existinguser.isNew() // false
+  */
+  constructor(value: string, isNew?: boolean);
+  constructor(value?: string);
+  constructor(value?: string, isNew?: boolean) {
     if (value !== undefined) {
       // ID was provided - this is an existing entity
       this._value = value;
-      this._isNew = false;
+      this._isNew = isNew ?? false;
     } else {
       // No ID provided - generate new one, this is a new entity
       this._value = this.generateUUID();
