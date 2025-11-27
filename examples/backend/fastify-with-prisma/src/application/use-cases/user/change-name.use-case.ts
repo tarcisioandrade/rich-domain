@@ -9,7 +9,6 @@ export class ChangeNameUseCase {
     if (!user) {
       throw new Error("User not found");
     }
-
     user.updateName(name);
 
     await this.userRepository.save(user);
