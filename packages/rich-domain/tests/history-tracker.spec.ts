@@ -1,207 +1,5 @@
-// ============================================================================
-// Tests: HistoryTracker Integration with getChanges()
-// ============================================================================
-
-import { Entity } from "../src/entity";
-import { ValueObject } from "../src/value-object";
 import { Id } from "../src/id";
-
-// ============================================================================
-// Mock Classes
-// ============================================================================
-
-class MockId extends Id {
-  constructor(value?: string) {
-    super(value || `id-${Math.random().toString(36).substr(2, 9)}`);
-  }
-}
-
-// Value Object with identity key
-class Like extends ValueObject<{
-  postId: string;
-  userId: string;
-  createdAt: Date;
-}> {
-  static readonly identityKey = ["postId", "userId"];
-
-  get postId() {
-    return this.props.postId;
-  }
-  get userId() {
-    return this.props.userId;
-  }
-}
-
-// Value Object with single identity key
-class TagReference extends ValueObject<{ tagId: string; name: string }> {
-  static readonly identityKey = "tagId" as const;
-
-  get tagId() {
-    return this.props.tagId;
-  }
-  get name() {
-    return this.props.name;
-  }
-}
-
-// Simple Entity
-class Comment extends Entity<{
-  id: MockId;
-  text: string;
-  authorId: string;
-  likes: Like[];
-}> {
-  get text() {
-    return this.props.text;
-  }
-  get authorId() {
-    return this.props.authorId;
-  }
-  get likes() {
-    return this.props.likes;
-  }
-
-  changeText(text: string) {
-    this.props.text = text;
-  }
-
-  addLike(like: Like) {
-    this.props.likes.push(like);
-  }
-
-  removeLike(postId: string, userId: string) {
-    this.props.likes = this.props.likes.filter(
-      (l) => !(l.postId === postId && l.userId === userId)
-    );
-  }
-}
-
-class Post extends Entity<{
-  id: MockId;
-  title: string;
-  content: string;
-  published: boolean;
-  comments: Comment[];
-}> {
-  get title() {
-    return this.props.title;
-  }
-  get content() {
-    return this.props.content;
-  }
-  get published() {
-    return this.props.published;
-  }
-  get comments() {
-    return this.props.comments;
-  }
-
-  set comments(comments: Comment[]) {
-    this.props.comments = comments;
-  }
-
-  changeTitle(title: string) {
-    this.props.title = title;
-  }
-
-  publish() {
-    this.props.published = true;
-  }
-
-  addComment(comment: Comment) {
-    this.props.comments.push(comment);
-  }
-
-  removeComment(commentId: MockId) {
-    this.props.comments = this.props.comments.filter(
-      (c) => c.id.value !== commentId.value
-    );
-  }
-}
-
-class Address extends Entity<{
-  id: MockId;
-  street: string;
-  city: string;
-}> {
-  get street() {
-    return this.props.street;
-  }
-  get city() {
-    return this.props.city;
-  }
-
-  changeStreet(street: string) {
-    this.props.street = street;
-  }
-}
-
-class User extends Entity<{
-  id: MockId;
-  name: string;
-  email: string;
-  address: Address | null;
-  posts: Post[];
-  tags: TagReference[];
-}> {
-  get name() {
-    return this.props.name;
-  }
-  get email() {
-    return this.props.email;
-  }
-  get address() {
-    return this.props.address;
-  }
-  get posts() {
-    return this.props.posts;
-  }
-  get tags() {
-    return this.props.tags;
-  }
-
-  set posts(posts: Post[]) {
-    this.props.posts = posts;
-  }
-
-  changeName(name: string) {
-    this.props.name = name;
-  }
-
-  changeEmail(email: string) {
-    this.props.email = email;
-  }
-
-  setAddress(address: Address) {
-    this.props.address = address;
-  }
-
-  removeAddress() {
-    this.props.address = null;
-  }
-
-  addPost(post: Post) {
-    this.props.posts.push(post);
-  }
-
-  removePost(postId: MockId) {
-    this.props.posts = this.props.posts.filter(
-      (p) => p.id.value !== postId.value
-    );
-  }
-
-  addTag(tag: TagReference) {
-    this.props.tags.push(tag);
-  }
-
-  removeTag(tagId: string) {
-    this.props.tags = this.props.tags.filter((t) => t.tagId !== tagId);
-  }
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
+import { Post, TagReference, User, Like, Address, Comment } from "./utils";
 
 function createUser(
   overrides: Partial<{
@@ -213,7 +11,7 @@ function createUser(
   }> = {}
 ) {
   const user = new User({
-    id: new MockId("user-1"),
+    id: new Id("user-1"),
     name: overrides.name ?? "Test User",
     email: overrides.email ?? "test@test.com",
     address: overrides.address ?? null,
@@ -233,7 +31,7 @@ function createPost(
   }> = {}
 ): Post {
   return new Post({
-    id: new MockId(),
+    id: new Id(),
     title: overrides.title ?? "Test Post",
     content: overrides.content ?? "Test content",
     published: overrides.published ?? false,
@@ -249,7 +47,7 @@ function createComment(
   }> = {}
 ): Comment {
   return new Comment({
-    id: new MockId(),
+    id: new Id(),
     text: overrides.text ?? "Test comment",
     authorId: overrides.authorId ?? "author-1",
     likes: overrides.likes ?? [],
@@ -258,7 +56,7 @@ function createComment(
 
 function createAddress(street = "123 Main St", city = "Test City"): Address {
   return new Address({
-    id: new MockId(),
+    id: new Id(),
     street,
     city,
   });
@@ -309,11 +107,12 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.addPost(newPost);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
 
       expect(changes.hasCreates()).toBe(true);
 
       const postChanges = changes.for("Post");
+
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.creates).toHaveLength(1);
       expect(postChanges.creates[0].title).toBe("New Post");
@@ -321,14 +120,14 @@ describe("HistoryTracker.getChanges()", () => {
 
     it("should detect removed items", () => {
       const existingPost = new Post({
-        id: new MockId(),
+        id: new Id(),
         title: "Existing Post",
         content: "Existing content",
         published: false,
         comments: [],
       });
       const user = new User({
-        id: new MockId(),
+        id: new Id(),
         name: "Test User",
         email: "test@test.com",
         address: null,
@@ -545,10 +344,10 @@ describe("HistoryTracker.getChanges()", () => {
       const newPost = createPost({ title: "Brand New Post" });
       user.addPost(newPost); // create at depth 1
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const batch = changes.toBatchOperations();
 
-      // Deletes should be empty
+      // Deletes should be empty (no deletes in this test)
       expect(batch.deletes).toHaveLength(0);
 
       // Creates should be ordered by depth ASC

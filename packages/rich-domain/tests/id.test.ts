@@ -111,7 +111,8 @@ describe("Entity with Id Class", () => {
         id: new Id(), // No value = new
         title: "New Post",
         content: "Content",
-        likes: 0,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(true);
@@ -122,15 +123,17 @@ describe("Entity with Id Class", () => {
       const post1 = new Post({
         id: new Id(),
         title: "Post 1",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 0,
       });
 
       const post2 = new Post({
         id: new Id(),
         title: "Post 2",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 0,
       });
 
       expect(post1.id.value).not.toBe(post2.id.value);
@@ -143,7 +146,8 @@ describe("Entity with Id Class", () => {
         id: Id.create(),
         title: "New Post",
         content: "Content",
-        likes: 0,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(true);
@@ -156,7 +160,8 @@ describe("Entity with Id Class", () => {
         id: new Id("existing-post-id"), // Value provided = not new
         title: "Existing Post",
         content: "Content",
-        likes: 10,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(false);
@@ -168,7 +173,8 @@ describe("Entity with Id Class", () => {
         id: Id.from("existing-post-id"),
         title: "Existing Post",
         content: "Content",
-        likes: 10,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(false);
@@ -180,8 +186,9 @@ describe("Entity with Id Class", () => {
       const post = new Post({
         id: new Id("post-123"),
         title: "Test Post",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 5,
       });
 
       const json = post.toJson();
@@ -201,9 +208,8 @@ describe("Entity with Id Class", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
       });
 
       user.subscribe({
@@ -221,13 +227,15 @@ describe("Entity with Id Class", () => {
           id: new Id(),
           title: "Post 1",
           content: "Content 1",
-          likes: 0,
+          comments: [],
+          published: false,
         }),
         new Post({
           id: new Id(),
           title: "Post 2",
           content: "Content 2",
-          likes: 0,
+          comments: [],
+          published: false,
         }),
       ]);
     });
@@ -244,15 +252,15 @@ describe("Entity with Id Class", () => {
             id: postId,
             title: "Post 1",
             content: "Content 1",
-            likes: 0,
+            comments: [],
+            published: false,
           }),
         ],
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
       });
 
       user.subscribe({
@@ -266,7 +274,7 @@ describe("Entity with Id Class", () => {
         },
       });
 
-      user.removePostById(postId.value);
+      user.removePost(postId);
     });
   });
 });
@@ -285,9 +293,8 @@ describe("Aggregate with Id Class", () => {
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [],
+      tags: [],
     });
 
     expect(user.isNew()).toBe(true);
@@ -302,9 +309,8 @@ describe("Aggregate with Id Class", () => {
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [],
+      tags: [],
     });
 
     expect(user.isNew()).toBe(false);
@@ -319,15 +325,15 @@ describe("Aggregate with Id Class", () => {
         new Post({
           id: new Id("post-1"),
           title: "Post 1",
+          comments: [],
           content: "Content",
-          likes: 0,
+          published: false,
         }),
       ],
-      comments: [],
+      tags: [],
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
     });
 

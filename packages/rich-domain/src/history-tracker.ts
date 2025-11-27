@@ -324,8 +324,8 @@ export class HistoryTracker {
    *
    * @returns {AggregateChanges} All operations, ordered.
    */
-  getChanges(): AggregateChanges {
-    const changes = new AggregateChanges();
+  getChanges<TEntityMap = Record<string, any>>(): AggregateChanges<TEntityMap> {
+    const changes = new AggregateChanges<TEntityMap>();
     const rootTracker = this.getRootTracker();
 
     this.analyzeRootChanges(changes, rootTracker);
@@ -336,7 +336,7 @@ export class HistoryTracker {
   }
 
   private analyzeRootChanges(
-    changes: AggregateChanges,
+    changes: AggregateChanges<any>,
     rootTracker: HistoryTracker
   ): void {
     const changedFields: Record<string, any> = {};
@@ -369,7 +369,7 @@ export class HistoryTracker {
   }
 
   private analyzeCollectionChanges(
-    changes: AggregateChanges,
+    changes: AggregateChanges<any>,
     rootTracker: HistoryTracker
   ): void {
     const allTrackedArrays = new Map<string, ArrayState>();
@@ -479,7 +479,7 @@ export class HistoryTracker {
   }
 
   private analyzeEntityChanges(
-    changes: AggregateChanges,
+    changes: AggregateChanges<any>,
     rootTracker: HistoryTracker
   ): void {
     for (const [path, trackedItem] of rootTracker.trackedEntities) {

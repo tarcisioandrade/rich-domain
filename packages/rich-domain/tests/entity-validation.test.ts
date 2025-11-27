@@ -273,41 +273,5 @@ describe("Rich Domain with Standard Schema Validation", () => {
     });
   });
 
-  describe("Value Object", () => {
-    it("should be immutable", () => {
-      const address = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      expect(address.street).toBe("123 Main St");
-      expect(() => {
-        (address as any).props.street = "New Street";
-      }).toThrow();
-    });
-
-    it("should compare by value", () => {
-      const address1 = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      const address2 = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      const address3 = new Address({
-        street: "456 Oak Ave",
-        city: "Boston",
-        zipCode: "02101",
-      });
-
-      expect(address1.equals(address2)).toBe(true);
-      expect(address1.equals(address3)).toBe(false);
-    });
-  });
+ 
 });

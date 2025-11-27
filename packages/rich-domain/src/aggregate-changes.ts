@@ -20,28 +20,24 @@ import { EntityChanges } from "./entity-changes";
  *
  * @example
  * ```typescript
- * // Getting changes from the aggregate
- * const changes = user.getChanges();
+ * // Define an entity map for type-safe operations
+ * type UserEntities = {
+ *   User: User;
+ *   Post: Post;
+ *   Comment: Comment;
+ * };
  *
- * // Checking if there are changes
- * if (changes.isEmpty()) return;
+ * // Getting changes with types
+ * const changes = user.getChanges<UserEntities>();
  *
- * // Getting batch operations for persistence
- * const batch = changes.toBatchOperations();
- *
- * // Iterating in the correct order
- * for (const op of changes.operations()) {
- *   console.log(op.type, op.entity, op.depth);
- * }
- *
- * // Filtering by entity
- * const postChanges = changes.for('Post');
- * if (postChanges.hasCreates()) {
- *   // ...
- * }
+ * // Filtering by entity with autocompletion
+ * const postChanges = changes.for('Post'); // 'Post' autocompletes
+ * postChanges.creates.forEach(post => {
+ *   console.log(post.title); // 'post' is typed as Post
+ * });
  * ```
  */
-export class AggregateChanges<TProps = any> {
+export class AggregateChanges<TEntityMap = Record<string, any>> {
   private ops: Operation[] = [];
 
   constructor(operations: Operation[] = []) {
@@ -260,9 +256,9 @@ export class AggregateChanges<TProps = any> {
    * }
    * ```
    */
-  for<T = any>(entityName: string): EntityChanges<T> {
+  for<K extends keyof TEntityMap>(entityName: K): EntityChanges<TEntityMap[K]> {
     const filtered = this.ops.filter((op) => op.entity === entityName);
-    return new EntityChanges<T>(filtered);
+    return new EntityChanges<TEntityMap[K]>(filtered);
   }
 
   /**
@@ -333,7 +329,7 @@ export class AggregateChanges<TProps = any> {
   /**
    * Creates a copy of the changes.
    */
-  clone(): AggregateChanges<TProps> {
-    return new AggregateChanges<TProps>([...this.ops]);
+  clone(): AggregateChanges<TEntityMap> {
+    return new AggregateChanges<TEntityMap>([...this.ops]);
   }
 }

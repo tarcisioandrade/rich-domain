@@ -341,8 +341,31 @@ export abstract class BaseEntity<T extends BaseProps> {
     });
   }
 
-  getChanges(): AggregateChanges<T> {
-    return this.proxy.getChanges();
+  /**
+   * Returns all detected changes as AggregateChanges.
+   *
+   * @example
+   * ```typescript
+   * // Option 1: With explicit entity map type
+   * type UserEntities = {
+   *   User: User;
+   *   Post: Post;
+   * };
+   * const changes = user.getChanges<UserEntities>();
+   *
+   * // Option 2: Using satisfies (TypeScript 4.9+)
+   * const changes = user.getChanges(
+   *   {} as const satisfies { User: User; Post: Post }
+   * );
+   *
+   * // Now you have type-safe access
+   * const postChanges = changes.for("Post"); // ✅ Autocomplete
+   * ```
+   */
+  getChanges<TEntityMap = Record<string, any>>(
+    _entityMap?: TEntityMap
+  ): AggregateChanges<TEntityMap> {
+    return this.proxy.getChanges<TEntityMap>();
   }
 
   getHistory(): HistoryEntry[] {

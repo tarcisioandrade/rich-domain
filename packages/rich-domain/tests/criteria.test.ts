@@ -333,12 +333,14 @@ describe("Criteria", () => {
         new Post({
           title: "Post 1",
           content: "Content 1",
-          likes: 1,
+          published: true,
+          comments: [],
         }),
         new Post({
           title: "Post 2",
           content: "Content 2",
-          likes: 2,
+          published: true,
+          comments: [],
         }),
       ];
 

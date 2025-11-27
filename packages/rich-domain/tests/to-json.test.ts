@@ -1,5 +1,5 @@
 import { Entity, Id } from "../src";
-import { Post, User, Address, Comment } from "./utils";
+import { Post, User, Address } from "./utils";
 
 describe("toJson Functionality", () => {
   it("should convert simple entity to JSON", () => {
@@ -7,7 +7,8 @@ describe("toJson Functionality", () => {
       id: new Id("1"),
       title: "First Post",
       content: "Hello World",
-      likes: 5,
+      published: false,
+      comments: [],
     });
 
     const json = post.toJson();
@@ -15,7 +16,8 @@ describe("toJson Functionality", () => {
       id: "1",
       title: "First Post",
       content: "Hello World",
-      likes: 5,
+      published: false,
+      comments: [],
     });
   });
 
@@ -29,27 +31,22 @@ describe("toJson Functionality", () => {
           id: new Id("1"),
           title: "Post 1",
           content: "Content 1",
-          likes: 0,
+          published: false,
+          comments: [],
         }),
         new Post({
           id: new Id("2"),
           title: "Post 2",
           content: "Content 2",
-          likes: 5,
+          published: false,
+          comments: [],
         }),
       ],
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [
-        new Comment({
-          id: new Id("1"),
-          text: "Great post!",
-          author: "Alice",
-        }),
-      ],
+      tags: [],
     });
 
     const json = user.toJson();
@@ -58,8 +55,7 @@ describe("toJson Functionality", () => {
     expect(json.name).toBe("John Doe");
     expect(json.posts).toHaveLength(2);
     expect(json.posts[0].title).toBe("Post 1");
-    expect(json.address.city).toBe("NYC");
-    expect(json.comments[0].text).toBe("Great post!");
+    expect(json.address?.city).toBe("NYC");
   });
 
   it("should handle deeply nested structures", () => {
@@ -72,15 +68,15 @@ describe("toJson Functionality", () => {
           id: new Id("1"),
           title: "Post 1",
           content: "Content 1",
-          likes: 0,
+          published: false,
+          comments: [],
         }),
       ],
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [],
+      tags: [],
     });
 
     const json = user.toJson();

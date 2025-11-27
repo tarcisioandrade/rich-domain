@@ -10,7 +10,7 @@ class Order extends Entity<{ id: Id; total: number; status: string }> {}
 describe("Entity Equality by ID", () => {
   describe("Basic Equality", () => {
     it("should be equal when entities have the same ID", () => {
-      const id = new Id("user-123");
+      const id = Id.from("user-123");
       const user1 = new User({
         id,
         name: "John",
@@ -18,10 +18,9 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
         posts: [],
+        tags: [],
       });
       const user2 = new User({
         id,
@@ -30,10 +29,9 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
         posts: [],
+        tags: [],
       });
 
       expect(user1.equals(user2)).toBe(true);
@@ -49,9 +47,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const user2 = new User({
@@ -61,9 +58,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -78,9 +74,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const user2 = new User({
@@ -90,9 +85,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -108,12 +102,10 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
-
       expect(user.equals(user)).toBe(true);
     });
   });
@@ -128,9 +120,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -146,9 +137,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -165,9 +155,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -182,9 +171,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -201,9 +189,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -218,9 +205,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -234,9 +220,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const user2 = new User({
@@ -245,9 +230,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
@@ -269,9 +253,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const order = new Order({ id, total: 100, status: "pending" });
@@ -291,9 +274,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const user2 = new User({
@@ -303,18 +285,15 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 
       expect(user1.equals(user2)).toBe(true);
 
-      // Change properties
-      user1.name = "Johnny";
+      user1.changeName("Johnny");
 
-      // Still equal because ID is the same
       expect(user1.equals(user2)).toBe(true);
     });
   });
@@ -329,9 +308,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
         new User({
@@ -341,9 +320,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
         new User({
@@ -353,9 +332,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
       ];
@@ -376,9 +355,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
         new User({
@@ -388,9 +367,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
         new User({
@@ -400,9 +379,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
       ];
@@ -424,9 +403,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
         new User({
@@ -436,9 +415,9 @@ describe("Entity Equality by ID", () => {
           address: new Address({
             street: "Main St",
             city: "NYC",
-            zipCode: "10001",
           }),
-          comments: [],
+
+          tags: [],
           posts: [],
         }),
       ];
@@ -450,9 +429,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
       const user3 = new User({
@@ -462,9 +440,8 @@ describe("Entity Equality by ID", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
         posts: [],
       });
 

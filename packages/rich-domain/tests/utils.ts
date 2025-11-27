@@ -1,7 +1,3 @@
-// ============================================================================
-// Test Entities & Value Objects
-// ============================================================================
-
 import {
   Aggregate,
   Criteria,
@@ -14,151 +10,206 @@ import {
   ValueObject,
 } from "../src";
 
-interface AddressProps {
-  street: string;
-  city: string;
-  zipCode: string;
+export class Like extends ValueObject<{
+  postId: string;
+  userId: string;
+  createdAt: Date;
+}> {
+  static readonly identityKey = ["postId", "userId"];
+
+  get postId() {
+    return this.props.postId;
+  }
+  get userId() {
+    return this.props.userId;
+  }
 }
 
-class Address extends ValueObject<AddressProps> {
-  get street(): string {
+export class Address extends Entity<{
+  id: Id;
+  street: string;
+  city: string;
+}> {
+  get street() {
     return this.props.street;
   }
-
-  get city(): string {
+  get city() {
     return this.props.city;
   }
 
-  get zipCode(): string {
-    return this.props.zipCode;
+  changeStreet(street: string) {
+    this.props.street = street;
   }
 }
 
-interface PostProps {
+export class TagReference extends ValueObject<{ tagId: string; name: string }> {
+  static readonly identityKey = "tagId" as const;
+
+  get tagId() {
+    return this.props.tagId;
+  }
+  get name() {
+    return this.props.name;
+  }
+}
+
+export class Comment extends Entity<{
   id: Id;
-  title: string;
-  content: string;
-  likes: number;
-}
-
-class Post extends Entity<PostProps> {
-  get title(): string {
-    return this.props.title;
+  text: string;
+  authorId: string;
+  likes: Like[];
+}> {
+  get text() {
+    return this.props.text;
   }
-
-  set title(value: string) {
-    this.props.title = value;
+  get authorId() {
+    return this.props.authorId;
   }
-
-  get content(): string {
-    return this.props.content;
-  }
-
-  set content(value: string) {
-    this.props.content = value;
-  }
-
-  get likes(): number {
+  get likes() {
     return this.props.likes;
   }
 
-  set likes(value: number) {
-    this.props.likes = value;
+  changeText(text: string) {
+    this.props.text = text;
+  }
+
+  addLike(like: Like) {
+    this.props.likes.push(like);
+  }
+
+  removeLike(postId: string, userId: string) {
+    this.props.likes = this.props.likes.filter(
+      (l) => !(l.postId === postId && l.userId === userId)
+    );
   }
 }
-
-interface CommentProps {
+export class Post extends Entity<{
   id: Id;
-  text: string;
-  author: string;
-}
-
-class Comment extends Entity<CommentProps> {
-  get text(): string {
-    return this.props.text;
-  }
-
-  set text(value: string) {
-    this.props.text = value;
-  }
-
-  get author(): string {
-    return this.props.author;
-  }
-}
-
-interface UserProps {
-  id: Id;
-  name: string;
-  email: string;
-  posts: Post[];
-  address: Address;
+  title: string;
+  content: string;
+  published: boolean;
   comments: Comment[];
-  extra?: {
-    age: number;
-    height: number;
-  };
-}
-
-class User extends Aggregate<UserProps> {
-  get name(): string {
-    return this.props.name;
+}> {
+  get title() {
+    return this.props.title;
   }
-
-  set name(value: string) {
-    this.props.name = value;
+  get content() {
+    return this.props.content;
   }
-
-  get email(): string {
-    return this.props.email;
+  get published() {
+    return this.props.published;
   }
-
-  get posts(): Post[] {
-    return this.props.posts;
-  }
-
-  set posts(value: Post[]) {
-    this.props.posts = value;
-  }
-
-  get address(): Address {
-    return this.props.address;
-  }
-
-  set address(value: Address) {
-    this.props.address = value;
-  }
-
-  get comments(): Comment[] {
+  get comments() {
     return this.props.comments;
   }
 
-  set comments(value: Comment[]) {
-    this.props.comments = value;
+  set comments(comments: Comment[]) {
+    this.props.comments = comments;
   }
 
-  public addPost(post: Post) {
-    this.props.posts.push(post);
+  changeTitle(title: string) {
+    this.props.title = title;
   }
 
-  public addManyPosts(posts: Post[]) {
-    this.props.posts.push(...posts);
+  publish() {
+    this.props.published = true;
   }
 
-  public removePostById(id: string) {
-    this.props.posts = this.props.posts.filter((post) => post.id.value !== id);
+  addComment(comment: Comment) {
+    this.props.comments.push(comment);
   }
 
-  public changeEmail(email: string) {
-    this.props.email = email;
-  }
-
-  public changeExtra(extra: { age: number; height: number }) {
-    this.props.extra = extra;
+  removeComment(commentId: Id) {
+    this.props.comments = this.props.comments.filter(
+      (c) => c.id.value !== commentId.value
+    );
   }
 }
 
-class InMemoryRepository<
+export class User extends Entity<{
+  id: Id;
+  name: string;
+  email: string;
+  address: Address | null;
+  posts: Post[];
+  tags: TagReference[];
+}> {
+  get name() {
+    return this.props.name;
+  }
+  get email() {
+    return this.props.email;
+  }
+  get address() {
+    return this.props.address;
+  }
+  get posts() {
+    return this.props.posts;
+  }
+  get tags() {
+    return this.props.tags;
+  }
+
+  set posts(posts: Post[]) {
+    this.props.posts = posts;
+  }
+
+  changeName(name: string) {
+    this.props.name = name;
+  }
+
+  changeEmail(email: string) {
+    this.props.email = email;
+  }
+
+  setAddress(address: Address) {
+    this.props.address = address;
+  }
+
+  removeAddress() {
+    this.props.address = null;
+  }
+
+  addPost(post: Post) {
+    this.props.posts.push(post);
+  }
+
+  removePost(postId: Id) {
+    this.props.posts = this.props.posts.filter(
+      (p) => p.id.value !== postId.value
+    );
+  }
+
+  addTag(tag: TagReference) {
+    this.props.tags.push(tag);
+  }
+
+  addManyTags(tags: TagReference[]) {
+    this.props.tags.push(...tags);
+  }
+
+  addManyPosts(posts: Post[]) {
+    this.props.posts.push(...posts);
+  }
+
+  removeTag(tagId: string) {
+    this.props.tags = this.props.tags.filter((t) => t.tagId !== tagId);
+  }
+
+  public getTypedChanges() {
+    type UserEntities = {
+      User: User;
+      Post: Post;
+      Comment: Comment;
+      Address: Address;
+      TagReference: TagReference;
+      Like: Like;
+    };
+    return this.getChanges<UserEntities>();
+  }
+}
+
+export class InMemoryRepository<
   TDomain extends Aggregate<any>
 > extends Repository<TDomain> {
   protected items: Map<string, TDomain> = new Map();
@@ -229,26 +280,15 @@ class InMemoryRepository<
     return this.items.size;
   }
 
-  /**
-   * Clear all items (useful for test cleanup)
-   */
   clear(): void {
     this.items.clear();
   }
 
-  /**
-   * Get all items as array (useful for debugging)
-   */
   getAll(): TDomain[] {
     return Array.from(this.items.values());
   }
 
-  /**
-   * Get items count
-   */
   size(): number {
     return this.items.size;
   }
 }
-
-export { User, Post, Comment, Address, InMemoryRepository };
