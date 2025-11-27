@@ -1,13 +1,8 @@
-//@ts-nocheck
 import { Id, Aggregate, Criteria, PaginatedResult } from "../src";
 import { Mapper } from "../src/repository";
 import { Repository } from "../src/repository/base-repository";
 import { BaseProps } from "../src/types";
 import { InMemoryRepository } from "./utils";
-
-// ============================================================================
-// Test Domain Models
-// ============================================================================
 
 interface UserProps extends BaseProps {
   name: string;
@@ -56,10 +51,6 @@ class User extends Aggregate<UserProps> {
   }
 }
 
-// ============================================================================
-// Mock Persistence Model
-// ============================================================================
-
 type UserPersistence = {
   id: string;
   name: string;
@@ -70,9 +61,6 @@ type UserPersistence = {
   updatedAt: Date;
 };
 
-// ============================================================================
-// Mapper Implementation
-// ============================================================================
 class UserToDomainMapper extends Mapper<UserPersistence, User> {
   public build(persistence: UserPersistence): User {
     return User.create({
@@ -99,10 +87,6 @@ class UserToPersistenceMapper extends Mapper<User, UserPersistence> {
   }
 }
 
-// ============================================================================
-// Mock Repository Implementation
-// ============================================================================
-
 class MockUserRepository extends Repository<User> {
   private store: Map<string, UserPersistence> = new Map();
 
@@ -117,8 +101,8 @@ class MockUserRepository extends Repository<User> {
     return "users";
   }
 
-  async create(entity: User) {
-    const persistence = this.mapperToPersistence.build(entity);
+  async save(entity: User) {
+    const persistence = await this.mapperToPersistence.build(entity);
     this.store.set(entity.id.value, persistence);
   }
 
@@ -136,18 +120,13 @@ class MockUserRepository extends Repository<User> {
 
   async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
     const result = await this.applyCriteria(criteria);
-    return result;
+    return result as PaginatedResult<User>;
   }
 
   async findById(id: string): Promise<User | null> {
-    const persistence = await this.store.get(id);
+    const persistence = this.store.get(id);
     if (!persistence) return null;
-    return this.mapperToDomain.build(persistence);
-  }
-
-  async update(entity: User): Promise<void> {
-    const persistence = this.mapperToPersistence.build(entity);
-    this.store.set(entity.id.value, persistence);
+    return await this.mapperToDomain.build(persistence);
   }
 
   protected async applyCriteria(criteria: Criteria<User>) {
@@ -218,10 +197,6 @@ class MockUserRepository extends Repository<User> {
   }
 }
 
-// ============================================================================
-// Tests
-// ============================================================================
-
 describe("Repository", () => {
   describe("InMemoryRepository", () => {
     let repository: InMemoryRepository<User>;
@@ -263,7 +238,7 @@ describe("Repository", () => {
 
     describe("save and findById", () => {
       it("should save and retrieve user", async () => {
-        await repository.create(user1);
+        await repository.save(user1);
         const found = await repository.findById(user1.id.value);
 
         expect(found).toBeDefined();
@@ -277,9 +252,9 @@ describe("Repository", () => {
       });
 
       it("should update existing user", async () => {
-        await repository.create(user1);
+        await repository.save(user1);
         user1.setName("Alice Updated");
-        await repository.create(user1);
+        await repository.save(user1);
 
         const found = await repository.findById(user1.id.value);
         expect(found?.name).toBe("Alice Updated");
@@ -293,18 +268,18 @@ describe("Repository", () => {
       });
 
       it("should return all users", async () => {
-        await repository.create(user1);
-        await repository.create(user2);
-        await repository.create(user3);
+        await repository.save(user1);
+        await repository.save(user2);
+        await repository.save(user3);
 
         const users = await repository.findAll();
         expect(users).toHaveLength(3);
       });
 
       it("should return users matching criteria", async () => {
-        await repository.create(user1);
-        await repository.create(user2);
-        await repository.create(user3);
+        await repository.save(user1);
+        await repository.save(user2);
+        await repository.save(user3);
 
         const criteria = Criteria.create<User>().whereEquals(
           "status",
@@ -319,9 +294,9 @@ describe("Repository", () => {
 
     describe("find with Criteria", () => {
       beforeEach(async () => {
-        await repository.create(user1);
-        await repository.create(user2);
-        await repository.create(user3);
+        await repository.save(user1);
+        await repository.save(user2);
+        await repository.save(user3);
       });
 
       it("should filter by equals", async () => {
@@ -376,8 +351,8 @@ describe("Repository", () => {
 
     describe("findOne", () => {
       it("should find first matching user", async () => {
-        await repository.create(user1);
-        await repository.create(user2);
+        await repository.save(user1);
+        await repository.save(user2);
 
         const criteria = Criteria.create<User>().whereEquals(
           "status",
@@ -402,7 +377,7 @@ describe("Repository", () => {
 
     describe("delete", () => {
       it("should delete by aggregate", async () => {
-        await repository.create(user1);
+        await repository.save(user1);
         await repository.delete(user1);
 
         const found = await repository.findById(user1.id.value);
@@ -410,7 +385,7 @@ describe("Repository", () => {
       });
 
       it("should delete by id", async () => {
-        await repository.create(user1);
+        await repository.save(user1);
         await repository.delete(user1);
 
         const found = await repository.findById(user1.id.value);
@@ -420,7 +395,7 @@ describe("Repository", () => {
 
     describe("exists", () => {
       it("should return true when user exists", async () => {
-        await repository.create(user1);
+        await repository.save(user1);
         const exists = await repository.exists(user1.id.value);
         expect(exists).toBe(true);
       });
@@ -433,9 +408,9 @@ describe("Repository", () => {
 
     describe("count", () => {
       beforeEach(async () => {
-        await repository.create(user1);
-        await repository.create(user2);
-        await repository.create(user3);
+        await repository.save(user1);
+        await repository.save(user2);
+        await repository.save(user3);
       });
 
       it("should count all users", async () => {
@@ -453,7 +428,7 @@ describe("Repository", () => {
       });
     });
 
-    describe("saveMany", () => {
+    describe("createMany", () => {
       it("should save multiple users", async () => {
         await repository.createMany([user1, user2, user3]);
 
@@ -486,7 +461,7 @@ describe("Repository", () => {
 
     it("should save new user (insert)", async () => {
       expect(user.isNew()).toBe(true);
-      await repository.create(user);
+      await repository.save(user);
 
       const found = await repository.findById(user.id.value);
       expect(found).toBeDefined();
@@ -494,7 +469,7 @@ describe("Repository", () => {
     });
 
     it("should update existing user", async () => {
-      await repository.create(user);
+      await repository.save(user);
 
       // Simulate existing user
       const existingUser = User.create({
@@ -505,7 +480,7 @@ describe("Repository", () => {
         status: "inactive",
       });
 
-      await repository.create(existingUser);
+      await repository.save(existingUser);
 
       const found = await repository.findById(user.id.value);
       expect(found?.name).toBe("John Updated");
@@ -513,7 +488,7 @@ describe("Repository", () => {
     });
 
     it("should convert between domain and persistence", async () => {
-      await repository.create(user);
+      await repository.save(user);
       const found = await repository.findById(user.id.value);
 
       // Should be a domain object
@@ -535,7 +510,7 @@ describe("Repository", () => {
         status: "inactive",
       });
 
-      await Promise.all([repository.create(user1), repository.create(user2)]);
+      await Promise.all([repository.save(user1), repository.save(user2)]);
 
       const result = await repository.find(
         Criteria.create<User>()

@@ -250,17 +250,13 @@ export class InMemoryRepository<
     return result.data.length > 0 ? result.data[0] : null;
   }
 
-  async create(aggregate: TDomain): Promise<void> {
+  async save(aggregate: TDomain): Promise<void> {
     this.items.set(aggregate.id.value, aggregate);
-  }
-
-  async update(entity: TDomain): Promise<void> {
-    this.items.set(entity.id.value, entity);
   }
 
   async createMany(aggregates: TDomain[]): Promise<void> {
     for (const aggregate of aggregates) {
-      await this.create(aggregate);
+      await this.save(aggregate);
     }
   }
 
