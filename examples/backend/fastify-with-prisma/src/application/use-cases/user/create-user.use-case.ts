@@ -15,7 +15,7 @@ export class CreateUserUseCase {
   constructor(private userRepository: UserRepository) {}
 
   async execute(input: CreateUserInput): Promise<User> {
-    // 
+    //
     return await this.userRepository.uow.transaction(async () => {
       const existingUser = await this.userRepository.findByEmail(input.email);
 
@@ -32,7 +32,7 @@ export class CreateUserUseCase {
         posts: [],
       });
 
-      await this.userRepository.createOrUpdate(user);
+      await this.userRepository.save(user);
       await user.dispatchAll(EVENT_BUS);
 
       return user;

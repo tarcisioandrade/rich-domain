@@ -12,9 +12,9 @@
     "postinstall": "npm run build",
     "test": "npm run test --workspace=@woltz/rich-domain && npm run test --workspace=@woltz/react-rich-domain",
     "test:watch": "npm run test:watch --workspace=@woltz/rich-domain",
-    "check": "npm run check --workspace=@woltz/rich-domain",
+    "check": "npm run check --workspaces",
     "coverage": "npm run coverage --workspace=@woltz/rich-domain",
-    "lint": "npm run lint --workspace=@woltz/rich-domain && npm run lint --workspace=@woltz/react-rich-domain",
+    "lint": "npm run lint --workspaces",
     "clean": "npm run clean --workspaces && rm -rf node_modules",
     "prepare": "husky",
     "publish:rich-domain": "npm publish --workspace=@woltz/rich-domain"

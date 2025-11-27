@@ -80,24 +80,9 @@ export abstract class PrismaRepository<
     });
   }
 
-  async create(entity: TDomain) {
-    const data = this.mapperToPersistence.build(entity);
-
-    return (this.context[this.model] as any).create({
-      data,
-    });
-  }
-
-  async createOrUpdate(entity: TDomain) {
+  async save(entity: TDomain) {
     await this.mapperToPersistence.build(entity);
-  }
-
-  async update(entity: TDomain) {
-    const data = this.mapperToPersistence.build(entity);
-    return (this.context[this.model] as any).update({
-      where: { id: entity.id },
-      data,
-    });
+    entity.markAsClean();
   }
 
   protected applyCriteria(criteria: Criteria<any>) {
