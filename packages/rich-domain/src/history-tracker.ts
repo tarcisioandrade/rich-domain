@@ -1,12 +1,19 @@
 import { Id } from "./id";
 import { Entity } from "./entity";
 import { ValueObject } from "./value-object";
-import { HistoryEntry } from "./types";
-import {
-  TrackedEntityMetadata,
-  EntityChangeState,
-} from "./types/change-tracker";
+import { ArrayState, HistoryEntry, TrackedItem } from "./types";
+import { EntityChangeState } from "./types/change-tracker";
 import { AggregateChanges } from "./aggregate-changes";
+
+/**
+ * Callback for validation on property change.
+ * Return false to reject the change, or throw an error.
+ */
+export type OnChangeValidator = (
+  path: string,
+  oldValue: any,
+  newValue: any
+) => boolean | void;
 
 /**
  * Tracks changes in Aggregates using Proxy.
@@ -18,27 +25,14 @@ import { AggregateChanges } from "./aggregate-changes";
  * - Supports Value Objects with identityKey
  * - Calculates depth automatically
  * - Generates AggregateChanges for persistence
- *
- * @example
- * ```typescript
- * class User extends Aggregate<UserProps> {
- *   private tracker = new HistoryTracker(this.props, 'User');
- *
- *   getChanges(): AggregateChanges<UserProps> {
- *     return this.tracker.getChanges();
- *   }
- * }
- * ```
+ * - Supports validation on change via onChangeValidator
  */
 export class HistoryTracker {
   private history: HistoryEntry[] = [];
-  private subscribers: Map<string, Set<Function>> = new Map();
   private originalValues: Map<string, any> = new Map();
   private trackedArrays: Map<string, ArrayState> = new Map();
   private trackedEntities: Map<string, TrackedItem> = new Map();
-  private globalSubscribers: Set<Function> = new Set();
-  private updateInProgress: boolean = false;
-  private pendingNotifications: Array<() => void> = [];
+  private onChangeValidator?: OnChangeValidator;
 
   constructor(
     private target: any,
@@ -55,9 +49,23 @@ export class HistoryTracker {
     this.captureInitialState();
   }
 
-  private captureInitialState(): void {
-    if (this.depth > 0) return; // Only capture at root
+  /**
+   * Sets a validator callback that will be called on every property change.
+   * The validator can:
+   * - Return false to reject the change (value will be reverted)
+   * - Throw an error to reject the change with an error
+   * - Return true/undefined to accept the change
+   */
+  setOnChangeValidator(validator: OnChangeValidator): void {
+    this.getRootTracker().onChangeValidator = validator;
+  }
 
+  // ============================================================================
+  // Initial State Capture
+  // ============================================================================
+
+  private captureInitialState(): void {
+    if (this.depth > 0) return;
     this.captureEntityState(this.target, this.rootEntityName, "", 0);
   }
 
@@ -145,6 +153,10 @@ export class HistoryTracker {
     });
   }
 
+  // ============================================================================
+  // Proxy Creation
+  // ============================================================================
+
   createProxy(): any {
     const handler: ProxyHandler<any> = {
       get: (target, prop, receiver) => {
@@ -188,11 +200,32 @@ export class HistoryTracker {
           return true;
         }
 
-        if (!this.getRootTracker().originalValues.has(currentPath)) {
-          this.getRootTracker().originalValues.set(currentPath, oldValue);
+        // Call validator before making the change
+        const rootTracker = this.getRootTracker();
+        if (rootTracker.onChangeValidator) {
+          try {
+            const result = rootTracker.onChangeValidator(
+              currentPath,
+              oldValue,
+              newValue
+            );
+            if (result === false) {
+              // Validator rejected the change
+              return true; // Return true to not throw, but don't apply change
+            }
+          } catch (error) {
+            // Validator threw an error - propagate it
+            throw error;
+          }
         }
 
-        this.getRootTracker().history.push({
+        // Store original value
+        if (!rootTracker.originalValues.has(currentPath)) {
+          rootTracker.originalValues.set(currentPath, oldValue);
+        }
+
+        // Record in history
+        rootTracker.history.push({
           path: currentPath,
           previousValue: oldValue,
           currentValue: newValue,
@@ -201,19 +234,12 @@ export class HistoryTracker {
 
         const result = Reflect.set(target, prop, newValue, receiver);
 
+        // Handle special cases
         if (Array.isArray(newValue)) {
-          this.handleArrayAssignment(currentPath, oldValue, newValue);
+          this.handleArrayAssignment(currentPath, oldValue);
         } else if (this.isEntityOrVO(newValue) || this.isEntityOrVO(oldValue)) {
           this.handleEntityChange(currentPath, oldValue, newValue);
-        } else {
-          this.getRootTracker().notifySubscribers(
-            currentPath,
-            oldValue,
-            newValue
-          );
         }
-
-        this.getRootTracker().notifyGlobalSubscribers();
 
         return result;
       },
@@ -257,6 +283,23 @@ export class HistoryTracker {
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
               const oldArray = target.slice();
+
+              // Call validator before array mutation
+              if (rootTracker.onChangeValidator) {
+                try {
+                  const result = rootTracker.onChangeValidator(
+                    path,
+                    oldArray,
+                    [...oldArray, ...args] // Preview of change
+                  );
+                  if (result === false) {
+                    return undefined;
+                  }
+                } catch (error) {
+                  throw error;
+                }
+              }
+
               const result = value.apply(target, args);
 
               rootTracker.history.push({
@@ -265,9 +308,6 @@ export class HistoryTracker {
                 currentValue: target.slice(),
                 timestamp: Date.now(),
               });
-
-              rootTracker.notifyArrayChange(path, target);
-              rootTracker.notifyGlobalSubscribers();
 
               return result;
             };
@@ -295,6 +335,23 @@ export class HistoryTracker {
       set(target, prop, newValue, receiver) {
         if (!isNaN(Number(prop))) {
           const oldArray = target.slice();
+
+          // Call validator before array item change
+          if (rootTracker.onChangeValidator) {
+            try {
+              const result = rootTracker.onChangeValidator(
+                path,
+                oldArray,
+                newValue
+              );
+              if (result === false) {
+                return true;
+              }
+            } catch (error) {
+              throw error;
+            }
+          }
+
           const result = Reflect.set(target, prop, newValue, receiver);
 
           rootTracker.history.push({
@@ -304,9 +361,6 @@ export class HistoryTracker {
             timestamp: Date.now(),
           });
 
-          rootTracker.notifyArrayChange(path, target);
-          rootTracker.notifyGlobalSubscribers();
-
           return result;
         }
         return Reflect.set(target, prop, newValue, receiver);
@@ -314,15 +368,12 @@ export class HistoryTracker {
     });
   }
 
+  // ============================================================================
+  // getChanges() - Main Method
+  // ============================================================================
+
   /**
    * Returns all detected changes as AggregateChanges.
-   *
-   * Analyzes:
-   * - Changes in primitive properties of the root
-   * - Changes in 1:1 entities (create, update, delete, replaced)
-   * - Changes in collections (create, update, delete of items)
-   *
-   * @returns {AggregateChanges} All operations, ordered.
    */
   getChanges<TEntityMap = Record<string, any>>(): AggregateChanges<TEntityMap> {
     const changes = new AggregateChanges<TEntityMap>();
@@ -343,7 +394,6 @@ export class HistoryTracker {
     let hasChanges = false;
 
     for (const [path, originalValue] of rootTracker.originalValues) {
-      // Only direct root properties (no '.' or '[' in path)
       if (path.includes(".") || path.includes("[")) continue;
 
       const currentValue = this.target[path];
@@ -441,20 +491,6 @@ export class HistoryTracker {
   ): void {
     if (!obj || typeof obj !== "object") return;
 
-    if (obj.proxy && obj.proxy instanceof HistoryTracker) {
-      const tracker = obj.proxy as HistoryTracker;
-      for (const [arrayPath, arrayState] of tracker.trackedArrays) {
-        const actualArray = this.getValueAtPath(obj, arrayPath);
-        if (Array.isArray(actualArray) && !processedArrays.has(actualArray)) {
-          const fullPath = basePath ? `${basePath}.${arrayPath}` : arrayPath;
-          if (!allArrays.has(fullPath)) {
-            allArrays.set(fullPath, arrayState);
-            processedArrays.add(actualArray);
-          }
-        }
-      }
-    }
-
     for (const [propName, value] of Object.entries(obj)) {
       if (propName === "id" || propName === "proxy" || propName === "_props")
         continue;
@@ -483,9 +519,8 @@ export class HistoryTracker {
     rootTracker: HistoryTracker
   ): void {
     for (const [path, trackedItem] of rootTracker.trackedEntities) {
-      if (path === "root") continue; // Skip root, already handled
-
-      if (path.includes("[")) continue; // Skip array items
+      if (path === "root") continue;
+      if (path.includes("[")) continue;
 
       const currentValue = this.getValueAtPath(this.target, path);
       const originalValue = trackedItem.originalState;
@@ -547,6 +582,10 @@ export class HistoryTracker {
       }
     }
   }
+
+  // ============================================================================
+  // Change Detection Helpers
+  // ============================================================================
 
   private detectEntityChangeState(
     previous: any,
@@ -613,6 +652,7 @@ export class HistoryTracker {
         deleted.push(item);
       }
     });
+
     return { created, updated, deleted };
   }
 
@@ -644,6 +684,48 @@ export class HistoryTracker {
 
     return changes;
   }
+
+  // ============================================================================
+  // Internal Handlers
+  // ============================================================================
+
+  private handleArrayAssignment(path: string, oldValue: any): void {
+    const rootTracker = this.getRootTracker();
+
+    if (!rootTracker.trackedArrays.has(path)) {
+      const parentId = this.getEntityId(this.target);
+      rootTracker.captureArrayState(
+        Array.isArray(oldValue) ? oldValue : [],
+        path,
+        this.depth + 1,
+        parentId,
+        this.rootEntityName
+      );
+    }
+  }
+
+  private handleEntityChange(path: string, oldValue: any, newValue: any): void {
+    const rootTracker = this.getRootTracker();
+    const entityName = newValue
+      ? this.getEntityName(newValue)
+      : this.getEntityName(oldValue);
+
+    rootTracker.trackedEntities.set(path, {
+      entity: newValue,
+      metadata: {
+        entityName,
+        depth: this.depth + 1,
+        parentId: this.getEntityId(this.target),
+        parentEntity: this.rootEntityName,
+        path,
+      },
+      originalState: rootTracker.trackedEntities.get(path)?.originalState,
+    });
+  }
+
+  // ============================================================================
+  // Utility Methods
+  // ============================================================================
 
   private getRootTracker(): HistoryTracker {
     return this.rootTracker || this;
@@ -826,126 +908,6 @@ export class HistoryTracker {
     return `{${parts.join(",")}}`;
   }
 
-  private handleArrayAssignment(
-    path: string,
-    oldValue: any,
-    newValue: any[]
-  ): void {
-    const rootTracker = this.getRootTracker();
-
-    if (!rootTracker.trackedArrays.has(path)) {
-      const parentId = this.getEntityId(this.target);
-      rootTracker.captureArrayState(
-        Array.isArray(oldValue) ? oldValue : [],
-        path,
-        this.depth + 1,
-        parentId,
-        this.rootEntityName
-      );
-    }
-
-    this.scheduleNotification(() =>
-      rootTracker.notifyArrayChange(path, newValue)
-    );
-  }
-
-  private handleEntityChange(path: string, oldValue: any, newValue: any): void {
-    const rootTracker = this.getRootTracker();
-    const entityName = newValue
-      ? this.getEntityName(newValue)
-      : this.getEntityName(oldValue);
-
-    rootTracker.trackedEntities.set(path, {
-      entity: newValue,
-      metadata: {
-        entityName,
-        depth: this.depth + 1,
-        parentId: this.getEntityId(this.target),
-        parentEntity: this.rootEntityName,
-        path,
-      },
-      originalState: rootTracker.trackedEntities.get(path)?.originalState,
-    });
-  }
-
-  private scheduleNotification(notification: () => void): void {
-    this.getRootTracker().pendingNotifications.push(notification);
-    this.flushNotifications();
-  }
-
-  private flushNotifications(): void {
-    const rootTracker = this.getRootTracker();
-    if (rootTracker.updateInProgress) return;
-
-    rootTracker.updateInProgress = true;
-    try {
-      const notifications = [...rootTracker.pendingNotifications];
-      rootTracker.pendingNotifications = [];
-      notifications.forEach((notify) => notify());
-    } finally {
-      rootTracker.updateInProgress = false;
-    }
-  }
-
-  subscribe(path: string, callback: Function): void {
-    const rootTracker = this.getRootTracker();
-
-    if (path === "*") {
-      rootTracker.globalSubscribers.add(callback);
-      return;
-    }
-
-    if (!rootTracker.subscribers.has(path)) {
-      rootTracker.subscribers.set(path, new Set());
-    }
-    rootTracker.subscribers.get(path)!.add(callback);
-  }
-
-  unsubscribe(path: string, callback: Function): void {
-    const rootTracker = this.getRootTracker();
-
-    if (path === "*") {
-      rootTracker.globalSubscribers.delete(callback);
-      return;
-    }
-
-    rootTracker.subscribers.get(path)?.delete(callback);
-  }
-
-  private notifySubscribers(path: string, oldValue: any, newValue: any): void {
-    const subs = this.subscribers.get(path);
-    if (subs) {
-      subs.forEach((cb) => cb({ previous: oldValue, current: newValue, path }));
-    }
-  }
-
-  private notifyGlobalSubscribers(): void {
-    this.globalSubscribers.forEach((cb) => cb());
-  }
-
-  private notifyArrayChange(path: string, newArray: any[]): void {
-    const subs = this.subscribers.get(path);
-    if (!subs) return;
-
-    const arrayState = this.trackedArrays.get(path);
-    if (!arrayState) return;
-
-    const changes = this.detectArrayChanges(
-      arrayState.cloned,
-      arrayState.original,
-      newArray
-    );
-
-    subs.forEach((cb) =>
-      cb({
-        toCreate: changes.created,
-        toUpdate: changes.updated,
-        toDelete: changes.deleted,
-        path,
-      })
-    );
-  }
-
   getHistory(): HistoryEntry[] {
     return [...this.getRootTracker().history];
   }
@@ -959,10 +921,6 @@ export class HistoryTracker {
     this.captureInitialState();
   }
 
-  /**
-   * Marks the current state as "clean" (no changes).
-   * Useful after persisting to the database.
-   */
   markAsClean(): void {
     this.clearHistory();
   }
@@ -970,16 +928,4 @@ export class HistoryTracker {
   getTarget(): any {
     return this.target;
   }
-}
-
-interface TrackedItem {
-  entity: any;
-  metadata: TrackedEntityMetadata;
-  originalState: any;
-}
-
-interface ArrayState {
-  cloned: any[];
-  original: any[];
-  metadata: TrackedEntityMetadata;
 }

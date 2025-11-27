@@ -199,7 +199,7 @@ describe("Entity with Id Class", () => {
   });
 
   describe("Id Comparison in Arrays", () => {
-    it("should detect changes in arrays using Id", (done) => {
+    it("should detect changes in arrays using Id", () => {
       const user = new User({
         id: new Id("user-1"),
         name: "John",
@@ -210,16 +210,6 @@ describe("Entity with Id Class", () => {
           city: "NYC",
         }),
         tags: [],
-      });
-
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toDelete }) => {
-            expect(toCreate).toHaveLength(2);
-            expect(toDelete).toHaveLength(0);
-            done();
-          },
-        },
       });
 
       user.addManyPosts([
@@ -238,9 +228,15 @@ describe("Entity with Id Class", () => {
           published: false,
         }),
       ]);
+
+      const changes = user.getTypedChanges();
+
+      console.dir(changes.creates(), { depth: null });
+
+      expect(changes.creates().length).toBe(2);
     });
 
-    it("should track deletes correctly with Id", (done) => {
+    it("should track deletes correctly with Id", () => {
       const postId = new Id("post-to-delete");
 
       const user = new User({
@@ -263,18 +259,13 @@ describe("Entity with Id Class", () => {
         tags: [],
       });
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toDelete }) => {
-            expect(toCreate).toHaveLength(0);
-            expect(toDelete).toHaveLength(1);
-            expect(toDelete[0].id.value).toBe(postId.value);
-            done();
-          },
-        },
-      });
-
       user.removePost(postId);
+
+      const changes = user.getTypedChanges();
+
+      expect(changes.deletes()).toHaveLength(1);
+      expect(changes.creates()).toHaveLength(0);
+      expect(changes.deletes()[0].id).toBe(postId.value);
     });
   });
 });

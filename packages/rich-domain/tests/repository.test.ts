@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Id, Aggregate, Criteria, PaginatedResult } from "../src";
 import { Mapper } from "../src/repository";
 import { Repository } from "../src/repository/base-repository";
@@ -139,7 +140,7 @@ class MockUserRepository extends Repository<User> {
   }
 
   async findById(id: string): Promise<User | null> {
-    const persistence = this.store.get(id);
+    const persistence = await this.store.get(id);
     if (!persistence) return null;
     return this.mapperToDomain.build(persistence);
   }

@@ -1,13 +1,8 @@
-// ============================================================================
-// Base Entity Class with Standard Schema Validation
-// ============================================================================
-
 import { Id } from "./id";
 import { ValidationError } from "./validation-error";
 import { IDomainEvent } from ".";
 import {
   BaseProps,
-  SubscriptionConfig,
   HistoryEntry,
   DeepJsonResult,
   EntityHooks,
@@ -31,7 +26,7 @@ function getStaticProperty<T>(
 
 export abstract class BaseEntity<T extends BaseProps> {
   private _props: T;
-  private proxy: HistoryTracker;
+  private tracker: HistoryTracker;
   private proxiedProps: T;
   private snapshot: T | null = null;
   private validationConfig: Required<ValidationConfig>;
@@ -76,8 +71,15 @@ export abstract class BaseEntity<T extends BaseProps> {
 
     this._props = finalProps;
 
-    this.proxy = new HistoryTracker(this._props, this.constructor.name);
-    this.proxiedProps = this.proxy.createProxy();
+    // Initialize tracker and proxy
+    this.tracker = new HistoryTracker(this._props, this.constructor.name);
+
+    // Setup validation on update BEFORE creating proxy
+    if (this.validationConfig.onUpdate) {
+      this.setupUpdateValidation();
+    }
+
+    this.proxiedProps = this.tracker.createProxy();
 
     // Execute rules (custom validations)
     if (hooks?.rules) {
@@ -89,14 +91,13 @@ export abstract class BaseEntity<T extends BaseProps> {
       hooks.onCreate(this as any);
     }
 
-    // Setup update validation
-    if (this.entitySchema && this.validationConfig.onUpdate) {
-      this.setupUpdateValidation();
-    }
-
     // Take initial snapshot for onBeforeUpdate
     this.takeSnapshot();
   }
+
+  // ============================================================================
+  // Validation
+  // ============================================================================
 
   private validateProps(props: T): void {
     if (!this.entitySchema) return;
@@ -121,7 +122,6 @@ export abstract class BaseEntity<T extends BaseProps> {
         throw validationError;
       }
 
-      // If not throwing, store error for later retrieval
       (this as any)._validationError = validationError;
     }
   }
@@ -130,90 +130,105 @@ export abstract class BaseEntity<T extends BaseProps> {
     if (pathSegment === null || pathSegment === undefined) {
       return "";
     }
-    // Handle PropertyKey (string | number | symbol)
     if (typeof pathSegment === "string" || typeof pathSegment === "number") {
       return String(pathSegment);
     }
     if (typeof pathSegment === "symbol") {
       return pathSegment.toString();
     }
-    // Handle object with 'key' property (Zod's PathSegment)
     if (typeof pathSegment === "object" && "key" in pathSegment) {
       return String((pathSegment as { key: unknown }).key);
     }
-    // Fallback
     return String(pathSegment);
   }
 
+  /**
+   * Setup validation that runs on every property change.
+   * Uses the HistoryTracker's onChangeValidator callback.
+   */
   private setupUpdateValidation(): void {
     const self = this;
 
-    const validateOnChange = () => {
-      // Check onBeforeUpdate hook
-      if (self.entityHooks?.onBeforeUpdate && self.snapshot) {
-        const shouldContinue = self.entityHooks.onBeforeUpdate(
-          self as any,
-          self.snapshot
-        );
-        if (!shouldContinue) {
-          // Revert changes
-          Object.assign(self._props, self.snapshot);
-          return;
-        }
-      }
+    this.tracker.setOnChangeValidator((path, oldValue, newValue) => {
+      // Temporarily apply the change to validate
+      const originalValue = self._props[path as keyof T];
+      (self._props as any)[path] = newValue;
 
-      // Validate with schema
-      if (self.entitySchema) {
-        const result = self.entitySchema["~standard"].validate(self._props);
-
-        if (result instanceof Promise) {
-          console.warn(
-            "Async validation on update not supported. Consider using sync validation."
+      try {
+        // Check onBeforeUpdate hook
+        if (self.entityHooks?.onBeforeUpdate && self.snapshot) {
+          const shouldContinue = self.entityHooks.onBeforeUpdate(
+            self as any,
+            self.snapshot
           );
-          return;
-        }
-
-        if (result.issues && result.issues.length > 0) {
-          const validationError = new ValidationError(
-            result.issues.map((issue) => ({
-              path: issue.path?.map((p) => self.extractPathKey(p)) || [],
-              message: issue.message,
-            }))
-          );
-
-          if (self.validationConfig.throwOnError) {
-            // Revert changes before throwing
-            if (self.snapshot) {
-              Object.assign(self._props, self.snapshot);
-            }
-            throw validationError;
+          if (!shouldContinue) {
+            // Revert change
+            (self._props as any)[path] = originalValue;
+            return false;
           }
-          console.error("Validation failed on update:", validationError);
         }
-      }
 
-      // Execute rules after schema validation
-      if (self.entityHooks?.rules) {
-        try {
-          self.entityHooks.rules(self as any);
-        } catch (error) {
-          if (self.validationConfig.throwOnError) {
-            // Revert changes before throwing
-            if (self.snapshot) {
-              Object.assign(self._props, self.snapshot);
-            }
-            throw error;
+        // Validate with schema
+        if (self.entitySchema) {
+          const result = self.entitySchema["~standard"].validate(self._props);
+
+          if (result instanceof Promise) {
+            console.warn(
+              "Async validation on update not supported. Consider using sync validation."
+            );
+            (self._props as any)[path] = originalValue;
+            return true;
           }
-          console.error("Rules validation failed on update:", error);
+
+          if (result.issues && result.issues.length > 0) {
+            const validationError = new ValidationError(
+              result.issues.map((issue) => ({
+                path: issue.path?.map((p) => self.extractPathKey(p)) || [],
+                message: issue.message,
+              }))
+            );
+
+            // Revert change before throwing
+            (self._props as any)[path] = originalValue;
+
+            if (self.validationConfig.throwOnError) {
+              throw validationError;
+            }
+
+            console.error("Validation failed on update:", validationError);
+            return false;
+          }
         }
+
+        // Execute rules after schema validation
+        if (self.entityHooks?.rules) {
+          try {
+            self.entityHooks.rules(self as any);
+          } catch (error) {
+            // Revert change before throwing
+            (self._props as any)[path] = originalValue;
+
+            if (self.validationConfig.throwOnError) {
+              throw error;
+            }
+
+            console.error("Rules validation failed on update:", error);
+            return false;
+          }
+        }
+
+        // Revert for now - the actual set will happen in the proxy
+        (self._props as any)[path] = originalValue;
+
+        // Update snapshot after successful validation
+        // Note: snapshot is updated after the change is applied
+        return true;
+      } catch (error) {
+        // Revert on any error
+        (self._props as any)[path] = originalValue;
+        throw error;
       }
-
-      // Update snapshot after successful validation
-      self.takeSnapshot();
-    };
-
-    // Subscribe to all changes
-    this.proxy.subscribe("*", validateOnChange);
+    });
   }
 
   private takeSnapshot(): void {
@@ -222,36 +237,28 @@ export abstract class BaseEntity<T extends BaseProps> {
 
   private deepCloneProps(obj: any, seen: WeakSet<object> = new WeakSet()): any {
     if (obj === null || obj === undefined) return obj;
-
-    // Primitives
     if (typeof obj !== "object") return obj;
-
-    // Special cases - don't clone these, just return the reference
     if (obj instanceof Id) return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
 
-    // Check for circular references
     if (seen.has(obj)) {
-      return obj; // Return reference to avoid infinite loop
+      return obj;
     }
 
-    // Handle BaseEntity instances - just keep the reference
     if (obj instanceof BaseEntity) {
       return obj;
     }
 
-    // Handle ValueObject instances - just keep the reference (they're immutable)
     if (
       obj.constructor &&
       obj.constructor.name !== "Object" &&
       obj.constructor.name !== "Array"
     ) {
-      // Check if it has toJson method (likely a ValueObject or similar)
       if (
         typeof obj.toJson === "function" &&
         typeof obj.equals === "function"
       ) {
-        return obj; // Keep reference for ValueObjects
+        return obj;
       }
     }
 
@@ -261,7 +268,6 @@ export abstract class BaseEntity<T extends BaseProps> {
       return obj.map((item) => this.deepCloneProps(item, seen));
     }
 
-    // Plain objects only
     if (obj.constructor === Object) {
       const cloned: any = {};
       for (const key in obj) {
@@ -272,9 +278,12 @@ export abstract class BaseEntity<T extends BaseProps> {
       return cloned;
     }
 
-    // For other object types (custom classes), just keep the reference
     return obj;
   }
+
+  // ============================================================================
+  // Identity
+  // ============================================================================
 
   get id(): Id {
     return this._props.id;
@@ -286,33 +295,30 @@ export abstract class BaseEntity<T extends BaseProps> {
 
   /**
    * Check equality with another entity by comparing IDs
-   * Entities are equal if they have the same ID, regardless of other properties
-   *
-   * @param other - Another entity or an ID to compare with
-   * @returns true if entities have the same ID
    */
   equals(other: BaseEntity<T> | Id | string): boolean {
     if (!other) {
       return false;
     }
 
-    // Compare with another entity
     if (other instanceof BaseEntity) {
       return this.id.equals(other.id);
     }
 
-    // Compare with an ID
     if (other instanceof Id) {
       return this.id.equals(other);
     }
 
-    // Compare with a string ID
     if (typeof other === "string") {
       return this.id.equals(other);
     }
 
     return false;
   }
+
+  // ============================================================================
+  // Props Access
+  // ============================================================================
 
   public get props(): T {
     return this.proxiedProps;
@@ -332,49 +338,46 @@ export abstract class BaseEntity<T extends BaseProps> {
     return (this as any)._validationError;
   }
 
-  subscribe(config: SubscriptionConfig<T>): void {
-    Object.keys(config).forEach((key) => {
-      const sub = config[key as keyof T];
-      if (sub && "onChange" in sub) {
-        this.proxy.subscribe(key, sub.onChange);
-      }
-    });
-  }
+  // ============================================================================
+  // Change Tracking
+  // ============================================================================
 
   /**
    * Returns all detected changes as AggregateChanges.
    *
    * @example
    * ```typescript
-   * // Option 1: With explicit entity map type
-   * type UserEntities = {
-   *   User: User;
-   *   Post: Post;
-   * };
-   * const changes = user.getChanges<UserEntities>();
+   * const changes = user.getChanges();
+   * const batch = changes.toBatchOperations();
    *
-   * // Option 2: Using satisfies (TypeScript 4.9+)
-   * const changes = user.getChanges(
-   *   {} as const satisfies { User: User; Post: Post }
-   * );
-   *
-   * // Now you have type-safe access
-   * const postChanges = changes.for("Post"); // ✅ Autocomplete
+   * for (const del of batch.deletes) { ... }
+   * for (const create of batch.creates) { ... }
+   * for (const upd of batch.updates) { ... }
    * ```
    */
-  getChanges<TEntityMap = Record<string, any>>(
-    _entityMap?: TEntityMap
-  ): AggregateChanges<TEntityMap> {
-    return this.proxy.getChanges<TEntityMap>();
+  getChanges<TEntityMap = Record<string, any>>(): AggregateChanges<TEntityMap> {
+    return this.tracker.getChanges<TEntityMap>();
   }
 
+  /**
+   * Returns the change history (for debugging).
+   */
   getHistory(): HistoryEntry[] {
-    return this.proxy.getHistory();
+    return this.tracker.getHistory();
   }
 
-  clearHistory(): void {
-    this.proxy.markAsClean();
+  /**
+   * Clears history and marks entity as "clean".
+   * Call this after successfully persisting to the database.
+   */
+  markAsClean(): void {
+    this.tracker.markAsClean();
+    this.takeSnapshot();
   }
+
+  // ============================================================================
+  // Domain Events
+  // ============================================================================
 
   /**
    * Add a domain event to this entity
@@ -383,8 +386,12 @@ export abstract class BaseEntity<T extends BaseProps> {
     this.domainEvents.push(event);
   }
 
-  public async dispatchAll(bus: DomainEventBus) {
+  /**
+   * Dispatch all events through the event bus
+   */
+  public async dispatchAll(bus: DomainEventBus): Promise<void> {
     await bus.publishAll(this.getUncommittedEvents());
+    this.clearEvents();
   }
 
   /**
@@ -407,6 +414,10 @@ export abstract class BaseEntity<T extends BaseProps> {
   hasUncommittedEvents(): boolean {
     return this.domainEvents.length > 0;
   }
+
+  // ============================================================================
+  // Serialization
+  // ============================================================================
 
   toJson(): DeepJsonResult<T> {
     return this.deepToJson(this._props) as DeepJsonResult<T>;

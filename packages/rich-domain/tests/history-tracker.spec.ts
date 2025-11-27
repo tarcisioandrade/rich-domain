@@ -398,7 +398,7 @@ describe("HistoryTracker.getChanges()", () => {
     });
   });
 
-  describe("clearHistory / markAsClean", () => {
+  describe("markAsClean", () => {
     it("should reset changes after clearHistory", () => {
       const user = createUser();
 
@@ -406,7 +406,7 @@ describe("HistoryTracker.getChanges()", () => {
 
       expect(user.getChanges().hasChanges()).toBe(true);
 
-      user.clearHistory();
+      user.markAsClean();
 
       expect(user.getChanges().isEmpty()).toBe(true);
     });
@@ -415,7 +415,7 @@ describe("HistoryTracker.getChanges()", () => {
       const user = createUser();
 
       user.changeName("Changed Name");
-      user.clearHistory();
+      user.markAsClean();
 
       expect(user.getChanges().isEmpty()).toBe(true);
     });
