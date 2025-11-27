@@ -62,10 +62,6 @@ function createAddress(street = "123 Main St", city = "Test City"): Address {
   });
 }
 
-// ============================================================================
-// Tests
-// ============================================================================
-
 describe("HistoryTracker.getChanges()", () => {
   describe("no changes", () => {
     it("should return empty changes when nothing modified", () => {
@@ -87,7 +83,7 @@ describe("HistoryTracker.getChanges()", () => {
       user.changeName("New Name");
       user.changeEmail("new@email.com");
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
 
       expect(changes.hasUpdates()).toBe(true);
 
@@ -152,7 +148,7 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.posts[0].changeTitle("Updated Title");
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
 
       const postChanges = changes.for("Post");
       expect(postChanges.hasUpdates()).toBe(true);
@@ -176,12 +172,15 @@ describe("HistoryTracker.getChanges()", () => {
       // Update post2
       user.posts[0].changeTitle("Post 2 Updated");
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const postChanges = changes.for("Post");
 
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.hasUpdates()).toBe(true);
       expect(postChanges.hasDeletes()).toBe(true);
+      expect(postChanges.creates).toHaveLength(1);
+      expect(postChanges.updates).toHaveLength(1);
+      expect(postChanges.deletes).toHaveLength(1);
     });
   });
 
@@ -195,17 +194,17 @@ describe("HistoryTracker.getChanges()", () => {
       const newComment = createComment({ text: "New comment" });
       user.posts[0].addComment(newComment);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const commentChanges = changes.for("Comment");
 
       expect(commentChanges.hasCreates()).toBe(true);
       expect(commentChanges.creates[0].text).toBe("New comment");
+      expect(commentChanges.updates).toHaveLength(0);
+      expect(commentChanges.deletes).toHaveLength(0);
+      expect(commentChanges.creates).toHaveLength(1);
     });
 
-    // TODO: Fix 3+ levels of nesting - currently not supported
     it("should handle 3+ levels of nesting (User > Post > Comment > Like)", () => {
-      // This test is skipped because the current implementation doesn't properly
-      // support tracking changes in arrays that are 3+ levels deep
       const comment = createComment({ likes: [] });
       const post = createPost({ comments: [comment] });
       const user = createUser({ posts: [post] });
@@ -217,10 +216,13 @@ describe("HistoryTracker.getChanges()", () => {
       });
       user.posts[0].comments[0].addLike(newLike);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const likeChanges = changes.for("Like");
 
       expect(likeChanges.hasCreates()).toBe(true);
+      expect(likeChanges.creates).toHaveLength(1);
+      expect(likeChanges.updates).toHaveLength(0);
+      expect(likeChanges.deletes).toHaveLength(0);
     });
   });
 
@@ -230,7 +232,7 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.setAddress(createAddress("New Street", "New City"));
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const addressChanges = changes.for("Address");
 
       expect(addressChanges.hasCreates()).toBe(true);
@@ -243,10 +245,11 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.removeAddress();
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const addressChanges = changes.for("Address");
 
       expect(addressChanges.hasDeletes()).toBe(true);
+      expect(addressChanges.deletes).toHaveLength(1);
     });
 
     it("should detect updated entity (same ID with changes)", () => {
@@ -255,7 +258,7 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.address?.changeStreet("New Street");
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const addressChanges = changes.for("Address");
 
       expect(addressChanges.hasUpdates()).toBe(true);
@@ -271,12 +274,15 @@ describe("HistoryTracker.getChanges()", () => {
       const newAddress = createAddress("New Street", "New City");
       user.setAddress(newAddress);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const addressChanges = changes.for("Address");
 
-      // Replaced = delete old + create new
       expect(addressChanges.hasDeletes()).toBe(true);
       expect(addressChanges.hasCreates()).toBe(true);
+      expect(addressChanges.deletes).toHaveLength(1);
+      expect(addressChanges.deletes[0].id.value).toBe(oldAddress.id.value);
+      expect(addressChanges.creates).toHaveLength(1);
+      expect(addressChanges.creates[0].id.value).toBe(newAddress.id.value);
     });
   });
 
@@ -287,10 +293,12 @@ describe("HistoryTracker.getChanges()", () => {
       const tag = new TagReference({ tagId: "tag-1", name: "JavaScript" });
       user.addTag(tag);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const tagChanges = changes.for("TagReference");
 
       expect(tagChanges.hasCreates()).toBe(true);
+      expect(tagChanges.creates).toHaveLength(1);
+      expect(tagChanges.creates[0].tagId).toBe("tag-1");
     });
 
     it("should detect removed VOs using identityKey", () => {
@@ -299,16 +307,15 @@ describe("HistoryTracker.getChanges()", () => {
 
       user.removeTag(tag.tagId);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const tagChanges = changes.for("TagReference");
 
       expect(tagChanges.hasDeletes()).toBe(true);
+      expect(tagChanges.deletes).toHaveLength(1);
+      expect(tagChanges.deletes[0].tagId).toBe("tag-1");
     });
 
-    // TODO: Fix 3+ levels of nesting for composite identityKey
     it("should use composite identityKey for Likes", () => {
-      // This test is skipped because it involves 3+ levels of nesting
-      // which is currently not properly supported
       const like = new Like({
         postId: "post-1",
         userId: "user-1",
@@ -318,13 +325,15 @@ describe("HistoryTracker.getChanges()", () => {
       const post = createPost({ comments: [comment] });
       const user = createUser({ posts: [post] });
 
-      // Remove like
       user.posts[0].comments[0].removeLike(like.postId, like.userId);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const likeChanges = changes.for("Like");
 
       expect(likeChanges.hasDeletes()).toBe(true);
+      expect(likeChanges.deletes).toHaveLength(1);
+      expect(likeChanges.deletes[0].postId).toBe("post-1");
+      expect(likeChanges.deletes[0].userId).toBe("user-1");
     });
   });
 
@@ -335,66 +344,73 @@ describe("HistoryTracker.getChanges()", () => {
       const address = createAddress();
       const user = createUser({ posts: [post], address });
 
-      // Multiple changes at different depths
       user.changeName("New Name"); // depth 0
       user.address?.changeStreet("New Street"); // depth 1
       user.posts[0].changeTitle("New Title"); // depth 1
       user.posts[0].comments[0].changeText("New Comment"); // depth 2
 
       const newPost = createPost({ title: "Brand New Post" });
-      user.addPost(newPost); // create at depth 1
+      user.addPost(newPost);
 
       const changes = user.getTypedChanges();
       const batch = changes.toBatchOperations();
 
-      // Deletes should be empty (no deletes in this test)
       expect(batch.deletes).toHaveLength(0);
 
-      // Creates should be ordered by depth ASC
-      expect(batch.creates.length).toBeGreaterThan(0);
+      expect(batch.creates.length).toBe(1);
+      expect(batch.creates[0].entity).toBe("Post");
+      expect(batch.creates[0].depth).toBe(1);
 
-      // Updates should be grouped by entity
-      expect(batch.updates.length).toBeGreaterThan(0);
+      expect(batch.updates.length).toBe(4);
     });
 
     it("should order deletes by depth DESC (leaf → root)", () => {
-      const comment = createComment();
+      const like = new Like({
+        postId: "post-1",
+        userId: "user-1",
+        createdAt: new Date(),
+      });
+      const comment = createComment({ likes: [like] });
       const post = createPost({ comments: [comment] });
       const user = createUser({ posts: [post] });
 
-      // Delete comment (depth 2) and post (depth 1)
+      user.posts[0].comments[0].removeLike(like.postId, like.userId);
       user.posts[0].comments = [];
       user.posts = [];
 
       const changes = user.getChanges();
       const batch = changes.toBatchOperations();
 
-      // Comment should come before Post
+      // Like (depth 3) → Comment (depth 2) → Post (depth 1)
+      const likeIdx = batch.deletes.findIndex((d) => d.entity === "Like");
       const commentIdx = batch.deletes.findIndex((d) => d.entity === "Comment");
       const postIdx = batch.deletes.findIndex((d) => d.entity === "Post");
 
-      if (commentIdx !== -1 && postIdx !== -1) {
-        expect(commentIdx).toBeLessThan(postIdx);
-      }
+      expect(batch.deletes).toHaveLength(3);
+      expect(likeIdx).toBeLessThan(commentIdx);
+      expect(commentIdx).toBeLessThan(postIdx);
     });
 
     it("should order creates by depth ASC (root → leaf)", () => {
       const user = createUser();
 
       const newComment = createComment({ text: "New Comment" });
-      const newPost = createPost({ title: "New Post", comments: [newComment] });
+      const newPost = createPost({ title: "New Post" });
       user.addPost(newPost);
+      user.posts[0].addComment(newComment);
 
-      const changes = user.getChanges();
+      const changes = user.getTypedChanges();
       const batch = changes.toBatchOperations();
 
-      // Post should come before Comment
       const postIdx = batch.creates.findIndex((c) => c.entity === "Post");
       const commentIdx = batch.creates.findIndex((c) => c.entity === "Comment");
 
-      if (postIdx !== -1 && commentIdx !== -1) {
-        expect(postIdx).toBeLessThan(commentIdx);
-      }
+      expect(batch.creates.length).toBe(2);
+      expect(batch.creates[0].entity).toBe("Post");
+      expect(batch.creates[0].depth).toBe(1);
+      expect(batch.creates[1].entity).toBe("Comment");
+      expect(batch.creates[1].depth).toBe(2);
+      expect(postIdx).toBeLessThan(commentIdx);
     });
   });
 

@@ -455,6 +455,9 @@ export class HistoryTracker {
       for (const item of created) {
         const itemEntityName = this.getEntityName(item);
         changes.addCreate(itemEntityName, item, depth, parentId, parentEntity);
+
+        // Recursively mark nested items as created
+        this.markNestedItemsAsCreated(item, depth, changes);
       }
 
       for (const item of updated) {
@@ -478,9 +481,182 @@ export class HistoryTracker {
           const itemEntityName = this.getEntityName(item);
           const deleteId = id || key!;
           changes.addDelete(itemEntityName, deleteId, item, depth);
+
+          // Recursively mark nested items as deleted using ORIGINAL state
+          this.markNestedItemsAsDeleted(item, depth, changes, rootTracker);
         }
       }
     }
+  }
+
+  /**
+   * Recursively marks all nested items as created when a parent is created.
+   */
+  private markNestedItemsAsCreated(
+    item: any,
+    parentDepth: number,
+    changes: AggregateChanges<any>
+  ): void {
+    if (!item || typeof item !== "object") return;
+
+    const itemId = this.getEntityId(item);
+    if (!itemId) return;
+
+    const props = item.props || item;
+
+    for (const [propName, value] of Object.entries(props)) {
+      if (propName === "id") continue;
+
+      if (Array.isArray(value)) {
+        // Process all items in the array
+        for (const nestedItem of value) {
+          if (this.isEntityOrVO(nestedItem)) {
+            const nestedId = this.getEntityId(nestedItem);
+            const nestedKey = this.getItemKey(nestedItem);
+            if (nestedId || nestedKey) {
+              const entityName = this.getEntityName(nestedItem);
+              changes.addCreate(
+                entityName,
+                nestedItem,
+                parentDepth + 1,
+                itemId,
+                this.getEntityName(item)
+              );
+
+              // Recursively process nested items
+              this.markNestedItemsAsCreated(nestedItem, parentDepth + 1, changes);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively marks all nested items as deleted when a parent is deleted.
+   * Uses the original captured state to find nested items.
+   */
+  private markNestedItemsAsDeleted(
+    item: any,
+    parentDepth: number,
+    changes: AggregateChanges<any>,
+    rootTracker: HistoryTracker
+  ): void {
+    if (!item || typeof item !== "object") return;
+
+    // Get the ID to look up the original state
+    const itemId = this.getEntityId(item);
+    if (!itemId) return;
+
+    // Look through all tracked arrays to find nested items
+    for (const [, arrayState] of rootTracker.trackedArrays) {
+      // Check if this array belongs to our deleted item
+      if (arrayState.metadata.parentId === itemId) {
+        // Use the CLONED (original) state to get the items
+        // Note: cloned items are JSON objects, not Entity/VO instances
+        for (const nestedItem of arrayState.cloned) {
+          // Cloned items are JSON objects with an 'id' property
+          const id =
+            typeof nestedItem === "object" && nestedItem !== null
+              ? nestedItem.id
+              : undefined;
+          if (id) {
+            const entityName = arrayState.metadata.entityName;
+            changes.addDelete(entityName, id, nestedItem, parentDepth + 1);
+
+            // Recursively process this item's nested arrays
+            this.markNestedJsonItemAsDeleted(
+              id,
+              parentDepth + 1,
+              changes,
+              rootTracker
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively marks nested items as deleted from a JSON object.
+   * This is used when processing cloned (JSON) state.
+   */
+  private markNestedJsonItemAsDeleted(
+    itemId: string,
+    parentDepth: number,
+    changes: AggregateChanges<any>,
+    rootTracker: HistoryTracker
+  ): void {
+    // Look through all tracked arrays to find nested items of this parent
+    for (const [, arrayState] of rootTracker.trackedArrays) {
+      if (arrayState.metadata.parentId === itemId) {
+        // Process all items in this nested array
+        for (const nestedJsonItem of arrayState.cloned) {
+          if (typeof nestedJsonItem !== "object" || nestedJsonItem === null)
+            continue;
+
+          const nestedId = nestedJsonItem.id;
+          const entityName = arrayState.metadata.entityName;
+
+          if (nestedId) {
+            changes.addDelete(
+              entityName,
+              nestedId,
+              nestedJsonItem,
+              parentDepth + 1
+            );
+
+            // Recursively process further nesting
+            this.markNestedJsonItemAsDeleted(
+              nestedId,
+              parentDepth + 1,
+              changes,
+              rootTracker
+            );
+          } else {
+            // Value object - try to extract identity key
+            const key = this.extractIdentityKeyFromJson(
+              nestedJsonItem,
+              arrayState.original
+            );
+            if (key) {
+              changes.addDelete(
+                entityName,
+                key,
+                nestedJsonItem,
+                parentDepth + 1
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Extracts identity key from a JSON object by looking at the original ValueObject instances.
+   */
+  private extractIdentityKeyFromJson(
+    jsonItem: any,
+    originalArray: any[]
+  ): string | undefined {
+    // Try to find the original ValueObject to get its identity key
+    for (const originalItem of originalArray) {
+      if (this.isEntityOrVO(originalItem)) {
+        const originalJson = this.deepClone(originalItem);
+        // Check if this matches our JSON item (rough comparison)
+        if (JSON.stringify(originalJson) === JSON.stringify(jsonItem)) {
+          // Found the matching original item - extract its identity key
+          const key = this.getItemKey(originalItem);
+          if (key) return key;
+        }
+      }
+    }
+
+    // Fallback: if it has an id, use that
+    if (jsonItem.id) return jsonItem.id;
+
+    return undefined;
   }
 
   private collectNestedArrays(
@@ -524,6 +700,7 @@ export class HistoryTracker {
 
       const currentValue = this.getValueAtPath(this.target, path);
       const originalValue = trackedItem.originalState;
+      const originalEntity = trackedItem.entity;
       const { entityName, depth, parentId, parentEntity } =
         trackedItem.metadata;
 
@@ -543,14 +720,16 @@ export class HistoryTracker {
         case "deleted":
           const id = this.getEntityId(originalValue);
           if (id) {
-            changes.addDelete(entityName, id, originalValue, depth);
+            // Use originalEntity instead of originalValue to preserve entity instance
+            changes.addDelete(entityName, id, originalEntity, depth);
           }
           break;
 
         case "replaced":
           const oldId = this.getEntityId(originalValue);
           if (oldId) {
-            changes.addDelete(entityName, oldId, originalValue, depth);
+            // Use originalEntity instead of originalValue to preserve entity instance
+            changes.addDelete(entityName, oldId, originalEntity, depth);
           }
           changes.addCreate(
             entityName,
@@ -710,8 +889,11 @@ export class HistoryTracker {
       ? this.getEntityName(newValue)
       : this.getEntityName(oldValue);
 
+    const existingTracked = rootTracker.trackedEntities.get(path);
+
     rootTracker.trackedEntities.set(path, {
-      entity: newValue,
+      // Preserve original entity, or use oldValue if this is the first change
+      entity: existingTracked?.entity || oldValue,
       metadata: {
         entityName,
         depth: this.depth + 1,
@@ -719,7 +901,8 @@ export class HistoryTracker {
         parentEntity: this.rootEntityName,
         path,
       },
-      originalState: rootTracker.trackedEntities.get(path)?.originalState,
+      // Preserve original state
+      originalState: existingTracked?.originalState,
     });
   }
 
@@ -796,7 +979,7 @@ export class HistoryTracker {
       return a.getTime() === b.getTime();
 
     try {
-      return JSON.stringify(a) === JSON.stringify(b);
+      return this.hasChanged(a, b) === false;
     } catch {
       return this.deepEqual(a, b);
     }

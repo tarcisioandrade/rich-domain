@@ -1,7 +1,3 @@
-// ============================================================================
-// Value Object - Immutable Domain Objects (Updated with identityKey support)
-// ============================================================================
-
 import { ValidationError } from "./validation-error";
 import { IDomainEvent } from ".";
 import {
@@ -22,10 +18,9 @@ function getStaticProperty<T>(
 }
 
 /**
- * Tipo para a chave de identidade de um Value Object
- * Pode ser uma única chave ou um array de chaves (chave composta)
+ * Identity key type for a Value Object. Can be a single key or an array of keys (composite key).
  */
-export type IdentityKeyDefinition<T> = keyof T | (keyof T)[];
+export type IdentityKeyDefinition<T> = (keyof T)[] | keyof T;
 
 export abstract class ValueObject<T> {
   protected readonly props!: T;
@@ -34,32 +29,29 @@ export abstract class ValueObject<T> {
   private domainSchema?: StandardSchema<T>;
   private domainEvents: IDomainEvent[] = [];
 
-  // Static properties that subclasses can override
   protected static validation?: EntityValidation<any>;
   protected static hooks?: VOHooks<any, any>;
 
   /**
-   * Chave de identidade para identificação em coleções.
-   *
-   * Usado pelo HistoryTracker para detectar mudanças em arrays de Value Objects.
+   * Identity key for identification in collections.
+   * Used by HistoryTracker to track changes in arrays of Value Objects.
    *
    * @example
    * ```typescript
-   * // Chave simples
+   * // Simple key
    * class TagReference extends ValueObject<{ tagId: string }> {
-   *   static readonly identityKey = 'tagId' as const;
+   *   static readonly identityKey = 'tagId';
    * }
    *
-   * // Chave composta
+   * // Composite key
    * class Like extends ValueObject<{ postId: string; userId: string }> {
-   *   static readonly identityKey = ['postId', 'userId'] as const;
+   *   static readonly identityKey = ['postId', 'userId'];
    * }
    * ```
    */
   protected static identityKey?: IdentityKeyDefinition<any>;
 
   constructor(props: T) {
-    // Get static configuration from subclass
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
       "validation"
@@ -79,23 +71,18 @@ export abstract class ValueObject<T> {
 
     let finalProps = { ...props } as T;
 
-    // Validate schema on creation
     if (this.domainSchema && this.validationConfig.onCreate) {
       this.validateProps(finalProps);
     }
 
-    // Set props (not frozen yet) so rules can access them
     (this as any).props = finalProps;
 
-    // Execute rules (custom validations) - after props is set but before freezing
     if (hooks?.rules) {
       hooks.rules(this as any);
     }
 
-    // Now freeze the props for immutability
     Object.freeze(this.props);
 
-    // Hook onCreate
     if (hooks?.onCreate) {
       hooks.onCreate(this as any);
     }
@@ -124,7 +111,6 @@ export abstract class ValueObject<T> {
         throw validationError;
       }
 
-      // If not throwing, store error for later retrieval
       (this as any)._validationError = validationError;
     }
   }
@@ -133,46 +119,45 @@ export abstract class ValueObject<T> {
     if (pathSegment === null || pathSegment === undefined) {
       return "";
     }
-    // Handle PropertyKey (string | number | symbol)
     if (typeof pathSegment === "string" || typeof pathSegment === "number") {
       return String(pathSegment);
     }
     if (typeof pathSegment === "symbol") {
       return pathSegment.toString();
     }
-    // Handle object with 'key' property (Zod's PathSegment)
     if (typeof pathSegment === "object" && "key" in pathSegment) {
       return String((pathSegment as { key: unknown }).key);
     }
-    // Fallback
     return String(pathSegment);
   }
 
   /**
-   * Check if value object has validation errors (when throwOnError is false)
+   * Returns true if the value object has validation errors (when throwOnError is false).
    */
   get hasValidationErrors(): boolean {
     return !!(this as any)._validationError;
   }
 
   /**
-   * Get validation errors (when throwOnError is false)
+   * Returns the validation errors (when throwOnError is false).
    */
   get validationErrors(): ValidationError | undefined {
     return (this as any)._validationError;
   }
 
+  /**
+   * Compare this ValueObject with another for equality based on their properties.
+   */
   equals(other: ValueObject<T>): boolean {
     if (!other || !(other instanceof ValueObject)) return false;
     return JSON.stringify(this.props) === JSON.stringify(other.props);
   }
 
   /**
-   * Retorna a chave de identidade deste Value Object.
+   * Returns the identity key for this Value Object.
+   * Used for identification in collections when identityKey is set.
    *
-   * Usado para identificação em coleções quando `identityKey` está definido.
-   *
-   * @returns String com a chave de identidade ou null se não definido
+   * @returns String with the identity key or null if not defined
    *
    * @example
    * ```typescript
@@ -194,51 +179,52 @@ export abstract class ValueObject<T> {
     }
 
     if (Array.isArray(keyDef)) {
-      // Chave composta
       return keyDef.map((k) => String(this.props[k])).join(":");
     }
 
-    // Chave simples
     return String(this.props[keyDef]);
   }
 
   /**
-   * Verifica se este Value Object tem uma chave de identidade definida
+   * Returns true if this Value Object has an identity key defined.
    */
   hasIdentityKey(): boolean {
-    return getStaticProperty<IdentityKeyDefinition<T>>(this, "identityKey") !== undefined;
+    return (
+      getStaticProperty<IdentityKeyDefinition<T>>(this, "identityKey") !==
+      undefined
+    );
   }
 
   /**
-   * Retorna a definição da chave de identidade (se houver)
+   * Returns the identity key definition (if any).
    */
   static getIdentityKeyDefinition<P>(): IdentityKeyDefinition<P> | undefined {
     return (this as any).identityKey;
   }
 
   /**
-   * Add a domain event to this value object
+   * Adds a domain event to this value object.
    */
   protected addDomainEvent(event: IDomainEvent): void {
     this.domainEvents.push(event);
   }
 
   /**
-   * Get all uncommitted domain events
+   * Returns all uncommitted domain events.
    */
   getUncommittedEvents(): IDomainEvent[] {
     return [...this.domainEvents];
   }
 
   /**
-   * Clear all domain events (call after publishing)
+   * Clears all domain events (call after publishing).
    */
   clearEvents(): void {
     this.domainEvents = [];
   }
 
   /**
-   * Check if value object has uncommitted events
+   * Returns true if the value object has uncommitted events.
    */
   hasUncommittedEvents(): boolean {
     return this.domainEvents.length > 0;
@@ -249,8 +235,8 @@ export abstract class ValueObject<T> {
   }
 
   /**
-   * Create a new ValueObject with updated properties
-   * Since ValueObjects are immutable, this returns a new instance
+   * Creates a new ValueObject with updated properties.
+   * ValueObjects are immutable, so this returns a new instance.
    */
   protected clone(updates: Partial<T>): this {
     const Constructor = this.constructor as new (props: T) => this;

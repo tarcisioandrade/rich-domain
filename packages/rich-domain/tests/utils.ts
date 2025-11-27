@@ -43,7 +43,7 @@ export class Address extends Entity<{
 }
 
 export class TagReference extends ValueObject<{ tagId: string; name: string }> {
-  static readonly identityKey = "tagId" as const;
+  static readonly identityKey = "tagId";
 
   get tagId() {
     return this.props.tagId;
