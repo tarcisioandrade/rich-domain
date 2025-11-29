@@ -1,6 +1,9 @@
+import { AsyncLocalStorage } from "async_hooks";
 import { PrismaClient } from "@prisma/client";
-import { PrismaTransactionContext } from "./prisma-transaction-context";
-import { AsyncLocalStorage } from "node:async_hooks";
+
+export class PrismaTransactionContext {
+  constructor(public readonly client: PrismaClient) {}
+}
 
 export const UOWStorage = new AsyncLocalStorage<{
   ctx: PrismaTransactionContext | null;
@@ -24,4 +27,35 @@ export class PrismaUnitOfWork {
       });
     });
   }
+}
+
+export function Transactional() {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const original = descriptor.value;
+
+    descriptor.value = async function (...args: any[]) {
+      if (UOWStorage.getStore()?.ctx) {
+        return original.apply(this, args);
+      }
+
+      const ctx = (this as any).uow as PrismaUnitOfWork;
+
+      if (!ctx) {
+        throw new Error(
+          `Unit of Work not found in the '${this.constructor.name}' context of the service. Did you forget to inject the UnitOfWork? eg: constructor(private readonly uow: PrismaUnitOfWork) {}`
+        );
+      }
+
+      return ctx.transaction(async (tx) => {
+        const ctx = new PrismaTransactionContext(tx.client);
+        return UOWStorage.run({ ctx }, () => original.apply(this, args));
+      });
+    };
+
+    return descriptor;
+  };
 }

@@ -3,12 +3,15 @@ import { User } from "../../../domain/user/user.entity";
 import { Post } from "../../../domain/post/post.entity";
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 import { PrismaClient } from "@prisma/client";
-import { UOWStorage } from "../unit-of-work";
+import { PrismaUnitOfWork, Transactional } from "../unit-of-work";
 
 export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
   private readonly registry: EntitySchemaRegistry;
 
-  constructor(private readonly prisma: PrismaClient) {
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly uow: PrismaUnitOfWork
+  ) {
     super();
     this.registry = new EntitySchemaRegistry()
       .register({
@@ -28,13 +31,13 @@ export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
     if (user.isNew()) {
       await this.createUser(user);
     } else {
-      await this.safeUpdate(user);
+      await this.updateUser(user);
     }
   }
 
   private get context(): PrismaClient {
-    const ctx = UOWStorage.getStore()?.ctx;
-    return (ctx?.client as PrismaClient) ?? this.prisma;
+    const ctx = this.uow.getCurrentContext();
+    return ctx?.client ?? this.prisma;
   }
 
   private async createUser(user: User): Promise<void> {
@@ -65,17 +68,8 @@ export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
     });
   }
 
-  private async safeUpdate(user: User): Promise<void> {
-    if (UOWStorage.getStore()?.ctx?.client) {
-      return await this.updateUser(user, this.context);
-    }
-
-    return await this.prisma.$transaction(async (tx) => {
-      return await this.updateUser(user, tx as PrismaClient);
-    });
-  }
-
-  private async updateUser(user: User, tx: PrismaClient): Promise<void> {
+  @Transactional()
+  private async updateUser(user: User): Promise<void> {
     const changes = user.getTypedChanges();
     if (changes.isEmpty()) return;
 
@@ -83,7 +77,7 @@ export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
 
     for (const deletion of batch.deletes) {
       if (deletion.entity === "Post") {
-        await tx.post.deleteMany({
+        await this.context.post.deleteMany({
           where: { id: { in: deletion.ids } },
         });
       }
@@ -91,7 +85,7 @@ export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
 
     for (const creation of batch.creates) {
       if (creation.entity === "Post") {
-        await tx.post.createMany({
+        await this.context.post.createMany({
           data: creation.items.map((item) => {
             const post = item.data as Post;
             return {
@@ -113,7 +107,7 @@ export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
       const table = this.registry.getTable(update.entity);
 
       for (const item of update.items) {
-        await (tx as any)[table].update({
+        await (this.context as any)[table].update({
           where: { id: item.id },
           data: this.registry.mapFields(update.entity, item.changedFields),
         });
