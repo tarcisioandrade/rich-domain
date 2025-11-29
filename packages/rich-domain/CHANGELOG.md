@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.0...v1.2.1) (2025-11-29)
+
+
+### Features
+
+* implement custom UUID generation in crypto module ([4fc732a](https://github.com/tarcisioandrade/rich-domain/commit/4fc732a00237a9d63e320555acf4a8a14c941f13))
+* introduce TypedOrder and enhance Criteria to support nested object field paths ([9857624](https://github.com/tarcisioandrade/rich-domain/commit/9857624608eda1320ec813b165e9183f1e28a0d1))
+* new history-tracker structure ([aaea6d4](https://github.com/tarcisioandrade/rich-domain/commit/aaea6d4c8aed575f50917cba41936d1b1560ed3d))
+* update Id constructor to handle optional isNew parameter ([0aae58b](https://github.com/tarcisioandrade/rich-domain/commit/0aae58b02da69e0cb7421663335ac305ade5afa7))
+
+
+### Bug Fixes
+
+* aggregate-changes type inference ([aa62138](https://github.com/tarcisioandrade/rich-domain/commit/aa62138b31cdedb63c0e1be8a19271f4ada2e71c))
+* history tracker not tracking when nested created ([2900e20](https://github.com/tarcisioandrade/rich-domain/commit/2900e20c18da7aa0ee960c9e5d0f5e2524e3d6f3))
+* uow in persistence fastify example ([fcef611](https://github.com/tarcisioandrade/rich-domain/commit/fcef61103f160c0b1adbee9cbce821ce047189eb))
+
+
+### Refactoring
+
+* change prisma example to new architecture ([92dc179](https://github.com/tarcisioandrade/rich-domain/commit/92dc1798ee5a64439d6633ab5b0cc77b42265ed6))
+* improve deepClone method for better object handling and error management ([52ae893](https://github.com/tarcisioandrade/rich-domain/commit/52ae8930d112ba018f7944f69837edea82d45309))
+* prisma example unit of work with async local storage ([ca6fc16](https://github.com/tarcisioandrade/rich-domain/commit/ca6fc1663ca251dac020939080b126f3984b0eae))
+* remove unnosed code from ancient architecture ([19a41b1](https://github.com/tarcisioandrade/rich-domain/commit/19a41b121b4adaaea5525da20b068f43cc674db8))
+* update repository methods to use 'save' consistently across use cases ([aab323b](https://github.com/tarcisioandrade/rich-domain/commit/aab323be2fff86246dc0c1a14cb7ba56bf11efa7))
+* update repository methods to use 'save' instead of 'create' and 'update' ([6766970](https://github.com/tarcisioandrade/rich-domain/commit/6766970019781215019b492963e020ef4babcd89))
+
+
+### Tests
+
+* add load test ([9bd07fb](https://github.com/tarcisioandrade/rich-domain/commit/9bd07fb019e2cc0eef3f0573af8f4dad1d8b385f))
+* new history-tracker structure ([d31ad0b](https://github.com/tarcisioandrade/rich-domain/commit/d31ad0b109bfa5e5ff62743d70dd51bb64107f10))
+
 ## [1.2.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.1.0...v1.2.0) (2025-11-23)
 
 

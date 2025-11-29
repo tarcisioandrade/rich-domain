@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Rich Domain Library with Standard Schema validation support",
   "homepage": "https://github.com/tarcisioandrade/rich-domain",
   "type": "module",
