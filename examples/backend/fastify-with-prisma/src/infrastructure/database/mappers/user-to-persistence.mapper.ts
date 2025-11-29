@@ -1,88 +1,123 @@
 import { Mapper } from "@woltz/rich-domain";
 import { User } from "../../../domain/user/user.entity";
-import { Prisma } from "@prisma/client";
+import { Post } from "../../../domain/post/post.entity";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+import { PrismaClient } from "@prisma/client";
+import { UOWStorage } from "../unit-of-work";
 
-type Props = Partial<Prisma.UserCreateArgs["data"]> &
-  Partial<Prisma.UserUpdateArgs["data"]>;
+export class PrismaUserToPersistenceMapper extends Mapper<User, void> {
+  private readonly registry: EntitySchemaRegistry;
 
-export class PrismaUserToPersistenceMapper extends Mapper<User, Props> {
-  public build(user: User): Props {
-    let data = {} as Props;
+  constructor(private readonly prisma: PrismaClient) {
+    super();
+    this.registry = new EntitySchemaRegistry()
+      .register({
+        entity: "User",
+        table: "user",
+      })
+      .register({
+        entity: "Post",
+        table: "post",
+        fields: {
+          content: "main_content",
+        },
+      });
+  }
 
+  async build(user: User): Promise<void> {
     if (user.isNew()) {
-      data = {
+      await this.createUser(user);
+    } else {
+      await this.safeUpdate(user);
+    }
+  }
+
+  private get context(): PrismaClient {
+    const ctx = UOWStorage.getStore()?.ctx;
+    return (ctx?.client as PrismaClient) ?? this.prisma;
+  }
+
+  private async createUser(user: User): Promise<void> {
+    await this.context.user.create({
+      data: {
         id: user.id.value,
         email: user.email,
         name: user.name,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
         posts: {
-          createMany: {
-            data: user.posts.map((post) => ({
-              id: post.id.value,
-              title: post.title,
-              content: post.content,
-              published: post.published,
-              authorId: post.authorId,
-              createdAt: post.createdAt,
-              updatedAt: post.updatedAt,
-            })),
-            skipDuplicates: true,
-          },
+          createMany: user.posts.length
+            ? {
+                data: user.posts.map((post) => ({
+                  id: post.id.value,
+                  title: post.title,
+                  main_content: post.content,
+                  published: post.published,
+                  authorId: user.id.value,
+                  createdAt: post.createdAt,
+                  updatedAt: post.updatedAt,
+                })),
+                skipDuplicates: true,
+              }
+            : undefined,
         },
-      };
-    } else {
-      user.subscribe({
-        updatedAt: {
-          onChange: ({ current }) => {
-            data.updatedAt = current;
-          },
-        },
-        email: {
-          onChange: ({ current }) => {
-            data.email = current;
-          },
-        },
-        name: {
-          onChange: ({ current }) => {
-            data.name = current;
-          },
-        },
-        posts: {
-          onChange: ({ toCreate, toDelete, toUpdate }) => {
-            if (!data.posts) data.posts = {};
+      },
+    });
+  }
 
-            data.posts.createMany = {
-              data: toCreate.map((post) => ({
-                id: post.id.value,
-                title: post.title,
-                content: post.content,
-                published: post.published,
-                authorId: post.authorId,
-                createdAt: post.createdAt,
-                updatedAt: post.updatedAt,
-              })),
-              skipDuplicates: true,
-            };
-
-            data.posts.deleteMany = toDelete.map((post) => ({
-              id: post.id.value,
-            }));
-
-            data.posts.updateMany = toUpdate.map((post) => ({
-              where: { id: post.id.value },
-              data: {
-                title: post.title,
-                content: post.content,
-                published: post.published,
-                authorId: post.authorId,
-                createdAt: post.createdAt,
-                updatedAt: post.updatedAt,
-              },
-            }));
-          },
-        },
-      });
+  private async safeUpdate(user: User): Promise<void> {
+    if (UOWStorage.getStore()?.ctx?.client) {
+      return await this.updateUser(user, this.context);
     }
 
-    return data;
+    return await this.prisma.$transaction(async (tx) => {
+      return await this.updateUser(user, tx as PrismaClient);
+    });
+  }
+
+  private async updateUser(user: User, tx: PrismaClient): Promise<void> {
+    const changes = user.getTypedChanges();
+    if (changes.isEmpty()) return;
+
+    const batch = changes.toBatchOperations();
+
+    for (const deletion of batch.deletes) {
+      if (deletion.entity === "Post") {
+        await tx.post.deleteMany({
+          where: { id: { in: deletion.ids } },
+        });
+      }
+    }
+
+    for (const creation of batch.creates) {
+      if (creation.entity === "Post") {
+        await tx.post.createMany({
+          data: creation.items.map((item) => {
+            const post = item.data as Post;
+            return {
+              id: post.id.value,
+              title: post.title,
+              main_content: post.content,
+              published: post.published,
+              authorId: item.parentId || user.id.value,
+              createdAt: post.createdAt,
+              updatedAt: post.updatedAt,
+            };
+          }),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    for (const update of batch.updates) {
+      const table = this.registry.getTable(update.entity);
+
+      for (const item of update.items) {
+        await (tx as any)[table].update({
+          where: { id: item.id },
+          data: this.registry.mapFields(update.entity, item.changedFields),
+        });
+      }
+    }
   }
 }

@@ -7,31 +7,6 @@ import type { IUnitOfWork, TransactionContext } from "../types";
 /**
  * Abstract Unit of Work
  * Provides transaction management across multiple repositories
- *
- * @example
- * ```ts
- * // Using transaction helper (recommended)
- * await uow.transaction(async (ctx) => {
- *   const userRepo = uow.getRepository(UserRepository);
- *   const orderRepo = uow.getRepository(OrderRepository);
- *
- *   await userRepo.save(user);
- *   await orderRepo.save(order);
- *
- *   // Auto-commits on success, rolls back on error
- * });
- *
- * // Manual control
- * const ctx = await uow.begin();
- * try {
- *   await userRepo.save(user);
- *   await orderRepo.save(order);
- *   await ctx.commit();
- * } catch (error) {
- *   await ctx.rollback();
- *   throw error;
- * }
- * ```
  */
 export abstract class UnitOfWork implements IUnitOfWork {
   protected currentContext: TransactionContext | null = null;

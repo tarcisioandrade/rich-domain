@@ -1,707 +1,439 @@
-import { Id } from "../src";
-import { Post, User, Address, Comment } from "./utils";
+import { Id } from "../src/id";
+import { Post, TagReference, User, Like, Address, Comment } from "./utils";
 
-describe("History Tracker Tests", () => {
-  describe("Simple Property Changes", () => {
-    it("should track simple property changes", (done) => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [
-          new Post({
-            id: new Id("1"),
-            title: "First Post",
-            content: "Hello World",
-            likes: 0,
-          }),
-        ],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+function createUser(
+  overrides: Partial<{
+    name: string;
+    email: string;
+    address: Address | null;
+    posts: Post[];
+    tags: TagReference[];
+  }> = {}
+) {
+  const user = new User({
+    id: new Id("user-1"),
+    name: overrides.name ?? "Test User",
+    email: overrides.email ?? "test@test.com",
+    address: overrides.address ?? null,
+    posts: overrides.posts ?? [],
+    tags: overrides.tags ?? [],
+  });
 
-      user.changeEmail("new@example.com");
-      user.name = "New Name";
-      user.addPost(
-        new Post({
-          id: new Id("2"),
-          title: "Second Post",
-          content: "Hello World 2",
-          likes: 0,
-        })
-      );
+  return user;
+}
 
-      function dispatch(entity: User) {
-        entity.subscribe({
-          email: {
-            onChange: ({ previous, current, path }) => {
-              expect(previous).toBe("john@example.com");
-              expect(current).toBe("new@example.com");
-              expect(path).toBe("email");
-            },
-          },
-          posts: {
-            onChange: ({ toCreate, toUpdate, toDelete }) => {
-              expect(toCreate).toHaveLength(1);
-              expect(toUpdate).toHaveLength(1);
-              expect(toDelete).toHaveLength(0);
-            },
-          },
-          name: {
-            onChange: ({ previous, current, path }) => {
-              expect(previous).toBe("John Doe");
-              expect(current).toBe("New Name");
-              expect(path).toBe("name");
-            },
-          },
-        });
-      }
-      user.posts[0].title = "Updated Title";
-      dispatch(user);
+function createPost(
+  overrides: Partial<{
+    title: string;
+    content: string;
+    published: boolean;
+    comments: Comment[];
+  }> = {}
+): Post {
+  return new Post({
+    id: new Id(),
+    title: overrides.title ?? "Test Post",
+    content: overrides.content ?? "Test content",
+    published: overrides.published ?? false,
+    comments: overrides.comments ?? [],
+  });
+}
 
-      setTimeout(() => {
-        done();
-      }, 100);
-    });
+function createComment(
+  overrides: Partial<{
+    text: string;
+    authorId: string;
+    likes: Like[];
+  }> = {}
+): Comment {
+  return new Comment({
+    id: new Id(),
+    text: overrides.text ?? "Test comment",
+    authorId: overrides.authorId ?? "author-1",
+    likes: overrides.likes ?? [],
+  });
+}
 
-    it("should track multiple property changes", () => {
-      const post = new Post({
-        id: new Id("1"),
-        title: "First Post",
-        content: "Hello World",
-        likes: 0,
-      });
+function createAddress(street = "123 Main St", city = "Test City"): Address {
+  return new Address({
+    id: new Id(),
+    street,
+    city,
+  });
+}
 
-      const changes: any[] = [];
+describe("HistoryTracker.getChanges()", () => {
+  describe("no changes", () => {
+    it("should return empty changes when nothing modified", () => {
+      const user = createUser();
 
-      post.subscribe({
-        title: {
-          onChange: (event) => changes.push({ property: "title", ...event }),
-        },
-        likes: {
-          onChange: (event) => changes.push({ property: "likes", ...event }),
-        },
-      });
+      const changes = user.getChanges();
 
-      post.title = "New Title";
-      post.likes = 10;
-
-      expect(changes).toHaveLength(2);
-      expect(changes[0].property).toBe("title");
-      expect(changes[1].property).toBe("likes");
+      expect(changes.isEmpty()).toBe(true);
+      expect(changes.hasCreates()).toBe(false);
+      expect(changes.hasUpdates()).toBe(false);
+      expect(changes.hasDeletes()).toBe(false);
     });
   });
 
-  // ==========================================================================
-  // Array Changes - Create Tests
-  // ==========================================================================
+  describe("root property changes", () => {
+    it("should detect primitive property changes", () => {
+      const user = createUser();
 
-  describe("Array Changes - Create", () => {
-    it("should detect new items added to array", (done) => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
+      user.changeName("New Name");
+      user.changeEmail("new@email.com");
+
+      const changes = user.getTypedChanges();
+
+      expect(changes.hasUpdates()).toBe(true);
+
+      const userUpdates = changes.for("User");
+      expect(userUpdates.hasUpdates()).toBe(true);
+      expect(userUpdates.updates[0].changed).toMatchObject({
+        name: "New Name",
+        email: "new@email.com",
       });
-
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toUpdate, toDelete }) => {
-            expect(toCreate).toHaveLength(2);
-            expect(toUpdate).toHaveLength(0);
-            expect(toDelete).toHaveLength(0);
-            expect(toCreate[0].title).toBe("Post 1");
-            done();
-          },
-        },
-      });
-
-      user.addManyPosts([
-        new Post({
-          id: new Id("1"),
-          title: "Post 1",
-          content: "Content 1",
-          likes: 0,
-        }),
-        new Post({
-          id: new Id("2"),
-          title: "Post 2",
-          content: "Content 2",
-          likes: 0,
-        }),
-      ]);
-    });
-
-    it("should detect items pushed to array", (done) => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [
-          new Post({
-            id: new Id("1"),
-            title: "Post 1",
-            content: "Content 1",
-            likes: 0,
-          }),
-        ],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
-
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate }) => {
-            expect(toCreate).toHaveLength(1);
-            expect(toCreate[0].title).toBe("Post 2");
-            done();
-          },
-        },
-      });
-
-      user.posts.push(
-        new Post({
-          id: new Id("2"),
-          title: "Post 2",
-          content: "Content 2",
-          likes: 0,
-        })
-      );
     });
   });
 
-  // ==========================================================================
-  // Array Changes - Update Tests
-  // ==========================================================================
+  describe("collection changes (1:N)", () => {
+    it("should detect added items", () => {
+      const user = createUser();
+      const newPost = createPost({ title: "New Post" });
 
-  describe("Array Changes - Update", () => {
-    it("should detect updated items in array", (done) => {
-      const id1 = new Id("1");
-      const post1 = new Post({
-        id: id1,
-        title: "Post 1",
-        content: "Content 1",
-        likes: 0,
-      });
-      const post2 = new Post({
-        id: new Id("2"),
-        title: "Post 2",
-        content: "Content 2",
-        likes: 0,
-      });
+      user.addPost(newPost);
 
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [post1, post2],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      const changes = user.getTypedChanges();
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toUpdate, toDelete }) => {
-            expect(toCreate).toHaveLength(0);
-            expect(toUpdate).toHaveLength(1);
-            expect(toDelete).toHaveLength(0);
-            expect(toUpdate[0].id).toBe(id1);
-            done();
-          },
-        },
-      });
+      expect(changes.hasCreates()).toBe(true);
 
-      // Modify existing post
-      post1.title = "Updated Post 1";
-      user.changeEmail("new@example.com");
-      user.posts = [...user.posts]; // Trigger change detection
+      const postChanges = changes.for("Post");
+
+      expect(postChanges.hasCreates()).toBe(true);
+      expect(postChanges.creates).toHaveLength(1);
+      expect(postChanges.creates[0].title).toBe("New Post");
     });
 
-    it("should detect multiple updates in array", (done) => {
-      const post1 = new Post({
-        id: new Id("1"),
-        title: "Post 1",
-        content: "Content 1",
-        likes: 0,
-      });
-      const post2 = new Post({
-        id: new Id("2"),
-        title: "Post 2",
-        content: "Content 2",
-        likes: 0,
-      });
-
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [post1, post2],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
+    it("should detect removed items", () => {
+      const existingPost = new Post({
+        id: new Id(),
+        title: "Existing Post",
+        content: "Existing content",
+        published: false,
         comments: [],
       });
-
-      user.subscribe({
-        posts: {
-          onChange: ({ toUpdate }) => {
-            expect(toUpdate).toHaveLength(2);
-            done();
-          },
-        },
+      const user = new User({
+        id: new Id(),
+        name: "Test User",
+        email: "test@test.com",
+        address: null,
+        posts: [existingPost],
+        tags: [],
       });
 
-      post1.title = "Updated Post 1";
-      post2.likes = 100;
-      user.posts = [...user.posts];
+      user.removePost(existingPost.id);
+
+      const changes = user.getChanges();
+
+      expect(changes.hasDeletes()).toBe(true);
+
+      const postChanges = changes.for("Post");
+      expect(postChanges.hasDeletes()).toBe(true);
+      expect(postChanges.deletes.length).toBe(1);
+    });
+
+    it("should detect updated items", () => {
+      const existingPost = createPost({ title: "Original Title" });
+      const user = createUser({ posts: [existingPost] });
+
+      user.posts[0].changeTitle("Updated Title");
+
+      const changes = user.getTypedChanges();
+
+      const postChanges = changes.for("Post");
+      expect(postChanges.hasUpdates()).toBe(true);
+      expect(postChanges.updates[0].changed).toMatchObject({
+        title: "Updated Title",
+      });
+    });
+
+    it("should detect multiple operations", () => {
+      const post1 = createPost({ title: "Post 1" });
+      const post2 = createPost({ title: "Post 2" });
+      const user = createUser({ posts: [post1, post2] });
+
+      // Remove post1
+      user.removePost(post1.id);
+
+      // Add new post
+      const post3 = createPost({ title: "Post 3" });
+      user.addPost(post3);
+
+      // Update post2
+      user.posts[0].changeTitle("Post 2 Updated");
+
+      const changes = user.getTypedChanges();
+      const postChanges = changes.for("Post");
+
+      expect(postChanges.hasCreates()).toBe(true);
+      expect(postChanges.hasUpdates()).toBe(true);
+      expect(postChanges.hasDeletes()).toBe(true);
+      expect(postChanges.creates).toHaveLength(1);
+      expect(postChanges.updates).toHaveLength(1);
+      expect(postChanges.deletes).toHaveLength(1);
     });
   });
 
-  // ==========================================================================
-  // Array Changes - Delete Tests
-  // ==========================================================================
+  describe("nested collections", () => {
+    it("should detect changes in deeply nested collections", () => {
+      const comment = createComment({ text: "Original comment" });
+      const post = createPost({ comments: [comment] });
+      const user = createUser({ posts: [post] });
 
-  describe("Array Changes - Delete", () => {
-    it("should detect deleted items from array", (done) => {
-      const post1 = new Post({
-        id: new Id("1"),
-        title: "Post 1",
-        content: "Content 1",
-        likes: 0,
-      });
-      const post2 = new Post({
-        id: new Id("2"),
-        title: "Post 2",
-        content: "Content 2",
-        likes: 0,
-      });
+      // Add new comment
+      const newComment = createComment({ text: "New comment" });
+      user.posts[0].addComment(newComment);
 
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [post1, post2],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      const changes = user.getTypedChanges();
+      const commentChanges = changes.for("Comment");
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toUpdate, toDelete }) => {
-            expect(toCreate).toHaveLength(0);
-            expect(toUpdate).toHaveLength(0);
-            expect(toDelete).toHaveLength(1);
-            done();
-          },
-        },
-      });
-
-      user.posts = [post2];
+      expect(commentChanges.hasCreates()).toBe(true);
+      expect(commentChanges.creates[0].text).toBe("New comment");
+      expect(commentChanges.updates).toHaveLength(0);
+      expect(commentChanges.deletes).toHaveLength(0);
+      expect(commentChanges.creates).toHaveLength(1);
     });
 
-    it("should detect items removed with splice", (done) => {
-      const id1 = new Id("1");
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [
-          new Post({
-            id: id1,
-            title: "Post 1",
-            content: "Content 1",
-            likes: 0,
-          }),
-          new Post({
-            id: new Id("2"),
-            title: "Post 2",
-            content: "Content 2",
-            likes: 0,
-          }),
-        ],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+    it("should handle 3+ levels of nesting (User > Post > Comment > Like)", () => {
+      const comment = createComment({ likes: [] });
+      const post = createPost({ comments: [comment] });
+      const user = createUser({ posts: [post] });
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toDelete }) => {
-            expect(toDelete).toHaveLength(1);
-            expect(toDelete[0].id.value).toBe(id1.value);
-            done();
-          },
-        },
+      const newLike = new Like({
+        postId: "post-1",
+        userId: "user-2",
+        createdAt: new Date(),
       });
+      user.posts[0].comments[0].addLike(newLike);
 
-      user.posts.splice(0, 1);
+      const changes = user.getTypedChanges();
+      const likeChanges = changes.for("Like");
+
+      expect(likeChanges.hasCreates()).toBe(true);
+      expect(likeChanges.creates).toHaveLength(1);
+      expect(likeChanges.updates).toHaveLength(0);
+      expect(likeChanges.deletes).toHaveLength(0);
     });
   });
 
-  // ==========================================================================
-  // Array Changes - Mixed Operations Tests
-  // ==========================================================================
+  describe("entity relations (1:1)", () => {
+    it("should detect created entity (null → Entity)", () => {
+      const user = createUser({ address: null });
 
-  describe("Array Changes - Mixed Operations", () => {
-    it("should detect mixed create and update operations", (done) => {
-      const post1 = new Post({
-        id: new Id("1"),
-        title: "Post 1",
-        content: "Content 1",
-        likes: 0,
-      });
+      user.setAddress(createAddress("New Street", "New City"));
 
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [post1],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      const changes = user.getTypedChanges();
+      const addressChanges = changes.for("Address");
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toUpdate, toDelete }) => {
-            expect(toCreate).toHaveLength(2);
-            expect(toUpdate).toHaveLength(1);
-            expect(toDelete).toHaveLength(0);
-            done();
-          },
-        },
-      });
-
-      post1.title = "Updated Post 1";
-      user.posts = [
-        post1,
-        new Post({
-          id: new Id("2"),
-          title: "Post 2",
-          content: "Content 2",
-          likes: 0,
-        }),
-        new Post({
-          id: new Id("3"),
-          title: "Post 3",
-          content: "Content 3",
-          likes: 0,
-        }),
-      ];
+      expect(addressChanges.hasCreates()).toBe(true);
+      expect(addressChanges.creates[0].street).toBe("New Street");
     });
 
-    it("should detect mixed create, update, and delete operations", (done) => {
-      const post1 = new Post({
-        id: new Id("1"),
-        title: "Post 1",
-        content: "Content 1",
-        likes: 0,
-      });
-      const post2 = new Post({
-        id: new Id("2"),
-        title: "Post 2",
-        content: "Content 2",
-        likes: 0,
-      });
-      const post3 = new Post({
-        id: new Id("3"),
-        title: "Post 3",
-        content: "Content 3",
-        likes: 0,
-      });
+    it("should detect deleted entity (Entity → null)", () => {
+      const address = createAddress();
+      const user = createUser({ address });
 
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [post1, post2, post3],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      user.removeAddress();
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toUpdate, toDelete }) => {
-            expect(toCreate).toHaveLength(1); // post4
-            expect(toUpdate).toHaveLength(1); // post2 modified
-            expect(toDelete).toHaveLength(2); // post1 and post3 removed
-            done();
-          },
-        },
-      });
+      const changes = user.getTypedChanges();
+      const addressChanges = changes.for("Address");
 
-      post2.likes = 50;
-      user.posts = [
-        post2,
-        new Post({
-          id: new Id("4"),
-          title: "Post 4",
-          content: "Content 4",
-          likes: 0,
-        }),
-      ];
+      expect(addressChanges.hasDeletes()).toBe(true);
+      expect(addressChanges.deletes).toHaveLength(1);
+    });
+
+    it("should detect updated entity (same ID with changes)", () => {
+      const address = createAddress("Old Street", "Old City");
+      const user = createUser({ address });
+
+      user.address?.changeStreet("New Street");
+
+      const changes = user.getTypedChanges();
+      const addressChanges = changes.for("Address");
+
+      expect(addressChanges.hasUpdates()).toBe(true);
+      expect(addressChanges.updates[0].changed).toMatchObject({
+        street: "New Street",
+      });
+    });
+
+    it("should detect replaced entity (different ID)", () => {
+      const oldAddress = createAddress("Old Street", "Old City");
+      const user = createUser({ address: oldAddress });
+
+      const newAddress = createAddress("New Street", "New City");
+      user.setAddress(newAddress);
+
+      const changes = user.getTypedChanges();
+      const addressChanges = changes.for("Address");
+
+      expect(addressChanges.hasDeletes()).toBe(true);
+      expect(addressChanges.hasCreates()).toBe(true);
+      expect(addressChanges.deletes).toHaveLength(1);
+      expect(addressChanges.deletes[0].id.value).toBe(oldAddress.id.value);
+      expect(addressChanges.creates).toHaveLength(1);
+      expect(addressChanges.creates[0].id.value).toBe(newAddress.id.value);
     });
   });
 
-  // ==========================================================================
-  // Nested Entity Tests
-  // ==========================================================================
+  describe("Value Objects with identityKey", () => {
+    it("should detect added VOs using identityKey", () => {
+      const user = createUser({ tags: [] });
 
-  describe("Nested Entity Changes", () => {
-    it("should track changes in nested value objects", (done) => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      const tag = new TagReference({ tagId: "tag-1", name: "JavaScript" });
+      user.addTag(tag);
 
-      user.subscribe({
-        address: {
-          onChange: ({ previous, current }) => {
-            expect(previous).toBeInstanceOf(Address);
-            expect(current).toBeInstanceOf(Address);
-            expect(current.city).toBe("LA");
-            done();
-          },
-        },
-      });
+      const changes = user.getTypedChanges();
+      const tagChanges = changes.for("TagReference");
 
-      user.address = new Address({
-        street: "Broadway",
-        city: "LA",
-        zipCode: "90001",
-      });
+      expect(tagChanges.hasCreates()).toBe(true);
+      expect(tagChanges.creates).toHaveLength(1);
+      expect(tagChanges.creates[0].tagId).toBe("tag-1");
     });
 
-    it("should track correct changes when assign all value", (done) => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [
-          new Comment({
-            text: "Nice post!",
-            author: "Alice",
-          }),
-        ],
+    it("should detect removed VOs using identityKey", () => {
+      const tag = new TagReference({ tagId: "tag-1", name: "JavaScript" });
+      const user = createUser({ tags: [tag] });
+
+      user.removeTag(tag.tagId);
+
+      const changes = user.getTypedChanges();
+      const tagChanges = changes.for("TagReference");
+
+      expect(tagChanges.hasDeletes()).toBe(true);
+      expect(tagChanges.deletes).toHaveLength(1);
+      expect(tagChanges.deletes[0].tagId).toBe("tag-1");
+    });
+
+    it("should use composite identityKey for Likes", () => {
+      const like = new Like({
+        postId: "post-1",
+        userId: "user-1",
+        createdAt: new Date(),
       });
+      const comment = createComment({ likes: [like] });
+      const post = createPost({ comments: [comment] });
+      const user = createUser({ posts: [post] });
 
-      let count = 0;
-      const MAX_COUNT_TO_EXPECT = 3;
-      user.subscribe({
-        comments: {
-          onChange: ({ toCreate, toDelete, toUpdate }) => {
-            count++;
-            if (count === MAX_COUNT_TO_EXPECT) {
-              expect(toCreate).toHaveLength(2);
-              expect(toDelete).toHaveLength(1);
-              expect(toUpdate).toHaveLength(0);
-              done();
-            }
-          },
-        },
-      });
+      user.posts[0].comments[0].removeLike(like.postId, like.userId);
 
-      user.comments.push(
-        new Comment({
-          text: "Nice post2!",
-          author: "Alice2",
-        })
-      );
-      user.comments.push(
-        new Comment({
-          text: "Nice post3!",
-          author: "Alice3",
-        })
-      );
+      const changes = user.getTypedChanges();
+      const likeChanges = changes.for("Like");
 
-      user.comments = [
-        new Comment({
-          text: "Nice post2!",
-          author: "Alice2",
-        }),
-        new Comment({
-          text: "Nice post3!",
-          author: "Alice3",
-        }),
-      ];
+      expect(likeChanges.hasDeletes()).toBe(true);
+      expect(likeChanges.deletes).toHaveLength(1);
+      expect(likeChanges.deletes[0].postId).toBe("post-1");
+      expect(likeChanges.deletes[0].userId).toBe("user-1");
     });
   });
 
-  // ==========================================================================
-  // History Tracking Tests
-  // ==========================================================================
+  describe("toBatchOperations", () => {
+    it("should group and order operations correctly", () => {
+      const comment = createComment();
+      const post = createPost({ comments: [comment] });
+      const address = createAddress();
+      const user = createUser({ posts: [post], address });
 
-  describe("History Tracking", () => {
-    it("should record history of changes", () => {
-      const post = new Post({
-        id: new Id("1"),
-        title: "First Post",
-        content: "Hello World",
-        likes: 0,
-      });
+      user.changeName("New Name"); // depth 0
+      user.address?.changeStreet("New Street"); // depth 1
+      user.posts[0].changeTitle("New Title"); // depth 1
+      user.posts[0].comments[0].changeText("New Comment"); // depth 2
 
-      post.title = "Second Title";
-      post.likes = 10;
-      post.content = "Updated Content";
+      const newPost = createPost({ title: "Brand New Post" });
+      user.addPost(newPost);
 
-      const history = post.getHistory();
-      expect(history).toHaveLength(3);
-      expect(history[0].path).toBe("title");
-      expect(history[1].path).toBe("likes");
-      expect(history[2].path).toBe("content");
+      const changes = user.getTypedChanges();
+      const batch = changes.toBatchOperations();
+
+      expect(batch.deletes).toHaveLength(0);
+
+      expect(batch.creates.length).toBe(1);
+      expect(batch.creates[0].entity).toBe("Post");
+      expect(batch.creates[0].depth).toBe(1);
+
+      expect(batch.updates.length).toBe(4);
     });
 
-    it("should clear history", () => {
-      const post = new Post({
-        id: new Id("1"),
-        title: "First Post",
-        content: "Hello World",
-        likes: 0,
+    it("should order deletes by depth DESC (leaf → root)", () => {
+      const like = new Like({
+        postId: "post-1",
+        userId: "user-1",
+        createdAt: new Date(),
       });
+      const comment = createComment({ likes: [like] });
+      const post = createPost({ comments: [comment] });
+      const user = createUser({ posts: [post] });
 
-      post.title = "Second Title";
-      expect(post.getHistory()).toHaveLength(1);
+      user.posts[0].comments[0].removeLike(like.postId, like.userId);
+      user.posts[0].comments = [];
+      user.posts = [];
 
-      post.clearHistory();
-      expect(post.getHistory()).toHaveLength(0);
+      const changes = user.getChanges();
+      const batch = changes.toBatchOperations();
+
+      // Like (depth 3) → Comment (depth 2) → Post (depth 1)
+      const likeIdx = batch.deletes.findIndex((d) => d.entity === "Like");
+      const commentIdx = batch.deletes.findIndex((d) => d.entity === "Comment");
+      const postIdx = batch.deletes.findIndex((d) => d.entity === "Post");
+
+      expect(batch.deletes).toHaveLength(3);
+      expect(likeIdx).toBeLessThan(commentIdx);
+      expect(commentIdx).toBeLessThan(postIdx);
     });
-  });
 
-  // ==========================================================================
-  // Multiple Subscribers Test
-  // ==========================================================================
+    it("should order creates by depth ASC (root → leaf)", () => {
+      const user = createUser();
 
-  describe("Multiple Subscribers", () => {
-    it("should notify all subscribers on change", () => {
-      const post = new Post({
-        id: new Id("1"),
-        title: "First Post",
-        content: "Hello World",
-        likes: 0,
-      });
+      const newComment = createComment({ text: "New Comment" });
+      const newPost = createPost({ title: "New Post" });
+      user.addPost(newPost);
+      user.posts[0].addComment(newComment);
 
-      let subscriber1Called = false;
-      let subscriber2Called = false;
+      const changes = user.getTypedChanges();
+      const batch = changes.toBatchOperations();
 
-      post.subscribe({
-        title: {
-          onChange: () => {
-            subscriber1Called = true;
-          },
-        },
-      });
+      const postIdx = batch.creates.findIndex((c) => c.entity === "Post");
+      const commentIdx = batch.creates.findIndex((c) => c.entity === "Comment");
 
-      post.subscribe({
-        title: {
-          onChange: () => {
-            subscriber2Called = true;
-          },
-        },
-      });
-
-      post.title = "Updated Title";
-
-      expect(subscriber1Called).toBe(true);
-      expect(subscriber2Called).toBe(true);
+      expect(batch.creates.length).toBe(2);
+      expect(batch.creates[0].entity).toBe("Post");
+      expect(batch.creates[0].depth).toBe(1);
+      expect(batch.creates[1].entity).toBe("Comment");
+      expect(batch.creates[1].depth).toBe(2);
+      expect(postIdx).toBeLessThan(commentIdx);
     });
   });
 
-  // ==========================================================================
-  // Plain Object Tests
-  // ==========================================================================
+  describe("markAsClean", () => {
+    it("should reset changes after clearHistory", () => {
+      const user = createUser();
 
-  describe("Plain Object", () => {
-    it("should create a plain object", () => {
-      const user = new User({
-        id: new Id("1"),
-        name: "John Doe",
-        email: "john@example.com",
-        posts: [],
-        address: new Address({
-          street: "Main St",
-          city: "NYC",
-          zipCode: "10001",
-        }),
-        comments: [],
-      });
+      user.changeName("Changed Name");
 
-      user.subscribe({
-        email: {
-          onChange: ({ previous, current }) => {
-            expect(previous).toBe("john@example.com");
-            expect(current).toBe("new@example.com");
-          },
-        },
-        extra: {
-          onChange: ({ previous, current }) => {
-            expect(previous).toBe(undefined);
-            expect(current).toEqual({
-              age: 20,
-              height: 180,
-            });
-          },
-        },
-        address: {
-          onChange: ({ previous, current }) => {
-            expect(previous).toBeInstanceOf(Address);
-            expect(current).toBeInstanceOf(Address);
-          },
-        },
-      });
+      expect(user.getChanges().hasChanges()).toBe(true);
 
-      user.changeExtra({
-        age: 20,
-        height: 180,
-      });
+      user.markAsClean();
+
+      expect(user.getChanges().isEmpty()).toBe(true);
+    });
+
+    it("should reset changes after markAsClean", () => {
+      const user = createUser();
+
+      user.changeName("Changed Name");
+      user.markAsClean();
+
+      expect(user.getChanges().isEmpty()).toBe(true);
     });
   });
 });

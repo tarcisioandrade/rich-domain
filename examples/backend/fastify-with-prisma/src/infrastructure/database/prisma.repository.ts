@@ -14,25 +14,21 @@ export abstract class PrismaRepository<
   TDomain extends Aggregate<any>,
   TPersistence
 > extends Repository<TDomain> {
-  public readonly uow: PrismaUnitOfWork;
-
   constructor(
-    protected readonly mapperToPersistence: Mapper<TDomain, unknown>,
+    protected readonly mapperToPersistence: Mapper<TDomain, void>,
     protected readonly mapperToDomain: Mapper<TPersistence, TDomain>,
-    private readonly prisma: PrismaClient
+    private readonly prisma: PrismaClient,
+    private readonly uow: PrismaUnitOfWork
   ) {
     super();
-    this.uow = new PrismaUnitOfWork(this.prisma);
   }
 
   protected abstract includes: unknown;
+  
 
   get context() {
-    const transactionalContext = this.uow.getCurrentContext();
-    if (transactionalContext) {
-      return transactionalContext.client;
-    }
-    return this.prisma;
+    const ctx = this.uow.getCurrentContext();
+    return ctx?.client ?? this.prisma;
   }
 
   async count(criteria: Criteria<TDomain>): Promise<number> {
@@ -80,20 +76,9 @@ export abstract class PrismaRepository<
     });
   }
 
-  async create(entity: TDomain) {
-    const data = this.mapperToPersistence.build(entity);
-
-    return (this.context[this.model] as any).create({
-      data,
-    });
-  }
-
-  async update(entity: TDomain) {
-    const data = this.mapperToPersistence.build(entity);
-    return (this.context[this.model] as any).update({
-      where: { id: entity.id },
-      data,
-    });
+  async save(entity: TDomain) {
+    await this.mapperToPersistence.build(entity);
+    entity.markAsClean();
   }
 
   protected applyCriteria(criteria: Criteria<any>) {

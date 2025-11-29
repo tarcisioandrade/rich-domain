@@ -1,3 +1,4 @@
+import { TrackedEntityMetadata } from "./change-tracker";
 import { BaseProps } from "./domain";
 import { IsArray, NonUndefined, UnwrapArray } from "./utils";
 
@@ -5,6 +6,18 @@ export interface ChangeEvent<T> {
   previous: T | undefined;
   current: T;
   path: string;
+}
+
+export interface TrackedItem {
+  entity: any;
+  metadata: TrackedEntityMetadata;
+  originalState: any;
+}
+
+export interface ArrayState {
+  cloned: any[];
+  original: any[];
+  metadata: TrackedEntityMetadata;
 }
 
 export interface ArrayChangeEvent<T> {

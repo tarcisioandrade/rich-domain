@@ -1,52 +1,80 @@
-import { Address } from "./utils";
+import { TagReference } from "./utils";
 
 describe("Value Object", () => {
   it("should create immutable value object", () => {
-    const address = new Address({
-      street: "Main St",
-      city: "NYC",
-      zipCode: "10001",
+    const tag = new TagReference({
+      tagId: "1",
+      name: "Tag 1",
     });
 
-    expect(address.street).toBe("Main St");
-    expect(address.city).toBe("NYC");
+    expect(tag.tagId).toBe("1");
+    expect(tag.name).toBe("Tag 1");
   });
 
   it("should compare value objects by value", () => {
-    const address1 = new Address({
-      street: "Main St",
-      city: "NYC",
-      zipCode: "10001",
+      const tag1 = new TagReference({
+      tagId: "1",
+      name: "Tag 1",
     });
 
-    const address2 = new Address({
-      street: "Main St",
-      city: "NYC",
-      zipCode: "10001",
+    const tag2 = new TagReference({
+      tagId: "1",
+      name: "Tag 1",
     });
 
-    const address3 = new Address({
-      street: "Broadway",
-      city: "NYC",
-      zipCode: "10001",
+    const tag3 = new TagReference({
+      tagId: "2",
+      name: "Tag 2",
     });
 
-    expect(address1.equals(address2)).toBe(true);
-    expect(address1.equals(address3)).toBe(false);
+    expect(tag1.equals(tag2)).toBe(true);
+    expect(tag1.equals(tag3)).toBe(false);
   });
 
   it("should convert value object to JSON", () => {
-    const address = new Address({
-      street: "Main St",
-      city: "NYC",
-      zipCode: "10001",
+    const tag = new TagReference({
+     name: "Tag 1",
+     tagId: "1",
     });
 
-    const json = address.toJson();
+    const json = tag.toJson();
     expect(json).toEqual({
-      street: "Main St",
-      city: "NYC",
-      zipCode: "10001",
+      name: "Tag 1",
+      tagId: "1",
+    });
+  });
+
+  describe("Value Object", () => {
+    it("should be immutable", () => {
+      const tag = new TagReference({
+        tagId: "1",
+        name: "Tag 1",
+      });
+
+      expect(tag.tagId).toBe("1");
+      expect(() => {
+        (tag as any).props.tagId = "2";
+      }).toThrow();
+    });
+
+    it("should compare by value", () => {
+      const tag1 = new TagReference({
+        tagId: "1",
+        name: "Tag 1",
+      });
+
+      const tag2 = new TagReference({
+        tagId: "1",
+        name: "Tag 1",
+      });
+
+      const tag3 = new TagReference({
+        tagId: "2",
+        name: "Tag 2",
+      });
+
+      expect(tag1.equals(tag2)).toBe(true);
+      expect(tag1.equals(tag3)).toBe(false);
     });
   });
 });

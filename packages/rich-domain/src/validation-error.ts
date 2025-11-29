@@ -1,7 +1,3 @@
-// ============================================================================
-// Validation Error - Domain Validation Errors
-// ============================================================================
-
 export interface ValidationIssue {
   path: string[];
   message: string;

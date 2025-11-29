@@ -13,7 +13,7 @@ export class PrismaUserToDomainMapper extends Mapper<UserSchema, User> {
         Post.restore({
           id: new Id(post.id),
           title: post.title,
-          content: post.content,
+          content: post.main_content,
           published: post.published,
           authorId: post.authorId,
           createdAt: post.createdAt,

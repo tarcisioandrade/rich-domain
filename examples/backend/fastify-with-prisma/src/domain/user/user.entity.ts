@@ -42,6 +42,14 @@ export class User extends Aggregate<UserProps> {
     });
   }
 
+  public getTypedChanges() {
+    type UserEntities = {
+      User: User;
+      Post: Post;
+    };
+    return this.getChanges<UserEntities>();
+  }
+
   static restore(props: UserProps): User {
     return new User(props);
   }

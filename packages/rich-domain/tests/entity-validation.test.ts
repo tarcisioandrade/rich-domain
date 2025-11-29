@@ -1,7 +1,3 @@
-// ============================================================================
-// Example Tests - Demonstrating Standard Schema Validation with Zod
-// ============================================================================
-
 import { z } from "zod";
 import {
   Id,
@@ -10,16 +6,6 @@ import {
   EntityHooks,
   ValidationError,
 } from "../src";
-import { Address } from "./utils";
-import { BaseProps } from "../src/types";
-
-interface UserProps extends BaseProps {
-  id: Id;
-  name: string;
-  email: string;
-  age: number;
-  status: "active" | "inactive";
-}
 
 const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id, { message: "Invalid Id" }),
@@ -29,6 +15,7 @@ const userSchema = z.object({
   status: z.enum(["active", "inactive"]),
 });
 
+interface UserProps extends z.infer<typeof userSchema> {}
 class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
@@ -43,7 +30,7 @@ class User extends Aggregate<UserProps> {
     onCreate: (entity) => {},
     onBeforeUpdate: (entity, snapshot) => {
       if (snapshot.email !== entity.email) {
-        return false; // Block the update
+        return false;
       }
       return true;
     },
@@ -91,17 +78,13 @@ class User extends Aggregate<UserProps> {
   }
 }
 
-// ============================================================================
-// Example: User with throwOnError: false
-// ============================================================================
-
 class UserSafe extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
     config: {
       onCreate: true,
       onUpdate: true,
-      throwOnError: false, // Does not throw, stores errors internally
+      throwOnError: false,
     },
   };
 
@@ -115,10 +98,6 @@ class UserSafe extends Aggregate<UserProps> {
     return this.props.email;
   }
 }
-
-// ============================================================================
-// Tests
-// ============================================================================
 
 describe("Rich Domain with Standard Schema Validation", () => {
   describe("User Creation with Validation", () => {
@@ -172,7 +151,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
 
     it("should not throw when throwOnError is false", () => {
       const user = new UserSafe({
-        name: "J", // Too short
+        name: "J",
         email: "invalid",
         age: 30,
         status: "active",
@@ -209,7 +188,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
       });
 
       expect(() => {
-        user.name = "J"; // Too short
+        user.name = "J";
       }).toThrow(ValidationError);
     });
 
@@ -233,10 +212,8 @@ describe("Rich Domain with Standard Schema Validation", () => {
         status: "active",
       });
 
-      // Email change should be blocked by onBeforeUpdate
       user.email = "newemail@example.com";
 
-      // Email should remain unchanged
       expect(user.email).toBe("john@example.com");
     });
 
@@ -249,7 +226,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
       });
 
       expect(() => {
-        user.name = "admin"; // Blocked by custom rule
+        user.name = "admin";
       }).toThrow(Error);
     });
   });
@@ -270,44 +247,6 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(json.age).toBe(30);
       expect(json.status).toBe("active");
       expect(typeof json.id).toBe("string");
-    });
-  });
-
-  describe("Value Object", () => {
-    it("should be immutable", () => {
-      const address = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      expect(address.street).toBe("123 Main St");
-      expect(() => {
-        (address as any).props.street = "New Street";
-      }).toThrow();
-    });
-
-    it("should compare by value", () => {
-      const address1 = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      const address2 = new Address({
-        street: "123 Main St",
-        city: "New York",
-        zipCode: "10001",
-      });
-
-      const address3 = new Address({
-        street: "456 Oak Ave",
-        city: "Boston",
-        zipCode: "02101",
-      });
-
-      expect(address1.equals(address2)).toBe(true);
-      expect(address1.equals(address3)).toBe(false);
     });
   });
 });

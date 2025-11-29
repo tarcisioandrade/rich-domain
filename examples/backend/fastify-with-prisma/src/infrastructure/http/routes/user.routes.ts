@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { PrismaUserRepository } from "../../repositories/prisma-user.repository";
 import { CreateUserUseCase } from "../../../application/use-cases/user/create-user.use-case";
-import { GetUserUseCase } from "../../../application/use-cases/user/get-user.use-case";
 import { ListUsersUseCase } from "../../../application/use-cases/user/list-users.use-case";
 import { PrismaUserToPersistenceMapper } from "../../database/mappers/user-to-persistence.mapper";
 import { PrismaUserToDomainMapper } from "../../database/mappers/user-to-domain.mapper";
@@ -11,6 +10,7 @@ import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { Prisma, User } from "@prisma/client";
 import { CriteriaAdapter } from "@woltz/rich-domain/dist/types";
+import { PrismaUnitOfWork } from "../../database/unit-of-work";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -38,20 +38,22 @@ type UserWithPosts = Prisma.UserGetPayload<{
 
 const UserListAdapter: CriteriaAdapter<UserListDto, UserWithPosts> = {
   fullName: "name",
-  "posts.mainContent": "posts.content",
+  "posts.mainContent": "posts.main_content",
 };
 
 export async function userRoutes(app: FastifyInstance) {
+  const uow = new PrismaUnitOfWork(prisma);
   const userRepository = new PrismaUserRepository(
-    new PrismaUserToPersistenceMapper(),
+    new PrismaUserToPersistenceMapper(prisma),
     new PrismaUserToDomainMapper(),
-    prisma
+    prisma,
+    uow
   );
 
   app.post("/users", async (request, reply) => {
     try {
       const body = createUserSchema.parse(request.body);
-      const createUserUseCase = new CreateUserUseCase(userRepository);
+      const createUserUseCase = new CreateUserUseCase(userRepository, uow);
       const user = await createUserUseCase.execute(body);
 
       return reply.status(201).send(user.toJson());
@@ -60,23 +62,6 @@ export async function userRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: error.errors });
       }
       return reply.status(400).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  app.get("/users/:id", async (request, reply) => {
-    try {
-      const params = getUserParamsSchema.parse(request.params);
-      const getUserUseCase = new GetUserUseCase(userRepository);
-      const user = await getUserUseCase.execute(params.id);
-
-      return reply.send(user.toJson());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
-      }
-      return reply.status(404).send({
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }

@@ -41,6 +41,7 @@
     "typescript"
   ],
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "zod": "^3.24.0"
   },
   "peerDependencies": {

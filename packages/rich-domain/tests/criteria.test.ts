@@ -24,6 +24,17 @@ interface UserWithPostsDto {
   }[];
 }
 
+interface UserWithNestedObject {
+  id: string;
+  name: string;
+  address: {
+    street: string;
+    city: string;
+    country: string;
+  };
+  tags: string[];
+}
+
 const testUsers: TestUser[] = [
   {
     id: "1",
@@ -333,12 +344,14 @@ describe("Criteria", () => {
         new Post({
           title: "Post 1",
           content: "Content 1",
-          likes: 1,
+          published: true,
+          comments: [],
         }),
         new Post({
           title: "Post 2",
           content: "Content 2",
-          likes: 2,
+          published: true,
+          comments: [],
         }),
       ];
 
@@ -633,7 +646,7 @@ describe("Criteria", () => {
             {
               field: "posts",
               operator: "in",
-              value: [{ title: "test", content: "test" }],
+              value: [{ title: "test" }] as any,
             },
           ],
         },
@@ -642,6 +655,62 @@ describe("Criteria", () => {
       const filters = criteria.getFilters();
       expect(filters).toHaveLength(1);
       expect(filters[0].field).toBe("user_posts");
+    });
+
+    it("should only allow nested paths in fromObject for object fields", () => {
+      // Only nested paths should work for object fields
+      const criteria = Criteria.fromObject<UserWithNestedObject>({
+        filters: [
+          {
+            field: "address.street",
+            operator: "equals",
+            value: "123 Main St",
+          },
+          {
+            field: "address.city",
+            operator: "equals",
+            value: "New York",
+          },
+          {
+            field: "id",
+            operator: "equals",
+            value: "user-1",
+          },
+        ],
+      });
+
+      expect(criteria.getFilters()).toHaveLength(3);
+    });
+  });
+
+  describe("Nested Object Field Paths", () => {
+    it("should only allow nested paths for object fields, not the root", () => {
+      const criteria = Criteria.create<UserWithNestedObject>();
+
+      // These should work - nested paths
+      criteria.whereEquals("address.city", "123 Main St");
+      criteria.whereEquals("address.city", "New York");
+      criteria.whereEquals("address.country", "USA");
+
+      // These should work - primitives and arrays
+      criteria.whereEquals("id", "user-1");
+      criteria.whereEquals("name", "John Doe");
+      criteria.where("tags", "in", ["tag1", "tag2"]);
+
+      const filters = criteria.getFilters();
+      expect(filters).toHaveLength(6);
+    });
+
+    it("should work with array of objects (keeps root + nested)", () => {
+      const criteria = Criteria.create<UserWithPostsDto>();
+
+      // These should work - array root and nested paths
+      criteria.where("posts", "in", []);
+      criteria.whereEquals("posts.title", "Test Post");
+      criteria.whereEquals("posts.content", "Test Content");
+
+      const filters = criteria.getFilters();
+      expect(filters).toHaveLength(3);
     });
   });
 });

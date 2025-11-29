@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Entity, EntityValidation, Id } from "@woltz/rich-domain";
+import { User } from "../user/user.entity";
 
 export const PostSchema = z.object({
   id: z.custom<Id>(),
@@ -27,7 +28,6 @@ export class Post extends Entity<PostProps> {
       throw new Error("Title cannot be empty");
     }
     this.props.title = title;
-    this.props.updatedAt = new Date();
   }
 
   updateContent(content: string): void {
@@ -35,17 +35,23 @@ export class Post extends Entity<PostProps> {
       throw new Error("Content cannot be empty");
     }
     this.props.content = content;
-    this.props.updatedAt = new Date();
   }
 
   publish(): void {
     this.props.published = true;
-    this.props.updatedAt = new Date();
   }
 
   unpublish(): void {
     this.props.published = false;
-    this.props.updatedAt = new Date();
+  }
+
+  public getTypedChanges() {
+    type PostEntities = {
+      Post: Post;
+      User: User;
+    };
+
+    return this.getChanges<PostEntities>();
   }
 
   get title(): string {

@@ -111,7 +111,8 @@ describe("Entity with Id Class", () => {
         id: new Id(), // No value = new
         title: "New Post",
         content: "Content",
-        likes: 0,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(true);
@@ -122,15 +123,17 @@ describe("Entity with Id Class", () => {
       const post1 = new Post({
         id: new Id(),
         title: "Post 1",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 0,
       });
 
       const post2 = new Post({
         id: new Id(),
         title: "Post 2",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 0,
       });
 
       expect(post1.id.value).not.toBe(post2.id.value);
@@ -143,7 +146,8 @@ describe("Entity with Id Class", () => {
         id: Id.create(),
         title: "New Post",
         content: "Content",
-        likes: 0,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(true);
@@ -156,7 +160,8 @@ describe("Entity with Id Class", () => {
         id: new Id("existing-post-id"), // Value provided = not new
         title: "Existing Post",
         content: "Content",
-        likes: 10,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(false);
@@ -168,7 +173,8 @@ describe("Entity with Id Class", () => {
         id: Id.from("existing-post-id"),
         title: "Existing Post",
         content: "Content",
-        likes: 10,
+        comments: [],
+        published: false,
       });
 
       expect(post.isNew()).toBe(false);
@@ -180,8 +186,9 @@ describe("Entity with Id Class", () => {
       const post = new Post({
         id: new Id("post-123"),
         title: "Test Post",
+        comments: [],
+        published: false,
         content: "Content",
-        likes: 5,
       });
 
       const json = post.toJson();
@@ -192,7 +199,7 @@ describe("Entity with Id Class", () => {
   });
 
   describe("Id Comparison in Arrays", () => {
-    it("should detect changes in arrays using Id", (done) => {
+    it("should detect changes in arrays using Id", () => {
       const user = new User({
         id: new Id("user-1"),
         name: "John",
@@ -201,19 +208,8 @@ describe("Entity with Id Class", () => {
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
-      });
-
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toDelete }) => {
-            expect(toCreate).toHaveLength(2);
-            expect(toDelete).toHaveLength(0);
-            done();
-          },
-        },
+        tags: [],
       });
 
       user.addManyPosts([
@@ -221,18 +217,26 @@ describe("Entity with Id Class", () => {
           id: new Id(),
           title: "Post 1",
           content: "Content 1",
-          likes: 0,
+          comments: [],
+          published: false,
         }),
         new Post({
           id: new Id(),
           title: "Post 2",
           content: "Content 2",
-          likes: 0,
+          comments: [],
+          published: false,
         }),
       ]);
+
+      const changes = user.getTypedChanges();
+
+      console.dir(changes.creates(), { depth: null });
+
+      expect(changes.creates().length).toBe(2);
     });
 
-    it("should track deletes correctly with Id", (done) => {
+    it("should track deletes correctly with Id", () => {
       const postId = new Id("post-to-delete");
 
       const user = new User({
@@ -244,29 +248,24 @@ describe("Entity with Id Class", () => {
             id: postId,
             title: "Post 1",
             content: "Content 1",
-            likes: 0,
+            comments: [],
+            published: false,
           }),
         ],
         address: new Address({
           street: "Main St",
           city: "NYC",
-          zipCode: "10001",
         }),
-        comments: [],
+        tags: [],
       });
 
-      user.subscribe({
-        posts: {
-          onChange: ({ toCreate, toDelete }) => {
-            expect(toCreate).toHaveLength(0);
-            expect(toDelete).toHaveLength(1);
-            expect(toDelete[0].id.value).toBe(postId.value);
-            done();
-          },
-        },
-      });
+      user.removePost(postId);
 
-      user.removePostById(postId.value);
+      const changes = user.getTypedChanges();
+
+      expect(changes.deletes()).toHaveLength(1);
+      expect(changes.creates()).toHaveLength(0);
+      expect(changes.deletes()[0].id).toBe(postId.value);
     });
   });
 });
@@ -285,9 +284,8 @@ describe("Aggregate with Id Class", () => {
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [],
+      tags: [],
     });
 
     expect(user.isNew()).toBe(true);
@@ -302,9 +300,8 @@ describe("Aggregate with Id Class", () => {
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
-      comments: [],
+      tags: [],
     });
 
     expect(user.isNew()).toBe(false);
@@ -319,15 +316,15 @@ describe("Aggregate with Id Class", () => {
         new Post({
           id: new Id("post-1"),
           title: "Post 1",
+          comments: [],
           content: "Content",
-          likes: 0,
+          published: false,
         }),
       ],
-      comments: [],
+      tags: [],
       address: new Address({
         street: "Main St",
         city: "NYC",
-        zipCode: "10001",
       }),
     });
 

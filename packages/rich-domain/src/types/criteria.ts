@@ -118,6 +118,11 @@ export interface Order {
   direction: OrderDirection;
 }
 
+export type TypedOrder<T> = {
+  field: FieldPath<T>;
+  direction: OrderDirection;
+};
+
 export interface Pagination {
   page: number;
   limit: number;
@@ -153,5 +158,5 @@ export type FieldPath<T> = T extends Primitive
         ? U extends Primitive
           ? K
           : K | `${K}.${FieldPath<U>}`
-        : K | `${K}.${FieldPath<NonNullable<T[K]>>}`;
+        : `${K}.${FieldPath<NonNullable<T[K]>>}`;
     }[ExcludeBuiltInKeys<T> & string];
