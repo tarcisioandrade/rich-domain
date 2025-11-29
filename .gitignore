@@ -20,3 +20,4 @@ examples/**/.env
 examples/**/*.db
 examples/**/*.db-journal
 tester/** 
+packages/**/data.json
