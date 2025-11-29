@@ -30,7 +30,7 @@ npm install zod
 ```
 
 <Note>
-  rich-domain works with any Standard Schema compatible library: Zod, Valibot, ArkType, and others.
+  @woltz/rich-domain works with any Standard Schema compatible library: Zod, Valibot, ArkType, and others.
 </Note>
 
 ## Create Your First Aggregate
@@ -221,25 +221,6 @@ const invalid = new Product({
   status: "active",
 });
 // ❌ ValidationError: Premium products must have stock available
-```
-
-## Loading Existing Entities
-
-Use `Id.from()` when loading from database:
-
-```typescript
-// From database
-const data = await db.products.findById("product-123");
-
-const product = new Product({
-  id: Id.from(data.id), // Marks as existing
-  name: data.name,
-  price: data.price,
-  stock: data.stock,
-  status: data.status,
-});
-
-console.log(product.isNew()); // false
 ```
 
 ## Next Steps

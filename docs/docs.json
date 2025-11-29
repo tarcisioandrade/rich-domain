@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "rich-domain",
+  "name": "Rich Domain",
   "colors": {
     "primary": "#6366f1",
     "light": "#818cf8",
@@ -62,10 +62,10 @@
           {
             "group": "Criteria",
             "pages": [
-              "criteria/criteria",
-              "criteria/criteria-filters",
-              "criteria/criteria-ordering",
-              "criteria/criteria-advanced"
+              "criteria/overview",
+              "criteria/filters",
+              "criteria/ordering",
+              "criteria/advanced"
             ]
           },
           {
