@@ -14,16 +14,13 @@ import {
   UOWStorage,
 } from "./unit-of-work";
 
-/**
- * 
- */
 export interface PrismaRepositoryConfig {
   prisma: PrismaClientLike;
   uow: PrismaUnitOfWork;
 }
 
 /**
- * 
+ *
  * @template TDomain
  * @template TPersistence
  */
@@ -44,7 +41,7 @@ export abstract class PrismaRepository<
    * Model name in Prisma (e.g., 'user', 'post').
    * Must match the model name in your Prisma schema.
    */
-  protected abstract readonly model: string;
+  protected abstract get model(): string;
 
   /**
    * Relations to include when fetching.

@@ -35,7 +35,10 @@ import {
  * }
  * ```
  */
-export abstract class PrismaMapper<TDomain> extends Mapper<TDomain, void> {
+export abstract class PrismaToPersistence<TDomain> extends Mapper<
+  TDomain,
+  void
+> {
   constructor(
     public readonly prisma: PrismaClientLike,
     public readonly uow: PrismaUnitOfWork

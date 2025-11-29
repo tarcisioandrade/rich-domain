@@ -12,7 +12,7 @@ npm install @woltz/rich-domain @woltz/rich-domain-prisma
 
 - ✅ **Unit of Work** with AsyncLocalStorage (request isolation)
 - ✅ **PrismaRepository** base class with Criteria support
-- ✅ **PrismaMapper** base class with change tracking
+- ✅ **PrismaToPersistence** base class with change tracking
 - ✅ **@Transactional** decorator for automatic transactions
 - ✅ **BatchExecutor** for batch change operations
 - ✅ **Zero config** - works out of the box
@@ -126,7 +126,7 @@ Base class for repositories with Criteria support.
 ```typescript
 abstract class PrismaRepository<TDomain, TPersistence> {
   // Required: Prisma model name
-  protected abstract readonly model: string;
+  protected abstract get model(): string;
 
   // Optional: relations to include
   protected readonly includes: Record<string, any> = {};
@@ -188,12 +188,12 @@ class UserRepository extends PrismaRepository<User, UserPersistence> {
 
 ---
 
-### PrismaMapper
+### PrismaToPersistence
 
 Base class for persistence mappers with change tracking support.
 
 ```typescript
-abstract class PrismaMapper<TDomain> extends Mapper<TDomain, void> {
+abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
   // Required: registry for field mapping
   protected abstract readonly registry: EntitySchemaRegistry;
 
@@ -214,7 +214,7 @@ abstract class PrismaMapper<TDomain> extends Mapper<TDomain, void> {
 #### Complete Example
 
 ```typescript
-import { PrismaMapper, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
+import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
 import { EntitySchemaRegistry, AggregateChanges } from "@woltz/rich-domain";
 
 const schemaRegistry = new EntitySchemaRegistry()
@@ -234,7 +234,7 @@ const schemaRegistry = new EntitySchemaRegistry()
     },
   });
 
-class UserToPersistenceMapper extends PrismaMapper<User> {
+class UserToPersistenceMapper extends PrismaToPersistence<User> {
   protected readonly registry = schemaRegistry;
 
   protected async onCreate(user: User): Promise<void> {
@@ -447,7 +447,7 @@ class OrderRepository extends PrismaRepository<Order> {
 ### Mapper with Complex Relations
 
 ```typescript
-class OrderToPersistenceMapper extends PrismaMapper<Order> {
+class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   protected readonly registry = new EntitySchemaRegistry()
     .register({ entity: "Order", table: "order" })
     .register({

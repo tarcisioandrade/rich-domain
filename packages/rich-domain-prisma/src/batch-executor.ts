@@ -8,10 +8,10 @@ export type EntityDataMapper<T = any> = (item: {
 }) => Record<string, any>;
 
 /**
- * Configuração para o BatchExecutor.
- * @property registry - Registro de esquema para mapeamento de tabela/campo.
- * @property dataMappers - Mapeadores de dados personalizados por entidade.
- * @property rootId - ID da entidade raiz (usado como parentId padrão para filhos).
+ * Configuration for the BatchExecutor.
+ * @property registry - Schema registry for table/field mapping.
+ * @property dataMappers - Custom data mappers per entity.
+ * @property rootId - Root entity ID (used as the default parentId for children).
  */
 export interface BatchExecutorConfig {
   /**

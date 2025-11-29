@@ -1,4 +1,3 @@
-// Unit of Work
 export {
   PrismaUnitOfWork,
   PrismaTransactionContext,
@@ -8,17 +7,11 @@ export {
   type PrismaClientLike,
   type PrismaTransactionClient,
 } from "./unit-of-work";
-
-// Repository
 export {
   PrismaRepository,
   type PrismaRepositoryConfig,
 } from "./prisma.repository";
-
-// Mapper
-export { PrismaMapper } from "./prisma.mapper";
-
-// Batch Executor
+export { PrismaToPersistence as PrismaMapper } from "./prisma.mapper";
 export {
   PrismaBatchExecutor,
   executeBatch,
