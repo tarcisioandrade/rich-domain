@@ -1,0 +1,415 @@
+---
+title: "Value Objects"
+description: "Immutable objects defined by their attributes, not identity"
+---
+
+## What is a Value Object?
+
+A Value Object is an immutable object that represents a concept by its attributes, not an identity. Two Value Objects with the same attributes are considered equal.
+
+```typescript
+import { ValueObject } from "@woltz/rich-domain";
+
+interface MoneyProps {
+  amount: number;
+  currency: string;
+}
+
+class Money extends ValueObject<MoneyProps> {
+  get amount() {
+    return this.props.amount;
+  }
+
+  get currency() {
+    return this.props.currency;
+  }
+
+  add(other: Money): Money {
+    if (this.currency !== other.currency) {
+      throw new Error("Cannot add different currencies");
+    }
+    return this.clone({ amount: this.amount + other.amount });
+  }
+
+  multiply(factor: number): Money {
+    return this.clone({ amount: this.amount * factor });
+  }
+
+  format(): string {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: this.currency,
+    }).format(this.amount);
+  }
+}
+```
+
+## Key Characteristics
+
+<CardGroup cols={2}>
+
+<Card title="Immutable" icon="lock">
+Once created, a Value Object cannot be changed. Operations return new instances.
+</Card>
+
+<Card title="Equality by Value" icon="equals">
+Two Value Objects are equal if all their attributes are equal.
+</Card>
+
+<Card title="Self-Contained" icon="box">
+Value Objects contain all the behavior related to the concept they represent.
+</Card>
+
+<Card title="No Identity" icon="fingerprint">
+Value Objects don't have an ID. They're interchangeable if values match.
+</Card>
+
+</CardGroup>
+
+## Creating Value Objects
+
+```typescript
+const price = new Money({ amount: 99.99, currency: "USD" });
+const tax = new Money({ amount: 8.50, currency: "USD" });
+
+// Operations return new instances
+const total = price.add(tax);
+
+console.log(price.amount); // 99.99 (unchanged)
+console.log(total.amount); // 108.49 (new instance)
+```
+
+## Immutability
+
+Value Objects are frozen on creation. Attempting to modify them throws an error:
+
+```typescript
+const address = new Address({
+  street: "123 Main St",
+  city: "New York",
+  zipCode: "10001",
+});
+
+// ❌ This throws an error
+address.props.city = "Boston";
+// TypeError: Cannot assign to read only property 'city'
+```
+
+To "change" a Value Object, use the `clone()` method:
+
+```typescript
+class Address extends ValueObject<AddressProps> {
+  changeCity(city: string): Address {
+    return this.clone({ city });
+  }
+
+  changeZipCode(zipCode: string): Address {
+    return this.clone({ zipCode });
+  }
+}
+
+const address = new Address({
+  street: "123 Main St",
+  city: "New York",
+  zipCode: "10001",
+});
+
+const newAddress = address.changeCity("Boston");
+
+console.log(address.city);    // "New York" (unchanged)
+console.log(newAddress.city); // "Boston" (new instance)
+```
+
+## Equality
+
+Value Objects are compared by their attributes:
+
+```typescript
+const money1 = new Money({ amount: 100, currency: "USD" });
+const money2 = new Money({ amount: 100, currency: "USD" });
+const money3 = new Money({ amount: 100, currency: "EUR" });
+
+money1.equals(money2); // true - same values
+money1.equals(money3); // false - different currency
+```
+
+## Validation
+
+Add schema validation to ensure Value Objects are always valid:
+
+```typescript
+import { z } from "zod";
+import { ValueObject, VOValidation } from "@woltz/rich-domain";
+
+const emailSchema = z.object({
+  value: z.string().email("Invalid email format"),
+});
+
+type EmailProps = z.infer<typeof emailSchema>;
+
+class Email extends ValueObject<EmailProps> {
+  protected static validation: VOValidation<EmailProps> = {
+    schema: emailSchema,
+    config: {
+      onCreate: true,
+      throwOnError: true,
+    },
+  };
+
+  get value() {
+    return this.props.value;
+  }
+
+  getDomain(): string {
+    return this.value.split("@")[1];
+  }
+}
+
+// Valid
+const email = new Email({ value: "john@example.com" });
+
+// Invalid - throws ValidationError
+const invalid = new Email({ value: "not-an-email" });
+```
+
+## Identity Key
+
+When Value Objects are used in collections and need to be tracked for changes, define an identity key:
+
+```typescript
+class TagReference extends ValueObject<{ tagId: string; name: string }> {
+  // Single key
+  static readonly identityKey = "tagId";
+
+  get tagId() {
+    return this.props.tagId;
+  }
+
+  get name() {
+    return this.props.name;
+  }
+}
+
+class Like extends ValueObject<{ postId: string; userId: string; createdAt: Date }> {
+  // Composite key
+  static readonly identityKey = ["postId", "userId"];
+
+  get postId() {
+    return this.props.postId;
+  }
+
+  get userId() {
+    return this.props.userId;
+  }
+}
+```
+
+Using identity keys:
+
+```typescript
+const like = new Like({
+  postId: "post-123",
+  userId: "user-456",
+  createdAt: new Date(),
+});
+
+console.log(like.hasIdentityKey());  // true
+console.log(like.getIdentityKey());  // "post-123:user-456"
+```
+
+<Note>
+Identity keys are used by the change tracking system to detect additions and removals in collections of Value Objects.
+</Note>
+
+## Hooks
+
+Value Objects support lifecycle hooks:
+
+```typescript
+import { ValueObject, VOValidation, VOHooks, throwValidationError } from "@woltz/rich-domain";
+
+class Money extends ValueObject<MoneyProps> {
+  protected static validation: VOValidation<MoneyProps> = {
+    schema: moneySchema,
+  };
+
+  protected static hooks: VOHooks<MoneyProps, Money> = {
+    onCreate: (money) => {
+      console.log(`Money created: ${money.format()}`);
+    },
+
+    rules: (money) => {
+      if (money.amount > 1_000_000) {
+        throwValidationError("amount", "Amount exceeds maximum limit");
+      }
+    },
+  };
+
+  // ... methods
+}
+```
+
+## Serialization
+
+Convert Value Objects to plain objects:
+
+```typescript
+const address = new Address({
+  street: "123 Main St",
+  city: "New York",
+  zipCode: "10001",
+});
+
+const json = address.toJson();
+// { street: "123 Main St", city: "New York", zipCode: "10001" }
+```
+
+## Common Examples
+
+### Email
+
+```typescript
+class Email extends ValueObject<{ value: string }> {
+  protected static validation: VOValidation<{ value: string }> = {
+    schema: z.object({ value: z.string().email() }),
+  };
+
+  get value() {
+    return this.props.value;
+  }
+
+  getDomain(): string {
+    return this.value.split("@")[1];
+  }
+
+  isBusinessEmail(): boolean {
+    const freeProviders = ["gmail.com", "yahoo.com", "hotmail.com"];
+    return !freeProviders.includes(this.getDomain());
+  }
+}
+```
+
+### Address
+
+```typescript
+class Address extends ValueObject<{
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}> {
+  get street() { return this.props.street; }
+  get city() { return this.props.city; }
+  get state() { return this.props.state; }
+  get zipCode() { return this.props.zipCode; }
+  get country() { return this.props.country; }
+
+  format(): string {
+    return `${this.street}, ${this.city}, ${this.state} ${this.zipCode}, ${this.country}`;
+  }
+
+  isInCountry(country: string): boolean {
+    return this.country.toLowerCase() === country.toLowerCase();
+  }
+}
+```
+
+### DateRange
+
+```typescript
+class DateRange extends ValueObject<{ start: Date; end: Date }> {
+  protected static hooks: VOHooks<{ start: Date; end: Date }, DateRange> = {
+    rules: (range) => {
+      if (range.start > range.end) {
+        throwValidationError("end", "End date must be after start date");
+      }
+    },
+  };
+
+  get start() { return this.props.start; }
+  get end() { return this.props.end; }
+
+  getDurationInDays(): number {
+    const diff = this.end.getTime() - this.start.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  contains(date: Date): boolean {
+    return date >= this.start && date <= this.end;
+  }
+
+  overlaps(other: DateRange): boolean {
+    return this.start <= other.end && this.end >= other.start;
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Use Value Objects for concepts without identity">
+If two objects with the same attributes are interchangeable, use a Value Object.
+
+```typescript
+// ✅ Good candidates for Value Objects
+Money, Email, Address, PhoneNumber, DateRange, Coordinates, Color
+```
+</Accordion>
+
+<Accordion title="Keep them small and focused">
+A Value Object should represent a single concept with related behavior.
+
+```typescript
+// ❌ Too broad
+class CustomerData extends ValueObject<{
+  email: string;
+  phone: string;
+  address: AddressProps;
+  preferences: PreferencesProps;
+}> {}
+
+// ✅ Separate Value Objects
+class Email extends ValueObject<{ value: string }> {}
+class Phone extends ValueObject<{ number: string; countryCode: string }> {}
+class Address extends ValueObject<AddressProps> {}
+```
+</Accordion>
+
+<Accordion title="Make operations return new instances">
+Never mutate a Value Object. Always return a new one.
+
+```typescript
+class Money extends ValueObject<MoneyProps> {
+  // ❌ Mutation (not possible anyway, but conceptually wrong)
+  addMutating(other: Money) {
+    this.props.amount += other.amount;
+  }
+
+  // ✅ Returns new instance
+  add(other: Money): Money {
+    return this.clone({ amount: this.amount + other.amount });
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Encapsulate validation and business rules">
+Value Objects should validate themselves and contain all related behavior.
+
+```typescript
+class Email extends ValueObject<{ value: string }> {
+  protected static validation = {
+    schema: z.object({ value: z.string().email() }),
+  };
+
+  // Behavior belongs here
+  getDomain(): string { ... }
+  isBusinessEmail(): boolean { ... }
+  normalize(): Email { ... }
+}
+```
+</Accordion>
+
+</AccordionGroup>

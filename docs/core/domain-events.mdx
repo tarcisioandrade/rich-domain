@@ -1,0 +1,510 @@
+---
+title: "Domain Events"
+description: "Communicate changes across aggregates with domain events"
+---
+
+## What are Domain Events?
+
+Domain Events represent something significant that happened in your domain. They enable loose coupling between aggregates and support event-driven architectures.
+
+```typescript
+import { DomainEvent, Id } from "@woltz/rich-domain";
+
+class OrderConfirmedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly customerId: string,
+    public readonly total: number
+  ) {
+    super(aggregateId);
+  }
+
+  protected getPayload() {
+    return {
+      customerId: this.customerId,
+      total: this.total,
+    };
+  }
+}
+```
+
+## Creating Events
+
+### Basic Event
+
+```typescript
+class UserCreatedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly email: string,
+    public readonly name: string
+  ) {
+    super(aggregateId);
+  }
+
+  protected getPayload() {
+    return {
+      email: this.email,
+      name: this.name,
+    };
+  }
+}
+```
+
+### Event Properties
+
+Every domain event has:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `eventId` | `string` | Unique identifier for this event occurrence |
+| `eventName` | `string` | Name of the event (class name by default) |
+| `aggregateId` | `string` | ID of the aggregate that raised the event |
+| `occurredOn` | `Date` | When the event occurred |
+
+```typescript
+const event = new UserCreatedEvent(
+  Id.from("user-123"),
+  "john@example.com",
+  "John Doe"
+);
+
+console.log(event.eventId);      // "1699876543210-abc123def"
+console.log(event.eventName);    // "UserCreatedEvent"
+console.log(event.aggregateId);  // "user-123"
+console.log(event.occurredOn);   // 2024-01-15T10:30:00.000Z
+```
+
+## Raising Events from Aggregates
+
+Use `addDomainEvent()` inside aggregate methods:
+
+```typescript
+class User extends Aggregate<UserProps> {
+  static create(props: Omit<UserProps, "id">): User {
+    const user = new User(props);
+    
+    user.addDomainEvent(
+      new UserCreatedEvent(user.id, user.email, user.name)
+    );
+    
+    return user;
+  }
+
+  activate() {
+    if (this.props.status === "active") return;
+    
+    this.props.status = "active";
+    
+    this.addDomainEvent(new UserActivatedEvent(this.id));
+  }
+
+  changeEmail(newEmail: string) {
+    const oldEmail = this.props.email;
+    this.props.email = newEmail;
+    
+    this.addDomainEvent(
+      new UserEmailChangedEvent(this.id, oldEmail, newEmail)
+    );
+  }
+}
+```
+
+## Event Bus
+
+The `DomainEventBus` is a singleton that manages event subscriptions and publishing:
+
+```typescript
+import { DomainEventBus } from "@woltz/rich-domain";
+
+const eventBus = DomainEventBus.getInstance();
+```
+
+### Subscribing to Events
+
+**Function Handler:**
+
+```typescript
+eventBus.subscribe({
+  event: UserCreatedEvent,
+  handler: async (event) => {
+    console.log(`User created: ${event.email}`);
+    await sendWelcomeEmail(event.email, event.name);
+  },
+});
+```
+
+**Class Handler:**
+
+```typescript
+import { IDomainEventHandler } from "@woltz/rich-domain";
+
+class SendWelcomeEmailHandler implements IDomainEventHandler<UserCreatedEvent> {
+  async handle(event: UserCreatedEvent): Promise<void> {
+    await emailService.sendWelcome(event.email, event.name);
+  }
+}
+
+eventBus.subscribe({
+  event: UserCreatedEvent,
+  handler: new SendWelcomeEmailHandler(),
+});
+```
+
+**Subscribe by Event Name:**
+
+```typescript
+eventBus.subscribe({
+  event: "UserCreatedEvent", // string instead of class
+  handler: (event) => {
+    console.log("User created:", event.aggregateId);
+  },
+});
+```
+
+**Subscribe to All Events:**
+
+```typescript
+eventBus.subscribeAll((event) => {
+  console.log(`Event occurred: ${event.eventName}`);
+  // Useful for logging, analytics, etc.
+});
+```
+
+### Publishing Events
+
+**Dispatch from Aggregate:**
+
+```typescript
+const user = User.create({
+  name: "John Doe",
+  email: "john@example.com",
+  status: "inactive",
+});
+
+// Save to database first
+await userRepository.save(user);
+
+// Then dispatch events
+await user.dispatchAll(eventBus);
+
+// Clear events after dispatching
+user.clearEvents();
+```
+
+**Publish Directly:**
+
+```typescript
+const event = new UserCreatedEvent(
+  Id.from("user-123"),
+  "john@example.com",
+  "John Doe"
+);
+
+await eventBus.publish(event);
+```
+
+**Publish Multiple Events:**
+
+```typescript
+const events = [
+  new UserCreatedEvent(userId, email, name),
+  new UserActivatedEvent(userId),
+];
+
+await eventBus.publishAll(events);
+```
+
+## Event Management
+
+### Check for Uncommitted Events
+
+```typescript
+const user = User.create({ ... });
+
+console.log(user.hasUncommittedEvents()); // true
+
+user.clearEvents();
+
+console.log(user.hasUncommittedEvents()); // false
+```
+
+### Get Uncommitted Events
+
+```typescript
+const user = User.create({ ... });
+user.activate();
+user.changeEmail("new@example.com");
+
+const events = user.getUncommittedEvents();
+console.log(events.length); // 3
+// [UserCreatedEvent, UserActivatedEvent, UserEmailChangedEvent]
+```
+
+### Unsubscribe
+
+```typescript
+const handler = (event: UserCreatedEvent) => {
+  console.log(event);
+};
+
+eventBus.subscribe({ event: UserCreatedEvent, handler });
+
+// Later...
+eventBus.unsubscribe(UserCreatedEvent, handler);
+```
+
+### Clear All Handlers (Testing)
+
+```typescript
+beforeEach(() => {
+  eventBus.clearAllHandlers();
+});
+```
+
+## Serialization
+
+Events can be serialized to JSON for storage or messaging:
+
+```typescript
+const event = new OrderConfirmedEvent(
+  Id.from("order-123"),
+  "customer-456",
+  299.99
+);
+
+const json = event.toJSON();
+// {
+//   eventId: "1699876543210-abc123def",
+//   eventName: "OrderConfirmedEvent",
+//   aggregateId: "order-123",
+//   occurredOn: "2024-01-15T10:30:00.000Z",
+//   customerId: "customer-456",
+//   total: 299.99
+// }
+```
+
+## Error Handling
+
+Event handlers that throw errors don't affect other handlers:
+
+```typescript
+eventBus.subscribe({
+  event: UserCreatedEvent,
+  handler: () => {
+    throw new Error("Handler 1 failed");
+  },
+});
+
+eventBus.subscribe({
+  event: UserCreatedEvent,
+  handler: (event) => {
+    // This still runs even if handler 1 fails
+    console.log("Handler 2 executed");
+  },
+});
+
+await eventBus.publish(event); // Both handlers are called
+```
+
+<Note>
+Errors are logged to console but don't break the event flow. Consider adding proper error monitoring in production.
+</Note>
+
+## Complete Example
+
+```typescript
+// Events
+class OrderPlacedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly customerId: string,
+    public readonly items: Array<{ productId: string; quantity: number }>,
+    public readonly total: number
+  ) {
+    super(aggregateId);
+  }
+
+  protected getPayload() {
+    return {
+      customerId: this.customerId,
+      items: this.items,
+      total: this.total,
+    };
+  }
+}
+
+class OrderShippedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly trackingNumber: string
+  ) {
+    super(aggregateId);
+  }
+
+  protected getPayload() {
+    return { trackingNumber: this.trackingNumber };
+  }
+}
+
+// Aggregate
+class Order extends Aggregate<OrderProps> {
+  static place(customerId: string, items: CartItem[]): Order {
+    const order = new Order({
+      customerId,
+      status: "placed",
+      items: items.map(
+        (item) => new OrderItem({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })
+      ),
+      createdAt: new Date(),
+    });
+
+    order.addDomainEvent(
+      new OrderPlacedEvent(
+        order.id,
+        customerId,
+        order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        order.total
+      )
+    );
+
+    return order;
+  }
+
+  ship(trackingNumber: string) {
+    this.props.status = "shipped";
+    this.props.trackingNumber = trackingNumber;
+
+    this.addDomainEvent(new OrderShippedEvent(this.id, trackingNumber));
+  }
+}
+
+// Handlers
+class NotifyCustomerHandler implements IDomainEventHandler<OrderPlacedEvent> {
+  constructor(private emailService: EmailService) {}
+
+  async handle(event: OrderPlacedEvent): Promise<void> {
+    await this.emailService.sendOrderConfirmation(
+      event.customerId,
+      event.aggregateId,
+      event.total
+    );
+  }
+}
+
+class UpdateInventoryHandler implements IDomainEventHandler<OrderPlacedEvent> {
+  constructor(private inventoryService: InventoryService) {}
+
+  async handle(event: OrderPlacedEvent): Promise<void> {
+    for (const item of event.items) {
+      await this.inventoryService.reserve(item.productId, item.quantity);
+    }
+  }
+}
+
+// Setup
+const eventBus = DomainEventBus.getInstance();
+
+eventBus.subscribe({
+  event: OrderPlacedEvent,
+  handler: new NotifyCustomerHandler(emailService),
+});
+
+eventBus.subscribe({
+  event: OrderPlacedEvent,
+  handler: new UpdateInventoryHandler(inventoryService),
+});
+
+// Usage
+const order = Order.place("customer-123", cartItems);
+await orderRepository.save(order);
+await order.dispatchAll(eventBus);
+order.clearEvents();
+```
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Name events in past tense">
+Events represent things that already happened:
+
+```typescript
+// ✅ Good
+OrderPlacedEvent
+UserActivatedEvent
+PaymentReceivedEvent
+
+// ❌ Bad
+PlaceOrderEvent
+ActivateUserEvent
+ReceivePaymentEvent
+```
+</Accordion>
+
+<Accordion title="Include all relevant data">
+Events should be self-contained with all data needed by handlers:
+
+```typescript
+// ✅ Good - all data included
+class OrderPlacedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly customerId: string,
+    public readonly customerEmail: string,
+    public readonly items: OrderItemDto[],
+    public readonly total: number
+  ) {
+    super(aggregateId);
+  }
+}
+
+// ❌ Bad - handlers need to query for data
+class OrderPlacedEvent extends DomainEvent {
+  constructor(aggregateId: Id) {
+    super(aggregateId);
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Dispatch after persistence">
+Always save the aggregate before dispatching events:
+
+```typescript
+// ✅ Correct order
+await repository.save(aggregate);
+await aggregate.dispatchAll(eventBus);
+aggregate.clearEvents();
+
+// ❌ Wrong - events dispatched before save
+await aggregate.dispatchAll(eventBus);
+await repository.save(aggregate); // What if this fails?
+```
+</Accordion>
+
+<Accordion title="Keep handlers focused">
+Each handler should do one thing:
+
+```typescript
+// ✅ Good - separate handlers
+class SendEmailHandler { ... }
+class UpdateInventoryHandler { ... }
+class NotifyAnalyticsHandler { ... }
+
+// ❌ Bad - one handler doing everything
+class OrderPlacedHandler {
+  async handle(event) {
+    await this.sendEmail();
+    await this.updateInventory();
+    await this.notifyAnalytics();
+  }
+}
+```
+</Accordion>
+
+</AccordionGroup>

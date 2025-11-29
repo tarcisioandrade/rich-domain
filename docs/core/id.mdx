@@ -1,0 +1,260 @@
+---
+title: "Id"
+description: "Smart identity management that knows if an entity is new or existing"
+---
+
+## What is Id?
+
+The `Id` class is a smart wrapper for entity identifiers. It automatically tracks whether an entity is new (needs INSERT) or existing (needs UPDATE).
+
+```typescript
+import { Id } from "@woltz/rich-domain";
+
+// New entity - generates UUID automatically
+const newId = new Id();
+console.log(newId.isNew());  // true
+console.log(newId.value);    // "550e8400-e29b-41d4-a716-446655440000"
+
+// Existing entity - uses provided value
+const existingId = new Id("user-123");
+console.log(existingId.isNew());  // false
+console.log(existingId.value);    // "user-123"
+```
+
+## Creating IDs
+
+### Auto-generated (New Entity)
+
+```typescript
+// Using constructor
+const id1 = new Id();
+
+// Using static method
+const id2 = Id.create();
+
+id1.isNew(); // true
+id2.isNew(); // true
+```
+
+### From Existing Value (From Database)
+
+```typescript
+// Using constructor
+const id1 = new Id("user-123");
+
+// Using static method
+const id2 = Id.from("user-123");
+
+id1.isNew(); // false
+id2.isNew(); // false
+```
+
+## Why This Matters
+
+The `isNew()` method enables repositories to decide between INSERT and UPDATE:
+
+```typescript
+class UserRepository {
+  async save(user: User): Promise<void> {
+    if (user.isNew()) {
+      await this.insert(user);
+    } else {
+      await this.update(user);
+    }
+  }
+}
+```
+
+## Comparison & Equality
+
+IDs can be compared with other IDs or strings:
+
+```typescript
+const id1 = new Id("user-123");
+const id2 = new Id("user-123");
+const id3 = new Id("user-456");
+
+// Compare with Id
+id1.equals(id2); // true
+id1.equals(id3); // false
+
+// Compare with string
+id1.equals("user-123"); // true
+id1.equals("user-456"); // false
+```
+
+## Entity Equality
+
+Entities use ID for equality comparison:
+
+```typescript
+const user1 = new User({
+  id: Id.from("user-123"),
+  name: "John",
+  email: "john@example.com",
+});
+
+const user2 = new User({
+  id: Id.from("user-123"),
+  name: "John Updated", // Different name
+  email: "john.new@example.com", // Different email
+});
+
+const user3 = new User({
+  id: Id.from("user-456"),
+  name: "John",
+  email: "john@example.com",
+});
+
+user1.equals(user2); // true - same ID
+user1.equals(user3); // false - different ID
+
+// Can also compare entity with Id or string
+user1.equals(Id.from("user-123")); // true
+user1.equals("user-123"); // true
+```
+
+## Working with Collections
+
+IDs make it easy to find entities in collections:
+
+```typescript
+const users = [
+  new User({ id: Id.from("1"), name: "Alice" }),
+  new User({ id: Id.from("2"), name: "Bob" }),
+  new User({ id: Id.from("3"), name: "Charlie" }),
+];
+
+// Find by Id
+const searchId = Id.from("2");
+const found = users.find((user) => user.equals(searchId));
+console.log(found?.name); // "Bob"
+
+// Find by string
+const foundByString = users.find((user) => user.equals("2"));
+console.log(foundByString?.name); // "Bob"
+
+// Filter by Id
+const filtered = users.filter((user) => user.equals("1"));
+console.log(filtered.length); // 1
+
+// Check existence
+const exists = users.some((user) => user.equals("3"));
+console.log(exists); // true
+```
+
+## Serialization
+
+IDs serialize to their string value:
+
+```typescript
+const id = new Id("user-123");
+
+// toString
+console.log(id.toString()); // "user-123"
+console.log(String(id));    // "user-123"
+
+// JSON
+console.log(id.toJSON());         // "user-123"
+console.log(JSON.stringify(id));  // '"user-123"'
+
+// In entity toJson()
+const user = new User({
+  id: Id.from("user-123"),
+  name: "John",
+});
+
+const json = user.toJson();
+console.log(json.id); // "user-123" (string, not Id object)
+```
+
+## UUID Generation
+
+When no value is provided, `Id` generates a UUID v4:
+
+```typescript
+const id1 = new Id();
+const id2 = new Id();
+const id3 = new Id();
+
+console.log(id1.value); // "550e8400-e29b-41d4-a716-446655440000"
+console.log(id2.value); // "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+console.log(id3.value); // "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+// All unique
+console.log(id1.equals(id2)); // false
+console.log(id2.equals(id3)); // false
+```
+
+## Practical Example
+
+```typescript
+// Domain model
+class Order extends Aggregate<OrderProps> {
+  static create(customerId: string): Order {
+    return new Order({
+      // New order - auto-generated ID
+      customerId,
+      status: "draft",
+      items: [],
+      createdAt: new Date(),
+    });
+  }
+
+  static fromDatabase(data: OrderRow): Order {
+    return new Order({
+      // Existing order - ID from database
+      id: Id.from(data.id),
+      customerId: data.customer_id,
+      status: data.status,
+      items: data.items.map(
+        (item) =>
+          new OrderItem({
+            id: Id.from(item.id),
+            productId: item.product_id,
+            quantity: item.quantity,
+          })
+      ),
+      createdAt: data.created_at,
+    });
+  }
+}
+
+// Usage
+const newOrder = Order.create("customer-123");
+console.log(newOrder.isNew()); // true
+
+const existingOrder = Order.fromDatabase(dbRow);
+console.log(existingOrder.isNew()); // false
+```
+
+## API Reference
+
+### Constructor
+
+```typescript
+new Id()           // Generates UUID, isNew = true
+new Id("value")    // Uses provided value, isNew = false
+```
+
+### Static Methods
+
+| Method | Description |
+|--------|-------------|
+| `Id.create()` | Creates a new Id with auto-generated UUID |
+| `Id.from(value)` | Creates an Id from an existing value |
+
+### Instance Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `isNew()` | `boolean` | True if ID was auto-generated |
+| `equals(other)` | `boolean` | Compare with Id or string |
+| `toString()` | `string` | Returns the ID value |
+| `toJSON()` | `string` | Returns the ID value (for serialization) |
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `value` | `string` | The ID string value |
