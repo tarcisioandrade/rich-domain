@@ -1,4 +1,4 @@
-{
+w{
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "rich-domain",
@@ -91,7 +91,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "/quickstart"
+      "href": "https://google.com.br"
     }
   },
   "footer": {
