@@ -85,13 +85,13 @@
     "links": [
       {
         "label": "GitHub",
-        "url": "https://github.com/tarcisioandrade/rich-domain"
+        "href": "https://github.com/tarcisioandrade/rich-domain"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "url": "/quickstart"
+      "href": "/quickstart"
     }
   },
   "footer": {
