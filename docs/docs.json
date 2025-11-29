@@ -1,101 +1,105 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "rich-domain",
-  "theme": "mint",
-  "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
-  },
-  "favicon": "/favicon.svg",
-  "colors": {
-    "primary": "#6366f1",
-    "light": "#818cf8",
-    "dark": "#4f46e5"
-  },
-  "topbarLinks": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/tarcisioandrade/rich-domain"
+    "$schema": "https://mintlify.com/docs.json",
+    "name": "rich-domain",
+    "theme": "mint",
+    "logo": {
+        "dark": "/logo/dark.svg",
+        "light": "/logo/light.svg"
+    },
+    "favicon": "/favicon.svg",
+    "colors": {
+        "primary": "#6366f1",
+        "light": "#818cf8",
+        "dark": "#4f46e5"
+    },
+    "topbarLinks": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/tarcisioandrade/rich-domain"
+        }
+    ],
+    "topbarCtaButton": {
+        "name": "Get Started",
+        "url": "/quickstart"
+    },
+    "tabs": [
+        {
+            "name": "Documentation",
+            "url": "/"
+        },
+        {
+            "name": "API Reference",
+            "url": "/api-reference"
+        }
+    ],
+    "anchors": [
+        {
+            "name": "GitHub",
+            "icon": "github",
+            "url": "https://github.com/tarcisioandrade/rich-domain"
+        },
+        {
+            "name": "NPM",
+            "icon": "npm",
+            "url": "https://www.npmjs.com/package/@woltz/rich-domain"
+        }
+    ],
+    "navigation": {
+        "groups": [
+            [
+                {
+                    "group": "Getting Started",
+                    "pages": [
+                        "introduction",
+                        "quickstart"
+                    ]
+                },
+                {
+                    "group": "Core Concepts",
+                    "pages": [
+                        "core/entities",
+                        "core/aggregates",
+                        "core/value-objects",
+                        "core/id",
+                        "core/domain-events"
+                    ]
+                },
+                {
+                    "group": "Validation",
+                    "pages": [
+                        "validation/overview",
+                        "validation/hooks",
+                        "validation/error-handling"
+                    ]
+                },
+                {
+                    "group": "Change Tracking",
+                    "pages": [
+                        "change-tracking/overview",
+                        "change-tracking/aggregate-changes",
+                        "change-tracking/nested-entities"
+                    ]
+                },
+                {
+                    "group": "Repository",
+                    "pages": [
+                        "repository/overview",
+                        "repository/criteria",
+                        "repository/paginated-result",
+                        "repository/mappers"
+                    ]
+                },
+                {
+                    "group": "Integrations",
+                    "pages": [
+                        "integrations/prisma",
+                        "integrations/drizzle"
+                    ]
+                }
+            ]
+        ]
+    },
+    "footerSocials": {
+        "github": "https://github.com/tarcisioandrade/rich-domain"
     }
-  ],
-  "topbarCtaButton": {
-    "name": "Get Started",
-    "url": "/quickstart"
-  },
-  "tabs": [
-    {
-      "name": "Documentation",
-      "url": "/"
-    },
-    {
-      "name": "API Reference",
-      "url": "/api-reference"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/tarcisioandrade/rich-domain"
-    },
-    {
-      "name": "NPM",
-      "icon": "npm",
-      "url": "https://www.npmjs.com/package/@woltz/rich-domain"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "introduction",
-        "quickstart"
-      ]
-    },
-    {
-      "group": "Core Concepts",
-      "pages": [
-        "core/entities",
-        "core/aggregates",
-        "core/value-objects",
-        "core/id",
-        "core/domain-events"
-      ]
-    },
-    {
-      "group": "Validation",
-      "pages": [
-        "validation/overview",
-        "validation/hooks",
-        "validation/error-handling"
-      ]
-    },
-    {
-      "group": "Change Tracking",
-      "pages": [
-        "change-tracking/overview",
-        "change-tracking/aggregate-changes",
-        "change-tracking/nested-entities"
-      ]
-    },
-    {
-      "group": "Repository",
-      "pages": [
-        "repository/overview",
-        "repository/criteria",
-        "repository/paginated-result",
-        "repository/mappers"
-      ]
-    },
-    {
-      "group": "Integrations",
-      "pages": [
-        "integrations/prisma",
-        "integrations/drizzle"
-      ]
-    }
-  ],
-  "footerSocials": {
-    "github": "https://github.com/tarcisioandrade/rich-domain"
-  }
 }
