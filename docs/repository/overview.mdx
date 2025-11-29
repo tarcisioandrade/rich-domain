@@ -1,0 +1,469 @@
+---
+title: "Repository Overview"
+description: "Abstract persistence layer for domain aggregates"
+---
+
+## What is a Repository?
+
+A Repository is an abstraction that mediates between the domain layer and the data mapping layer. It provides a collection-like interface for accessing domain aggregates while hiding the complexity of database operations.
+
+```typescript
+// Repository abstracts away persistence details
+const user = await userRepository.findById("user-123");
+user.changeName("New Name");
+await userRepository.save(user);
+
+// The domain code doesn't know about:
+// - Database connections
+// - SQL/ORM queries
+// - Data mapping
+```
+
+## Why Use Repositories?
+
+<CardGroup cols={2}>
+
+<Card title="Domain Isolation" icon="shield-halved">
+Domain code stays free of persistence concerns
+</Card>
+
+<Card title="Testability" icon="flask-vial">
+Easy to mock or use in-memory implementations for testing
+</Card>
+
+<Card title="Flexibility" icon="arrows-rotate">
+Switch databases or ORMs without changing domain code
+</Card>
+
+<Card title="Consistency" icon="check-double">
+Centralized place for query logic and data access patterns
+</Card>
+
+</CardGroup>
+
+## Repository Types
+
+The library provides several base classes for different use cases:
+
+### Repository (Full CRUD)
+
+Complete read and write operations:
+
+```typescript
+abstract class Repository<TDomain extends Aggregate<any>> {
+  abstract find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  abstract findById(id: string): Promise<TDomain | null>;
+  abstract save(entity: TDomain): Promise<void>;
+  abstract delete(entity: TDomain): Promise<void>;
+  abstract count(criteria?: Criteria<TDomain>): Promise<number>;
+  abstract exists(id: string): Promise<boolean>;
+}
+```
+
+### ReadRepository
+
+Read-only operations:
+
+```typescript
+abstract class ReadRepository<TDomain extends Aggregate<any>> {
+  abstract find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  abstract findById(id: string): Promise<TDomain | null>;
+  abstract count(criteria?: Criteria<TDomain>): Promise<number>;
+  abstract exists(id: string): Promise<boolean>;
+}
+```
+
+### WriteRepository
+
+Write-only operations:
+
+```typescript
+abstract class WriteRepository<TDomain extends Aggregate<any>> {
+  abstract save(entity: TDomain): Promise<void>;
+  abstract delete(entity: TDomain): Promise<void>;
+}
+```
+
+## Basic Implementation
+
+### 1. Define Your Aggregate
+
+```typescript
+interface UserProps extends BaseProps {
+  name: string;
+  email: string;
+  status: "active" | "inactive";
+}
+
+class User extends Aggregate<UserProps> {
+  get name() { return this.props.name; }
+  get email() { return this.props.email; }
+  get status() { return this.props.status; }
+
+  changeName(name: string) {
+    this.props.name = name;
+  }
+
+  activate() {
+    this.props.status = "active";
+  }
+}
+```
+
+### 2. Create Mappers
+
+```typescript
+// Domain → Persistence
+class UserToPersistenceMapper extends Mapper<User, UserRecord> {
+  build(user: User): UserRecord {
+    return {
+      id: user.id.value,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+  }
+}
+
+// Persistence → Domain
+class UserToDomainMapper extends Mapper<UserRecord, User> {
+  build(record: UserRecord): User {
+    return new User({
+      id: Id.from(record.id),
+      name: record.name,
+      email: record.email,
+      status: record.status as "active" | "inactive",
+    });
+  }
+}
+```
+
+### 3. Implement Repository
+
+```typescript
+class UserRepository extends Repository<User> {
+  constructor(
+    private db: Database,
+    protected readonly mapperToDomain: UserToDomainMapper,
+    protected readonly mapperToPersistence: UserToPersistenceMapper
+  ) {
+    super();
+  }
+
+  get model() {
+    return this.db.users;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    const record = await this.db.users.findUnique({ where: { id } });
+    return record ? this.mapperToDomain.build(record) : null;
+  }
+
+  async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
+    const where = this.buildWhere(criteria);
+    const orderBy = this.buildOrderBy(criteria);
+    const pagination = criteria.getPagination();
+
+    const [records, total] = await Promise.all([
+      this.db.users.findMany({
+        where,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.db.users.count({ where }),
+    ]);
+
+    const users = records.map((r) => this.mapperToDomain.build(r));
+    return PaginatedResult.create(users, pagination, total);
+  }
+
+  async save(user: User): Promise<void> {
+    const data = this.mapperToPersistence.build(user);
+    
+    if (user.isNew()) {
+      await this.db.users.create({ data });
+    } else {
+      await this.db.users.update({
+        where: { id: user.id.value },
+        data,
+      });
+    }
+  }
+
+  async delete(user: User): Promise<void> {
+    await this.db.users.delete({ where: { id: user.id.value } });
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const count = await this.db.users.count({ where: { id } });
+    return count > 0;
+  }
+
+  async count(criteria?: Criteria<User>): Promise<number> {
+    const where = criteria ? this.buildWhere(criteria) : {};
+    return this.db.users.count({ where });
+  }
+
+  private buildWhere(criteria: Criteria<User>): any {
+    // Convert criteria filters to database query
+    // See integration guides for ORM-specific implementations
+  }
+
+  private buildOrderBy(criteria: Criteria<User>): any {
+    // Convert criteria orders to database query
+  }
+}
+```
+
+## Using the Repository
+
+### Finding Entities
+
+```typescript
+// Find by ID
+const user = await userRepository.findById("user-123");
+
+// Find with criteria
+const activeUsers = await userRepository.find(
+  Criteria.create<User>()
+    .whereEquals("status", "active")
+    .orderByDesc("createdAt")
+    .paginate(1, 20)
+);
+
+// Check existence
+const exists = await userRepository.exists("user-123");
+
+// Count
+const count = await userRepository.count(
+  Criteria.create<User>().whereEquals("status", "active")
+);
+```
+
+### Saving Entities
+
+```typescript
+// Create new
+const user = new User({
+  name: "John Doe",
+  email: "john@example.com",
+  status: "active",
+});
+await userRepository.save(user);  // INSERT
+
+// Update existing
+const user = await userRepository.findById("user-123");
+user.changeName("Jane Doe");
+await userRepository.save(user);  // UPDATE
+```
+
+### Deleting Entities
+
+```typescript
+const user = await userRepository.findById("user-123");
+await userRepository.delete(user);
+```
+
+## Custom Query Methods
+
+Add domain-specific query methods:
+
+```typescript
+class UserRepository extends Repository<User> {
+  // ... base implementation
+
+  async findByEmail(email: string): Promise<User | null> {
+    const record = await this.db.users.findUnique({
+      where: { email },
+    });
+    return record ? this.mapperToDomain.build(record) : null;
+  }
+
+  async findActiveUsers(page: number, limit: number): Promise<PaginatedResult<User>> {
+    return this.find(
+      Criteria.create<User>()
+        .whereEquals("status", "active")
+        .orderByDesc("createdAt")
+        .paginate(page, limit)
+    );
+  }
+
+  async findRecentlyJoined(days: number): Promise<User[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const result = await this.find(
+      Criteria.create<User>()
+        .where("createdAt", "greaterThan", since)
+        .orderByDesc("createdAt")
+    );
+
+    return result.data;
+  }
+
+  async countByStatus(status: "active" | "inactive"): Promise<number> {
+    return this.count(
+      Criteria.create<User>().whereEquals("status", status)
+    );
+  }
+}
+```
+
+## Repository with Change Tracking
+
+For aggregates with complex nested structures, use change tracking:
+
+```typescript
+class OrderRepository extends Repository<Order> {
+  async save(order: Order): Promise<void> {
+    const changes = order.getChanges();
+
+    if (changes.isEmpty() && !order.isNew()) {
+      return; // Nothing to save
+    }
+
+    await this.db.$transaction(async (tx) => {
+      if (order.isNew()) {
+        // Create root aggregate
+        await tx.orders.create({
+          data: this.mapperToPersistence.build(order),
+        });
+      }
+
+      // Process batch operations
+      const batch = changes.toBatchOperations();
+
+      // Deletes (leaf → root)
+      for (const del of batch.deletes) {
+        await tx[this.getTable(del.entity)].deleteMany({
+          where: { id: { in: del.ids } },
+        });
+      }
+
+      // Creates (root → leaf)
+      for (const create of batch.creates) {
+        await tx[this.getTable(create.entity)].createMany({
+          data: create.items.map((item) => 
+            this.mapItem(create.entity, item.data, item.parentId)
+          ),
+        });
+      }
+
+      // Updates
+      for (const update of batch.updates) {
+        for (const item of update.items) {
+          await tx[this.getTable(update.entity)].update({
+            where: { id: item.id },
+            data: item.changedFields,
+          });
+        }
+      }
+    });
+
+    order.markAsClean();
+  }
+}
+```
+
+## Testing with Repositories
+
+### In-Memory Implementation
+
+```typescript
+class InMemoryUserRepository extends Repository<User> {
+  private store = new Map<string, User>();
+
+  async findById(id: string): Promise<User | null> {
+    return this.store.get(id) || null;
+  }
+
+  async save(user: User): Promise<void> {
+    this.store.set(user.id.value, user);
+  }
+
+  async delete(user: User): Promise<void> {
+    this.store.delete(user.id.value);
+  }
+
+  async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
+    const all = Array.from(this.store.values());
+    return PaginatedResult.fromArray(all, criteria);
+  }
+
+  async exists(id: string): Promise<boolean> {
+    return this.store.has(id);
+  }
+
+  async count(criteria?: Criteria<User>): Promise<number> {
+    if (!criteria) return this.store.size;
+    const result = await this.find(criteria);
+    return result.meta.total;
+  }
+
+  // Test helpers
+  clear(): void {
+    this.store.clear();
+  }
+}
+```
+
+### Using in Tests
+
+```typescript
+describe("UserService", () => {
+  let userRepository: InMemoryUserRepository;
+  let userService: UserService;
+
+  beforeEach(() => {
+    userRepository = new InMemoryUserRepository();
+    userService = new UserService(userRepository);
+  });
+
+  it("should create a user", async () => {
+    const user = await userService.createUser({
+      name: "John",
+      email: "john@example.com",
+    });
+
+    expect(user.id).toBeDefined();
+    expect(await userRepository.exists(user.id.value)).toBe(true);
+  });
+
+  it("should find active users", async () => {
+    // Setup
+    await userRepository.save(new User({ name: "Active", status: "active" }));
+    await userRepository.save(new User({ name: "Inactive", status: "inactive" }));
+
+    // Test
+    const activeUsers = await userService.getActiveUsers();
+
+    expect(activeUsers.length).toBe(1);
+    expect(activeUsers[0].name).toBe("Active");
+  });
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Mappers" icon="right-left" href="/repository/mappers">
+  Learn about domain ↔ persistence mapping
+</Card>
+
+<Card title="Prisma Integration" icon="database" href="/integrations/prisma">
+  Complete Prisma implementation guide
+</Card>
+
+<Card title="Drizzle Integration" icon="droplet" href="/integrations/drizzle">
+  Complete Drizzle implementation guide
+</Card>
+
+<Card title="Change Tracking" icon="clock-rotate-left" href="/change-tracking/overview">
+  Automatic change tracking for complex aggregates
+</Card>
+
+</CardGroup>

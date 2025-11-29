@@ -1,0 +1,690 @@
+---
+title: "Nested Entities & Collections"
+description: "How change tracking works with complex aggregate hierarchies"
+---
+
+## Overview
+
+Real aggregates have complex structures: collections of entities (1:N), nested single entities (1:1), and Value Objects with identity keys. The change tracking system handles all of these automatically.
+
+```typescript
+class User extends Aggregate<UserProps> {
+  // 1:1 relationship
+  address: Address | null;
+  
+  // 1:N relationship (entities)
+  posts: Post[];
+  
+  // 1:N relationship (value objects)
+  tags: TagReference[];
+}
+
+class Post extends Entity<PostProps> {
+  // Nested 1:N
+  comments: Comment[];
+}
+
+class Comment extends Entity<CommentProps> {
+  // Deeply nested 1:N (value objects)
+  likes: Like[];
+}
+```
+
+## Collections (1:N Relationships)
+
+### Adding Items
+
+When you add items to a collection, they're tracked as creates:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  posts: [],
+});
+
+// Add new posts
+user.addPost(new Post({
+  title: "First Post",
+  content: "Hello World",
+  comments: [],
+}));
+
+user.addPost(new Post({
+  title: "Second Post",
+  content: "Another post",
+  comments: [],
+}));
+
+const changes = user.getChanges();
+const postChanges = changes.for("Post");
+
+console.log(postChanges.hasCreates()); // true
+console.log(postChanges.creates.length); // 2
+```
+
+### Removing Items
+
+Removed items are tracked as deletes:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  posts: [
+    new Post({ id: Id.from("post-1"), title: "Existing Post", comments: [] }),
+    new Post({ id: Id.from("post-2"), title: "Another Post", comments: [] }),
+  ],
+});
+
+// Remove a post
+user.removePost(Id.from("post-1"));
+
+const changes = user.getChanges();
+const postChanges = changes.for("Post");
+
+console.log(postChanges.hasDeletes()); // true
+console.log(postChanges.deleteIds); // ["post-1"]
+```
+
+### Updating Items
+
+Modifications to existing items are tracked as updates:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  posts: [
+    new Post({ id: Id.from("post-1"), title: "Original Title", comments: [] }),
+  ],
+});
+
+// Update the post
+user.posts[0].changeTitle("Updated Title");
+
+const changes = user.getChanges();
+const postChanges = changes.for("Post");
+
+console.log(postChanges.hasUpdates()); // true
+console.log(postChanges.updates[0].changed); // { title: "Updated Title" }
+```
+
+### Mixed Operations
+
+You can have creates, updates, and deletes in the same transaction:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [
+    new Post({ id: Id.from("post-1"), title: "Post 1", comments: [] }),
+    new Post({ id: Id.from("post-2"), title: "Post 2", comments: [] }),
+    new Post({ id: Id.from("post-3"), title: "Post 3", comments: [] }),
+  ],
+});
+
+// Create
+user.addPost(new Post({ title: "New Post", comments: [] }));
+
+// Update
+user.posts[0].changeTitle("Updated Post 1");
+
+// Delete
+user.removePost(Id.from("post-2"));
+
+const changes = user.getChanges();
+const postChanges = changes.for("Post");
+
+console.log(postChanges.creates.length); // 1
+console.log(postChanges.updates.length); // 1
+console.log(postChanges.deletes.length); // 1
+```
+
+## Single Entity Relationships (1:1)
+
+### Created (null → Entity)
+
+When a previously null relationship is set:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  address: null,
+});
+
+// Set address
+user.setAddress(new Address({
+  street: "123 Main St",
+  city: "New York",
+}));
+
+const changes = user.getChanges();
+const addressChanges = changes.for("Address");
+
+console.log(addressChanges.hasCreates()); // true
+console.log(addressChanges.creates[0].street); // "123 Main St"
+```
+
+### Deleted (Entity → null)
+
+When an entity is removed:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  address: new Address({
+    id: Id.from("addr-1"),
+    street: "123 Main St",
+    city: "New York",
+  }),
+});
+
+// Remove address
+user.removeAddress();
+
+const changes = user.getChanges();
+const addressChanges = changes.for("Address");
+
+console.log(addressChanges.hasDeletes()); // true
+console.log(addressChanges.deleteIds); // ["addr-1"]
+```
+
+### Updated (Same ID, Different Values)
+
+When properties change on the same entity:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  address: new Address({
+    id: Id.from("addr-1"),
+    street: "123 Main St",
+    city: "New York",
+  }),
+});
+
+// Update address
+user.address.changeStreet("456 Oak Ave");
+
+const changes = user.getChanges();
+const addressChanges = changes.for("Address");
+
+console.log(addressChanges.hasUpdates()); // true
+console.log(addressChanges.updates[0].changed); // { street: "456 Oak Ave" }
+```
+
+### Replaced (Different ID)
+
+When you replace an entity with a completely new one:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  name: "John",
+  address: new Address({
+    id: Id.from("addr-1"),
+    street: "123 Main St",
+    city: "New York",
+  }),
+});
+
+// Replace with new address
+user.setAddress(new Address({
+  street: "789 Pine Rd",
+  city: "Boston",
+}));
+
+const changes = user.getChanges();
+const addressChanges = changes.for("Address");
+
+// Both delete and create
+console.log(addressChanges.hasDeletes()); // true
+console.log(addressChanges.hasCreates()); // true
+console.log(addressChanges.deleteIds); // ["addr-1"]
+```
+
+## Deeply Nested Structures
+
+Change tracking works at any depth:
+
+```typescript
+// Structure:
+// User (depth: 0)
+// └── Post (depth: 1)
+//     └── Comment (depth: 2)
+//         └── Like (depth: 3)
+
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [
+    new Post({
+      id: Id.from("post-1"),
+      comments: [
+        new Comment({
+          id: Id.from("comment-1"),
+          likes: [],
+        }),
+      ],
+    }),
+  ],
+});
+
+// Add a like (depth: 3)
+user.posts[0].comments[0].addLike(new Like({
+  postId: "post-1",
+  userId: "user-2",
+  createdAt: new Date(),
+}));
+
+// Modify comment (depth: 2)
+user.posts[0].comments[0].changeText("Updated comment");
+
+// Add new comment (depth: 2)
+user.posts[0].addComment(new Comment({
+  text: "New comment",
+  likes: [],
+}));
+
+const changes = user.getChanges();
+
+// Check each level
+console.log(changes.for("Post").hasChanges());    // false
+console.log(changes.for("Comment").hasCreates()); // true (new comment)
+console.log(changes.for("Comment").hasUpdates()); // true (updated text)
+console.log(changes.for("Like").hasCreates());    // true (new like)
+```
+
+## Cascading Deletes
+
+When you delete an entity that has children, all nested entities are also tracked as deletes:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [
+    new Post({
+      id: Id.from("post-1"),
+      title: "Post with comments",
+      comments: [
+        new Comment({
+          id: Id.from("comment-1"),
+          text: "Comment 1",
+          likes: [
+            new Like({ postId: "post-1", userId: "user-2", createdAt: new Date() }),
+          ],
+        }),
+        new Comment({
+          id: Id.from("comment-2"),
+          text: "Comment 2",
+          likes: [],
+        }),
+      ],
+    }),
+  ],
+});
+
+// Delete the post (cascades to comments and likes)
+user.removePost(Id.from("post-1"));
+
+const changes = user.getChanges();
+
+console.log(changes.for("Post").deleteIds);    // ["post-1"]
+console.log(changes.for("Comment").deleteIds); // ["comment-1", "comment-2"]
+console.log(changes.for("Like").deleteIds);    // ["post-1:user-2"]
+```
+
+The batch operations automatically order these correctly:
+
+```typescript
+const batch = changes.toBatchOperations();
+
+// Deletes ordered by depth DESC (leaf first)
+batch.deletes.forEach((del) => {
+  console.log(`${del.entity} (depth: ${del.depth}): ${del.ids.join(", ")}`);
+});
+// Like (depth: 3): post-1:user-2
+// Comment (depth: 2): comment-1, comment-2
+// Post (depth: 1): post-1
+```
+
+## Cascading Creates
+
+When you create an entity with nested children, all are tracked:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [],
+});
+
+// Add a post with comments and likes
+user.addPost(new Post({
+  title: "New Post",
+  comments: [
+    new Comment({
+      text: "Comment with likes",
+      likes: [
+        new Like({ postId: "temp", userId: "user-2", createdAt: new Date() }),
+        new Like({ postId: "temp", userId: "user-3", createdAt: new Date() }),
+      ],
+    }),
+  ],
+}));
+
+const changes = user.getChanges();
+
+console.log(changes.for("Post").creates.length);    // 1
+console.log(changes.for("Comment").creates.length); // 1
+console.log(changes.for("Like").creates.length);    // 2
+```
+
+The batch operations order creates correctly:
+
+```typescript
+const batch = changes.toBatchOperations();
+
+// Creates ordered by depth ASC (root first)
+batch.creates.forEach((create) => {
+  console.log(`${create.entity} (depth: ${create.depth}): ${create.items.length} items`);
+});
+// Post (depth: 1): 1 items
+// Comment (depth: 2): 1 items
+// Like (depth: 3): 2 items
+```
+
+## Value Objects with Identity Key
+
+Value Objects don't have IDs, but you can define an identity key for tracking:
+
+### Single Identity Key
+
+```typescript
+class TagReference extends ValueObject<{ tagId: string; name: string }> {
+  static readonly identityKey = "tagId";
+
+  get tagId() { return this.props.tagId; }
+  get name() { return this.props.name; }
+}
+```
+
+### Composite Identity Key
+
+```typescript
+class Like extends ValueObject<{ postId: string; userId: string; createdAt: Date }> {
+  static readonly identityKey = ["postId", "userId"];
+
+  get postId() { return this.props.postId; }
+  get userId() { return this.props.userId; }
+}
+```
+
+### How Identity Keys Work
+
+The identity key is used to detect additions and removals:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  tags: [
+    new TagReference({ tagId: "tag-1", name: "JavaScript" }),
+    new TagReference({ tagId: "tag-2", name: "TypeScript" }),
+  ],
+});
+
+// Remove a tag
+user.removeTag("tag-1");
+
+// Add a new tag
+user.addTag(new TagReference({ tagId: "tag-3", name: "Node.js" }));
+
+const changes = user.getChanges();
+const tagChanges = changes.for("TagReference");
+
+console.log(tagChanges.deleteIds); // ["tag-1"]
+console.log(tagChanges.createIds); // ["tag-3"]
+```
+
+### Composite Key Example
+
+```typescript
+const comment = new Comment({
+  id: Id.from("comment-1"),
+  text: "Great post!",
+  likes: [
+    new Like({ postId: "post-1", userId: "user-1", createdAt: new Date() }),
+    new Like({ postId: "post-1", userId: "user-2", createdAt: new Date() }),
+  ],
+});
+
+// Remove a specific like using composite key
+comment.removeLike("post-1", "user-2");
+
+const changes = comment.getChanges();
+const likeChanges = changes.for("Like");
+
+console.log(likeChanges.deleteIds); // ["post-1:user-2"]
+```
+
+## Parent ID Tracking
+
+For creates, the system tracks the parent ID for FK relationships:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [],
+});
+
+user.addPost(new Post({
+  title: "New Post",
+  comments: [],
+}));
+
+const changes = user.getChanges();
+const batch = changes.toBatchOperations();
+
+const postCreate = batch.creates.find((c) => c.entity === "Post");
+console.log(postCreate.items[0].parentId); // "user-1"
+```
+
+This enables you to set FK values when persisting:
+
+```typescript
+for (const create of batch.creates) {
+  await db[create.entity].createMany({
+    data: create.items.map((item) => ({
+      ...mapToPersistence(item.data),
+      // Use parentId for FK
+      [getFkColumn(create.entity)]: item.parentId,
+    })),
+  });
+}
+```
+
+## Complete Example
+
+```typescript
+// Domain model
+class User extends Aggregate<UserProps> {
+  get posts() { return this.props.posts; }
+  get address() { return this.props.address; }
+  get tags() { return this.props.tags; }
+
+  addPost(post: Post) {
+    this.props.posts.push(post);
+  }
+
+  removePost(postId: Id) {
+    this.props.posts = this.props.posts.filter((p) => !p.id.equals(postId));
+  }
+
+  setAddress(address: Address) {
+    this.props.address = address;
+  }
+
+  removeAddress() {
+    this.props.address = null;
+  }
+
+  addTag(tag: TagReference) {
+    this.props.tags.push(tag);
+  }
+
+  removeTag(tagId: string) {
+    this.props.tags = this.props.tags.filter((t) => t.tagId !== tagId);
+  }
+
+  getTypedChanges() {
+    type Entities = {
+      User: User;
+      Post: Post;
+      Comment: Comment;
+      Like: Like;
+      Address: Address;
+      TagReference: TagReference;
+    };
+    return this.getChanges<Entities>();
+  }
+}
+
+// Usage
+async function updateUser(user: User) {
+  // Make various changes
+  user.changeName("New Name");
+  
+  user.posts[0].changeTitle("Updated Title");
+  user.posts[0].comments[0].addLike(new Like({
+    postId: user.posts[0].id.value,
+    userId: "user-2",
+    createdAt: new Date(),
+  }));
+  
+  user.addPost(new Post({
+    title: "Brand New Post",
+    comments: [
+      new Comment({ text: "First comment", likes: [] }),
+    ],
+  }));
+  
+  user.removePost(user.posts[1].id);
+  
+  user.setAddress(new Address({
+    street: "New Street",
+    city: "New City",
+  }));
+  
+  user.addTag(new TagReference({ tagId: "tag-new", name: "New Tag" }));
+  user.removeTag("tag-old");
+
+  // Get all changes
+  const changes = user.getTypedChanges();
+
+  console.log("Affected entities:", changes.getAffectedEntities());
+  // ["User", "Post", "Comment", "Like", "Address", "TagReference"]
+
+  // Process by entity
+  if (changes.for("User").hasUpdates()) {
+    console.log("User updated:", changes.for("User").updates[0].changed);
+  }
+
+  if (changes.for("Post").hasCreates()) {
+    console.log("New posts:", changes.for("Post").creates.length);
+  }
+
+  if (changes.for("Post").hasDeletes()) {
+    console.log("Deleted posts:", changes.for("Post").deleteIds);
+  }
+
+  if (changes.for("Address").hasCreates()) {
+    console.log("New address created");
+  }
+
+  if (changes.for("Address").hasDeletes()) {
+    console.log("Old address deleted");
+  }
+
+  // Persist with batch operations
+  const batch = changes.toBatchOperations();
+  await persistBatch(batch);
+
+  // Clear tracking
+  user.markAsClean();
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Always use markAsClean() after persistence">
+After successfully persisting changes, always call `markAsClean()` to reset the tracking state:
+
+```typescript
+await repository.save(aggregate);
+aggregate.markAsClean();
+```
+
+Otherwise, the same changes will be detected again on the next `getChanges()` call.
+</Accordion>
+
+<Accordion title="Use typed changes for safety">
+Define an entity map and use `getTypedChanges()` for autocomplete and type inference:
+
+```typescript
+class Order extends Aggregate<OrderProps> {
+  getTypedChanges() {
+    type Entities = { Order: Order; OrderItem: OrderItem; };
+    return this.getChanges<Entities>();
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Process batch operations in order">
+Always process batch operations in this order:
+1. Deletes (automatically sorted leaf → root)
+2. Creates (automatically sorted root → leaf)  
+3. Updates (any order)
+
+```typescript
+const batch = changes.toBatchOperations();
+
+await processDeletes(batch.deletes);  // First
+await processCreates(batch.creates);  // Second
+await processUpdates(batch.updates);  // Last
+```
+</Accordion>
+
+<Accordion title="Define identity keys for trackable Value Objects">
+If you need to track additions/removals of Value Objects in collections, define an identity key:
+
+```typescript
+class Tag extends ValueObject<TagProps> {
+  static readonly identityKey = "tagId";
+}
+
+class Like extends ValueObject<LikeProps> {
+  static readonly identityKey = ["postId", "userId"]; // Composite
+}
+```
+</Accordion>
+
+<Accordion title="Use transactions for batch operations">
+Wrap batch operations in a database transaction to ensure atomicity:
+
+```typescript
+await db.$transaction(async (tx) => {
+  for (const del of batch.deletes) { ... }
+  for (const create of batch.creates) { ... }
+  for (const update of batch.updates) { ... }
+});
+
+aggregate.markAsClean(); // Only after successful commit
+```
+</Accordion>
+
+</AccordionGroup>

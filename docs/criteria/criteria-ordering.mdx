@@ -1,0 +1,420 @@
+---
+title: "Ordering, Pagination & Search"
+description: "Sort results, paginate data, and perform multi-field searches"
+---
+
+## Ordering
+
+### Basic Ordering
+
+Sort results by one or more fields:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .orderBy("name", "asc")        // Ascending (A-Z)
+  .orderByDesc("createdAt");     // Descending (newest first)
+```
+
+### Order Methods
+
+```typescript
+// Generic method with direction
+criteria.orderBy("field", "asc");   // or "desc"
+
+// Shorthand methods
+criteria.orderByAsc("name");        // Ascending
+criteria.orderByDesc("createdAt");  // Descending
+```
+
+### Multiple Orders
+
+Orders are applied in the sequence they're added:
+
+```typescript
+const criteria = Criteria.create<Product>()
+  .orderByDesc("featured")     // First: featured items first
+  .orderByAsc("price")         // Then: lowest price
+  .orderByDesc("rating");      // Finally: highest rating
+
+// SQL equivalent:
+// ORDER BY featured DESC, price ASC, rating DESC
+```
+
+### Ordering Nested Fields
+
+Sort by nested object properties:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  profile: {
+    reputation: number;
+    joinedAt: Date;
+  };
+}
+
+const criteria = Criteria.create<User>()
+  .orderByDesc("profile.reputation")
+  .orderByAsc("profile.joinedAt");
+```
+
+### Type-Safe Ordering
+
+Only valid field paths are allowed:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .orderBy("name", "asc")           // ✅ Valid
+  .orderBy("profile.bio", "desc")   // ✅ Valid nested path
+  .orderBy("invalid", "asc");       // ❌ TypeScript error
+```
+
+## Pagination
+
+### Basic Pagination
+
+```typescript
+const criteria = Criteria.create<User>()
+  .paginate(1, 20);  // Page 1, 20 items per page
+
+const criteria = Criteria.create<User>()
+  .paginate(3, 10);  // Page 3, 10 items per page (offset: 20)
+```
+
+### Limit Only
+
+When you just want to limit results without full pagination:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .limit(5);  // First 5 results
+
+// Equivalent to:
+criteria.paginate(1, 5);
+```
+
+### Default Pagination
+
+Criteria has default pagination to prevent unbounded queries:
+
+```typescript
+const criteria = Criteria.create<User>();
+
+const pagination = criteria.getPagination();
+// { page: 1, limit: 20, offset: 0 }
+```
+
+### Pagination Object
+
+The `getPagination()` method returns:
+
+```typescript
+interface Pagination {
+  page: number;   // Current page (1-based)
+  limit: number;  // Items per page
+  offset: number; // Calculated offset for SQL
+}
+
+const criteria = Criteria.create<User>()
+  .paginate(3, 25);
+
+criteria.getPagination();
+// { page: 3, limit: 25, offset: 50 }
+```
+
+### Checking Pagination State
+
+```typescript
+const criteria = Criteria.create<User>()
+  .paginate(1, 20);
+
+criteria.hasPagination();  // true (always true due to defaults)
+```
+
+## Search
+
+### Multi-Field Search
+
+Search across multiple fields with a single query:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .search(["name", "email", "bio"], "john");
+
+// Matches users where:
+// name contains "john" OR email contains "john" OR bio contains "john"
+```
+
+### Search with Other Filters
+
+Combine search with regular filters:
+
+```typescript
+const criteria = Criteria.create<Product>()
+  .whereEquals("status", "active")
+  .whereEquals("categoryId", "electronics")
+  .search(["name", "description", "sku"], "laptop")
+  .orderByDesc("relevance")
+  .paginate(1, 20);
+```
+
+### Search on Nested Fields
+
+```typescript
+const criteria = Criteria.create<Order>()
+  .search(
+    ["customer.name", "customer.email", "items.productName"],
+    "macbook"
+  );
+```
+
+### Checking Search State
+
+```typescript
+const criteria = Criteria.create<User>()
+  .search(["name", "email"], "john");
+
+criteria.hasSearch();  // true
+
+const search = criteria.getSearch();
+// { fields: ["name", "email"], value: "john" }
+```
+
+### Search Behavior
+
+<Note>
+When search is applied with `PaginatedResult.fromArray()`, it:
+1. Searches across **all** items (ignoring pagination initially)
+2. Returns matching items
+3. Updates the total count based on matches
+4. Then applies pagination to the filtered results
+</Note>
+
+```typescript
+// 1000 users in database
+const criteria = Criteria.create<User>()
+  .search(["name"], "john")
+  .paginate(1, 10);
+
+const result = PaginatedResult.fromArray(users, criteria);
+// result.meta.total = 50 (only matching users)
+// result.data.length = 10 (first page of matches)
+```
+
+## Combining Everything
+
+### Full Query Example
+
+```typescript
+const criteria = Criteria.create<Product>()
+  // Filters
+  .whereEquals("status", "published")
+  .where("price", "lessThanOrEqual", 100)
+  .whereIn("category", ["electronics", "accessories"])
+  .whereNotNull("stock")
+  
+  // Search
+  .search(["name", "description"], searchQuery)
+  
+  // Ordering
+  .orderByDesc("featured")
+  .orderByAsc("price")
+  
+  // Pagination
+  .paginate(page, 24);
+```
+
+### Dynamic Query Building
+
+```typescript
+function buildProductQuery(filters: ProductFilters): Criteria<Product> {
+  let criteria = Criteria.create<Product>()
+    .whereEquals("status", "active");
+
+  // Conditional filters
+  if (filters.category) {
+    criteria = criteria.whereEquals("category", filters.category);
+  }
+
+  if (filters.minPrice !== undefined) {
+    criteria = criteria.where("price", "greaterThanOrEqual", filters.minPrice);
+  }
+
+  if (filters.maxPrice !== undefined) {
+    criteria = criteria.where("price", "lessThanOrEqual", filters.maxPrice);
+  }
+
+  if (filters.inStock) {
+    criteria = criteria.where("stock", "greaterThan", 0);
+  }
+
+  // Search
+  if (filters.query) {
+    criteria = criteria.search(["name", "description", "sku"], filters.query);
+  }
+
+  // Ordering
+  switch (filters.sortBy) {
+    case "price-asc":
+      criteria = criteria.orderByAsc("price");
+      break;
+    case "price-desc":
+      criteria = criteria.orderByDesc("price");
+      break;
+    case "newest":
+      criteria = criteria.orderByDesc("createdAt");
+      break;
+    case "popular":
+      criteria = criteria.orderByDesc("salesCount");
+      break;
+    default:
+      criteria = criteria.orderByDesc("featured").orderByDesc("createdAt");
+  }
+
+  // Pagination
+  criteria = criteria.paginate(filters.page || 1, filters.perPage || 24);
+
+  return criteria;
+}
+```
+
+## Getting Order Information
+
+```typescript
+const criteria = Criteria.create<User>()
+  .orderByDesc("createdAt")
+  .orderByAsc("name");
+
+const orders = criteria.getOrders();
+// [
+//   { field: "createdAt", direction: "desc" },
+//   { field: "name", direction: "asc" }
+// ]
+
+criteria.hasOrders();  // true
+```
+
+## Order Interface
+
+```typescript
+interface Order {
+  field: string;
+  direction: "asc" | "desc";
+}
+
+type OrderDirection = "asc" | "desc";
+```
+
+## API in Query Params
+
+### Ordering via Query Params
+
+```typescript
+// URL: /products?orderBy=price:asc,createdAt:desc
+
+const criteria = Criteria.fromQueryParams<Product>({
+  orderBy: "price:asc,createdAt:desc",
+});
+
+// Creates orders:
+// 1. price ASC
+// 2. createdAt DESC
+```
+
+### Pagination via Query Params
+
+```typescript
+// URL: /products?page=2&limit=20
+
+const criteria = Criteria.fromQueryParams<Product>({
+  page: "2",
+  limit: "20",
+});
+
+criteria.getPagination();
+// { page: 2, limit: 20, offset: 20 }
+```
+
+### Search via Query Params
+
+```typescript
+// URL: /products?search=laptop&searchFields=name,description
+
+const criteria = Criteria.fromQueryParams<Product>({
+  search: "laptop",
+  searchFields: "name,description",
+});
+```
+
+### Complete URL Example
+
+```typescript
+// URL: /products?status:equals=active&price:lessThan=100&search=laptop&searchFields=name,description&orderBy=price:asc&page=1&limit=20
+
+const criteria = Criteria.fromQueryParams<Product>({
+  "status:equals": "active",
+  "price:lessThan": "100",
+  "search": "laptop",
+  "searchFields": "name,description",
+  "orderBy": "price:asc",
+  "page": "1",
+  "limit": "20",
+});
+```
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Always apply ordering for consistent results">
+Without explicit ordering, database results may be non-deterministic:
+
+```typescript
+// ❌ Potentially inconsistent across queries
+const criteria = Criteria.create<User>()
+  .paginate(1, 20);
+
+// ✅ Consistent ordering
+const criteria = Criteria.create<User>()
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+```
+</Accordion>
+
+<Accordion title="Use limit() for simple cases">
+When you don't need full pagination metadata:
+
+```typescript
+// For "latest 5 items" scenarios
+const criteria = Criteria.create<Post>()
+  .whereEquals("status", "published")
+  .orderByDesc("createdAt")
+  .limit(5);
+```
+</Accordion>
+
+<Accordion title="Combine search with filters for better UX">
+Let users search within filtered results:
+
+```typescript
+// User selects category, then searches within it
+const criteria = Criteria.create<Product>()
+  .whereEquals("category", selectedCategory)  // Filter first
+  .search(["name", "description"], searchQuery)  // Then search
+  .orderByDesc("relevance");
+```
+</Accordion>
+
+<Accordion title="Consider secondary sort for ties">
+When the primary sort may have duplicates:
+
+```typescript
+// Many products have the same price
+const criteria = Criteria.create<Product>()
+  .orderByAsc("price")        // Primary: by price
+  .orderByDesc("createdAt");  // Secondary: newest first for same price
+```
+</Accordion>
+
+</AccordionGroup>

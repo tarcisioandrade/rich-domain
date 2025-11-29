@@ -1,0 +1,442 @@
+---
+title: "PaginatedResult"
+description: "Working with paginated query results and deep serialization"
+---
+
+## Overview
+
+`PaginatedResult` wraps query results with pagination metadata. It provides a consistent structure for paginated data and handles deep serialization of entities and value objects.
+
+```typescript
+const result = await userRepository.find(criteria);
+
+// Access data and metadata
+result.data;           // User[] - the actual entities
+result.meta.page;      // 1
+result.meta.limit;     // 20
+result.meta.total;     // 150
+result.meta.totalPages; // 8
+result.meta.hasNext;   // true
+result.meta.hasPrevious; // false
+```
+
+## Creating PaginatedResult
+
+### From Repository
+
+Most commonly, you'll get `PaginatedResult` from repository methods:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+
+const result = await userRepository.find(criteria);
+// PaginatedResult<User>
+```
+
+### Manual Creation
+
+Create a `PaginatedResult` directly:
+
+```typescript
+import { PaginatedResult } from "@woltz/rich-domain";
+
+const users: User[] = [...]; // Your data
+const pagination = { page: 1, limit: 20, offset: 0 };
+const total = 150;
+
+const result = PaginatedResult.create(users, pagination, total);
+```
+
+### From Array (Testing/In-Memory)
+
+Apply criteria to an in-memory array:
+
+```typescript
+const allUsers: User[] = [...]; // All users in memory
+
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+
+const result = PaginatedResult.fromArray(allUsers, criteria);
+// Filters, orders, and paginates the array
+```
+
+<Note>
+`fromArray()` is useful for testing or when working with small datasets. For large datasets, always use database-level filtering.
+</Note>
+
+## Pagination Metadata
+
+### PaginationMeta Structure
+
+```typescript
+interface PaginationMeta {
+  page: number;       // Current page (1-based)
+  limit: number;      // Items per page
+  total: number;      // Total matching records
+  totalPages: number; // Total number of pages
+  hasNext: boolean;   // Has next page
+  hasPrevious: boolean; // Has previous page
+}
+```
+
+### Accessing Metadata
+
+```typescript
+const result = await userRepository.find(criteria);
+
+console.log(result.meta);
+// {
+//   page: 1,
+//   limit: 20,
+//   total: 150,
+//   totalPages: 8,
+//   hasNext: true,
+//   hasPrevious: false
+// }
+
+// Individual properties
+result.meta.page;        // 1
+result.meta.limit;       // 20
+result.meta.total;       // 150
+result.meta.totalPages;  // 8
+result.meta.hasNext;     // true
+result.meta.hasPrevious; // false
+```
+
+### Creating Metadata Manually
+
+```typescript
+const pagination = { page: 2, limit: 10, offset: 10 };
+const total = 45;
+
+const meta = PaginatedResult.createMeta(pagination, total);
+// {
+//   page: 2,
+//   limit: 10,
+//   total: 45,
+//   totalPages: 5,
+//   hasNext: true,
+//   hasPrevious: true
+// }
+```
+
+## Utility Properties
+
+### isEmpty
+
+Check if result has no data:
+
+```typescript
+const result = await userRepository.find(criteria);
+
+if (result.isEmpty) {
+  console.log("No users found");
+}
+```
+
+### hasMore
+
+Check if there are more pages:
+
+```typescript
+const result = await userRepository.find(criteria);
+
+if (result.hasMore) {
+  // Show "Load More" button
+}
+
+// Same as result.meta.hasNext
+```
+
+## Transforming Results
+
+### map()
+
+Transform each item in the result:
+
+```typescript
+const users = await userRepository.find(criteria);
+
+// Transform to DTOs
+const userDtos = users.map((user) => ({
+  id: user.id.value,
+  displayName: `${user.firstName} ${user.lastName}`,
+  email: user.email,
+  avatarUrl: user.profile?.avatarUrl || "/default-avatar.png",
+}));
+
+// userDtos is PaginatedResult<UserDto>
+// Metadata is preserved
+```
+
+### Chaining map()
+
+```typescript
+const result = await orderRepository.find(criteria);
+
+const summaries = result
+  .map((order) => ({
+    id: order.id.value,
+    total: order.total,
+    itemCount: order.items.length,
+    customer: order.customer.name,
+  }))
+  .map((summary) => ({
+    ...summary,
+    formattedTotal: `$${summary.total.toFixed(2)}`,
+  }));
+```
+
+## Serialization
+
+### toJSON()
+
+Deep serialize all entities, value objects, and IDs:
+
+```typescript
+const result = await userRepository.find(criteria);
+
+const json = result.toJSON();
+// {
+//   data: [
+//     {
+//       id: "user-123",  // Id serialized to string
+//       name: "John Doe",
+//       email: "john@example.com",
+//       address: {        // Value Object serialized
+//         street: "123 Main St",
+//         city: "New York"
+//       },
+//       posts: [          // Nested entities serialized
+//         { id: "post-1", title: "Hello World" },
+//         { id: "post-2", title: "Another Post" }
+//       ]
+//     },
+//     // ... more users
+//   ],
+//   meta: {
+//     page: 1,
+//     limit: 20,
+//     total: 150,
+//     totalPages: 8,
+//     hasNext: true,
+//     hasPrevious: false
+//   }
+// }
+```
+
+### What Gets Serialized
+
+| Type | Serialization |
+|------|---------------|
+| `Id` | String value (`id.value`) |
+| `Entity` | Calls `toJson()` |
+| `Aggregate` | Calls `toJson()` |
+| `ValueObject` | Calls `toJson()` |
+| `Date` | ISO string |
+| `Array` | Maps items recursively |
+| `Plain Object` | Serializes properties recursively |
+| `Primitives` | As-is |
+
+### Type Safety
+
+The return type reflects serialization:
+
+```typescript
+type PaginatedJsonResult<T> = {
+  data: InferJsonResult<T>[];  // Serialized data
+  meta: PaginationMeta;
+};
+
+// InferJsonResult transforms:
+// - Entities → their toJson() return type
+// - Other types → as-is
+```
+
+## API Response Pattern
+
+```typescript
+// Express.js
+app.get("/users", async (req, res) => {
+  const criteria = Criteria.fromQueryParams<User>(req.query);
+  const result = await userRepository.find(criteria);
+  
+  // toJSON() for API response
+  res.json(result.toJSON());
+});
+
+// Fastify
+fastify.get("/users", async (request, reply) => {
+  const criteria = Criteria.fromQueryParams<User>(request.query);
+  const result = await userRepository.find(criteria);
+  
+  return result.toJSON();
+});
+```
+
+## Pagination UI Example
+
+```typescript
+// Backend
+const result = await userRepository.find(criteria);
+const response = result.toJSON();
+
+// Frontend - React example
+function UserList({ data, meta }: PaginatedJsonResult<User>) {
+  return (
+    <div>
+      {/* Data */}
+      <ul>
+        {data.map((user) => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+
+      {/* Pagination */}
+      <div className="pagination">
+        <button 
+          disabled={!meta.hasPrevious}
+          onClick={() => goToPage(meta.page - 1)}
+        >
+          Previous
+        </button>
+        
+        <span>
+          Page {meta.page} of {meta.totalPages}
+        </span>
+        
+        <button 
+          disabled={!meta.hasNext}
+          onClick={() => goToPage(meta.page + 1)}
+        >
+          Next
+        </button>
+      </div>
+
+      {/* Info */}
+      <p>
+        Showing {data.length} of {meta.total} users
+      </p>
+    </div>
+  );
+}
+```
+
+## Complete Example
+
+```typescript
+// Repository implementation
+class UserRepository extends Repository<User> {
+  async findActiveUsers(
+    page: number,
+    limit: number,
+    search?: string
+  ): Promise<PaginatedResult<User>> {
+    let criteria = Criteria.create<User>()
+      .whereEquals("status", "active")
+      .whereNotNull("emailVerifiedAt")
+      .orderByDesc("createdAt")
+      .paginate(page, limit);
+
+    if (search) {
+      criteria = criteria.search(["name", "email"], search);
+    }
+
+    return this.find(criteria);
+  }
+}
+
+// API endpoint
+app.get("/users", async (req, res) => {
+  const { page = 1, limit = 20, search } = req.query;
+  
+  const result = await userRepository.findActiveUsers(
+    Number(page),
+    Number(limit),
+    search as string
+  );
+
+  // Check if empty
+  if (result.isEmpty) {
+    return res.json({
+      data: [],
+      meta: result.meta,
+      message: "No users found",
+    });
+  }
+
+  // Transform for API
+  const response = result
+    .map((user) => ({
+      id: user.id.value,
+      name: user.name,
+      email: user.email,
+      avatar: user.profile?.avatarUrl,
+      joinedAt: user.createdAt.toISOString(),
+    }))
+    .toJSON();
+
+  res.json(response);
+});
+```
+
+## fromArray() Behavior
+
+When using `fromArray()`, the criteria is fully applied in memory:
+
+```typescript
+const allProducts: Product[] = [...]; // 1000 products
+
+const criteria = Criteria.create<Product>()
+  .whereEquals("category", "electronics")  // Filter
+  .where("price", "lessThan", 500)         // Filter
+  .search(["name"], "laptop")              // Search
+  .orderByDesc("rating")                   // Order
+  .paginate(1, 20);                        // Paginate
+
+const result = PaginatedResult.fromArray(allProducts, criteria);
+
+// Process:
+// 1. Apply search (finds matches across all items)
+// 2. Apply filters (reduces to matching items)
+// 3. Apply ordering
+// 4. Calculate total from filtered results
+// 5. Apply pagination (slice)
+// 6. Return PaginatedResult with correct metadata
+```
+
+<Warning>
+`fromArray()` loads all data into memory before filtering. Only use it for small datasets or testing. For production, implement filtering at the database level.
+</Warning>
+
+## API Reference
+
+### Static Methods
+
+| Method | Parameters | Returns | Description |
+|--------|------------|---------|-------------|
+| `create` | `data: T[], pagination: Pagination, total: number` | `PaginatedResult<T>` | Create with explicit metadata |
+| `createMeta` | `pagination: Pagination, total: number` | `PaginationMeta` | Create metadata only |
+| `fromArray` | `items: T[], criteria: Criteria<T>` | `PaginatedResult<T>` | Apply criteria to array |
+
+### Instance Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `data` | `T[]` | The result items |
+| `meta` | `PaginationMeta` | Pagination metadata |
+| `isEmpty` | `boolean` | True if no data |
+| `hasMore` | `boolean` | True if more pages exist |
+
+### Instance Methods
+
+| Method | Parameters | Returns | Description |
+|--------|------------|---------|-------------|
+| `toJSON` | - | `PaginatedJsonResult<T>` | Deep serialize |
+| `map` | `fn: (item: T) => U` | `PaginatedResult<U>` | Transform items |

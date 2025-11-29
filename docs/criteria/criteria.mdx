@@ -1,0 +1,319 @@
+---
+title: "Criteria Overview"
+description: "Type-safe, fluent query builder for filtering, ordering, and paginating data"
+---
+
+## What is Criteria?
+
+Criteria is a type-safe query builder that provides a fluent API for constructing database-agnostic queries. It handles filtering, ordering, pagination, and search in a way that's completely decoupled from your persistence layer.
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .where("age", "greaterThan", 18)
+  .whereContains("email", "@company.com")
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+
+// Use with repository
+const result = await userRepository.find(criteria);
+```
+
+## Why Use Criteria?
+
+<CardGroup cols={2}>
+
+<Card title="Type-Safe" icon="shield-check">
+Field paths, operators, and values are all validated by TypeScript at compile time
+</Card>
+
+<Card title="ORM Agnostic" icon="database">
+Works with Prisma, Drizzle, TypeORM, or any persistence layer
+</Card>
+
+<Card title="Serializable" icon="arrow-right-arrow-left">
+Convert to/from JSON for API transport or caching
+</Card>
+
+<Card title="Fluent API" icon="code">
+Chain methods naturally for readable, maintainable queries
+</Card>
+
+</CardGroup>
+
+## Basic Usage
+
+### Creating a Criteria
+
+```typescript
+import { Criteria } from "@woltz/rich-domain";
+
+// Create empty criteria
+const criteria = Criteria.create<User>();
+
+// Or with immediate filtering
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active");
+```
+
+### Adding Filters
+
+```typescript
+const criteria = Criteria.create<User>()
+  // Equality
+  .whereEquals("status", "active")
+  
+  // Comparison
+  .where("age", "greaterThan", 18)
+  .where("age", "lessThanOrEqual", 65)
+  
+  // String matching
+  .whereContains("name", "john")
+  
+  // Array inclusion
+  .whereIn("role", ["admin", "moderator"])
+  
+  // Range
+  .whereBetween("salary", 50000, 100000)
+  
+  // Null checks
+  .whereNotNull("email");
+```
+
+### Ordering Results
+
+```typescript
+const criteria = Criteria.create<User>()
+  .orderBy("name", "asc")
+  .orderByDesc("createdAt");
+```
+
+### Pagination
+
+```typescript
+const criteria = Criteria.create<User>()
+  .paginate(1, 20);  // page 1, 20 items per page
+
+// Or just limit
+const criteria = Criteria.create<User>()
+  .limit(10);
+```
+
+### Search
+
+```typescript
+const criteria = Criteria.create<User>()
+  .search(["name", "email", "bio"], "john");
+```
+
+## Type Safety
+
+Criteria leverages TypeScript to provide compile-time validation:
+
+### Field Paths
+
+Only valid field paths from your type are allowed:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  profile: {
+    bio: string;
+    avatar: string;
+  };
+  posts: Post[];
+}
+
+const criteria = Criteria.create<User>()
+  .whereEquals("name", "John")           // ✅ Valid
+  .whereEquals("profile.bio", "Hello")   // ✅ Valid nested path
+  .whereEquals("posts.title", "Post")    // ✅ Valid array item path
+  .whereEquals("invalid", "value");      // ❌ TypeScript error
+```
+
+### Operators Per Type
+
+Operators are validated based on the field type:
+
+```typescript
+const criteria = Criteria.create<User>()
+  // String fields
+  .where("name", "contains", "john")      // ✅ Valid
+  .where("name", "greaterThan", "john")   // ❌ Error: greaterThan not valid for string
+
+  // Number fields
+  .where("age", "greaterThan", 18)        // ✅ Valid
+  .where("age", "contains", "18")         // ❌ Error: contains not valid for number
+
+  // Boolean fields
+  .where("isActive", "equals", true)      // ✅ Valid
+  .where("isActive", "contains", true)    // ❌ Error: contains not valid for boolean
+```
+
+### Value Types
+
+Values are validated to match the field type:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("age", 25)        // ✅ Valid: number for number field
+  .whereEquals("age", "25")      // ❌ Error: string for number field
+  .whereEquals("name", "John")   // ✅ Valid: string for string field
+  .whereIn("age", [20, 25, 30]); // ✅ Valid: number[] for number field
+```
+
+## Serialization
+
+### To JSON
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+
+const json = criteria.toJSON();
+// {
+//   filters: [{ field: "status", operator: "equals", value: "active" }],
+//   orders: [{ field: "createdAt", direction: "desc" }],
+//   pagination: { page: 1, limit: 20, offset: 0 },
+//   search: undefined
+// }
+```
+
+### From Object
+
+```typescript
+const criteria = Criteria.fromObject<User>({
+  filters: [
+    { field: "status", operator: "equals", value: "active" },
+    { field: "age", operator: "greaterThan", value: 18 },
+  ],
+  orders: [
+    { field: "createdAt", direction: "desc" },
+  ],
+  pagination: { page: 1, limit: 20, offset: 0 },
+});
+```
+
+### From Query Params
+
+Perfect for REST APIs:
+
+```typescript
+// URL: /users?status:equals=active&age:greaterThan=18&orderBy=createdAt:desc&page=1&limit=20
+
+const criteria = Criteria.fromQueryParams<User>({
+  "status:equals": "active",
+  "age:greaterThan": "18",
+  "orderBy": "createdAt:desc",
+  "page": "1",
+  "limit": "20",
+});
+```
+
+## Cloning
+
+Create independent copies for variations:
+
+```typescript
+const baseCriteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .orderByDesc("createdAt");
+
+// Clone and add more filters
+const adminCriteria = baseCriteria.clone()
+  .whereEquals("role", "admin");
+
+const recentCriteria = baseCriteria.clone()
+  .where("createdAt", "greaterThan", lastWeek);
+```
+
+## Checking State
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active");
+
+criteria.hasFilters();     // true
+criteria.hasOrders();      // false
+criteria.hasPagination();  // true (default pagination)
+criteria.hasSearch();      // false
+```
+
+## Getting Components
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .where("age", "greaterThan", 18)
+  .orderByDesc("createdAt")
+  .paginate(2, 10);
+
+// Get filters
+const filters = criteria.getFilters();
+// [
+//   { field: "status", operator: "equals", value: "active" },
+//   { field: "age", operator: "greaterThan", value: 18 }
+// ]
+
+// Get orders
+const orders = criteria.getOrders();
+// [{ field: "createdAt", direction: "desc" }]
+
+// Get pagination
+const pagination = criteria.getPagination();
+// { page: 2, limit: 10, offset: 10 }
+
+// Get search
+const search = criteria.getSearch();
+// undefined or { fields: [...], value: "..." }
+```
+
+## Integration with Repository
+
+```typescript
+class UserRepository extends Repository<User> {
+  async findActive(page: number, limit: number): Promise<PaginatedResult<User>> {
+    const criteria = Criteria.create<User>()
+      .whereEquals("status", "active")
+      .whereNotNull("email")
+      .orderByDesc("createdAt")
+      .paginate(page, limit);
+
+    return this.find(criteria);
+  }
+
+  async search(query: string): Promise<PaginatedResult<User>> {
+    const criteria = Criteria.create<User>()
+      .search(["name", "email", "bio"], query)
+      .limit(50);
+
+    return this.find(criteria);
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Filters & Operators" icon="filter" href="/repository/criteria-filters">
+  Complete guide to all filter operators and their usage
+</Card>
+
+<Card title="Ordering & Pagination" icon="arrow-down-a-z" href="/repository/criteria-ordering">
+  Learn about sorting, pagination, and search
+</Card>
+
+<Card title="Query Params & Adapters" icon="globe" href="/repository/criteria-advanced">
+  API integration, field adapters, and quantifiers
+</Card>
+
+<Card title="PaginatedResult" icon="table" href="/repository/paginated-result">
+  Working with paginated query results
+</Card>
+
+</CardGroup>

@@ -60,6 +60,15 @@
             ]
           },
           {
+            "group": "Criteria",
+            "pages": [
+              "criteria/criteria",
+              "criteria/criteria-filters",
+              "criteria/criteria-ordering",
+              "criteria/criteria-advanced"
+            ]
+          },
+          {
             "group": "Integrations",
             "pages": [
               "integrations/prisma",
@@ -82,21 +91,10 @@
     ]
   },
   "navbar": {
-    "links": [
-      {
-        "label": "GitHub",
-        "href": "https://github.com/tarcisioandrade/rich-domain"
-      }
-    ],
     "primary": {
-      "type": "button",
+      "type": "github",
       "label": "Get Started",
-      "href": "https://google.com.br"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/tarcisioandrade/rich-domain"
+      "href": "https://github.com/tarcisioandrade/rich-domain"
     }
   }
 }

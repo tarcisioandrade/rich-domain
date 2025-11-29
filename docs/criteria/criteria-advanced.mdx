@@ -1,0 +1,518 @@
+---
+title: "Query Params & Adapters"
+description: "API integration, field mapping adapters, and advanced features"
+---
+
+## Query Params Integration
+
+Criteria can be constructed directly from URL query parameters, making it perfect for REST APIs.
+
+### Basic Usage
+
+```typescript
+import { Criteria } from "@woltz/rich-domain";
+
+// Express.js example
+app.get("/users", (req, res) => {
+  const criteria = Criteria.fromQueryParams<User>(req.query);
+  const users = await userRepository.find(criteria);
+  res.json(users.toJSON());
+});
+```
+
+### Query Parameter Format
+
+Filters follow the pattern: `field:operator=value`
+
+```
+GET /users?name:contains=john&age:greaterThan=18&status:equals=active
+```
+
+```typescript
+const criteria = Criteria.fromQueryParams<User>({
+  "name:contains": "john",
+  "age:greaterThan": "18",
+  "status:equals": "active",
+});
+```
+
+### Supported Parameters
+
+| Parameter | Format | Example |
+|-----------|--------|---------|
+| Filter | `field:operator=value` | `age:greaterThan=18` |
+| Ordering | `orderBy=field:direction` | `orderBy=createdAt:desc` |
+| Multiple orders | `orderBy=field1:dir,field2:dir` | `orderBy=featured:desc,price:asc` |
+| Page | `page=number` | `page=2` |
+| Limit | `limit=number` | `limit=20` |
+| Search | `search=query` | `search=laptop` |
+| Search fields | `searchFields=field1,field2` | `searchFields=name,description` |
+
+### Complete URL Example
+
+```
+GET /products?
+  status:equals=active&
+  price:lessThanOrEqual=100&
+  category:in=electronics,accessories&
+  search=wireless&
+  searchFields=name,description,sku&
+  orderBy=featured:desc,price:asc&
+  page=1&
+  limit=24
+```
+
+```typescript
+const criteria = Criteria.fromQueryParams<Product>({
+  "status:equals": "active",
+  "price:lessThanOrEqual": "100",
+  "category:in": "electronics,accessories",
+  "search": "wireless",
+  "searchFields": "name,description,sku",
+  "orderBy": "featured:desc,price:asc",
+  "page": "1",
+  "limit": "24",
+});
+```
+
+### Value Parsing
+
+Values are automatically parsed to their correct types:
+
+```typescript
+// Numbers
+"age:greaterThan": "25"     → 25 (number)
+
+// Booleans
+"active:equals": "true"     → true (boolean)
+"active:equals": "false"    → false (boolean)
+
+// Dates (ISO format)
+"createdAt:greaterThan": "2024-01-01T00:00:00Z"  → Date object
+
+// Arrays (comma-separated)
+"status:in": "active,pending,draft"  → ["active", "pending", "draft"]
+
+// Between (two values)
+"price:between": "10,100"  → [10, 100]
+```
+
+### Nested Fields in Query Params
+
+```
+GET /users?profile.location.city:equals=New York&settings.theme:equals=dark
+```
+
+```typescript
+const criteria = Criteria.fromQueryParams<User>({
+  "profile.location.city:equals": "New York",
+  "settings.theme:equals": "dark",
+});
+```
+
+### Quantifiers in Query Params
+
+Use `@quantifier` suffix for array field quantifiers:
+
+```
+GET /users?posts.views:greaterThan@some=1000
+GET /users?posts.published:equals@every=true
+GET /users?comments.flagged:equals@none=true
+```
+
+```typescript
+const criteria = Criteria.fromQueryParams<User>({
+  "posts.views:greaterThan@some": "1000",  // Any post with > 1000 views
+});
+```
+
+## Field Adapters
+
+Adapters map domain field names to database column names, allowing you to maintain clean API contracts while using different database schemas.
+
+### Why Use Adapters?
+
+```typescript
+// Your domain model uses camelCase
+interface UserDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  emailAddress: string;
+  createdAt: Date;
+}
+
+// But your database uses snake_case
+// users table: id, first_name, last_name, email_address, created_at
+```
+
+### Creating an Adapter
+
+```typescript
+import { CriteriaAdapter } from "@woltz/rich-domain";
+
+const UserAdapter: CriteriaAdapter<UserDto, UserInDatabase> = {
+  firstName: "first_name",
+  lastName: "last_name",
+  emailAddress: "email_address",
+  createdAt: "created_at",
+};
+```
+
+### Using an Adapter
+
+```typescript
+// Method 1: With useAdapter()
+const criteria = Criteria.create<UserDto>()
+  .useAdapter(UserAdapter)
+  .whereEquals("firstName", "John")    // Becomes: first_name = 'John'
+  .orderByDesc("createdAt");           // Becomes: ORDER BY created_at DESC
+
+// Method 2: With fromQueryParams()
+const criteria = Criteria.fromQueryParams<UserDto>(
+  { "firstName:equals": "John" },
+  UserAdapter
+);
+
+// Method 3: With fromObject()
+const criteria = Criteria.fromObject<UserDto>(
+  { filters: [{ field: "firstName", operator: "equals", value: "John" }] },
+  UserAdapter
+);
+```
+
+### Nested Field Adapters
+
+Map nested paths to different structures:
+
+```typescript
+interface OrderDto {
+  id: string;
+  customer: {
+    name: string;
+    email: string;
+  };
+  items: {
+    productName: string;
+    quantity: number;
+  }[];
+}
+
+interface OrderInDb {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  order_items: {
+    product_name: string;
+    qty: number;
+  }[];
+}
+
+const OrderAdapter: CriteriaAdapter<OrderDto, OrderInDb> = {
+  "customer.name": "customer_name",
+  "customer.email": "customer_email",
+  "items": "order_items",
+  "items.productName": "order_items.product_name",
+  "items.quantity": "order_items.qty",
+};
+
+const criteria = Criteria.create<OrderDto>()
+  .useAdapter(OrderAdapter)
+  .whereContains("customer.name", "John")  // → customer_name LIKE '%John%'
+  .where("items.quantity", "greaterThan", 5);  // → order_items.qty > 5
+```
+
+### Adapter with Prefix Matching
+
+Adapters support prefix matching for nested paths:
+
+```typescript
+const adapter: CriteriaAdapter<Source, Target> = {
+  "user": "app_user",  // Maps all user.* paths
+};
+
+// user.name → app_user.name
+// user.profile.bio → app_user.profile.bio
+```
+
+### Getting the Adapter
+
+```typescript
+const criteria = Criteria.create<User>()
+  .useAdapter(UserAdapter);
+
+const adapter = criteria.getAdapter();  // Returns the adapter or undefined
+```
+
+## Serialization
+
+### toJSON()
+
+Convert criteria to a plain object:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .where("age", "greaterThan", 18)
+  .orderByDesc("createdAt")
+  .search(["name", "email"], "john")
+  .paginate(2, 20);
+
+const json = criteria.toJSON();
+```
+
+Result:
+
+```json
+{
+  "filters": [
+    { "field": "status", "operator": "equals", "value": "active" },
+    { "field": "age", "operator": "greaterThan", "value": 18 }
+  ],
+  "orders": [
+    { "field": "createdAt", "direction": "desc" }
+  ],
+  "pagination": {
+    "page": 2,
+    "limit": 20,
+    "offset": 20
+  },
+  "search": {
+    "fields": ["name", "email"],
+    "value": "john"
+  }
+}
+```
+
+### fromObject()
+
+Reconstruct criteria from a plain object:
+
+```typescript
+const criteria = Criteria.fromObject<User>({
+  filters: [
+    { field: "status", operator: "equals", value: "active" },
+    { field: "age", operator: "greaterThan", value: 18 },
+  ],
+  orders: [
+    { field: "createdAt", direction: "desc" },
+  ],
+  pagination: { page: 2, limit: 20, offset: 20 },
+  search: { fields: ["name", "email"], value: "john" },
+});
+```
+
+### Use Cases for Serialization
+
+<CardGroup cols={2}>
+
+<Card title="API Transport" icon="globe">
+Send criteria from frontend to backend
+</Card>
+
+<Card title="Caching" icon="database">
+Cache query configurations
+</Card>
+
+<Card title="Saved Filters" icon="bookmark">
+Store user's saved filter presets
+</Card>
+
+<Card title="Logging" icon="file-lines">
+Log query configurations for debugging
+</Card>
+
+</CardGroup>
+
+## Cloning
+
+Create independent copies for query variations:
+
+```typescript
+const baseCriteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .whereNotNull("email")
+  .orderByDesc("createdAt");
+
+// Clone for different use cases
+const adminUsers = baseCriteria.clone()
+  .whereEquals("role", "admin")
+  .paginate(1, 10);
+
+const recentUsers = baseCriteria.clone()
+  .where("createdAt", "greaterThan", lastWeek)
+  .paginate(1, 50);
+
+const searchResults = baseCriteria.clone()
+  .search(["name", "email"], searchQuery)
+  .limit(20);
+
+// Original is unchanged
+console.log(baseCriteria.getFilters().length);  // 2 (status, email)
+```
+
+## Error Handling
+
+### Invalid Operator
+
+```typescript
+try {
+  const criteria = Criteria.create<User>()
+    .where("age", "contains", 18);  // contains not valid for number
+} catch (error) {
+  // InvalidCriteriaError: Operator "contains" is not valid for type "number".
+  // Valid operators: equals, notEquals, greaterThan, ...
+}
+```
+
+### Invalid Quantifier
+
+```typescript
+try {
+  const criteria = Criteria.fromQueryParams<User>({
+    "posts.title:contains@invalid": "test",
+  });
+} catch (error) {
+  // InvalidCriteriaError: Invalid quantifier. Valid values: some, every, none
+}
+```
+
+## Express.js Integration Example
+
+```typescript
+import express from "express";
+import { Criteria, PaginatedResult } from "@woltz/rich-domain";
+
+const app = express();
+
+// Middleware to parse criteria from query params
+function parseCriteria<T>(adapter?: CriteriaAdapter<any, any>) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      req.criteria = Criteria.fromQueryParams<T>(req.query, adapter);
+      next();
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+}
+
+// Usage
+app.get("/users", parseCriteria<User>(UserAdapter), async (req, res) => {
+  const criteria = req.criteria;
+  const result = await userRepository.find(criteria);
+  res.json(result.toJSON());
+});
+
+app.get("/products", parseCriteria<Product>(ProductAdapter), async (req, res) => {
+  const criteria = req.criteria
+    .whereEquals("published", true)  // Add server-side filter
+    .whereNull("deletedAt");
+
+  const result = await productRepository.find(criteria);
+  res.json(result.toJSON());
+});
+```
+
+## Fastify Integration Example
+
+```typescript
+import Fastify from "fastify";
+import { Criteria } from "@woltz/rich-domain";
+
+const fastify = Fastify();
+
+fastify.get("/users", async (request, reply) => {
+  const criteria = Criteria.fromQueryParams<User>(
+    request.query as Record<string, string>,
+    UserAdapter
+  );
+
+  const result = await userRepository.find(criteria);
+  return result.toJSON();
+});
+```
+
+## Frontend Integration Example
+
+```typescript
+// React hook for building query strings
+function useCriteriaQueryString<T>(criteria: Criteria<T>): string {
+  const json = criteria.toJSON();
+  const params = new URLSearchParams();
+
+  // Add filters
+  json.filters.forEach((filter) => {
+    const key = `${filter.field}:${filter.operator}`;
+    const value = Array.isArray(filter.value) 
+      ? filter.value.join(",") 
+      : String(filter.value);
+    params.set(key, value);
+  });
+
+  // Add ordering
+  if (json.orders.length > 0) {
+    params.set(
+      "orderBy",
+      json.orders.map((o) => `${o.field}:${o.direction}`).join(",")
+    );
+  }
+
+  // Add pagination
+  if (json.pagination) {
+    params.set("page", String(json.pagination.page));
+    params.set("limit", String(json.pagination.limit));
+  }
+
+  // Add search
+  if (json.search) {
+    params.set("search", json.search.value);
+    params.set("searchFields", json.search.fields.join(","));
+  }
+
+  return params.toString();
+}
+
+// Usage
+const criteria = Criteria.create<Product>()
+  .whereEquals("category", "electronics")
+  .orderByAsc("price")
+  .paginate(1, 20);
+
+const queryString = useCriteriaQueryString(criteria);
+// "category:equals=electronics&orderBy=price:asc&page=1&limit=20"
+
+const response = await fetch(`/api/products?${queryString}`);
+```
+
+## CriteriaAdapter Type Reference
+
+```typescript
+type CriteriaAdapter<Input, Output> = {
+  [K in FieldPath<Input>]?: FieldPath<Output>;
+};
+
+// Example
+interface SourceType {
+  userName: string;
+  userEmail: string;
+  profile: {
+    avatar: string;
+  };
+}
+
+interface TargetType {
+  user_name: string;
+  user_email: string;
+  user_profile: {
+    avatar_url: string;
+  };
+}
+
+const adapter: CriteriaAdapter<SourceType, TargetType> = {
+  userName: "user_name",
+  userEmail: "user_email",
+  "profile": "user_profile",
+  "profile.avatar": "user_profile.avatar_url",
+};
+```

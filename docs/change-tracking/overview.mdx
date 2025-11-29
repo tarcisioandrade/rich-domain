@@ -1,0 +1,322 @@
+---
+title: "Change Tracking Overview"
+description: "Automatically track all changes across your aggregate hierarchy for efficient persistence"
+---
+
+## What is Change Tracking?
+
+Change Tracking is a system that automatically monitors all modifications made to an Aggregate and its nested entities. Instead of manually tracking what changed, the library uses JavaScript Proxies to intercept property assignments and maintain a complete history of changes.
+
+```typescript
+const order = new Order({
+  id: Id.from("order-123"),
+  status: "draft",
+  items: [
+    new OrderItem({ id: Id.from("item-1"), quantity: 2, unitPrice: 29.99 }),
+  ],
+});
+
+// Make changes naturally
+order.confirm();
+order.items[0].updateQuantity(5);
+order.addItem("prod-456", 1, 49.99);
+
+// Get all changes with a single call
+const changes = order.getChanges();
+
+console.log(changes.hasUpdates()); // true - order status and item quantity changed
+console.log(changes.hasCreates()); // true - new item added
+```
+
+## Why Change Tracking Matters
+
+<CardGroup cols={2}>
+
+<Card title="Efficient Persistence" icon="bolt">
+Only persist what actually changed, not the entire aggregate
+</Card>
+
+<Card title="No Boilerplate" icon="wand-magic-sparkles">
+Changes are tracked automatically via Proxies - no manual tracking code
+</Card>
+
+<Card title="Correct Operation Order" icon="arrow-down-1-9">
+Operations are automatically ordered to respect foreign key constraints
+</Card>
+
+<Card title="Batch Operations" icon="layer-group">
+Group changes by entity type for optimized database operations
+</Card>
+
+</CardGroup>
+
+## How It Works
+
+### 1. Proxy-Based Interception
+
+When you access `props` on an Entity or Aggregate, you receive a Proxy that intercepts all property changes:
+
+```typescript
+class Order extends Aggregate<OrderProps> {
+  confirm() {
+    // This assignment is intercepted by the Proxy
+    this.props.status = "confirmed";
+  }
+}
+```
+
+The Proxy:
+- Captures the previous value
+- Records the change in history
+- Validates the new value (if validation is enabled)
+- Applies the change
+
+### 2. Nested Tracking
+
+The tracking system handles complex nested structures automatically:
+
+```typescript
+// All these changes are tracked
+order.props.status = "confirmed";           // Root property
+order.items[0].props.quantity = 5;          // Nested entity property
+order.items.push(new OrderItem({ ... }));   // Array addition
+order.items.splice(0, 1);                   // Array removal
+order.shippingAddress = new Address({ ... }); // Entity replacement
+```
+
+### 3. Depth-Based Ordering
+
+Changes are tagged with their depth in the aggregate tree:
+
+```
+Order (depth: 0)
+├── OrderItem (depth: 1)
+│   └── ItemDiscount (depth: 2)
+└── ShippingAddress (depth: 1)
+```
+
+This enables correct operation ordering:
+- **Deletes**: Leaf → Root (depth DESC) - delete children before parents
+- **Creates**: Root → Leaf (depth ASC) - create parents before children
+- **Updates**: Any order - no FK dependencies
+
+## Basic Usage
+
+### Getting Changes
+
+```typescript
+const changes = aggregate.getChanges();
+
+// Check what types of changes exist
+changes.hasCreates();  // boolean
+changes.hasUpdates();  // boolean
+changes.hasDeletes();  // boolean
+changes.hasChanges();  // boolean - any changes at all
+changes.isEmpty();     // boolean - no changes
+
+// Get operation counts
+changes.count;  // total number of operations
+```
+
+### Iterating Over Changes
+
+```typescript
+const changes = order.getChanges();
+
+// Get arrays of operations
+const creates = changes.creates();  // CreateOperation[]
+const updates = changes.updates();  // UpdateOperation[]
+const deletes = changes.deletes();  // DeleteOperation[]
+
+// Iterate in correct execution order
+for (const op of changes.operations()) {
+  console.log(op.type, op.entity, op.depth);
+}
+
+// Convert to array
+const allOps = changes.toArray();
+```
+
+### Filtering by Entity
+
+```typescript
+const changes = order.getChanges();
+
+// Get changes for a specific entity type
+const itemChanges = changes.for("OrderItem");
+
+itemChanges.creates;  // OrderItem[] - created items
+itemChanges.updates;  // Array<{ entity: OrderItem, changed: Record<string, any> }>
+itemChanges.deletes;  // OrderItem[] - deleted items
+
+// Check for changes
+itemChanges.hasCreates();
+itemChanges.hasUpdates();
+itemChanges.hasDeletes();
+```
+
+### Batch Operations
+
+```typescript
+const changes = order.getChanges();
+const batch = changes.toBatchOperations();
+
+// Deletes grouped by entity, ordered by depth DESC
+for (const del of batch.deletes) {
+  console.log(`Delete ${del.ids.length} ${del.entity}(s)`);
+  // Delete 3 OrderItem(s)
+}
+
+// Creates grouped by entity, ordered by depth ASC
+for (const create of batch.creates) {
+  console.log(`Create ${create.items.length} ${create.entity}(s)`);
+  // Create 2 OrderItem(s)
+}
+
+// Updates grouped by entity
+for (const update of batch.updates) {
+  console.log(`Update ${update.items.length} ${update.entity}(s)`);
+  // Update 1 Order(s)
+}
+```
+
+## Clearing Changes
+
+After persisting changes, mark the aggregate as clean:
+
+```typescript
+// Persist changes
+await repository.save(order);
+
+// Clear change history - resets tracking state
+order.markAsClean();
+
+// Now changes are empty
+const changes = order.getChanges();
+console.log(changes.isEmpty()); // true
+```
+
+<Warning>
+Always call `markAsClean()` after successfully persisting changes. Otherwise, the same changes will be detected again on the next `getChanges()` call.
+</Warning>
+
+## Type-Safe Change Tracking
+
+Define an entity map for type-safe filtering:
+
+```typescript
+// Define your entity types
+type OrderEntities = {
+  Order: Order;
+  OrderItem: OrderItem;
+  ItemDiscount: ItemDiscount;
+  ShippingAddress: Address;
+};
+
+// Get typed changes
+const changes = order.getChanges<OrderEntities>();
+
+// Now 'for' has autocomplete and type inference
+const itemChanges = changes.for("OrderItem");
+//                              ^? "Order" | "OrderItem" | "ItemDiscount" | "ShippingAddress"
+
+itemChanges.creates.forEach((item) => {
+  console.log(item.quantity); // item is typed as OrderItem
+});
+```
+
+You can also create a helper method on your aggregate:
+
+```typescript
+class Order extends Aggregate<OrderProps> {
+  getTypedChanges() {
+    return this.getChanges<OrderEntities>();
+  }
+}
+
+// Usage
+const changes = order.getTypedChanges();
+const items = changes.for("OrderItem"); // Fully typed
+```
+
+## Change History
+
+Access the raw change history for debugging:
+
+```typescript
+const history = order.getHistory();
+
+history.forEach((entry) => {
+  console.log({
+    path: entry.path,           // "status" or "items[0].quantity"
+    previousValue: entry.previousValue,
+    currentValue: entry.currentValue,
+    timestamp: entry.timestamp,
+  });
+});
+```
+
+## Real-World Example
+
+```typescript
+// Load order from database
+const order = await orderRepository.findById("order-123");
+
+// Business operations
+order.confirm();
+order.addItem("prod-new", 2, 39.99);
+order.items[0].applyDiscount(10);
+order.removeItem(Id.from("item-to-remove"));
+
+// Get all changes
+const changes = order.getTypedChanges();
+
+// Persist using batch operations
+await db.$transaction(async (tx) => {
+  const batch = changes.toBatchOperations();
+
+  // 1. Deletes (leaf → root)
+  for (const del of batch.deletes) {
+    await tx[del.entity].deleteMany({
+      where: { id: { in: del.ids } },
+    });
+  }
+
+  // 2. Creates (root → leaf)
+  for (const create of batch.creates) {
+    await tx[create.entity].createMany({
+      data: create.items.map((item) => ({
+        ...mapper.toPersistence(item.data),
+        parentId: item.parentId,
+      })),
+    });
+  }
+
+  // 3. Updates
+  for (const update of batch.updates) {
+    for (const item of update.items) {
+      await tx[update.entity].update({
+        where: { id: item.id },
+        data: item.changedFields,
+      });
+    }
+  }
+});
+
+// Clear history after successful persistence
+order.markAsClean();
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="AggregateChanges" icon="code" href="/change-tracking/aggregate-changes">
+  Deep dive into the AggregateChanges API and batch operations
+</Card>
+
+<Card title="Nested Entities" icon="sitemap" href="/change-tracking/nested-entities">
+  How tracking works with collections and 1:1 relationships
+</Card>
+
+</CardGroup>
