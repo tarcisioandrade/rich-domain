@@ -29,5 +29,5 @@ export abstract class Repository<
 > extends WriteAndRead<TDomain> {
   protected abstract readonly mapperToDomain: Mapper<unknown, TDomain>;
   protected abstract readonly mapperToPersistence: Mapper<TDomain, unknown>;
-  abstract get model(): any;
+  protected abstract get model(): any;
 }
