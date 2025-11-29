@@ -196,33 +196,3 @@ class Order extends Aggregate<OrderProps> {
   }
 }
 ```
-
-## Best Practices
-
-<AccordionGroup>
-
-<Accordion title="Keep entities focused">
-An entity should represent a single concept. If an entity is growing too large, consider splitting it into multiple entities or extracting Value Objects.
-</Accordion>
-
-<Accordion title="Encapsulate state changes">
-Don't expose setters directly. Use methods that express domain operations:
-
-```typescript
-// ❌ Avoid
-item.props.quantity = 5;
-
-// ✅ Prefer
-item.updateQuantity(5);
-```
-</Accordion>
-
-<Accordion title="Validate invariants">
-Use validation schemas and hooks to ensure entities are always in a valid state.
-</Accordion>
-
-<Accordion title="Access through Aggregate">
-Don't load entities directly from repositories. Access them through their parent Aggregate.
-</Accordion>
-
-</AccordionGroup>
