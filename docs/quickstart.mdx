@@ -1,0 +1,260 @@
+---
+title: "Quickstart"
+description: "Get up and running with rich-domain in 5 minutes"
+---
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @woltz/rich-domain
+```
+
+
+```bash pnpm
+pnpm add @woltz/rich-domain
+```
+
+
+```bash yarn
+yarn add @woltz/rich-domain
+```
+
+</CodeGroup>
+
+You'll also need a validation library that implements [Standard Schema](https://github.com/standard-schema/standard-schema). We recommend Zod:
+
+```bash
+npm install zod
+```
+
+<Note>
+  rich-domain works with any Standard Schema compatible library: Zod, Valibot, ArkType, and others.
+</Note>
+
+## Create Your First Aggregate
+
+Let's build a simple `Product` aggregate with validation and change tracking.
+
+### 1. Define the Schema
+
+```typescript
+import { z } from "zod";
+import { Id } from "@woltz/rich-domain";
+
+const productSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  price: z.number().positive("Price must be positive"),
+  stock: z.number().int().min(0, "Stock cannot be negative"),
+  status: z.enum(["active", "inactive"]),
+});
+
+type ProductProps = z.infer<typeof productSchema>;
+```
+
+### 2. Create the Aggregate
+
+```typescript
+import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  get name() {
+    return this.props.name;
+  }
+
+  get price() {
+    return this.props.price;
+  }
+
+  get stock() {
+    return this.props.stock;
+  }
+
+  get status() {
+    return this.props.status;
+  }
+
+  updatePrice(newPrice: number) {
+    this.props.price = newPrice;
+  }
+
+  decreaseStock(quantity: number) {
+    this.props.stock -= quantity;
+  }
+
+  deactivate() {
+    this.props.status = "inactive";
+  }
+}
+```
+
+### 3. Use It
+
+```typescript
+// Create a new product
+const product = new Product({
+  name: "Mechanical Keyboard",
+  price: 149.99,
+  stock: 50,
+  status: "active",
+});
+
+console.log(product.isNew()); // true - ID was auto-generated
+console.log(product.id.value); // "550e8400-e29b-..." (UUID)
+
+// Update properties (validated automatically)
+product.updatePrice(129.99);
+product.decreaseStock(5);
+
+// Get changes for persistence
+const changes = product.getChanges();
+console.log(changes.hasUpdates()); // true
+
+// Serialize to JSON
+const json = product.toJson();
+// { id: "550e...", name: "Mechanical Keyboard", price: 129.99, stock: 45, status: "active" }
+```
+
+## Validation in Action
+
+Validation runs automatically on creation and updates:
+
+```typescript
+// Invalid on creation - throws ValidationError
+const invalid = new Product({
+  name: "AB", // too short
+  price: -10, // negative
+  stock: 50,
+  status: "active",
+});
+// ❌ ValidationError: Name must be at least 3 characters, Price must be positive
+
+// Invalid on update - throws ValidationError
+const product = new Product({
+  name: "Keyboard",
+  price: 100,
+  stock: 10,
+  status: "active",
+});
+
+product.decreaseStock(20); // stock becomes -10
+// ❌ ValidationError: Stock cannot be negative
+```
+
+## Lifecycle Hooks
+
+Hooks let you run custom logic during entity lifecycle:
+
+```typescript
+import { Aggregate, EntityValidation, EntityHooks, DomainError } from "@woltz/rich-domain";
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  protected static hooks: EntityHooks<ProductProps, Product> = {
+    // Runs after entity is created
+    onCreate: (product) => {
+      console.log(`Product created: ${product.name}`);
+    },
+
+    // Runs before any property update
+    // Return false to block the change
+    onBeforeUpdate: (product, snapshot) => {
+      // Prevent price changes on inactive products
+      if (snapshot.status === "inactive" && product.price !== snapshot.price) {
+        return false;
+      }
+      return true;
+    },
+
+    // Custom business rules (runs on create and update)
+    rules: (product) => {
+      // Premium products must have stock
+      if (product.price > 1000 && product.stock === 0) {
+        throw new DomainError("stock", "Premium products must have stock available");
+      }
+    },
+  };
+
+  // ... getters and methods
+}
+```
+
+### Hooks in Action
+
+```typescript
+// onCreate - logs "Product created: Laptop"
+const product = new Product({
+  name: "Laptop",
+  price: 1500,
+  stock: 10,
+  status: "active",
+});
+
+// onBeforeUpdate - blocks price change on inactive product
+product.deactivate();
+product.updatePrice(1200); // silently blocked, price stays 1500
+
+// rules - throws on business rule violation
+const invalid = new Product({
+  name: "Gaming PC",
+  price: 2000,
+  stock: 0, // premium with no stock
+  status: "active",
+});
+// ❌ ValidationError: Premium products must have stock available
+```
+
+## Loading Existing Entities
+
+Use `Id.from()` when loading from database:
+
+```typescript
+// From database
+const data = await db.products.findById("product-123");
+
+const product = new Product({
+  id: Id.from(data.id), // Marks as existing
+  name: data.name,
+  price: data.price,
+  stock: data.stock,
+  status: data.status,
+});
+
+console.log(product.isNew()); // false
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Entities & Aggregates" icon="cube" href="/core/aggregates">
+    Learn the difference and when to use each
+  </Card>
+  <Card title="Value Objects" icon="gem" href="/core/value-objects">
+    Immutable objects compared by value
+  </Card>
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/change-tracking/overview">
+    Track and persist changes efficiently
+  </Card>
+  <Card title="Repository Pattern" icon="database" href="/repository/overview">
+    Abstract your persistence layer
+  </Card>
+</CardGroup>

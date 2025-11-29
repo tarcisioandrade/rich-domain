@@ -1,95 +1,104 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "rich-domain",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": ["index", "quickstart", "development"]
-          },
-          {
-            "group": "Customization",
-            "pages": ["essentials/settings", "essentials/navigation"]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
+  "colors": {
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5",
+    "anchors": {
+      "from": "#6366f1",
+      "to": "#8b5cf6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/tarcisioandrade/rich-domain"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "Documentation",
+      "url": "/"
+    },
+    {
+      "name": "API Reference",
+      "url": "/api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/tarcisioandrade/rich-domain"
+    },
+    {
+      "name": "NPM",
+      "icon": "npm",
+      "url": "https://www.npmjs.com/package/@woltz/rich-domain"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "core/entities",
+        "core/aggregates",
+        "core/value-objects",
+        "core/id",
+        "core/domain-events"
+      ]
+    },
+    {
+      "group": "Validation",
+      "pages": [
+        "validation/overview",
+        "validation/hooks",
+        "validation/error-handling"
+      ]
+    },
+    {
+      "group": "Change Tracking",
+      "pages": [
+        "change-tracking/overview",
+        "change-tracking/aggregate-changes",
+        "change-tracking/nested-entities"
+      ]
+    },
+    {
+      "group": "Repository",
+      "pages": [
+        "repository/overview",
+        "repository/criteria",
+        "repository/paginated-result",
+        "repository/mappers"
+      ]
+    },
+    {
+      "group": "Integrations",
+      "pages": [
+        "integrations/prisma",
+        "integrations/drizzle"
       ]
     }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/tarcisioandrade/rich-domain"
   }
 }
