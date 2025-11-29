@@ -11,7 +11,7 @@ export {
   PrismaRepository,
   type PrismaRepositoryConfig,
 } from "./prisma.repository";
-export { PrismaToPersistence as PrismaMapper } from "./prisma.mapper";
+export { PrismaToPersistence } from "./prisma.mapper";
 export {
   PrismaBatchExecutor,
   executeBatch,

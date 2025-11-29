@@ -1,8 +1,8 @@
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
 import { Post } from "../../../domain/post/post.entity";
-import { PrismaBatchExecutor, PrismaMapper } from "@woltz/rich-domain-prisma";
+import { PrismaBatchExecutor, PrismaToPersistence } from "@woltz/rich-domain-prisma";
 
-export class PrismaPostToPersistenceMapper extends PrismaMapper<Post> {
+export class PrismaPostToPersistenceMapper extends PrismaToPersistence<Post> {
   protected readonly registry = new EntitySchemaRegistry().register({
     entity: "Post",
     table: "post",

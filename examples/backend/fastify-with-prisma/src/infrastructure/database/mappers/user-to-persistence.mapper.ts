@@ -1,6 +1,9 @@
 import { User } from "../../../domain/user/user.entity";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
-import { PrismaBatchExecutor, PrismaMapper } from "@woltz/rich-domain-prisma";
+import {
+  PrismaBatchExecutor,
+  PrismaToPersistence,
+} from "@woltz/rich-domain-prisma";
 
 const schemaRegistry = new EntitySchemaRegistry()
   .register({
@@ -14,7 +17,7 @@ const schemaRegistry = new EntitySchemaRegistry()
       content: "main_content",
     },
   });
-export class PrismaUserToPersistenceMapper extends PrismaMapper<User> {
+export class PrismaUserToPersistenceMapper extends PrismaToPersistence<User> {
   protected readonly registry = schemaRegistry;
 
   protected async onCreate(user: User): Promise<void> {
@@ -49,7 +52,6 @@ export class PrismaUserToPersistenceMapper extends PrismaMapper<User> {
     user: User,
     changes: AggregateChanges
   ): Promise<void> {
-    console.log(changes);
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,
