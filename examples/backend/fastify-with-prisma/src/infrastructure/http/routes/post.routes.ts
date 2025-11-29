@@ -2,15 +2,11 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { PrismaPostRepository } from "../../repositories/prisma-post.repository";
 import { PrismaUserRepository } from "../../repositories/prisma-user.repository";
-import { PrismaPostToPersistenceMapper } from "../../database/mappers/post-to-persistence.mapper";
-import { PrismaPostToDomainMapper } from "../../database/mappers/post-to-domain.mapper";
-import { PrismaUserToPersistenceMapper } from "../../database/mappers/user-to-persistence.mapper";
-import { PrismaUserToDomainMapper } from "../../database/mappers/user-to-domain.mapper";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { PostSchema } from "../../../domain/post/post.entity";
-import { PrismaUnitOfWork } from "../../database/unit-of-work";
 import { PostService } from "../../../application/services/post.service";
+import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 
 const createPostSchema = z.object({
   title: z.string().min(1),
@@ -28,18 +24,8 @@ const getPostParamsSchema = z.object({
 
 export async function postRoutes(app: FastifyInstance) {
   const uow = new PrismaUnitOfWork(prisma);
-  const postRepository = new PrismaPostRepository(
-    new PrismaPostToPersistenceMapper(prisma),
-    new PrismaPostToDomainMapper(),
-    prisma,
-    uow
-  );
-  const userRepository = new PrismaUserRepository(
-    new PrismaUserToPersistenceMapper(prisma, uow),
-    new PrismaUserToDomainMapper(),
-    prisma,
-    uow
-  );
+  const userRepository = new PrismaUserRepository(prisma, uow);
+  const postRepository = new PrismaPostRepository(prisma, uow);
   const postService = new PostService(postRepository, userRepository);
 
   app.post("/posts", async (request, reply) => {
@@ -88,22 +74,7 @@ export async function postRoutes(app: FastifyInstance) {
     }
   });
 
-  app.patch("/posts/:id/publish", async (request, reply) => {
-    try {
-      const params = getPostParamsSchema.parse(request.params);
-      const post = await postService.publish(params.id);
-
-      return reply.send(post.toJson());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
-      }
-      return reply.status(404).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
+  
   app.patch("/posts/:id", async (request, reply) => {
     try {
       const params = OnlyIdSchema.parse(request.params);
@@ -120,4 +91,21 @@ export async function postRoutes(app: FastifyInstance) {
       });
     }
   });
+
+  app.patch("/posts/:id/publish", async (request, reply) => {
+    try {
+      const params = getPostParamsSchema.parse(request.params);
+      const post = await postService.publish(params.id);
+
+      return reply.send(post.toJson());
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: error.errors });
+      }
+      return reply.status(404).send({
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
 }

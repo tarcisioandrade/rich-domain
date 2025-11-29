@@ -19,6 +19,11 @@ export const UserSchema = z.object({
 
 export type UserProps = z.infer<typeof UserSchema>;
 
+export type UserEntities = {
+  User: User;
+  Post: Post;
+};
+
 export class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: UserSchema,
@@ -43,10 +48,6 @@ export class User extends Aggregate<UserProps> {
   }
 
   public getTypedChanges() {
-    type UserEntities = {
-      User: User;
-      Post: Post;
-    };
     return this.getChanges<UserEntities>();
   }
 

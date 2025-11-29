@@ -1,32 +1,31 @@
 import { UserRepository } from "../../domain/user/user.repository";
 import { User } from "../../domain/user/user.entity";
 import { UserSchema } from "../database/schemas/user.schema";
-import { PrismaRepository } from "../database/prisma.repository";
 import { PrismaUserToDomainMapper } from "../database/mappers/user-to-domain.mapper";
 import { PrismaUserToPersistenceMapper } from "../database/mappers/user-to-persistence.mapper";
 import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaUnitOfWork } from "../database/unit-of-work";
+import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 
 export class PrismaUserRepository
   extends PrismaRepository<User, UserSchema>
   implements UserRepository
 {
-  constructor(
-    protected readonly mapperToPersistence: PrismaUserToPersistenceMapper,
-    protected readonly mapperToDomain: PrismaUserToDomainMapper,
-    prisma: PrismaClient,
-    uow: PrismaUnitOfWork
-  ) {
-    super(mapperToPersistence, mapperToDomain, prisma, uow);
-  }
-
-  get model() {
+  protected get model() {
     return "user";
   }
 
-  protected includes = {
+  protected readonly includes = {
     posts: true,
   } satisfies Prisma.UserInclude;
+
+  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+    super(
+      new PrismaUserToPersistenceMapper(prisma, uow),
+      new PrismaUserToDomainMapper(),
+      prisma,
+      uow
+    );
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.context.user.findUnique({

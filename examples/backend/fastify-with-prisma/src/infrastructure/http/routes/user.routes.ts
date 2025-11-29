@@ -1,14 +1,12 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { PrismaUserRepository } from "../../repositories/prisma-user.repository";
-import { PrismaUserToPersistenceMapper } from "../../database/mappers/user-to-persistence.mapper";
-import { PrismaUserToDomainMapper } from "../../database/mappers/user-to-domain.mapper";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { Prisma, User } from "@prisma/client";
 import { CriteriaAdapter } from "@woltz/rich-domain/dist/types";
-import { PrismaUnitOfWork } from "../../database/unit-of-work";
 import { UserService } from "../../../application/services/user.service";
+import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -41,12 +39,7 @@ const UserListAdapter: CriteriaAdapter<UserListDto, UserWithPosts> = {
 
 export async function userRoutes(app: FastifyInstance) {
   const uow = new PrismaUnitOfWork(prisma);
-  const userRepository = new PrismaUserRepository(
-    new PrismaUserToPersistenceMapper(prisma, uow),
-    new PrismaUserToDomainMapper(),
-    prisma,
-    uow
-  );
+  const userRepository = new PrismaUserRepository(prisma, uow);
   const userService = new UserService(userRepository, uow);
 
   app.post("/users", async (request, reply) => {

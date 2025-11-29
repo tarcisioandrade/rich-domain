@@ -1,8 +1,8 @@
 import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
-import { PrismaUnitOfWork, Transactional } from "../../infrastructure/database/unit-of-work";
 import { Criteria, Id } from "@woltz/rich-domain";
 import { EVENT_BUS } from "../../infrastructure/queue/event-bus";
+import { PrismaUnitOfWork, Transactional } from "@woltz/rich-domain-prisma";
 
 interface CreateUserInput {
   email: string;
