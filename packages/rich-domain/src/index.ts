@@ -1,30 +1,16 @@
-// ============================================================================
-// Rich Domain Library - Main Exports
-// ============================================================================
-
-// Core Classes
+export * from "./validation-error";
+export * from "./domain-event";
+export * from "./domain-event-bus";
+export * from "./exceptions";
+export * from "./criteria";
+export * from "./paginated-result";
+export * from "./repository";
 export { Id } from "./id";
 export { Entity, Aggregate } from "./entity";
 export { ValueObject } from "./value-object";
 export { Mapper } from "./mapper";
 export { EntitySchemaRegistry } from "./entity-schema-registry";
 export { AggregateChanges } from "./aggregate-changes";
-
-export * from "./validation-error";
-
-// Domain Events
-export * from "./domain-event";
-export * from "./domain-event-bus";
-export * from "./exceptions";
-
-// Criteria
-export * from "./criteria";
-export * from "./paginated-result";
-
-// Repository
-export * from "./repository";
-
-// Types
 export {
   DomainEventHandler,
   EntityHooks,
@@ -56,3 +42,11 @@ export {
   ArrayOperators,
   CriteriaOptions,
 } from "./types";
+export {
+  ARRAY_OPERATORS,
+  BOOLEAN_OPERATORS,
+  DATE_OPERATORS,
+  NUMBER_OPERATORS,
+  STRING_OPERATORS,
+  FILTER_OPERATORS,
+} from "./constants";

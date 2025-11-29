@@ -62,7 +62,7 @@ function createAddress(street = "123 Main St", city = "Test City"): Address {
   });
 }
 
-describe("HistoryTracker.getChanges()", () => {
+describe("ChangeTracker.getChanges()", () => {
   describe("no changes", () => {
     it("should return empty changes when nothing modified", () => {
       const user = createUser();

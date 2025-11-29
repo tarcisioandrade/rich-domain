@@ -126,10 +126,10 @@ export interface CollectionChanges<T = any> {
  * Possible states for a 1:1 relationship.
  */
 export type EntityChangeState =
-  | "created"    // null → Entity
-  | "updated"    // Entity(id:1) → Entity(id:1) with changes
-  | "deleted"    // Entity → null
-  | "replaced"   // Entity(id:1) → Entity(id:2)
+  | "created" // null → Entity
+  | "updated" // Entity(id:1) → Entity(id:1) with changes
+  | "deleted" // Entity → null
+  | "replaced" // Entity(id:1) → Entity(id:2)
   | "unchanged"; // No changes
 
 /**
@@ -218,4 +218,16 @@ export interface TrackedEntityMetadata {
   parentEntity?: string;
   /** Path in the object (e.g., 'posts[0].comments[1]') */
   path: string;
+}
+
+export interface TrackedItem {
+  entity: any;
+  metadata: TrackedEntityMetadata;
+  originalState: any;
+}
+
+export interface ArrayState {
+  cloned: any[];
+  original: any[];
+  metadata: TrackedEntityMetadata;
 }

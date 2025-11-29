@@ -8,17 +8,14 @@ import { Id } from "./id";
 export interface EntitySchema {
   /** Entity name in the domain (e.g., 'User', 'Post') */
   entity: string;
-
   /** Table name in the database (e.g., 'users', 'blog_posts') */
   table: string;
-
   /**
    * Field mapping: domain → database.
    * Only include fields with different names.
    * @example { email: 'user_email', createdAt: 'created_at' }
    */
   fields?: Record<string, string>;
-
   /**
    * FK configuration for parent relation.
    */
@@ -148,15 +145,11 @@ export class EntitySchemaRegistry {
   mapFields(entity: string, data: Record<string, any>): MappedEntityData {
     const fields = this.getFieldsMap(entity);
     const result: MappedEntityData = {};
-
     for (const [key, value] of Object.entries(data)) {
-      if (this.isEntityOrCollection(value)) {
-        continue;
-      }
+      if (this.isEntityOrCollection(value)) continue;
       const mappedKey = fields[key] ?? key;
       result[mappedKey] = this.normalizeValue(value);
     }
-
     return result;
   }
 
@@ -173,26 +166,18 @@ export class EntitySchemaRegistry {
   ): MappedEntityData {
     const fields = this.getFieldsMap(entity);
     const result: MappedEntityData = {};
-
-    // Map ID if it is an Entity or has entity-like structure
     const hasId = (domainEntity as any).id;
     if (hasId) {
-      // Extract id value
       const idValue = hasId.value ?? hasId;
       result["id"] = idValue;
     }
-
-    // Get props
     const props = (domainEntity as any).props || domainEntity;
-
     for (const [key, value] of Object.entries(props)) {
-      if (key === "id") continue; // ID already mapped
+      if (key === "id") continue;
       if (this.isEntityOrCollection(value)) continue;
-
       const mappedKey = fields[key] ?? key;
       result[mappedKey] = this.normalizeValue(value);
     }
-
     return result;
   }
 
@@ -206,7 +191,6 @@ export class EntitySchemaRegistry {
   getParentFk(entity: string, parentId: string): Record<string, string> | null {
     const schema = this.getSchema(entity);
     if (!schema.parentFk) return null;
-
     return { [schema.parentFk.field]: parentId };
   }
 
@@ -250,12 +234,9 @@ export class EntitySchemaRegistry {
     if (Array.isArray(value)) return true;
     if (value instanceof Entity) return true;
     if (value instanceof ValueObject) return true;
-
-    // Checks if it has the structure of an Entity (object with 'id' that has 'value')
     if (typeof value === 'object' && value.id && typeof value.id === 'object' && 'value' in value.id) {
       return true;
     }
-
     return false;
   }
 
@@ -267,7 +248,6 @@ export class EntitySchemaRegistry {
     if (value instanceof Id) return value.value;
     if (value instanceof Date) return value;
     if (typeof value === "object" && "value" in value) {
-      // Might be an ID or other wrapper
       return value.value;
     }
     return value;

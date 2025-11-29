@@ -1,7 +1,3 @@
-// ============================================================================
-// Unit of Work - Simple transaction management
-// ============================================================================
-
 import type { IUnitOfWork, TransactionContext } from "../types";
 
 /**

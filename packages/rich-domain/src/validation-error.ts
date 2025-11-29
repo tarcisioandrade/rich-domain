@@ -5,7 +5,7 @@ export interface ValidationIssue {
 
 export class ValidationError extends Error {
   public readonly issues: ValidationIssue[];
-  public readonly __isValidationError = true; // Brand for identification
+  public readonly __isValidationError = true;
 
   constructor(issues: ValidationIssue[], message?: string) {
     const errorMessage =
@@ -14,7 +14,6 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
     this.issues = issues;
 
-    // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ValidationError);
     }
@@ -27,7 +26,6 @@ export class ValidationError extends Error {
     if (error instanceof ValidationError) {
       return true;
     }
-    // Check by duck typing for cross-module compatibility
     return (
       error instanceof Error &&
       error.name === 'ValidationError' &&

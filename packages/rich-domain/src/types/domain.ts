@@ -1,4 +1,3 @@
-import { ValidationConfig } from "..";
 import { Id } from "../id";
 import { StandardSchema } from "./standard-schema";
 
@@ -33,4 +32,10 @@ export interface EntityConstructor<T extends BaseProps, E> {
   new (props: T): E;
   validation?: DomainValidation<T>;
   hooks?: EntityHooks<T, E>;
+}
+
+export interface ValidationConfig {
+  onCreate?: boolean;
+  onUpdate?: boolean;
+  throwOnError?: boolean;
 }

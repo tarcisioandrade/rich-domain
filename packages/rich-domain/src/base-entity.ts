@@ -13,10 +13,9 @@ import {
 import { DomainEventBus } from "./domain-event-bus";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants";
 import { DomainError } from "./exceptions";
-import { HistoryTracker } from "./history-tracker";
+import { ChangeTracker } from "./change-tracker";
 import { AggregateChanges } from "./aggregate-changes";
 
-// Helper to get static properties from constructor
 function getStaticProperty<T>(
   instance: any,
   propertyName: string
@@ -26,7 +25,7 @@ function getStaticProperty<T>(
 
 export abstract class BaseEntity<T extends BaseProps> {
   private _props: T;
-  private tracker: HistoryTracker;
+  private tracker: ChangeTracker;
   private proxiedProps: T;
   private snapshot: T | null = null;
   private validationConfig: Required<ValidationConfig>;
@@ -34,12 +33,10 @@ export abstract class BaseEntity<T extends BaseProps> {
   private entitySchema?: StandardSchema<T>;
   private domainEvents: IDomainEvent[] = [];
 
-  // Static properties that subclasses can override
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
 
   constructor(props: Omit<T, "id"> & { id?: Id }) {
-    // Get static configuration from subclass
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
       "validation"
@@ -59,45 +56,33 @@ export abstract class BaseEntity<T extends BaseProps> {
 
     let finalProps = { ...props } as T;
 
-    // Generate ID if not provided
     if (!finalProps.id) {
       finalProps.id = new Id();
     }
 
-    // Validate schema on creation
     if (this.entitySchema && this.validationConfig.onCreate) {
       this.validateProps(finalProps);
     }
 
     this._props = finalProps;
+    this.tracker = new ChangeTracker(this._props, this.constructor.name);
 
-    // Initialize tracker and proxy
-    this.tracker = new HistoryTracker(this._props, this.constructor.name);
-
-    // Setup validation on update BEFORE creating proxy
     if (this.validationConfig.onUpdate) {
       this.setupUpdateValidation();
     }
 
     this.proxiedProps = this.tracker.createProxy();
 
-    // Execute rules (custom validations)
     if (hooks?.rules) {
       hooks.rules(this as any);
     }
 
-    // Hook onCreate
     if (hooks?.onCreate) {
       hooks.onCreate(this as any);
     }
 
-    // Take initial snapshot for onBeforeUpdate
     this.takeSnapshot();
   }
-
-  // ============================================================================
-  // Validation
-  // ============================================================================
 
   private validateProps(props: T): void {
     if (!this.entitySchema) return;
@@ -144,31 +129,27 @@ export abstract class BaseEntity<T extends BaseProps> {
 
   /**
    * Setup validation that runs on every property change.
-   * Uses the HistoryTracker's onChangeValidator callback.
+   * Uses the ChangeTracker's onChangeValidator callback.
    */
   private setupUpdateValidation(): void {
     const self = this;
 
     this.tracker.setOnChangeValidator((path, oldValue, newValue) => {
-      // Temporarily apply the change to validate
       const originalValue = self._props[path as keyof T];
       (self._props as any)[path] = newValue;
 
       try {
-        // Check onBeforeUpdate hook
         if (self.entityHooks?.onBeforeUpdate && self.snapshot) {
           const shouldContinue = self.entityHooks.onBeforeUpdate(
             self as any,
             self.snapshot
           );
           if (!shouldContinue) {
-            // Revert change
             (self._props as any)[path] = originalValue;
             return false;
           }
         }
 
-        // Validate with schema
         if (self.entitySchema) {
           const result = self.entitySchema["~standard"].validate(self._props);
 
@@ -188,7 +169,6 @@ export abstract class BaseEntity<T extends BaseProps> {
               }))
             );
 
-            // Revert change before throwing
             (self._props as any)[path] = originalValue;
 
             if (self.validationConfig.throwOnError) {
@@ -200,12 +180,10 @@ export abstract class BaseEntity<T extends BaseProps> {
           }
         }
 
-        // Execute rules after schema validation
         if (self.entityHooks?.rules) {
           try {
             self.entityHooks.rules(self as any);
           } catch (error) {
-            // Revert change before throwing
             (self._props as any)[path] = originalValue;
 
             if (self.validationConfig.throwOnError) {
@@ -217,14 +195,9 @@ export abstract class BaseEntity<T extends BaseProps> {
           }
         }
 
-        // Revert for now - the actual set will happen in the proxy
         (self._props as any)[path] = originalValue;
-
-        // Update snapshot after successful validation
-        // Note: snapshot is updated after the change is applied
         return true;
       } catch (error) {
-        // Revert on any error
         (self._props as any)[path] = originalValue;
         throw error;
       }
@@ -281,10 +254,6 @@ export abstract class BaseEntity<T extends BaseProps> {
     return obj;
   }
 
-  // ============================================================================
-  // Identity
-  // ============================================================================
-
   get id(): Id {
     return this._props.id;
   }
@@ -316,10 +285,6 @@ export abstract class BaseEntity<T extends BaseProps> {
     return false;
   }
 
-  // ============================================================================
-  // Props Access
-  // ============================================================================
-
   public get props(): T {
     return this.proxiedProps;
   }
@@ -337,10 +302,6 @@ export abstract class BaseEntity<T extends BaseProps> {
   get validationErrors(): ValidationError | undefined {
     return (this as any)._validationError;
   }
-
-  // ============================================================================
-  // Change Tracking
-  // ============================================================================
 
   /**
    * Returns all detected changes as AggregateChanges.
@@ -374,10 +335,6 @@ export abstract class BaseEntity<T extends BaseProps> {
     this.tracker.markAsClean();
     this.takeSnapshot();
   }
-
-  // ============================================================================
-  // Domain Events
-  // ============================================================================
 
   /**
    * Add a domain event to this entity
@@ -414,10 +371,6 @@ export abstract class BaseEntity<T extends BaseProps> {
   hasUncommittedEvents(): boolean {
     return this.domainEvents.length > 0;
   }
-
-  // ============================================================================
-  // Serialization
-  // ============================================================================
 
   toJson(): DeepJsonResult<T> {
     return this.deepToJson(this._props) as DeepJsonResult<T>;

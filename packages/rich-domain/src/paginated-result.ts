@@ -2,10 +2,6 @@ import { Id } from "./id";
 import type { Criteria } from "./criteria";
 import type { Pagination, PaginationMeta, Filter } from "./types";
 
-// ============================================================================
-// Type Utilities
-// ============================================================================
-
 /**
  * Infers the JSON result type from T
  * - If T has toJson(), returns its return type
@@ -20,10 +16,6 @@ export type PaginatedJsonResult<T> = {
   data: InferJsonResult<T>[];
   meta: PaginationMeta;
 };
-
-// ============================================================================
-// PaginatedResult Class
-// ============================================================================
 
 export class PaginatedResult<T> {
   constructor(
@@ -78,13 +70,11 @@ export class PaginatedResult<T> {
       total = result.length;
     }
 
-    // Apply filters
     for (const filter of criteria.getFilters()) {
       result = result.filter((item) => applyFilter(item, filter));
       total = result.length;
     }
 
-    // Apply ordering
     for (const order of criteria.getOrders().reverse()) {
       result.sort((a, b) => {
         const aVal = getNestedValue(a, order.field);
@@ -98,7 +88,6 @@ export class PaginatedResult<T> {
       });
     }
 
-    // Apply pagination
     const pagination = criteria.getPagination();
     if (pagination && !criteria.hasSearch()) {
       result = result.slice(
@@ -108,7 +97,6 @@ export class PaginatedResult<T> {
       return PaginatedResult.create(result, pagination, total);
     }
 
-    // No pagination - return all with default meta
     return PaginatedResult.create(
       result,
       { page: 1, limit: result.length, offset: 0 },
@@ -140,20 +128,16 @@ export class PaginatedResult<T> {
   private deepSerialize(obj: any): any {
     if (obj === null || obj === undefined) return obj;
 
-    // Id → string
     if (obj instanceof Id) return obj.value;
 
-    // Arrays → map recursively
     if (Array.isArray(obj)) {
       return obj.map((item) => this.deepSerialize(item));
     }
 
-    // Objects with toJson() method (Entity/Aggregate/ValueObject)
     if (obj && typeof obj.toJson === "function") {
       return obj.toJson();
     }
 
-    // Plain objects → serialize properties recursively
     if (typeof obj === "object") {
       const result: any = {};
       for (const key in obj) {
@@ -164,7 +148,6 @@ export class PaginatedResult<T> {
       return result;
     }
 
-    // Primitives
     return obj;
   }
 
@@ -189,10 +172,6 @@ export class PaginatedResult<T> {
     return this.meta.hasNext;
   }
 }
-
-// ============================================================================
-// Helper Functions (moved from criteria.ts)
-// ============================================================================
 
 function applyFilter<T>(item: T, filter: Filter): boolean {
   const value = getNestedValue(item, filter.field);

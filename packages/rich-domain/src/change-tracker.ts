@@ -27,7 +27,7 @@ export type OnChangeValidator = (
  * - Generates AggregateChanges for persistence
  * - Supports validation on change via onChangeValidator
  */
-export class HistoryTracker {
+export class ChangeTracker {
   private history: HistoryEntry[] = [];
   private originalValues: Map<string, any> = new Map();
   private trackedArrays: Map<string, ArrayState> = new Map();
@@ -41,7 +41,7 @@ export class HistoryTracker {
     private depth: number = 0,
     private parentId?: string,
     private parentEntity?: string,
-    private rootTracker?: HistoryTracker
+    private rootTracker?: ChangeTracker
   ) {
     if (!rootTracker) {
       this.rootTracker = this;
@@ -59,10 +59,6 @@ export class HistoryTracker {
   setOnChangeValidator(validator: OnChangeValidator): void {
     this.getRootTracker().onChangeValidator = validator;
   }
-
-  // ============================================================================
-  // Initial State Capture
-  // ============================================================================
 
   private captureInitialState(): void {
     if (this.depth > 0) return;
@@ -153,10 +149,6 @@ export class HistoryTracker {
     });
   }
 
-  // ============================================================================
-  // Proxy Creation
-  // ============================================================================
-
   createProxy(): any {
     const handler: ProxyHandler<any> = {
       get: (target, prop, receiver) => {
@@ -177,7 +169,7 @@ export class HistoryTracker {
         }
 
         if (this.isEntityOrVO(value)) {
-          const nestedTracker = new HistoryTracker(
+          const nestedTracker = new ChangeTracker(
             value,
             this.getEntityName(value),
             currentPath,
@@ -200,7 +192,6 @@ export class HistoryTracker {
           return true;
         }
 
-        // Call validator before making the change
         const rootTracker = this.getRootTracker();
         if (rootTracker.onChangeValidator) {
           try {
@@ -210,21 +201,17 @@ export class HistoryTracker {
               newValue
             );
             if (result === false) {
-              // Validator rejected the change
-              return true; // Return true to not throw, but don't apply change
+              return true;
             }
           } catch (error) {
-            // Validator threw an error - propagate it
             throw error;
           }
         }
 
-        // Store original value
         if (!rootTracker.originalValues.has(currentPath)) {
           rootTracker.originalValues.set(currentPath, oldValue);
         }
 
-        // Record in history
         rootTracker.history.push({
           path: currentPath,
           previousValue: oldValue,
@@ -234,7 +221,6 @@ export class HistoryTracker {
 
         const result = Reflect.set(target, prop, newValue, receiver);
 
-        // Handle special cases
         if (Array.isArray(newValue)) {
           this.handleArrayAssignment(currentPath, oldValue);
         } else if (this.isEntityOrVO(newValue) || this.isEntityOrVO(oldValue)) {
@@ -284,14 +270,12 @@ export class HistoryTracker {
             return function (...args: any[]) {
               const oldArray = target.slice();
 
-              // Call validator before array mutation
               if (rootTracker.onChangeValidator) {
                 try {
-                  const result = rootTracker.onChangeValidator(
-                    path,
-                    oldArray,
-                    [...oldArray, ...args] // Preview of change
-                  );
+                  const result = rootTracker.onChangeValidator(path, oldArray, [
+                    ...oldArray,
+                    ...args,
+                  ]);
                   if (result === false) {
                     return undefined;
                   }
@@ -317,7 +301,7 @@ export class HistoryTracker {
 
         if (!isNaN(Number(prop)) && tracker.isEntityOrVO(value)) {
           const nestedPath = `${path}[${String(prop)}]`;
-          const nestedTracker = new HistoryTracker(
+          const nestedTracker = new ChangeTracker(
             value,
             tracker.getEntityName(value),
             nestedPath,
@@ -336,7 +320,6 @@ export class HistoryTracker {
         if (!isNaN(Number(prop))) {
           const oldArray = target.slice();
 
-          // Call validator before array item change
           if (rootTracker.onChangeValidator) {
             try {
               const result = rootTracker.onChangeValidator(
@@ -368,10 +351,6 @@ export class HistoryTracker {
     });
   }
 
-  // ============================================================================
-  // getChanges() - Main Method
-  // ============================================================================
-
   /**
    * Returns all detected changes as AggregateChanges.
    */
@@ -388,7 +367,7 @@ export class HistoryTracker {
 
   private analyzeRootChanges(
     changes: AggregateChanges<any>,
-    rootTracker: HistoryTracker
+    rootTracker: ChangeTracker
   ): void {
     const changedFields: Record<string, any> = {};
     let hasChanges = false;
@@ -420,7 +399,7 @@ export class HistoryTracker {
 
   private analyzeCollectionChanges(
     changes: AggregateChanges<any>,
-    rootTracker: HistoryTracker
+    rootTracker: ChangeTracker
   ): void {
     const allTrackedArrays = new Map<string, ArrayState>();
     const processedArrays = new Set<any>();
@@ -456,7 +435,6 @@ export class HistoryTracker {
         const itemEntityName = this.getEntityName(item);
         changes.addCreate(itemEntityName, item, depth, parentId, parentEntity);
 
-        // Recursively mark nested items as created
         this.markNestedItemsAsCreated(item, depth, changes);
       }
 
@@ -482,7 +460,6 @@ export class HistoryTracker {
           const deleteId = id || key!;
           changes.addDelete(itemEntityName, deleteId, item, depth);
 
-          // Recursively mark nested items as deleted using ORIGINAL state
           this.markNestedItemsAsDeleted(item, depth, changes, rootTracker);
         }
       }
@@ -508,7 +485,6 @@ export class HistoryTracker {
       if (propName === "id") continue;
 
       if (Array.isArray(value)) {
-        // Process all items in the array
         for (const nestedItem of value) {
           if (this.isEntityOrVO(nestedItem)) {
             const nestedId = this.getEntityId(nestedItem);
@@ -523,8 +499,11 @@ export class HistoryTracker {
                 this.getEntityName(item)
               );
 
-              // Recursively process nested items
-              this.markNestedItemsAsCreated(nestedItem, parentDepth + 1, changes);
+              this.markNestedItemsAsCreated(
+                nestedItem,
+                parentDepth + 1,
+                changes
+              );
             }
           }
         }
@@ -540,22 +519,16 @@ export class HistoryTracker {
     item: any,
     parentDepth: number,
     changes: AggregateChanges<any>,
-    rootTracker: HistoryTracker
+    rootTracker: ChangeTracker
   ): void {
     if (!item || typeof item !== "object") return;
 
-    // Get the ID to look up the original state
     const itemId = this.getEntityId(item);
     if (!itemId) return;
 
-    // Look through all tracked arrays to find nested items
     for (const [, arrayState] of rootTracker.trackedArrays) {
-      // Check if this array belongs to our deleted item
       if (arrayState.metadata.parentId === itemId) {
-        // Use the CLONED (original) state to get the items
-        // Note: cloned items are JSON objects, not Entity/VO instances
         for (const nestedItem of arrayState.cloned) {
-          // Cloned items are JSON objects with an 'id' property
           const id =
             typeof nestedItem === "object" && nestedItem !== null
               ? nestedItem.id
@@ -564,7 +537,6 @@ export class HistoryTracker {
             const entityName = arrayState.metadata.entityName;
             changes.addDelete(entityName, id, nestedItem, parentDepth + 1);
 
-            // Recursively process this item's nested arrays
             this.markNestedJsonItemAsDeleted(
               id,
               parentDepth + 1,
@@ -585,12 +557,10 @@ export class HistoryTracker {
     itemId: string,
     parentDepth: number,
     changes: AggregateChanges<any>,
-    rootTracker: HistoryTracker
+    rootTracker: ChangeTracker
   ): void {
-    // Look through all tracked arrays to find nested items of this parent
     for (const [, arrayState] of rootTracker.trackedArrays) {
       if (arrayState.metadata.parentId === itemId) {
-        // Process all items in this nested array
         for (const nestedJsonItem of arrayState.cloned) {
           if (typeof nestedJsonItem !== "object" || nestedJsonItem === null)
             continue;
@@ -606,7 +576,6 @@ export class HistoryTracker {
               parentDepth + 1
             );
 
-            // Recursively process further nesting
             this.markNestedJsonItemAsDeleted(
               nestedId,
               parentDepth + 1,
@@ -614,7 +583,6 @@ export class HistoryTracker {
               rootTracker
             );
           } else {
-            // Value object - try to extract identity key
             const key = this.extractIdentityKeyFromJson(
               nestedJsonItem,
               arrayState.original
@@ -640,20 +608,16 @@ export class HistoryTracker {
     jsonItem: any,
     originalArray: any[]
   ): string | undefined {
-    // Try to find the original ValueObject to get its identity key
     for (const originalItem of originalArray) {
       if (this.isEntityOrVO(originalItem)) {
         const originalJson = this.deepClone(originalItem);
-        // Check if this matches our JSON item (rough comparison)
         if (JSON.stringify(originalJson) === JSON.stringify(jsonItem)) {
-          // Found the matching original item - extract its identity key
           const key = this.getItemKey(originalItem);
           if (key) return key;
         }
       }
     }
 
-    // Fallback: if it has an id, use that
     if (jsonItem.id) return jsonItem.id;
 
     return undefined;
@@ -692,7 +656,7 @@ export class HistoryTracker {
 
   private analyzeEntityChanges(
     changes: AggregateChanges<any>,
-    rootTracker: HistoryTracker
+    rootTracker: ChangeTracker
   ): void {
     for (const [path, trackedItem] of rootTracker.trackedEntities) {
       if (path === "root") continue;
@@ -720,7 +684,6 @@ export class HistoryTracker {
         case "deleted":
           const id = this.getEntityId(originalValue);
           if (id) {
-            // Use originalEntity instead of originalValue to preserve entity instance
             changes.addDelete(entityName, id, originalEntity, depth);
           }
           break;
@@ -728,7 +691,6 @@ export class HistoryTracker {
         case "replaced":
           const oldId = this.getEntityId(originalValue);
           if (oldId) {
-            // Use originalEntity instead of originalValue to preserve entity instance
             changes.addDelete(entityName, oldId, originalEntity, depth);
           }
           changes.addCreate(
@@ -761,10 +723,6 @@ export class HistoryTracker {
       }
     }
   }
-
-  // ============================================================================
-  // Change Detection Helpers
-  // ============================================================================
 
   private detectEntityChangeState(
     previous: any,
@@ -864,10 +822,6 @@ export class HistoryTracker {
     return changes;
   }
 
-  // ============================================================================
-  // Internal Handlers
-  // ============================================================================
-
   private handleArrayAssignment(path: string, oldValue: any): void {
     const rootTracker = this.getRootTracker();
 
@@ -892,7 +846,6 @@ export class HistoryTracker {
     const existingTracked = rootTracker.trackedEntities.get(path);
 
     rootTracker.trackedEntities.set(path, {
-      // Preserve original entity, or use oldValue if this is the first change
       entity: existingTracked?.entity || oldValue,
       metadata: {
         entityName,
@@ -901,16 +854,11 @@ export class HistoryTracker {
         parentEntity: this.rootEntityName,
         path,
       },
-      // Preserve original state
       originalState: existingTracked?.originalState,
     });
   }
 
-  // ============================================================================
-  // Utility Methods
-  // ============================================================================
-
-  private getRootTracker(): HistoryTracker {
+  private getRootTracker(): ChangeTracker {
     return this.rootTracker || this;
   }
 

@@ -9,7 +9,6 @@ import {
 import { DEFAULT_VALIDATION_CONFIG } from "./constants";
 import { DomainError } from "./exceptions";
 
-// Helper to get static properties from constructor
 function getStaticProperty<T>(
   instance: any,
   propertyName: string
@@ -34,7 +33,7 @@ export abstract class ValueObject<T> {
 
   /**
    * Identity key for identification in collections.
-   * Used by HistoryTracker to track changes in arrays of Value Objects.
+   * Used by ChangeTracker to track changes in arrays of Value Objects.
    *
    * @example
    * ```typescript
