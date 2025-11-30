@@ -104,7 +104,7 @@ export function OrderFilterExample() {
     {
       type: "string",
       field: "orderNumber",
-      fieldLabel: "Order Number",
+      fieldLabel: "Order Number"
     },
     {
       type: "string",

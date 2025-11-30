@@ -94,7 +94,7 @@ export function FilterRow({
   };
 
   return (
-    <div className="group flex items-center gap-1 rounded-md border border-border bg-card p-1">
+    <div className="group flex items-center gap-1.5 rounded-md border border-border bg-card p-1">
       <FilterFieldSelector
         fields={fields}
         selectedField={value.field}
