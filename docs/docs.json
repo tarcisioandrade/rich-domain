@@ -56,16 +56,12 @@
               "repository/overview",
               "repository/criteria",
               "repository/paginated-result",
-              "repository/mappers"
-            ]
-          },
-          {
-            "group": "Criteria",
-            "pages": [
-              "criteria/overview",
-              "criteria/filters",
-              "criteria/ordering",
-              "criteria/advanced"
+              "repository/mappers",
+              "repository/criteria",
+              "repository/filters",
+              "repository/ordering",
+              "repository/advanced",
+              "repository/paginated-result"
             ]
           },
           {
@@ -73,17 +69,6 @@
             "pages": [
               "integrations/prisma",
               "integrations/drizzle"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "API Reference",
-            "pages": [
-              "api-reference/overview"
             ]
           }
         ]

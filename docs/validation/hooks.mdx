@@ -1,0 +1,434 @@
+---
+title: "Lifecycle Hooks"
+description: "Custom validation rules and lifecycle callbacks"
+---
+
+## Overview
+
+Hooks provide a way to add custom logic at specific points in an entity's lifecycle. They complement schema validation with business rules that can't be expressed in a schema.
+
+```typescript
+class User extends Aggregate<UserProps> {
+  protected static hooks: EntityHooks<UserProps, User> = {
+    onCreate: (entity) => {
+      console.log(`User created: ${entity.name}`);
+    },
+
+    onBeforeUpdate: (entity, snapshot) => {
+      // Block certain changes
+      if (snapshot.email !== entity.email) {
+        return false; // Reject email change
+      }
+      return true;
+    },
+
+    rules: (entity) => {
+      // Custom business rules
+      if (entity.name.toLowerCase() === "admin") {
+        throwValidationError("name", 'Name cannot be "admin"');
+      }
+    },
+  };
+}
+```
+
+## Available Hooks
+
+### onCreate
+
+Called after the entity is successfully created and validated:
+
+```typescript
+protected static hooks: EntityHooks<UserProps, User> = {
+  onCreate: (entity) => {
+    // Entity is fully constructed and valid
+    console.log(`User ${entity.id.value} created`);
+    
+    // Initialize derived values
+    entity.initializeDefaults();
+    
+    // Emit domain event
+    entity.addDomainEvent(new UserCreatedEvent(entity.id));
+  },
+};
+```
+
+**Timing:** Runs after constructor completes, after schema validation.
+
+**Use cases:**
+- Logging
+- Initializing computed values
+- Adding domain events
+- Setting up internal state
+
+### onBeforeUpdate
+
+Called before a property change is applied. Return `false` to reject the change:
+
+```typescript
+protected static hooks: EntityHooks<UserProps, User> = {
+  onBeforeUpdate: (entity, snapshot) => {
+    // snapshot = original values before change
+    // entity = current values (change already applied for validation)
+
+    // Prevent email changes
+    if (snapshot.email !== entity.email) {
+      console.log("Email change blocked");
+      return false; // Reject change
+    }
+
+    // Prevent status downgrade
+    if (snapshot.status === "verified" && entity.status === "pending") {
+      return false;
+    }
+
+    return true; // Allow change
+  },
+};
+```
+
+**Timing:** Runs before property change is finalized.
+
+**Parameters:**
+- `entity`: Current state (with proposed change)
+- `snapshot`: State before the change
+
+**Return value:**
+- `true` or `undefined`: Allow the change
+- `false`: Reject the change (value reverts)
+
+### rules
+
+Custom validation rules that run after schema validation:
+
+```typescript
+protected static hooks: EntityHooks<UserProps, User> = {
+  rules: (entity) => {
+    // Reserved names
+    const reserved = ["admin", "system", "root"];
+    if (reserved.includes(entity.name.toLowerCase())) {
+      throwValidationError("name", "This name is reserved");
+    }
+
+    // Cross-field validation
+    if (entity.role === "admin" && !entity.email.endsWith("@company.com")) {
+      throwValidationError("email", "Admin must use company email");
+    }
+
+    // Complex business rules
+    if (entity.age < 18 && entity.accountType === "premium") {
+      throwValidationError("accountType", "Premium requires age 18+");
+    }
+  },
+};
+```
+
+**Timing:** Runs after schema validation, both on create and update.
+
+**Use cases:**
+- Cross-field validation
+- Business rule validation
+- Reserved value checks
+- Complex conditional rules
+
+## Throwing Validation Errors
+
+Use `throwValidationError` helper in rules:
+
+```typescript
+import { throwValidationError } from "@woltz/rich-domain";
+
+rules: (entity) => {
+  if (entity.price < entity.cost) {
+    throwValidationError("price", "Price cannot be less than cost");
+  }
+
+  if (entity.endDate < entity.startDate) {
+    throwValidationError("endDate", "End date must be after start date");
+  }
+}
+```
+
+The helper throws a `ValidationError` with proper structure:
+
+```typescript
+// Equivalent to:
+throw new ValidationError([
+  { path: ["price"], message: "Price cannot be less than cost" }
+]);
+```
+
+## Combining Schema and Hooks
+
+Schema validation runs first, then hooks:
+
+```typescript
+class Product extends Aggregate<ProductProps> {
+  // 1. Schema validates structure and types
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: z.object({
+      id: z.custom<Id>((val) => val instanceof Id),
+      name: z.string().min(1),
+      price: z.number().positive(),
+      cost: z.number().positive(),
+      sku: z.string().regex(/^[A-Z]{3}-\d{4}$/),
+    }),
+    config: { onCreate: true, onUpdate: true, throwOnError: true },
+  };
+
+  // 2. Hooks validate business rules
+  protected static hooks: EntityHooks<ProductProps, Product> = {
+    rules: (entity) => {
+      // Cross-field validation not possible in schema
+      if (entity.price < entity.cost * 1.1) {
+        throwValidationError(
+          "price",
+          "Price must be at least 10% above cost"
+        );
+      }
+    },
+
+    onBeforeUpdate: (entity, snapshot) => {
+      // Prevent SKU changes after creation
+      if (!entity.isNew() && snapshot.sku !== entity.sku) {
+        return false;
+      }
+      return true;
+    },
+
+    onCreate: (entity) => {
+      console.log(`Product ${entity.sku} created at $${entity.price}`);
+    },
+  };
+}
+```
+
+## Execution Order
+
+```
+Constructor Called
+        ↓
+Schema Validation (if onCreate: true)
+        ↓
+rules() Hook
+        ↓
+onCreate() Hook
+        ↓
+Entity Ready
+
+Property Change
+        ↓
+onBeforeUpdate() Hook → false? → Reject Change
+        ↓
+Schema Validation (if onUpdate: true)
+        ↓
+rules() Hook
+        ↓
+Change Applied
+```
+
+## Hooks for Value Objects
+
+Value Objects support similar hooks:
+
+```typescript
+import { ValueObject, VOHooks, throwValidationError } from "@woltz/rich-domain";
+
+class Money extends ValueObject<{ amount: number; currency: string }> {
+  protected static hooks: VOHooks<{ amount: number; currency: string }, Money> = {
+    rules: (money) => {
+      if (money.amount > 1000000) {
+        throwValidationError("amount", "Amount cannot exceed 1,000,000");
+      }
+
+      const validCurrencies = ["USD", "EUR", "GBP", "BRL"];
+      if (!validCurrencies.includes(money.currency)) {
+        throwValidationError("currency", "Invalid currency code");
+      }
+    },
+
+    onCreate: (money) => {
+      console.log(`Money created: ${money.currency} ${money.amount}`);
+    },
+  };
+}
+```
+
+<Note>
+Value Objects don't have `onBeforeUpdate` because they're immutable - you create new instances instead of modifying.
+</Note>
+
+## Real-World Examples
+
+### User Registration Rules
+
+```typescript
+class User extends Aggregate<UserProps> {
+  protected static hooks: EntityHooks<UserProps, User> = {
+    rules: (user) => {
+      // Username rules
+      if (user.username.length < 3) {
+        throwValidationError("username", "Username must be at least 3 characters");
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(user.username)) {
+        throwValidationError("username", "Username can only contain letters, numbers, and underscores");
+      }
+
+      // Age verification
+      if (user.birthDate) {
+        const age = calculateAge(user.birthDate);
+        if (age < 13) {
+          throwValidationError("birthDate", "Must be at least 13 years old");
+        }
+      }
+
+      // Email domain restrictions
+      const blockedDomains = ["tempmail.com", "throwaway.com"];
+      const domain = user.email.split("@")[1];
+      if (blockedDomains.includes(domain)) {
+        throwValidationError("email", "Temporary email addresses not allowed");
+      }
+    },
+
+    onBeforeUpdate: (user, snapshot) => {
+      // Prevent username changes after 30 days
+      const daysSinceCreation = daysBetween(user.createdAt, new Date());
+      if (daysSinceCreation > 30 && snapshot.username !== user.username) {
+        return false;
+      }
+
+      // Prevent role downgrades
+      const roleHierarchy = ["user", "moderator", "admin"];
+      const oldRoleIndex = roleHierarchy.indexOf(snapshot.role);
+      const newRoleIndex = roleHierarchy.indexOf(user.role);
+      if (newRoleIndex < oldRoleIndex) {
+        return false; // Can't downgrade
+      }
+
+      return true;
+    },
+
+    onCreate: (user) => {
+      user.addDomainEvent(new UserRegisteredEvent(user.id, user.email));
+    },
+  };
+}
+```
+
+### Order Business Rules
+
+```typescript
+class Order extends Aggregate<OrderProps> {
+  protected static hooks: EntityHooks<OrderProps, Order> = {
+    rules: (order) => {
+      // Minimum order value
+      if (order.total < 10) {
+        throwValidationError("total", "Minimum order value is $10");
+      }
+
+      // Maximum items per order
+      if (order.items.length > 50) {
+        throwValidationError("items", "Maximum 50 items per order");
+      }
+
+      // Shipping address required for physical products
+      const hasPhysical = order.items.some((i) => !i.isDigital);
+      if (hasPhysical && !order.shippingAddress) {
+        throwValidationError(
+          "shippingAddress",
+          "Shipping address required for physical products"
+        );
+      }
+
+      // Validate item quantities
+      for (const item of order.items) {
+        if (item.quantity > item.maxPerOrder) {
+          throwValidationError(
+            "items",
+            `${item.name}: maximum ${item.maxPerOrder} per order`
+          );
+        }
+      }
+    },
+
+    onBeforeUpdate: (order, snapshot) => {
+      // Can't modify confirmed orders
+      if (snapshot.status !== "draft") {
+        // Only allow status transitions
+        if (JSON.stringify(snapshot.items) !== JSON.stringify(order.items)) {
+          return false;
+        }
+        if (snapshot.total !== order.total) {
+          return false;
+        }
+      }
+
+      // Validate status transitions
+      const validTransitions: Record<string, string[]> = {
+        draft: ["confirmed", "cancelled"],
+        confirmed: ["processing", "cancelled"],
+        processing: ["shipped", "cancelled"],
+        shipped: ["delivered"],
+        delivered: [],
+        cancelled: [],
+      };
+
+      if (snapshot.status !== order.status) {
+        if (!validTransitions[snapshot.status].includes(order.status)) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+  };
+}
+```
+
+### Inventory Rules
+
+```typescript
+class InventoryItem extends Aggregate<InventoryProps> {
+  protected static hooks: EntityHooks<InventoryProps, InventoryItem> = {
+    rules: (item) => {
+      // Stock cannot be negative
+      if (item.quantity < 0) {
+        throwValidationError("quantity", "Stock cannot be negative");
+      }
+
+      // Reorder point validation
+      if (item.reorderPoint > item.maxStock) {
+        throwValidationError(
+          "reorderPoint",
+          "Reorder point cannot exceed max stock"
+        );
+      }
+
+      // Location format
+      if (item.location && !/^[A-Z]\d{2}-\d{3}$/.test(item.location)) {
+        throwValidationError(
+          "location",
+          "Location must be in format A00-000"
+        );
+      }
+    },
+
+    onBeforeUpdate: (item, snapshot) => {
+      // Log significant quantity changes
+      const change = item.quantity - snapshot.quantity;
+      if (Math.abs(change) > 100) {
+        console.warn(
+          `Large inventory change: ${item.sku} changed by ${change}`
+        );
+      }
+
+      // Prevent changes to archived items
+      if (snapshot.status === "archived") {
+        return false;
+      }
+
+      return true;
+    },
+  };
+}
+```

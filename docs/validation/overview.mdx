@@ -1,0 +1,389 @@
+---
+title: "Validation Overview"
+description: "Schema-based validation using Standard Schema specification"
+---
+
+## Overview
+
+rich-domain provides built-in validation support using the [Standard Schema](https://standardschema.dev/) specification. This means you can use your favorite validation library - Zod, Valibot, ArkType, or any other Standard Schema-compatible library.
+
+```typescript
+import { z } from "zod";
+
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(2),
+  email: z.string().email(),
+  age: z.number().min(0).max(150),
+});
+
+class User extends Aggregate<UserProps> {
+  protected static validation = {
+    schema: userSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+}
+```
+
+## Why Standard Schema?
+
+<CardGroup cols={2}>
+
+<Card title="Library Agnostic" icon="puzzle-piece">
+Use Zod, Valibot, ArkType, or any Standard Schema-compatible library
+</Card>
+
+<Card title="Type Inference" icon="wand-magic-sparkles">
+Get full TypeScript inference from your schemas
+</Card>
+
+<Card title="Validation Timing" icon="clock">
+Control when validation runs (create, update, or both)
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation">
+Choose between throwing errors or collecting them
+</Card>
+
+</CardGroup>
+
+## Supported Libraries
+
+Any library implementing the Standard Schema spec works:
+
+<CodeGroup>
+```typescript Zod
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+});
+```
+
+```typescript Valibot
+import * as v from "valibot";
+
+const schema = v.object({
+  name: v.pipe(v.string(), v.minLength(2)),
+  email: v.pipe(v.string(), v.email()),
+});
+```
+
+```typescript ArkType
+import { type } from "arktype";
+
+const schema = type({
+  name: "string>=2",
+  email: "email",
+});
+```
+</CodeGroup>
+
+## Basic Usage
+
+### 1. Define Your Schema
+
+```typescript
+import { z } from "zod";
+import { Id } from "@woltz/rich-domain";
+
+const productSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(1, "Name is required"),
+  price: z.number().positive("Price must be positive"),
+  stock: z.number().int().min(0, "Stock cannot be negative"),
+  status: z.enum(["draft", "published", "archived"]),
+});
+
+type ProductProps = z.infer<typeof productSchema>;
+```
+
+### 2. Apply to Entity/Aggregate
+
+```typescript
+import { Aggregate, EntityValidation } from "@woltz/rich-domain";
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,    // Validate on construction
+      onUpdate: true,    // Validate on property changes
+      throwOnError: true, // Throw ValidationError on failure
+    },
+  };
+
+  get name() { return this.props.name; }
+  set name(value: string) { this.props.name = value; }
+
+  get price() { return this.props.price; }
+  set price(value: number) { this.props.price = value; }
+}
+```
+
+### 3. Validation in Action
+
+```typescript
+// Valid - no error
+const product = new Product({
+  name: "Widget",
+  price: 29.99,
+  stock: 100,
+  status: "draft",
+});
+
+// Invalid - throws ValidationError
+const invalid = new Product({
+  name: "",           // ❌ Name is required
+  price: -10,         // ❌ Price must be positive
+  stock: 5.5,         // ❌ Stock must be integer
+  status: "draft",
+});
+```
+
+## Validation Configuration
+
+```typescript
+interface ValidationConfig {
+  onCreate?: boolean;    // Validate in constructor (default: true)
+  onUpdate?: boolean;    // Validate on property changes (default: true)
+  throwOnError?: boolean; // Throw or collect errors (default: true)
+}
+```
+
+### onCreate
+
+When `true`, validates the entire entity when constructed:
+
+```typescript
+class Product extends Aggregate<ProductProps> {
+  protected static validation = {
+    schema: productSchema,
+    config: { onCreate: true },
+  };
+}
+
+// Validation runs here
+const product = new Product({ name: "", price: -1 });
+// ValidationError: Name is required, Price must be positive
+```
+
+### onUpdate
+
+When `true`, validates after every property change:
+
+```typescript
+class Product extends Aggregate<ProductProps> {
+  protected static validation = {
+    schema: productSchema,
+    config: { onUpdate: true },
+  };
+
+  set price(value: number) {
+    this.props.price = value;
+    // Validation runs automatically after this
+  }
+}
+
+const product = new Product({ name: "Widget", price: 29.99, ... });
+product.price = -10; // ValidationError: Price must be positive
+```
+
+### throwOnError
+
+Controls error handling behavior:
+
+```typescript
+// throwOnError: true (default)
+// Throws ValidationError immediately
+
+// throwOnError: false
+// Stores errors internally, doesn't throw
+```
+
+## Validation for Value Objects
+
+Value Objects also support validation:
+
+```typescript
+import { ValueObject, VOValidation } from "@woltz/rich-domain";
+
+const emailSchema = z.object({
+  value: z.string().email("Invalid email format"),
+});
+
+class Email extends ValueObject<{ value: string }> {
+  protected static validation: VOValidation<{ value: string }> = {
+    schema: emailSchema,
+    config: { onCreate: true, throwOnError: true },
+  };
+
+  get value() { return this.props.value; }
+}
+
+// Valid
+const email = new Email({ value: "john@example.com" });
+
+// Invalid - throws
+const invalid = new Email({ value: "not-an-email" });
+// ValidationError: Invalid email format
+```
+
+## Non-Throwing Mode
+
+Collect errors without throwing:
+
+```typescript
+class ProductSafe extends Aggregate<ProductProps> {
+  protected static validation = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      throwOnError: false, // Don't throw
+    },
+  };
+}
+
+const product = new ProductSafe({
+  name: "",
+  price: -10,
+  stock: 100,
+  status: "draft",
+});
+
+// Entity is created, but has errors
+if (product.hasValidationErrors) {
+  console.log(product.validationErrors?.getMessages());
+  // ["Name is required", "Price must be positive"]
+}
+```
+
+## ValidationError
+
+The `ValidationError` class provides rich error information:
+
+```typescript
+try {
+  const product = new Product({ name: "", price: -10, ... });
+} catch (error) {
+  if (ValidationError.isValidationError(error)) {
+    // Get all error messages
+    error.getMessages();
+    // ["Name is required", "Price must be positive"]
+
+    // Get errors for specific field
+    error.getErrorsForPath("price");
+    // [{ path: ["price"], message: "Price must be positive" }]
+
+    // Check if specific field has errors
+    error.hasErrorsForPath("name"); // true
+
+    // Access raw issues
+    error.issues;
+    // [
+    //   { path: ["name"], message: "Name is required" },
+    //   { path: ["price"], message: "Price must be positive" }
+    // ]
+
+    // Serialize for API response
+    error.toJSON();
+    // { name: "ValidationError", message: "...", issues: [...] }
+  }
+}
+```
+
+## Complete Example
+
+```typescript
+import { z } from "zod";
+import {
+  Id,
+  Aggregate,
+  EntityValidation,
+  EntityHooks,
+  ValidationError,
+} from "@woltz/rich-domain";
+
+// Schema
+const orderSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  customerId: z.string().uuid(),
+  items: z.array(z.object({
+    productId: z.string().uuid(),
+    quantity: z.number().int().positive(),
+    unitPrice: z.number().positive(),
+  })).min(1, "Order must have at least one item"),
+  status: z.enum(["draft", "confirmed", "shipped", "delivered"]),
+  total: z.number().min(0),
+});
+
+type OrderProps = z.infer<typeof orderSchema>;
+
+class Order extends Aggregate<OrderProps> {
+  protected static validation: EntityValidation<OrderProps> = {
+    schema: orderSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  get items() { return this.props.items; }
+  get total() { return this.props.total; }
+  get status() { return this.props.status; }
+
+  addItem(productId: string, quantity: number, unitPrice: number) {
+    this.props.items.push({ productId, quantity, unitPrice });
+    this.recalculateTotal();
+  }
+
+  private recalculateTotal() {
+    this.props.total = this.props.items.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0
+    );
+  }
+
+  confirm() {
+    if (this.props.items.length === 0) {
+      throw new Error("Cannot confirm empty order");
+    }
+    this.props.status = "confirmed";
+  }
+}
+
+// Usage
+try {
+  const order = new Order({
+    customerId: "123e4567-e89b-12d3-a456-426614174000",
+    items: [],  // ❌ Empty - will fail validation
+    status: "draft",
+    total: 0,
+  });
+} catch (error) {
+  if (ValidationError.isValidationError(error)) {
+    console.log(error.getMessages());
+    // ["Order must have at least one item"]
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Hooks" icon="webhook" href="/validation/hooks">
+  Lifecycle hooks for custom validation rules
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation" href="/validation/error-handling">
+  Working with ValidationError and error responses
+</Card>
+
+</CardGroup>

@@ -1,0 +1,503 @@
+---
+title: "Mappers"
+description: "Transform data between domain models and persistence layer"
+---
+
+## Overview
+
+Mappers are responsible for transforming data between your domain model (Entities, Aggregates, Value Objects) and your persistence layer (database records). They keep your domain clean and independent of database concerns.
+
+```typescript
+// Domain → Database
+const record = userToPersistenceMapper.build(user);
+
+// Database → Domain
+const user = userToDomainMapper.build(record);
+```
+
+## Why Use Mappers?
+
+<CardGroup cols={2}>
+
+<Card title="Separation of Concerns" icon="arrows-split-up-and-left">
+Domain models stay focused on business logic, not database schema
+</Card>
+
+<Card title="Schema Independence" icon="database">
+Change database schema without touching domain code
+</Card>
+
+<Card title="Data Transformation" icon="shuffle">
+Handle type conversions, naming conventions, and structure differences
+</Card>
+
+<Card title="Testability" icon="flask-vial">
+Test domain logic without database dependencies
+</Card>
+
+</CardGroup>
+
+## The Mapper Base Class
+
+```typescript
+import { Mapper } from "@woltz/rich-domain";
+
+abstract class Mapper<Input, Output> {
+  abstract build(input: Input, ...args: unknown[]): Output | Promise<Output>;
+}
+```
+
+The base class is simple - implement `build()` to transform from Input to Output.
+
+## Creating Mappers
+
+### Domain to Persistence
+
+Transform domain entities to database records:
+
+```typescript
+interface UserRecord {
+  id: string;
+  user_name: string;
+  user_email: string;
+  status: string;
+  is_verified: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+class UserToPersistenceMapper extends Mapper<User, UserRecord> {
+  build(user: User): UserRecord {
+    return {
+      id: user.id.value,            // Id → string
+      user_name: user.name,         // camelCase → snake_case
+      user_email: user.email,
+      status: user.status,
+      is_verified: user.isVerified,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+  }
+}
+```
+
+### Persistence to Domain
+
+Transform database records to domain entities:
+
+```typescript
+class UserToDomainMapper extends Mapper<UserRecord, User> {
+  build(record: UserRecord): User {
+    return new User({
+      id: Id.from(record.id),       // string → Id
+      name: record.user_name,       // snake_case → camelCase
+      email: record.user_email,
+      status: record.status as "active" | "inactive",
+      isVerified: record.is_verified,
+    });
+  }
+}
+```
+
+## Handling Complex Structures
+
+### Nested Entities
+
+```typescript
+interface OrderRecord {
+  id: string;
+  customer_id: string;
+  status: string;
+  items: OrderItemRecord[];
+}
+
+interface OrderItemRecord {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+}
+
+class OrderToDomainMapper extends Mapper<OrderRecord, Order> {
+  constructor(private itemMapper: OrderItemToDomainMapper) {
+    super();
+  }
+
+  build(record: OrderRecord): Order {
+    return new Order({
+      id: Id.from(record.id),
+      customerId: record.customer_id,
+      status: record.status as OrderStatus,
+      items: record.items.map((item) => this.itemMapper.build(item)),
+    });
+  }
+}
+
+class OrderItemToDomainMapper extends Mapper<OrderItemRecord, OrderItem> {
+  build(record: OrderItemRecord): OrderItem {
+    return new OrderItem({
+      id: Id.from(record.id),
+      productId: record.product_id,
+      quantity: record.quantity,
+      unitPrice: record.unit_price,
+    });
+  }
+}
+```
+
+### Value Objects
+
+```typescript
+interface UserRecord {
+  id: string;
+  name: string;
+  // Address is flattened in database
+  address_street: string | null;
+  address_city: string | null;
+  address_zip: string | null;
+}
+
+class UserToDomainMapper extends Mapper<UserRecord, User> {
+  build(record: UserRecord): User {
+    // Reconstruct Value Object from flat fields
+    const address = record.address_street
+      ? new Address({
+          street: record.address_street,
+          city: record.address_city!,
+          zipCode: record.address_zip!,
+        })
+      : null;
+
+    return new User({
+      id: Id.from(record.id),
+      name: record.name,
+      address,
+    });
+  }
+}
+
+class UserToPersistenceMapper extends Mapper<User, UserRecord> {
+  build(user: User): UserRecord {
+    return {
+      id: user.id.value,
+      name: user.name,
+      // Flatten Value Object
+      address_street: user.address?.street ?? null,
+      address_city: user.address?.city ?? null,
+      address_zip: user.address?.zipCode ?? null,
+    };
+  }
+}
+```
+
+### Related Entities (Separate Tables)
+
+When nested entities are stored in separate tables:
+
+```typescript
+// For reading - includes loaded relations
+interface UserWithPostsRecord {
+  id: string;
+  name: string;
+  posts: PostRecord[];
+}
+
+class UserWithPostsToDomainMapper extends Mapper<UserWithPostsRecord, User> {
+  constructor(private postMapper: PostToDomainMapper) {
+    super();
+  }
+
+  build(record: UserWithPostsRecord): User {
+    return new User({
+      id: Id.from(record.id),
+      name: record.name,
+      posts: record.posts.map((p) => this.postMapper.build(p)),
+    });
+  }
+}
+
+// For writing - only the user data (posts saved separately)
+class UserToPersistenceMapper extends Mapper<User, UserRecord> {
+  build(user: User): UserRecord {
+    return {
+      id: user.id.value,
+      name: user.name,
+      // Posts are NOT included - they're saved separately
+    };
+  }
+}
+```
+
+## Async Mappers
+
+For cases requiring async operations (e.g., loading related data):
+
+```typescript
+class OrderToDomainMapper extends Mapper<OrderRecord, Order> {
+  constructor(
+    private customerRepository: CustomerRepository,
+    private productRepository: ProductRepository
+  ) {
+    super();
+  }
+
+  async build(record: OrderRecord): Promise<Order> {
+    // Load related entities
+    const customer = await this.customerRepository.findById(record.customer_id);
+    
+    const items = await Promise.all(
+      record.items.map(async (item) => {
+        const product = await this.productRepository.findById(item.product_id);
+        return new OrderItem({
+          id: Id.from(item.id),
+          product: product!,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+        });
+      })
+    );
+
+    return new Order({
+      id: Id.from(record.id),
+      customer: customer!,
+      items,
+      status: record.status as OrderStatus,
+    });
+  }
+}
+```
+
+<Warning>
+Async mappers can lead to N+1 query problems. Consider eager loading relations in your repository query instead of lazy loading in mappers.
+</Warning>
+
+## Type Conversions
+
+Common conversions between domain and persistence:
+
+### Id ↔ String
+
+```typescript
+// Domain → Persistence
+id: user.id.value  // Id → string
+
+// Persistence → Domain
+id: Id.from(record.id)  // string → Id
+```
+
+### Enum ↔ String
+
+```typescript
+// Domain
+type OrderStatus = "draft" | "confirmed" | "shipped" | "delivered";
+
+// Domain → Persistence
+status: order.status  // Already a string
+
+// Persistence → Domain
+status: record.status as OrderStatus  // Cast to union type
+```
+
+### Date Handling
+
+```typescript
+// Domain → Persistence
+createdAt: user.createdAt  // Date stays as Date for most ORMs
+
+// Persistence → Domain
+createdAt: new Date(record.created_at)  // If stored as string/timestamp
+```
+
+### JSON Fields
+
+```typescript
+// Domain
+interface UserSettings {
+  theme: "light" | "dark";
+  notifications: boolean;
+}
+
+// Domain → Persistence (JSON column)
+settings: JSON.stringify(user.settings)
+
+// Persistence → Domain
+settings: JSON.parse(record.settings) as UserSettings
+```
+
+### Nullable Relations
+
+```typescript
+// Domain → Persistence
+addressId: user.address?.id.value ?? null
+
+// Persistence → Domain
+address: record.address_id 
+  ? await this.addressRepository.findById(record.address_id)
+  : null
+```
+
+## Mapper Composition
+
+Compose mappers for complex aggregates:
+
+```typescript
+class AggregateMappers {
+  constructor(
+    readonly userToDomain: UserToDomainMapper,
+    readonly userToPersistence: UserToPersistenceMapper,
+    readonly postToDomain: PostToDomainMapper,
+    readonly postToPersistence: PostToPersistenceMapper,
+    readonly commentToDomain: CommentToDomainMapper,
+    readonly commentToPersistence: CommentToPersistenceMapper
+  ) {}
+}
+
+// Create all mappers together
+const mappers = new AggregateMappers(
+  new UserToDomainMapper(),
+  new UserToPersistenceMapper(),
+  new PostToDomainMapper(),
+  new PostToPersistenceMapper(),
+  new CommentToDomainMapper(),
+  new CommentToPersistenceMapper()
+);
+
+// Use in repository
+class UserRepository extends Repository<User> {
+  constructor(
+    private db: Database,
+    private mappers: AggregateMappers
+  ) {
+    super();
+  }
+
+  protected get mapperToDomain() {
+    return this.mappers.userToDomain;
+  }
+
+  protected get mapperToPersistence() {
+    return this.mappers.userToPersistence;
+  }
+}
+```
+
+## Mapping Lists
+
+```typescript
+class UserToDomainMapper extends Mapper<UserRecord, User> {
+  build(record: UserRecord): User {
+    return new User({
+      id: Id.from(record.id),
+      name: record.name,
+    });
+  }
+
+  // Convenience method for lists
+  buildMany(records: UserRecord[]): User[] {
+    return records.map((record) => this.build(record));
+  }
+}
+
+// Usage
+const users = userMapper.buildMany(records);
+```
+
+## Using with Repository
+
+```typescript
+class UserRepository extends Repository<User> {
+  constructor(
+    private db: PrismaClient,
+    protected readonly mapperToDomain: UserToDomainMapper,
+    protected readonly mapperToPersistence: UserToPersistenceMapper
+  ) {
+    super();
+  }
+
+  async findById(id: string): Promise<User | null> {
+    const record = await this.db.user.findUnique({
+      where: { id },
+      include: { posts: true },
+    });
+
+    return record ? this.mapperToDomain.build(record) : null;
+  }
+
+  async save(user: User): Promise<void> {
+    const data = this.mapperToPersistence.build(user);
+
+    if (user.isNew()) {
+      await this.db.user.create({ data });
+    } else {
+      await this.db.user.update({
+        where: { id: user.id.value },
+        data,
+      });
+    }
+  }
+}
+```
+
+## Testing Mappers
+
+```typescript
+describe("UserToDomainMapper", () => {
+  const mapper = new UserToDomainMapper();
+
+  it("should map record to domain", () => {
+    const record: UserRecord = {
+      id: "user-123",
+      user_name: "John Doe",
+      user_email: "john@example.com",
+      status: "active",
+      is_verified: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    const user = mapper.build(record);
+
+    expect(user).toBeInstanceOf(User);
+    expect(user.id.value).toBe("user-123");
+    expect(user.name).toBe("John Doe");
+    expect(user.email).toBe("john@example.com");
+    expect(user.status).toBe("active");
+    expect(user.isVerified).toBe(true);
+  });
+
+  it("should handle null address", () => {
+    const record: UserRecord = {
+      id: "user-123",
+      user_name: "John",
+      address_street: null,
+      address_city: null,
+      address_zip: null,
+    };
+
+    const user = mapper.build(record);
+
+    expect(user.address).toBeNull();
+  });
+});
+
+describe("UserToPersistenceMapper", () => {
+  const mapper = new UserToPersistenceMapper();
+
+  it("should map domain to record", () => {
+    const user = new User({
+      id: Id.from("user-123"),
+      name: "John Doe",
+      email: "john@example.com",
+      status: "active",
+      isVerified: true,
+    });
+
+    const record = mapper.build(user);
+
+    expect(record.id).toBe("user-123");
+    expect(record.user_name).toBe("John Doe");
+    expect(record.user_email).toBe("john@example.com");
+  });
+});
+```

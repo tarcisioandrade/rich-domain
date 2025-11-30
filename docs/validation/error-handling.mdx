@@ -1,0 +1,709 @@
+---
+title: "Error Handling"
+description: "Working with ValidationError, domain exceptions, and error handling patterns"
+---
+
+## ValidationError
+
+`ValidationError` is the standard error type thrown when validation fails. It contains structured information about all validation issues.
+
+```typescript
+import { ValidationError } from "@woltz/rich-domain";
+
+try {
+  const user = new User({ name: "", email: "invalid" });
+} catch (error) {
+  if (ValidationError.isValidationError(error)) {
+    console.log(error.message);
+    // "Validation failed: Name is required, Invalid email format"
+    
+    console.log(error.issues);
+    // [
+    //   { path: ["name"], message: "Name is required" },
+    //   { path: ["email"], message: "Invalid email format" }
+    // ]
+  }
+}
+```
+
+## ValidationError API
+
+### Properties
+
+```typescript
+interface ValidationError extends Error {
+  name: "ValidationError";
+  message: string;           // Summary of all errors
+  issues: ValidationIssue[]; // Detailed error list
+}
+
+interface ValidationIssue {
+  path: string[];   // Field path (e.g., ["address", "city"])
+  message: string;  // Error message
+}
+```
+
+### Methods
+
+#### getMessages()
+
+Get all error messages as a flat array:
+
+```typescript
+const messages = error.getMessages();
+// ["Name is required", "Invalid email format", "Age must be positive"]
+```
+
+#### getErrorsForPath(path)
+
+Get errors for a specific field:
+
+```typescript
+const nameErrors = error.getErrorsForPath("name");
+// [{ path: ["name"], message: "Name is required" }]
+
+const addressCityErrors = error.getErrorsForPath("address.city");
+// [{ path: ["address", "city"], message: "City is required" }]
+```
+
+#### hasErrorsForPath(path)
+
+Check if a field has errors:
+
+```typescript
+if (error.hasErrorsForPath("email")) {
+  // Show email field error
+}
+```
+
+#### toJSON()
+
+Serialize for API responses:
+
+```typescript
+const json = error.toJSON();
+// {
+//   name: "ValidationError",
+//   message: "Validation failed: ...",
+//   issues: [...]
+// }
+```
+
+### Static Methods
+
+#### isValidationError(error)
+
+Type-safe check that works across module boundaries:
+
+```typescript
+try {
+  // ...
+} catch (error) {
+  if (ValidationError.isValidationError(error)) {
+    // error is typed as ValidationError
+    console.log(error.issues);
+  }
+}
+```
+
+<Note>
+Always use `ValidationError.isValidationError()` instead of `instanceof` for reliable detection across module boundaries.
+</Note>
+
+## Throwing Validation Errors
+
+### In Hooks
+
+Use the `throwValidationError` helper:
+
+```typescript
+import { throwValidationError } from "@woltz/rich-domain";
+
+rules: (entity) => {
+  if (entity.price < 0) {
+    throwValidationError("price", "Price cannot be negative");
+  }
+}
+```
+
+### Manually
+
+Create and throw directly:
+
+```typescript
+import { ValidationError, createValidationIssue } from "@woltz/rich-domain";
+
+// Single issue
+throw new ValidationError([
+  createValidationIssue("email", "Email already exists")
+]);
+
+// Multiple issues
+throw new ValidationError([
+  createValidationIssue("email", "Email already exists"),
+  createValidationIssue("username", "Username already taken"),
+]);
+
+// Nested path
+throw new ValidationError([
+  createValidationIssue(["address", "zipCode"], "Invalid ZIP code")
+]);
+```
+
+## Non-Throwing Mode
+
+Configure entities to collect errors instead of throwing:
+
+```typescript
+class UserSafe extends Aggregate<UserProps> {
+  protected static validation = {
+    schema: userSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: false, // Collect errors
+    },
+  };
+}
+
+const user = new UserSafe({ name: "", email: "invalid" });
+
+// Check for errors
+if (user.hasValidationErrors) {
+  const errors = user.validationErrors!;
+  
+  console.log(errors.getMessages());
+  // ["Name is required", "Invalid email format"]
+}
+```
+
+### When to Use Non-Throwing Mode
+
+<CardGroup cols={2}>
+
+<Card title="Form Validation" icon="rectangle-list">
+Collect all errors to display to user at once
+</Card>
+
+<Card title="Import/Migration" icon="file-import">
+Log errors but continue processing
+</Card>
+
+<Card title="Partial Validation" icon="circle-half-stroke">
+Allow incomplete entities during construction
+</Card>
+
+<Card title="Error Aggregation" icon="layer-group">
+Combine errors from multiple sources
+</Card>
+
+</CardGroup>
+
+## API Error Responses
+
+### Express.js Example
+
+```typescript
+import express from "express";
+import { ValidationError } from "@woltz/rich-domain";
+
+const app = express();
+
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (ValidationError.isValidationError(err)) {
+    return res.status(400).json({
+      error: "Validation Error",
+      message: err.message,
+      details: err.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  // Other errors
+  console.error(err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
+
+// Route
+app.post("/users", async (req, res, next) => {
+  try {
+    const user = new User(req.body);
+    await userRepository.save(user);
+    res.status(201).json(user.toJson());
+  } catch (error) {
+    next(error); // Pass to error handler
+  }
+});
+```
+
+### Response Format
+
+```json
+{
+  "error": "Validation Error",
+  "message": "Validation failed: Name is required, Invalid email format",
+  "details": [
+    { "field": "name", "message": "Name is required" },
+    { "field": "email", "message": "Invalid email format" }
+  ]
+}
+```
+---
+
+## Domain Exceptions
+
+Beyond `ValidationError`, rich-domain provides a comprehensive set of domain exceptions for different error scenarios. All exceptions extend a common `DomainException` base class.
+
+```typescript
+import {
+  DomainError,
+  EntityNotFoundError,
+  EntityAlreadyExistsError,
+  RepositoryError,
+  PersistenceError,
+  ConcurrencyError,
+  // ... more
+} from "@woltz/rich-domain";
+```
+
+### Exception Hierarchy
+
+```
+DomainException (base)
+├── DomainError
+├── EntityNotFoundError
+├── EntityAlreadyExistsError
+├── InvalidValueObjectError
+├── InvalidCriteriaError
+├── RepositoryError
+│   ├── PersistenceError
+│   ├── ConcurrencyError
+│   └── ConstraintViolationError
+├── DomainEventError
+│   └── EventHandlerError
+├── TransactionError
+├── MapperError
+├── ConfigurationError
+├── NotImplementedError
+└── UnknownError
+```
+
+### Common Properties
+
+All domain exceptions share these properties:
+
+```typescript
+interface DomainException extends Error {
+  name: string;        // Exception class name
+  message: string;     // Error message
+  code: string;        // Error code (e.g., "ENTITY_NOT_FOUND")
+  timestamp: Date;     // When the error occurred
+  
+  toJSON(): object;    // Serialize for API responses
+}
+
+// Type checking (works across module boundaries)
+DomainException.isDomainException(error); // boolean
+```
+
+---
+
+## Entity & Aggregate Exceptions
+
+### DomainError
+
+General-purpose exception for business rule violations:
+
+```typescript
+import { DomainError } from "@woltz/rich-domain";
+
+class Order extends Aggregate<OrderProps> {
+  confirm() {
+    if (this.items.length === 0) {
+      throw new DomainError("Cannot confirm an empty order");
+    }
+    
+    if (this.status !== "draft") {
+      throw new DomainError(
+        "Only draft orders can be confirmed",
+        "ORDER_NOT_DRAFT" // Optional custom code
+      );
+    }
+    
+    this.props.status = "confirmed";
+  }
+}
+```
+
+### EntityNotFoundError
+
+When an entity or aggregate cannot be found:
+
+```typescript
+import { EntityNotFoundError } from "@woltz/rich-domain";
+
+class UserRepository {
+  async findByIdOrFail(id: string): Promise<User> {
+    const user = await this.findById(id);
+    
+    if (!user) {
+      throw new EntityNotFoundError("User", id);
+      // Message: "User with id 'abc-123' not found"
+      // Code: "ENTITY_NOT_FOUND"
+    }
+    
+    return user;
+  }
+}
+
+// With custom message
+throw new EntityNotFoundError(
+  "User",
+  id,
+  "The requested user account does not exist"
+);
+```
+
+### EntityAlreadyExistsError
+
+When trying to create an entity that already exists:
+
+```typescript
+import { EntityAlreadyExistsError } from "@woltz/rich-domain";
+
+class UserService {
+  async createUser(email: string, name: string): Promise<User> {
+    const existing = await this.userRepo.findByEmail(email);
+    
+    if (existing) {
+      throw new EntityAlreadyExistsError("User", existing.id.value);
+      // Message: "User with id 'abc-123' already exists"
+    }
+    
+    return new User({ email, name });
+  }
+}
+```
+
+---
+
+## Repository & Persistence Exceptions
+
+### RepositoryError
+
+Base exception for repository operations:
+
+```typescript
+import { RepositoryError } from "@woltz/rich-domain";
+
+throw new RepositoryError("Failed to connect to database");
+```
+
+### PersistenceError
+
+When a database operation fails:
+
+```typescript
+import { PersistenceError } from "@woltz/rich-domain";
+
+class UserRepository {
+  async save(user: User): Promise<void> {
+    try {
+      await this.db.user.upsert({ ... });
+    } catch (error) {
+      throw new PersistenceError(
+        "save",                    // Operation name
+        "Database connection lost", // Message
+        error as Error             // Original error (cause)
+      );
+    }
+  }
+}
+
+// Access details
+catch (error) {
+  if (error instanceof PersistenceError) {
+    console.log(error.operation); // "save"
+    console.log(error.cause);     // Original database error
+  }
+}
+```
+
+### ConcurrencyError
+
+For optimistic locking conflicts:
+
+```typescript
+import { ConcurrencyError } from "@woltz/rich-domain";
+
+class OrderRepository {
+  async save(order: Order): Promise<void> {
+    const result = await this.db.order.updateMany({
+      where: {
+        id: order.id.value,
+        version: order.version, // Optimistic lock
+      },
+      data: {
+        ...orderData,
+        version: { increment: 1 },
+      },
+    });
+
+    if (result.count === 0) {
+      throw new ConcurrencyError("Order", order.id.value);
+      // Message: "Concurrency conflict detected for Order with id 'order-123'"
+    }
+  }
+}
+```
+
+### ConstraintViolationError
+
+When a database constraint is violated:
+
+```typescript
+import { ConstraintViolationError } from "@woltz/rich-domain";
+
+class UserRepository {
+  async save(user: User): Promise<void> {
+    try {
+      await this.db.user.create({ data: userData });
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConstraintViolationError(
+          "users_email_unique",
+          "A user with this email already exists"
+        );
+      }
+      throw error;
+    }
+  }
+}
+```
+
+---
+
+## Other Exceptions
+
+### InvalidValueObjectError
+
+When a Value Object receives invalid data:
+
+```typescript
+import { InvalidValueObjectError } from "@woltz/rich-domain";
+
+class Email extends ValueObject<{ value: string }> {
+  constructor(props: { value: string }) {
+    if (!isValidEmail(props.value)) {
+      throw new InvalidValueObjectError(
+        "Email",
+        "Invalid email format",
+        props.value // The invalid value
+      );
+    }
+    super(props);
+  }
+}
+```
+
+### InvalidCriteriaError
+
+When a Criteria query is invalid:
+
+```typescript
+import { InvalidCriteriaError } from "@woltz/rich-domain";
+
+// Thrown automatically by Criteria when:
+// - Invalid operator for field type
+// - Invalid quantifier value
+
+// Example: manually throwing
+if (!allowedFields.includes(field)) {
+  throw new InvalidCriteriaError(
+    `Field '${field}' is not allowed for filtering`,
+    field
+  );
+}
+```
+
+### TransactionError
+
+When a transaction operation fails:
+
+```typescript
+import { TransactionError } from "@woltz/rich-domain";
+
+class UnitOfWork {
+  async commit(): Promise<void> {
+    try {
+      await this.db.$transaction(this.operations);
+    } catch (error) {
+      throw new TransactionError(
+        "commit",
+        "Failed to commit transaction",
+        error as Error
+      );
+    }
+  }
+}
+```
+
+### MapperError
+
+When mapping between domain and persistence fails:
+
+```typescript
+import { MapperError } from "@woltz/rich-domain";
+
+class UserToDomainMapper {
+  build(record: UserRecord): User {
+    try {
+      return new User({
+        id: Id.from(record.id),
+        name: record.name,
+        email: record.email,
+      });
+    } catch (error) {
+      throw new MapperError(
+        "toDomain",
+        "User",
+        "Failed to map user record to domain",
+        error as Error
+      );
+    }
+  }
+}
+```
+
+### DomainEventError & EventHandlerError
+
+For event-related failures:
+
+```typescript
+import { DomainEventError, EventHandlerError } from "@woltz/rich-domain";
+
+// General event error
+throw new DomainEventError(
+  "Failed to publish event",
+  "UserCreatedEvent"
+);
+
+// Handler-specific error
+throw new EventHandlerError(
+  "SendWelcomeEmailHandler",
+  "UserCreatedEvent",
+  originalError
+);
+```
+
+### Utility Exceptions
+
+```typescript
+import {
+  NotImplementedError,
+  ConfigurationError,
+  UnknownError,
+} from "@woltz/rich-domain";
+
+// Feature not yet implemented
+throw new NotImplementedError("Bulk import");
+
+// Missing or invalid configuration
+throw new ConfigurationError(
+  "Database URL is required",
+  "DATABASE_URL"
+);
+
+// Wrap unknown errors
+throw new UnknownError("An unexpected error occurred", originalError);
+```
+
+---
+
+## Handling Domain Exceptions
+
+### Centralized Error Handler
+
+```typescript
+import {
+  ValidationError,
+  EntityNotFoundError,
+  EntityAlreadyExistsError,
+  ConcurrencyError,
+  DomainError,
+} from "@woltz/rich-domain";
+
+function handleError(error: Error, res: Response) {
+  // Validation errors → 400
+  if (ValidationError.isValidationError(error)) {
+    return res.status(400).json({
+      error: "Validation Error",
+      message: error.message,
+      details: error.issues,
+    });
+  }
+
+  // Not found → 404
+  if (error instanceof EntityNotFoundError) {
+    return res.status(404).json({
+      error: "Not Found",
+      message: error.message,
+      entityType: error.entityType,
+      entityId: error.entityId,
+    });
+  }
+
+  // Already exists → 409
+  if (error instanceof EntityAlreadyExistsError) {
+    return res.status(409).json({
+      error: "Conflict",
+      message: error.message,
+    });
+  }
+
+  // Concurrency conflict → 409
+  if (error instanceof ConcurrencyError) {
+    return res.status(409).json({
+      error: "Conflict",
+      message: "Resource was modified by another request",
+      code: error.code,
+    });
+  }
+
+  // Domain errors → 422
+  if (error instanceof DomainError) {
+    return res.status(422).json({
+      error: "Unprocessable Entity",
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  // Unknown errors → 500
+  console.error("Unhandled error:", error);
+  return res.status(500).json({
+    error: "Internal Server Error",
+    message: "An unexpected error occurred",
+  });
+}
+```
+
+### Exception Reference Table
+
+| Exception | HTTP Status | When to Use |
+|-----------|-------------|-------------|
+| `ValidationError` | 400 | Invalid input data |
+| `InvalidCriteriaError` | 400 | Invalid query parameters |
+| `EntityNotFoundError` | 404 | Resource not found |
+| `EntityAlreadyExistsError` | 409 | Duplicate resource |
+| `ConcurrencyError` | 409 | Optimistic lock conflict |
+| `ConstraintViolationError` | 409 | Database constraint failed |
+| `DomainError` | 422 | Business rule violation |
+| `InvalidValueObjectError` | 422 | Invalid value object |
+| `PersistenceError` | 500 | Database error |
+| `TransactionError` | 500 | Transaction failed |
+| `MapperError` | 500 | Mapping failed |
+| `ConfigurationError` | 500 | Configuration missing |

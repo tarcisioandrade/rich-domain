@@ -88,14 +88,6 @@ class Product extends Aggregate<ProductProps> {
   updatePrice(newPrice: number) {
     this.props.price = newPrice;
   }
-
-  decreaseStock(quantity: number) {
-    this.props.stock -= quantity;
-  }
-
-  deactivate() {
-    this.props.status = "inactive";
-  }
 }
 ```
 
