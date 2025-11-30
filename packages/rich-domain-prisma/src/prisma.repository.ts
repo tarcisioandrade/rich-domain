@@ -31,7 +31,7 @@ export abstract class PrismaRepository<
   constructor(
     protected readonly mapperToPersistence: Mapper<TDomain, void>,
     protected readonly mapperToDomain: Mapper<TPersistence, TDomain>,
-    public readonly prisma: PrismaClientLike,
+    private readonly prisma: PrismaClientLike,
     public readonly uow: PrismaUnitOfWork
   ) {
     super();
