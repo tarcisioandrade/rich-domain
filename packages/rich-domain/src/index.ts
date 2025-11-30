@@ -28,7 +28,6 @@ export {
   Order,
   IUnitOfWork,
   IDomainEventHandler,
-  EntityId,
   FieldPath,
   FilterOperator,
   Search,

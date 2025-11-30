@@ -30,7 +30,7 @@ export function isValidOperatorForType(
   const valueType = typeof value;
 
   // String operators
-  if (valueType === "string") {
+  if (valueType === "string" && Number.isNaN(Number(value))) {
     const validOps: StringOperators[] = [
       "equals",
       "notEquals",
