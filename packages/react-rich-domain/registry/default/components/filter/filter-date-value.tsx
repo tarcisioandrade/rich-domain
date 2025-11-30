@@ -31,7 +31,6 @@ export function FilterDateValue({
   const singleDate =
     !isBetween && value ? new Date(value as string) : undefined;
 
-  console.log("singleDate", singleDate);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>

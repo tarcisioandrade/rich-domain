@@ -82,12 +82,13 @@ export function FilterValueSelector({
           <div className="flex items-center gap-1">
             {getOptionIcon(val)}
             <span className="text-xs">{getOptionLabel(val)}</span>
-            <button
+            <div
               onClick={(e) => handleRemoveValue(val, e)}
+              role="button"
               className="ml-0.5 rounded-full hover:bg-muted-foreground/20"
             >
               <X className="h-3 w-3" />
-            </button>
+            </div>
           </div>
         );
       }
@@ -108,7 +109,7 @@ export function FilterValueSelector({
             })}
           </div>
           <span className="text-xs font-medium truncate">
-            {selectedValues.length} selecionado
+            {selectedValues.length} selected
             {selectedValues.length > 1 ? "s" : ""}
           </span>
         </div>
@@ -168,7 +169,6 @@ export function FilterValueSelector({
     );
   }
 
-  // For types without options, show text input
   return (
     <Input
       type={filter.type === "number" ? "number" : "text"}
