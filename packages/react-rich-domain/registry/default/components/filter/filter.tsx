@@ -77,7 +77,7 @@ export function Filter({
 
     let value =
       newValue.value === null || fieldTypeChanged
-        ? defineDefaultFilterValue(newField.type)
+        ? defineDefaultFilterValue(newField.type, newValue.operator)
         : newValue.value;
 
     const newOperatorIsArrayOperator = operatorSupportsMultipleValues(operator);

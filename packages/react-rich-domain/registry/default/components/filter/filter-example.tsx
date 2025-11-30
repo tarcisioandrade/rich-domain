@@ -17,9 +17,7 @@ interface User {
 export function UserFilterExample() {
   const { filters, addOrReplaceByIndex, removeFilter, clearFilters } =
     useCriteria<User>({
-      initialPage: 1,
       syncWithUrl: true,
-      pageSize: 20,
     });
 
   const filterFields: QueryFilter[] = [
@@ -127,6 +125,7 @@ export function OrderFilterExample() {
       type: "string",
       field: "status",
       fieldLabel: "Status",
+      multiSelect: true,
       options: [
         { label: "Pending", value: "pending" },
         { label: "Processing", value: "processing" },

@@ -92,7 +92,14 @@ export const OPERATOR_LABELS: OperatorLabels = {
   isNotNull: "is not empty",
 };
 
-export function defineDefaultFilterValue(type: FilterType) {
+export function defineDefaultFilterValue(
+  type: FilterType,
+  operator?: FilterOperator
+) {
+  if (operator === "isNull" || operator === "isNotNull") {
+    return null;
+  }
+
   let defaultValue: FilterValue["value"];
   switch (type) {
     case "string": {
@@ -104,7 +111,7 @@ export function defineDefaultFilterValue(type: FilterType) {
       break;
     }
     case "date": {
-      defaultValue = new Date().toISOString();
+      defaultValue = null;
       break;
     }
     case "boolean": {

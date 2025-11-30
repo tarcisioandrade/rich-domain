@@ -64,7 +64,7 @@ export function FilterRow({
       return (
         <FilterDateValue
           operator={value.operator}
-          value={value.value as Date | [Date, Date] | null}
+          value={value.value as string | [string, string] | null}
           onChange={handleValueChange}
         />
       );
