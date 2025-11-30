@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://github.com/tarcisioandrade/rich-domain/compare/v0.3.0...v1.2.2) (2025-11-30)
+
+
+### Features
+
+* filter component with criteria ([a6e5a66](https://github.com/tarcisioandrade/rich-domain/commit/a6e5a664e7b175f8156832b2d42821f73efec522))
+
+
+### Bug Fixes
+
+* incorrect verification in criteria operator validation ([8b4da16](https://github.com/tarcisioandrade/rich-domain/commit/8b4da16ded67a55afe64adbe60d52359cd168a17))
+
+
+### Chores
+
+* update dependencies and refactor mappers to use PrismaToPersistence ([5281716](https://github.com/tarcisioandrade/rich-domain/commit/52817161667ce473ffe2f7991d55c03190d097c0))
+
+
+### Refactoring
+
+* enhance criteria validation by adding field value sanitization ([9991a6b](https://github.com/tarcisioandrade/rich-domain/commit/9991a6b54dbfa8b5d2505ed17897b76f6b794a33))
+* improve filter component logic and UI interactions for adding filters ([3dd8d9f](https://github.com/tarcisioandrade/rich-domain/commit/3dd8d9fb8934ca15357ad62485f74c541c01a680))
+* migrate filter types to filter-utils for improved organization and clarity ([eeb2af4](https://github.com/tarcisioandrade/rich-domain/commit/eeb2af4f563ff7f8dc3eb1836b22392bc229f3af))
+* update FilterDateValue component to handle string dates and improve date handling logic ([6cb0b42](https://github.com/tarcisioandrade/rich-domain/commit/6cb0b4245ce9394389ee208c16035bc49e4aa912))
+
 ### [1.2.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.0...v1.2.1) (2025-11-29)
 
 
