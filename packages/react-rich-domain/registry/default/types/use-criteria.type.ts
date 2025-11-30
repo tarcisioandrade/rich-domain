@@ -122,6 +122,16 @@ export interface UseCriteriaReturn<T> {
   removeSort: (index: number) => void;
 
   /**
+   * Replace a filter by index
+   */
+  addOrReplaceByIndex: (props: {
+    field: FieldPath<T>;
+    operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
+    value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
+    options?: CriteriaOptions;
+    replaceIndex?: number;
+  }) => void;
+  /**
    * Remove sort by field name
    */
   removeSortByField: (field: FieldPath<T>) => void;

@@ -1,0 +1,206 @@
+import type React from "react";
+// Types for the filter component
+export type FilterType = "string" | "number" | "boolean" | "date";
+
+export type StringOperator =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "startsWith"
+  | "endsWith"
+  | "in"
+  | "notIn"
+  | "isNull"
+  | "isNotNull";
+
+export type NumberOperator =
+  | "equals"
+  | "notEquals"
+  | "greaterThan"
+  | "greaterThanOrEqual"
+  | "lessThan"
+  | "lessThanOrEqual"
+  | "in"
+  | "notIn"
+  | "between"
+  | "isNull"
+  | "isNotNull";
+
+export type DateOperator =
+  | "equals"
+  | "notEquals"
+  | "greaterThan"
+  | "greaterThanOrEqual"
+  | "lessThan"
+  | "lessThanOrEqual"
+  | "in"
+  | "notIn"
+  | "between"
+  | "isNull"
+  | "isNotNull";
+
+export type BooleanOperator = "equals" | "notEquals" | "isNull" | "isNotNull";
+
+export type FilterOperator =
+  | StringOperator
+  | NumberOperator
+  | DateOperator
+  | BooleanOperator;
+
+export type QueryFilter = {
+  type: FilterType;
+  field: string;
+  fieldLabel: string;
+  multiSelect?: boolean;
+  options?: {
+    label: string;
+    value: string;
+    icon?: React.ReactNode;
+  }[];
+};
+
+export type FilterValue = {
+  field: string;
+  operator: FilterOperator;
+  value:
+    | string
+    | string[]
+    | number
+    | number[]
+    | boolean
+    | Date
+    | [Date, Date]
+    | null;
+};
+
+// Operator labels for display
+export type OperatorLabels = Record<FilterOperator, string>;
+export const OPERATOR_LABELS: OperatorLabels = {
+  equals: "is",
+  notEquals: "is not",
+  contains: "contains",
+  startsWith: "starts with",
+  endsWith: "ends with",
+  in: "has any of",
+  notIn: "has none of",
+  greaterThan: "greater than",
+  greaterThanOrEqual: "greater or equal",
+  lessThan: "less than",
+  lessThanOrEqual: "less or equal",
+  between: "between",
+  isNull: "is empty",
+  isNotNull: "is not empty",
+};
+
+export function defineDefaultFilterValue(type: FilterType) {
+  let defaultValue: FilterValue["value"];
+  switch (type) {
+    case "string": {
+      defaultValue = "";
+      break;
+    }
+    case "number": {
+      defaultValue = 0;
+      break;
+    }
+    case "date": {
+      defaultValue = new Date().toISOString();
+      break;
+    }
+    case "boolean": {
+      defaultValue = false;
+      break;
+    }
+    default: {
+      defaultValue = null;
+      break;
+    }
+  }
+  return defaultValue;
+}
+
+// Operators by type
+export const STRING_OPERATORS: StringOperator[] = [
+  "equals",
+  "notEquals",
+  "contains",
+  "startsWith",
+  "endsWith",
+  "in",
+  "notIn",
+  "isNull",
+  "isNotNull",
+];
+
+export const NUMBER_OPERATORS: NumberOperator[] = [
+  "equals",
+  "notEquals",
+  "greaterThan",
+  "greaterThanOrEqual",
+  "lessThan",
+  "lessThanOrEqual",
+  "in",
+  "notIn",
+  "between",
+  "isNull",
+  "isNotNull",
+];
+
+export const DATE_OPERATORS: DateOperator[] = [
+  "equals",
+  "notEquals",
+  "greaterThan",
+  "greaterThanOrEqual",
+  "lessThan",
+  "lessThanOrEqual",
+  "in",
+  "notIn",
+  "between",
+  "isNull",
+  "isNotNull",
+];
+
+export const BOOLEAN_OPERATORS: BooleanOperator[] = [
+  "equals",
+  "notEquals",
+  "isNull",
+  "isNotNull",
+];
+
+export function getOperatorsByType(type: FilterType): FilterOperator[] {
+  switch (type) {
+    case "string":
+      return STRING_OPERATORS;
+    case "number":
+      return NUMBER_OPERATORS;
+    case "date":
+      return DATE_OPERATORS;
+    case "boolean":
+      return BOOLEAN_OPERATORS;
+  }
+}
+
+export function getDefaultOperator(type: FilterType): FilterOperator {
+  switch (type) {
+    case "string":
+      return "contains";
+    case "number":
+      return "equals";
+    case "date":
+      return "equals";
+    case "boolean":
+      return "equals";
+  }
+}
+
+// Check if operator requires a value
+export function operatorRequiresValue(operator: FilterOperator): boolean {
+  return operator !== "isNull" && operator !== "isNotNull";
+}
+
+// Check if operator supports multiple values
+export function operatorSupportsMultipleValues(
+  operator: FilterOperator
+): boolean {
+  return operator === "in" || operator === "notIn";
+}
