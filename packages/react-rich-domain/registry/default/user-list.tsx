@@ -16,7 +16,7 @@ import {
 } from "./components/ui/pagination";
 import { cn } from "./lib/utils";
 import { Button } from "./components/ui/button";
-import type { QueryFilter } from "./lib/filter-types";
+import type { QueryFilter } from "./lib/filter-utils";
 import { Filter } from "./components/filter/filter";
 
 const QueryFilter: QueryFilter[] = [
@@ -58,8 +58,6 @@ export function UserList() {
     removeFilter,
     clearFilters,
   } = useCriteria<TestUser>({
-    pageSize: 10,
-    initialFilters: [{ field: "status", operator: "equals", value: "active" }],
     syncWithUrl: true,
   });
 

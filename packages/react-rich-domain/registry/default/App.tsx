@@ -1,11 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./theme.provider";
 import { ToggleTheme } from "./components/toggle-theme";
-import {
-  OrderFilterExample,
-  UserFilterExample,
-} from "./components/filter/filter-example";
-import { UserList } from "./user-list";
+import { UserFilterExample } from "./components/filter/filter-example";
+// import { OrderFilterExample, UserFilterExample } from "./components/filter/filter-example";
 
 const queryClient = new QueryClient();
 
@@ -15,9 +12,9 @@ export default function App() {
       <ThemeProvider defaultTheme="dark">
         <ToggleTheme />
         <section className="container mx-auto">
-          <UserList />
+          {/* <UserList /> */}
           <UserFilterExample />
-          <OrderFilterExample />
+          {/* <OrderFilterExample /> */}
         </section>
       </ThemeProvider>
     </QueryClientProvider>
