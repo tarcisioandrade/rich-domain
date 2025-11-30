@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.2...v1.2.4) (2025-11-30)
+
+
+### Bug Fixes
+
+* critic bug ([474a8d9](https://github.com/tarcisioandrade/rich-domain/commit/474a8d90fc9fb2810dc37018c86dce234d2ac08f))
+* improve deep cloning logic in BaseEntity to handle structuredClone fallback ([78f8fbf](https://github.com/tarcisioandrade/rich-domain/commit/78f8fbf5846650a7e3783aa55023d94db65572f6))
+
+
+### Tests
+
+* add comprehensive deep tracking tests for nested entity structures ([66b0c33](https://github.com/tarcisioandrade/rich-domain/commit/66b0c3399e825b24925a7ae3056e57a18ec6d93c))
+
+
+### Refactoring
+
+* change visibility of prisma client in PrismaRepository constructor ([1cf83ed](https://github.com/tarcisioandrade/rich-domain/commit/1cf83ed97585fddd6a25125cedc1bcf72b289713))
+
 ### [1.2.3](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.2...v1.2.3) (2025-11-30)
 
 
