@@ -20,6 +20,7 @@ interface FilterRowProps {
   onSelectField: (value: FilterValue) => void;
   onChange: (value: FilterValue) => void;
   onRemove: () => void;
+  usedFields?: string[];
 }
 
 export function FilterRow({
@@ -28,6 +29,7 @@ export function FilterRow({
   onChange,
   onRemove,
   onSelectField,
+  usedFields = [],
 }: FilterRowProps) {
   const currentField = fields.find((f) => f.field === value.field);
   const type = currentField?.type || "string";
@@ -99,6 +101,7 @@ export function FilterRow({
         fields={fields}
         selectedField={value.field}
         onSelect={handleFieldChange}
+        usedFields={usedFields}
       />
       <FilterOperatorSelector
         type={type}

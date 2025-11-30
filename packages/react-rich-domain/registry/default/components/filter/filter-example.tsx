@@ -98,13 +98,15 @@ interface Order {
 
 export function OrderFilterExample() {
   const { filters, addOrReplaceByIndex, removeFilter, clearFilters } =
-    useCriteria<Order>();
+    useCriteria<Order>({
+      syncWithUrl: true,
+    });
 
   const filterFields: QueryFilter[] = [
     {
       type: "string",
       field: "orderNumber",
-      fieldLabel: "Order Number"
+      fieldLabel: "Order Number",
     },
     {
       type: "string",

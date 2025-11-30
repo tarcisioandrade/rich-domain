@@ -9,13 +9,14 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn, getQueryParams } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { QueryFilter, FilterType } from "@/lib/filter-types";
 
 interface FilterFieldSelectorProps {
   fields: QueryFilter[];
   selectedField: string;
   onSelect: (field: QueryFilter) => void;
+  usedFields?: string[];
 }
 
 const TYPE_ICONS: Record<FilterType, React.ReactNode> = {
@@ -29,19 +30,19 @@ export function FilterFieldSelector({
   fields,
   selectedField,
   onSelect,
+  usedFields = [],
 }: FilterFieldSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
   const selectedFieldData = fields.find((f) => f.field === selectedField);
 
-  const removeFieldsAlreadySelected = fields.filter((field) => {
-    const query = getQueryParams();
-    const filtredFields = Object.keys(query).map((key) => key.split(":")[0]);
-    return !filtredFields.includes(field.field);
-  });
+  const availableFields = fields.filter(
+    (field) =>
+      field.field === selectedField || !usedFields.includes(field.field)
+  );
 
-  const filteredFields = removeFieldsAlreadySelected.filter((field) =>
+  const filteredFields = availableFields.filter((field) =>
     field.fieldLabel.toLowerCase().includes(search.toLowerCase())
   );
 
