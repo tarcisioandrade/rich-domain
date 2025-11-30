@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { FilterOperator } from "@/lib/filter-types";
+import type { FilterOperator } from "@/lib/filter-utils";
 
 interface FilterDateValueProps {
   operator: FilterOperator;

@@ -6,8 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { QueryFilter, FilterOperator } from "../../lib/filter-types";
-import { operatorSupportsMultipleValues } from "../../lib/filter-types";
+import type { QueryFilter, FilterOperator } from "../../lib/filter-utils";
+import { operatorSupportsMultipleValues } from "../../lib/filter-utils";
 
 interface FilterValueSelectorProps {
   filter: QueryFilter;

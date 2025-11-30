@@ -12,7 +12,7 @@ import {
   type FilterOperator,
   getDefaultOperator,
   operatorRequiresValue,
-} from "@/lib/filter-types";
+} from "@/lib/filter-utils";
 
 interface FilterRowProps {
   fields: QueryFilter[];

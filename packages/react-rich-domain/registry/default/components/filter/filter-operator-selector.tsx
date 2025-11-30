@@ -14,7 +14,7 @@ import {
   type FilterOperator,
   getOperatorsByType,
   OPERATOR_LABELS,
-} from "@/lib/filter-types";
+} from "@/lib/filter-utils";
 
 interface FilterOperatorSelectorProps {
   type: FilterType;

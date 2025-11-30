@@ -30,7 +30,7 @@ import {
   defineDefaultFilterValue,
   operatorSupportsMultipleValues,
   operatorRequiresValue,
-} from "../../lib/filter-types";
+} from "../../lib/filter-utils";
 import {
   type FieldPath,
   type Filter,

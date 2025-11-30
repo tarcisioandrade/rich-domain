@@ -1,51 +1,18 @@
+import type {
+  BooleanOperators,
+  DateOperators,
+  NumberOperators,
+  StringOperators,
+} from "@woltz/rich-domain";
 import type React from "react";
-// Types for the filter component
+
 export type FilterType = "string" | "number" | "boolean" | "date";
 
-export type StringOperator =
-  | "equals"
-  | "notEquals"
-  | "contains"
-  | "startsWith"
-  | "endsWith"
-  | "in"
-  | "notIn"
-  | "isNull"
-  | "isNotNull";
-
-export type NumberOperator =
-  | "equals"
-  | "notEquals"
-  | "greaterThan"
-  | "greaterThanOrEqual"
-  | "lessThan"
-  | "lessThanOrEqual"
-  | "in"
-  | "notIn"
-  | "between"
-  | "isNull"
-  | "isNotNull";
-
-export type DateOperator =
-  | "equals"
-  | "notEquals"
-  | "greaterThan"
-  | "greaterThanOrEqual"
-  | "lessThan"
-  | "lessThanOrEqual"
-  | "in"
-  | "notIn"
-  | "between"
-  | "isNull"
-  | "isNotNull";
-
-export type BooleanOperator = "equals" | "notEquals" | "isNull" | "isNotNull";
-
 export type FilterOperator =
-  | StringOperator
-  | NumberOperator
-  | DateOperator
-  | BooleanOperator;
+  | StringOperators
+  | NumberOperators
+  | DateOperators
+  | BooleanOperators;
 
 export type QueryFilter = {
   type: FilterType;
@@ -73,7 +40,6 @@ export type FilterValue = {
     | null;
 };
 
-// Operator labels for display
 export type OperatorLabels = Record<FilterOperator, string>;
 export const OPERATOR_LABELS: OperatorLabels = {
   equals: "is",
@@ -126,8 +92,7 @@ export function defineDefaultFilterValue(
   return defaultValue;
 }
 
-// Operators by type
-export const STRING_OPERATORS: StringOperator[] = [
+export const STRING_OPERATORS: StringOperators[] = [
   "equals",
   "notEquals",
   "contains",
@@ -139,7 +104,7 @@ export const STRING_OPERATORS: StringOperator[] = [
   "isNotNull",
 ];
 
-export const NUMBER_OPERATORS: NumberOperator[] = [
+export const NUMBER_OPERATORS: NumberOperators[] = [
   "equals",
   "notEquals",
   "greaterThan",
@@ -153,7 +118,7 @@ export const NUMBER_OPERATORS: NumberOperator[] = [
   "isNotNull",
 ];
 
-export const DATE_OPERATORS: DateOperator[] = [
+export const DATE_OPERATORS: DateOperators[] = [
   "equals",
   "notEquals",
   "greaterThan",
@@ -167,7 +132,7 @@ export const DATE_OPERATORS: DateOperator[] = [
   "isNotNull",
 ];
 
-export const BOOLEAN_OPERATORS: BooleanOperator[] = [
+export const BOOLEAN_OPERATORS: BooleanOperators[] = [
   "equals",
   "notEquals",
   "isNull",
@@ -200,12 +165,10 @@ export function getDefaultOperator(type: FilterType): FilterOperator {
   }
 }
 
-// Check if operator requires a value
 export function operatorRequiresValue(operator: FilterOperator): boolean {
   return operator !== "isNull" && operator !== "isNotNull";
 }
 
-// Check if operator supports multiple values
 export function operatorSupportsMultipleValues(
   operator: FilterOperator
 ): boolean {

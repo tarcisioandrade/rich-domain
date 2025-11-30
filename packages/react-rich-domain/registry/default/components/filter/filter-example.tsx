@@ -2,7 +2,7 @@
 
 import { Filter } from "./filter";
 import { useCriteria } from "@/hooks/use-criteria";
-import type { QueryFilter } from "@/lib/filter-types";
+import type { QueryFilter } from "@/lib/filter-utils";
 
 interface User {
   id: string;
