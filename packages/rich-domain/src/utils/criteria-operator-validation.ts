@@ -8,28 +8,71 @@ import {
   StringOperators,
 } from "../types";
 
+const FORCE_STRING_OPERATORS = new Set(["contains", "startsWith", "endsWith"]);
+
+export function sanitizeFieldValue(
+  value: unknown,
+  operator: FilterOperator
+): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeFieldValue(item, operator));
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const stringValue = String(value).trim();
+
+  if (stringValue === "") {
+    return "";
+  }
+
+  if (operator && FORCE_STRING_OPERATORS.has(operator)) {
+    return stringValue;
+  }
+
+  if (stringValue === "true" || stringValue === "false") {
+    return stringValue === "true";
+  }
+
+  const numberValue = Number(stringValue);
+  if (!Number.isNaN(numberValue)) {
+    return numberValue;
+  }
+
+  const dateObj = new Date(stringValue);
+  if (!Number.isNaN(dateObj.getTime())) {
+    return dateObj;
+  }
+
+  return stringValue;
+}
+
 export function isValidOperatorForType(
   value: unknown,
   operator: FilterOperator
 ): boolean {
-  // Handle null/undefined
-  if (value === null || value === undefined) {
-    return ["isNull", "isNotNull", "equals", "notEquals"].includes(operator);
-  }
+  const sanitizedValue = sanitizeFieldValue(value, operator);
 
-  // Special case: between operator with array [min, max]
-  if (operator === "between" && Array.isArray(value) && value.length === 2) {
-    // Validate based on the type of the first element
-    const elementType = typeof value[0];
-    if (elementType === "number" || value[0] instanceof Date) {
+  if (
+    operator === "between" &&
+    Array.isArray(sanitizedValue) &&
+    sanitizedValue.length === 2
+  ) {
+    const elementType = typeof sanitizedValue[0];
+    if (elementType === "number" || sanitizedValue[0] instanceof Date) {
       return true;
     }
     return false;
   }
 
-  const valueType = typeof value;
+  const valueType = typeof sanitizedValue;
 
-  // String operators
   if (valueType === "string") {
     const validOps: StringOperators[] = [
       "equals",
@@ -45,7 +88,6 @@ export function isValidOperatorForType(
     return validOps.includes(operator as StringOperators);
   }
 
-  // Number operators
   if (valueType === "number") {
     const validOps: NumberOperators[] = [
       "equals",
@@ -63,7 +105,6 @@ export function isValidOperatorForType(
     return validOps.includes(operator as NumberOperators);
   }
 
-  // Boolean operators
   if (valueType === "boolean") {
     const validOps: BooleanOperators[] = [
       "equals",
@@ -74,8 +115,7 @@ export function isValidOperatorForType(
     return validOps.includes(operator as BooleanOperators);
   }
 
-  // Date operators
-  if (value instanceof Date) {
+  if (sanitizedValue instanceof Date) {
     const validOps: DateOperators[] = [
       "equals",
       "notEquals",
@@ -92,13 +132,11 @@ export function isValidOperatorForType(
     return validOps.includes(operator as DateOperators);
   }
 
-  // Array operators
-  if (Array.isArray(value)) {
+  if (Array.isArray(sanitizedValue)) {
     const validOps: ArrayOperators[] = ["in", "notIn", "isNull", "isNotNull"];
     return validOps.includes(operator as ArrayOperators);
   }
 
-  // For unknown types, allow all operators
   return true;
 }
 

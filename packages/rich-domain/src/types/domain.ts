@@ -1,8 +1,6 @@
 import { Id } from "../id";
 import { StandardSchema } from "./standard-schema";
 
-export type EntityId = string | number;
-
 export interface BaseProps {
   id: Id;
 }
@@ -21,17 +19,10 @@ export interface VOHooks<T, E> {
   rules?: (entity: E) => void;
 }
 
-// Specialized hooks for entities (with BaseProps)
 export interface EntityHooks<T extends BaseProps, E> {
   onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
   rules?: (entity: E) => void;
-}
-
-export interface EntityConstructor<T extends BaseProps, E> {
-  new (props: T): E;
-  validation?: DomainValidation<T>;
-  hooks?: EntityHooks<T, E>;
 }
 
 export interface ValidationConfig {

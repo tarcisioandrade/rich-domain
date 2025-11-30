@@ -28,7 +28,6 @@ export {
   Order,
   IUnitOfWork,
   IDomainEventHandler,
-  EntityId,
   FieldPath,
   FilterOperator,
   Search,
@@ -50,3 +49,4 @@ export {
   STRING_OPERATORS,
   FILTER_OPERATORS,
 } from "./constants";
+export { isValidOperatorForType } from "./utils/criteria-operator-validation";

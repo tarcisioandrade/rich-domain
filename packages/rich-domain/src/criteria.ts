@@ -19,6 +19,7 @@ import {
   isValidOperatorForType,
   getValidOperatorsForType,
   isOperator,
+  sanitizeFieldValue,
 } from "./utils/criteria-operator-validation";
 import { parseQueryValue } from "./utils/helpers";
 
@@ -460,10 +461,15 @@ export class Criteria<T = any> {
   }
 
   private validateOperator(operator: FilterOperator, value: any): void {
-    if (value !== undefined && !isValidOperatorForType(value, operator)) {
-      const validOps = getValidOperatorsForType(value);
+    const sanitizedValue = sanitizeFieldValue(value, operator);
+
+    if (
+      sanitizedValue !== undefined &&
+      !isValidOperatorForType(sanitizedValue, operator)
+    ) {
+      const validOps = getValidOperatorsForType(sanitizedValue);
       throw new InvalidCriteriaError(
-        `Operator "${operator}" is not valid for type "${typeof value}". Valid operators: ${validOps.join(
+        `Operator "${operator}" is not valid for type "${typeof sanitizedValue}". Valid operators: ${validOps.join(
           ", "
         )}`,
         operator

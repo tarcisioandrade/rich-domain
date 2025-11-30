@@ -8,7 +8,7 @@ import {
   type FilterValueFor,
   type PathValue,
   type OperatorsForType,
-  CriteriaOptions,
+  type CriteriaOptions,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -173,6 +173,34 @@ export function useCriteria<T = unknown>(
         const currentFilters = prev.getFilters();
         const newFilters = currentFilters.filter((_, i) => i !== index);
 
+        return buildCriteria({
+          filters: newFilters,
+          orders: prev.getOrders(),
+          pagination: prev.getPagination(),
+          search: prev.hasSearch() ? prev.getSearch() : null,
+        });
+      });
+    },
+    [buildCriteria]
+  );
+
+  const addOrReplaceByIndex = useCallback(
+    (props: {
+      field: FieldPath<T>;
+      operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
+      value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
+      options?: CriteriaOptions;
+      replaceIndex?: number;
+    }) => {
+      const { field, operator, value, options, replaceIndex } = props;
+      setCriteria((prev) => {
+        const currentFilters = prev.getFilters();
+        const newFilters = [...currentFilters];
+        if (replaceIndex !== undefined) {
+          newFilters[replaceIndex] = { field, operator, value, options };
+        } else {
+          newFilters.push({ field, operator, value, options });
+        }
         return buildCriteria({
           filters: newFilters,
           orders: prev.getOrders(),
@@ -421,6 +449,7 @@ export function useCriteria<T = unknown>(
 
   return {
     criteria,
+    addOrReplaceByIndex,
     filters,
     sorting,
     pagination,
