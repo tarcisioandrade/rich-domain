@@ -886,7 +886,9 @@ export class ChangeTracker {
 
     for (const part of parts) {
       if (current === null || current === undefined) return undefined;
-      current = current[part];
+
+      const propsToAccess = current.props || current;
+      current = propsToAccess[part];
     }
 
     return current;
