@@ -3,8 +3,6 @@ title: "React"
 description: "React hooks and components for rich-domain integration"
 ---
 
-import { FilterDemo } from "/snippets/filter-demo.mdx"
-
 ## Overview
 
 `@woltz/react-rich-domain` provides React hooks and UI components for seamless integration with rich-domain's Criteria API. It's distributed via the [shadcn/ui registry](https://ui.shadcn.com/docs/registry), making installation simple and allowing you to own the code.
@@ -36,7 +34,8 @@ Install components using the shadcn CLI:
 ```bash
 # Install the useCriteria hook
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
-
+```
+```bash
 # Install the Filter component (includes useCriteria as dependency)
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
 ```
@@ -604,30 +603,6 @@ export function ProductList() {
   );
 }
 ```
-
----
-
-## Filter Component Preview
-
-<Info>
-  The Filter component is built with shadcn/ui and fully customizable. Try the interactive demo below:
-</Info>
-
-<FilterDemo />
-
-The Filter component provides:
-
-- **Field Selection**: Dropdown to choose which field to filter
-- **Operator Selection**: Context-aware operators based on field type
-- **Value Input**: Appropriate input based on operator (text, select, date picker, etc.)
-- **Multi-value Support**: For `in` and `notIn` operators
-- **Date Range**: For `between` operator on date fields
-- **Active Filter Pills**: Visual display of active filters with remove buttons
-- **Generated Criteria Preview**: See the code that would be generated (shown in the demo above)
-
-<Tip>
-  You can customize the Filter component's appearance by modifying the installed source files. Since you own the code, you have full control over styling and behavior.
-</Tip>
 
 ---
 
