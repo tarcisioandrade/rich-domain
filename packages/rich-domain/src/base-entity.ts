@@ -242,13 +242,17 @@ export abstract class BaseEntity<T extends BaseProps> {
     }
 
     if (obj.constructor === Object) {
-      const cloned: any = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          cloned[key] = this.deepCloneProps(obj[key], seen);
+      try {
+        return structuredClone(obj);
+      } catch {
+        const cloned: any = {};
+        for (const key in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            cloned[key] = this.deepCloneProps(obj[key], seen);
+          }
         }
+        return cloned;
       }
-      return cloned;
     }
 
     return obj;
