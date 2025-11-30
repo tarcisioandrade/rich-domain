@@ -54,14 +54,12 @@
             "group": "Repository",
             "pages": [
               "repository/overview",
-              "repository/criteria",
               "repository/paginated-result",
               "repository/mappers",
               "repository/criteria",
               "repository/filters",
               "repository/ordering",
-              "repository/advanced",
-              "repository/paginated-result"
+              "repository/advanced"
             ]
           },
           {
