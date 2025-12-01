@@ -2,7 +2,7 @@
   "name": "@woltz/rich-domain",
   "version": "1.2.4",
   "description": "Rich Domain Library with Standard Schema validation support",
-  "homepage": "https://github.com/tarcisioandrade/rich-domain",
+  "homepage": "https://woltz.mintlify.app",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +10,9 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
   },
   "repository": {
     "type": "git",
@@ -39,6 +42,17 @@
     "validation",
     "standard-schema",
     "typescript"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.d.ts",
+    "**/*.d.mts",
+    "**/*.d.cts",
+    "**/package.json"
   ],
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
