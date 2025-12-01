@@ -396,8 +396,10 @@ describe("Criteria", () => {
   describe("Criteria from Query Params", () => {
     it("should create criteria from query params", () => {
       const queryParams = {
-        "status:equals": "active",
-        "age:greaterThan": "25",
+        filters: {
+          "status:equals": "active",
+          "age:greaterThan": "25",
+        },
         orderBy: "age",
         orderDirection: "desc",
         page: "1",
@@ -469,7 +471,9 @@ describe("Criteria", () => {
 
       it("should parse quantifier from query params with @some", () => {
         const queryParams = {
-          "posts.title:contains@some": "test",
+          filters: {
+            "posts.title:contains@some": "test",
+          },
         };
 
         const criteria =
@@ -485,7 +489,26 @@ describe("Criteria", () => {
 
       it("should work with in operator and quantifier", () => {
         const queryParams = {
-          "posts.title:in@some": "test1,test2,test3",
+          filters: {
+            "posts.title:in@some": ["test1", "test2", "test3"],
+          },
+        };
+
+        const criteria =
+          Criteria.fromQueryParams<UserWithPostsDto>(queryParams);
+        const filters = criteria.getFilters();
+
+        expect(filters).toHaveLength(1);
+        expect(filters[0].operator).toBe("in");
+        expect(filters[0].value).toEqual(["test1", "test2", "test3"]);
+        expect(filters[0].options?.quantifier).toBe("some");
+      });
+
+      it("should work with object stringified in query params", () => {
+        const queryParams = {
+          filters: {
+            "posts.title:in@some": JSON.stringify(["test1", "test2", "test3"]),
+          },
         };
 
         const criteria =
@@ -500,7 +523,9 @@ describe("Criteria", () => {
 
       it("should work with between operator and quantifier", () => {
         const queryParams = {
-          "posts.likes:between@some": "10,100",
+          filters: {
+            "posts.likes:between@some": ["10", "100"],
+          },
         };
 
         const criteria =
@@ -515,7 +540,9 @@ describe("Criteria", () => {
 
       it("should throw error for invalid quantifier", () => {
         const queryParams = {
-          "posts.title:contains@invalid": "test",
+          filters: {
+            "posts.title:contains@invalid": "test",
+          },
         };
 
         expect(() => {
@@ -525,9 +552,11 @@ describe("Criteria", () => {
 
       it("should handle multiple filters with mixed quantifiers", () => {
         const queryParams = {
-          "posts.title:contains@some": "test",
-          "posts.content:equals@every": "content",
-          "name:contains": "John",
+          filters: {
+            "posts.title:contains@some": "test",
+            "posts.content:equals@every": "content",
+            "name:contains": "John",
+          },
         };
 
         const criteria =
@@ -624,7 +653,9 @@ describe("Criteria", () => {
 
     it("should resolve field path from query params", () => {
       const queryParams = {
-        "posts:contains": "test",
+        filters: {
+          "posts:contains": "test",
+        },
       };
 
       const result = Criteria.fromQueryParams<UserWithPostsDto>(
