@@ -338,9 +338,11 @@ export class Criteria<T = any> {
   }
 
   static fromQueryParams<T>(
-    query: Record<string, any>,
+    query: Record<string, any> | undefined,
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
+    if (!query) return Criteria.create<T>();
+
     const criteria = Criteria.create<T>();
 
     if (adapter) {
@@ -352,9 +354,6 @@ export class Criteria<T = any> {
         continue;
       }
       if (key === "limit") {
-        continue;
-      }
-      if (key === "sort") {
         continue;
       }
 
@@ -455,15 +454,56 @@ export class Criteria<T = any> {
       criteria.paginate(page, limit);
     }
 
+    // 1. orderBy=["field:asc","field2:desc"]
     if (query.orderBy) {
-      const sortParts = query.orderBy.split(",");
-      sortParts.forEach((part: string) => {
-        const [field, direction] = part.split(":");
-        criteria.orderBy(
-          field as FieldPath<T>,
-          (direction as OrderDirection) || "asc"
-        );
-      });
+      const orderByValue = query.orderBy;
+
+      if (
+        typeof orderByValue === "string" &&
+        orderByValue.trim().startsWith("[")
+      ) {
+        try {
+          const orderArray = JSON.parse(orderByValue);
+          if (Array.isArray(orderArray)) {
+            orderArray.forEach((item: string) => {
+              const [field, direction] = item.split(":");
+              criteria.orderBy(
+                field as FieldPath<T>,
+                (direction as OrderDirection) || "asc"
+              );
+            });
+          }
+        } catch {
+          throw new InvalidCriteriaError(
+            "Invalid JSON array format for orderBy",
+            orderByValue
+          );
+        }
+      } else if (Array.isArray(orderByValue)) {
+        orderByValue.forEach((item: string) => {
+          const [field, direction] = item.split(":");
+          criteria.orderBy(
+            field as FieldPath<T>,
+            (direction as OrderDirection) || "asc"
+          );
+        });
+      }
+      // 2. orderBy="field:asc,field2:desc"
+      else if (typeof orderByValue === "string" && orderByValue.includes(":")) {
+        const sortParts = orderByValue.split(",");
+        sortParts.forEach((part: string) => {
+          const [field, direction] = part.split(":");
+          criteria.orderBy(
+            field as FieldPath<T>,
+            (direction as OrderDirection) || "asc"
+          );
+        });
+      }
+      // 3. orderBy="field" + orderDirection="asc"
+      else {
+        const direction = (query.orderDirection as OrderDirection) || "asc";
+        criteria.orderBy(orderByValue as FieldPath<T>, direction);
+      }
     }
 
     if (query.search && query.searchFields) {

@@ -400,17 +400,63 @@ describe("Criteria", () => {
           "status:equals": "active",
           "age:greaterThan": "25",
         },
-        orderBy: "age",
-        orderDirection: "desc",
+        orderBy: "age:desc",
         page: "1",
         limit: "2",
       };
 
       const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
       expect(criteria.getFilters()).toHaveLength(2);
-      expect(criteria.getOrders()).toHaveLength(1);
+      expect(criteria.getOrders()[0].field).toBe("age");
+      expect(criteria.getOrders()[0].direction).toBe("desc");
       expect(criteria.getPagination()?.page).toBe(1);
       expect(criteria.getPagination()?.limit).toBe(2);
+    });
+
+    it("should support legacy orderBy format (orderBy + orderDirection)", () => {
+      const queryParams = {
+        orderBy: "name",
+        orderDirection: "desc",
+      };
+
+      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
+      const orders = criteria.getOrders();
+
+      expect(orders).toHaveLength(1);
+      expect(orders[0].field).toBe("name");
+      expect(orders[0].direction).toBe("desc");
+    });
+
+    it("should support comma-separated orderBy format with multiple fields", () => {
+      const queryParams = {
+        orderBy: "name:asc,email:desc,age:asc",
+      };
+
+      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
+      const orders = criteria.getOrders();
+
+      expect(orders).toHaveLength(3);
+      expect(orders[0].field).toBe("name");
+      expect(orders[0].direction).toBe("asc");
+      expect(orders[1].field).toBe("email");
+      expect(orders[1].direction).toBe("desc");
+      expect(orders[2].field).toBe("age");
+      expect(orders[2].direction).toBe("asc");
+    });
+
+    it("should support JSON array orderBy format", () => {
+      const queryParams = {
+        orderBy: '["name:desc","email:asc"]',
+      };
+
+      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
+      const orders = criteria.getOrders();
+
+      expect(orders).toHaveLength(2);
+      expect(orders[0].field).toBe("name");
+      expect(orders[0].direction).toBe("desc");
+      expect(orders[1].field).toBe("email");
+      expect(orders[1].direction).toBe("asc");
     });
   });
 
