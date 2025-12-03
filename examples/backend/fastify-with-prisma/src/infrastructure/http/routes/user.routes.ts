@@ -44,7 +44,7 @@ export async function userRoutes(app: FastifyInstance) {
       const body = createUserSchema.parse(request.body);
       const user = await userService.create(body);
 
-      return reply.status(201).send(user.toJson());
+      return reply.status(201).send(user.toJSON());
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: z.treeifyError(error) });
@@ -60,7 +60,7 @@ export async function userRoutes(app: FastifyInstance) {
       const params = getUserParamsSchema.parse(request.params);
       const user = await userService.getById(params.id);
 
-      return reply.send(user.toJson());
+      return reply.send(user.toJSON());
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: z.treeifyError(error) });

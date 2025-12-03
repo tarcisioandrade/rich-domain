@@ -38,15 +38,15 @@ const criteria = Criteria.fromQueryParams<User>({
 
 ### Supported Parameters
 
-| Parameter | Format | Example |
-|-----------|--------|---------|
-| Filter | `field:operator=value` | `age:greaterThan=18` |
-| Ordering | `orderBy=field:direction` | `orderBy=createdAt:desc` |
+| Parameter       | Format                          | Example                           |
+| --------------- | ------------------------------- | --------------------------------- |
+| Filter          | `field:operator=value`          | `age:greaterThan=18`              |
+| Ordering        | `orderBy=field:direction`       | `orderBy=createdAt:desc`          |
 | Multiple orders | `orderBy=field1:dir,field2:dir` | `orderBy=featured:desc,price:asc` |
-| Page | `page=number` | `page=2` |
-| Limit | `limit=number` | `limit=20` |
-| Search | `search=query` | `search=laptop` |
-| Search fields | `searchFields=field1,field2` | `searchFields=name,description` |
+| Page            | `page=number`                   | `page=2`                          |
+| Limit           | `limit=number`                  | `limit=20`                        |
+| Search          | `search=query`                  | `search=laptop`                   |
+| Search fields   | `searchFields=field1,field2`    | `searchFields=name,description`   |
 
 ### Complete URL Example
 
@@ -67,11 +67,11 @@ const criteria = Criteria.fromQueryParams<Product>({
   "status:equals": "active",
   "price:lessThanOrEqual": "100",
   "category:in": "electronics,accessories",
-  "search": "wireless",
-  "searchFields": "name,description,sku",
-  "orderBy": "featured:desc,price:asc",
-  "page": "1",
-  "limit": "24",
+  search: "wireless",
+  searchFields: "name,description,sku",
+  orderBy: "featured:desc,price:asc",
+  page: "1",
+  limit: "24",
 });
 ```
 
@@ -122,7 +122,7 @@ GET /users?comments.flagged:equals@none=true
 
 ```typescript
 const criteria = Criteria.fromQueryParams<User>({
-  "posts.views:greaterThan@some": "1000",  // Any post with > 1000 views
+  "posts.views:greaterThan@some": "1000", // Any post with > 1000 views
 });
 ```
 
@@ -165,8 +165,8 @@ const UserAdapter: CriteriaAdapter<UserDto, UserInDatabase> = {
 // Method 1: With useAdapter()
 const criteria = Criteria.create<UserDto>()
   .useAdapter(UserAdapter)
-  .whereEquals("firstName", "John")    // Becomes: first_name = 'John'
-  .orderByDesc("createdAt");           // Becomes: ORDER BY created_at DESC
+  .whereEquals("firstName", "John") // Becomes: first_name = 'John'
+  .orderByDesc("createdAt"); // Becomes: ORDER BY created_at DESC
 
 // Method 2: With fromQueryParams()
 const criteria = Criteria.fromQueryParams<UserDto>(
@@ -211,15 +211,15 @@ interface OrderInDb {
 const OrderAdapter: CriteriaAdapter<OrderDto, OrderInDb> = {
   "customer.name": "customer_name",
   "customer.email": "customer_email",
-  "items": "order_items",
+  items: "order_items",
   "items.productName": "order_items.product_name",
   "items.quantity": "order_items.qty",
 };
 
 const criteria = Criteria.create<OrderDto>()
   .useAdapter(OrderAdapter)
-  .whereContains("customer.name", "John")  // → customer_name LIKE '%John%'
-  .where("items.quantity", "greaterThan", 5);  // → order_items.qty > 5
+  .whereContains("customer.name", "John") // → customer_name LIKE '%John%'
+  .where("items.quantity", "greaterThan", 5); // → order_items.qty > 5
 ```
 
 ### Adapter with Prefix Matching
@@ -228,7 +228,7 @@ Adapters support prefix matching for nested paths:
 
 ```typescript
 const adapter: CriteriaAdapter<Source, Target> = {
-  "user": "app_user",  // Maps all user.* paths
+  user: "app_user", // Maps all user.* paths
 };
 
 // user.name → app_user.name
@@ -238,10 +238,9 @@ const adapter: CriteriaAdapter<Source, Target> = {
 ### Getting the Adapter
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .useAdapter(UserAdapter);
+const criteria = Criteria.create<User>().useAdapter(UserAdapter);
 
-const adapter = criteria.getAdapter();  // Returns the adapter or undefined
+const adapter = criteria.getAdapter(); // Returns the adapter or undefined
 ```
 
 ## Serialization
@@ -269,9 +268,7 @@ Result:
     { "field": "status", "operator": "equals", "value": "active" },
     { "field": "age", "operator": "greaterThan", "value": 18 }
   ],
-  "orders": [
-    { "field": "createdAt", "direction": "desc" }
-  ],
+  "orders": [{ "field": "createdAt", "direction": "desc" }],
   "pagination": {
     "page": 2,
     "limit": 20,
@@ -294,9 +291,7 @@ const criteria = Criteria.fromObject<User>({
     { field: "status", operator: "equals", value: "active" },
     { field: "age", operator: "greaterThan", value: 18 },
   ],
-  orders: [
-    { field: "createdAt", direction: "desc" },
-  ],
+  orders: [{ field: "createdAt", direction: "desc" }],
   pagination: { page: 2, limit: 20, offset: 20 },
   search: { fields: ["name", "email"], value: "john" },
 });
@@ -307,19 +302,19 @@ const criteria = Criteria.fromObject<User>({
 <CardGroup cols={2}>
 
 <Card title="API Transport" icon="globe">
-Send criteria from frontend to backend
+  Send criteria from frontend to backend
 </Card>
 
 <Card title="Caching" icon="database">
-Cache query configurations
+  Cache query configurations
 </Card>
 
 <Card title="Saved Filters" icon="bookmark">
-Store user's saved filter presets
+  Store user's saved filter presets
 </Card>
 
 <Card title="Logging" icon="file-lines">
-Log query configurations for debugging
+  Log query configurations for debugging
 </Card>
 
 </CardGroup>
@@ -335,20 +330,23 @@ const baseCriteria = Criteria.create<User>()
   .orderByDesc("createdAt");
 
 // Clone for different use cases
-const adminUsers = baseCriteria.clone()
+const adminUsers = baseCriteria
+  .clone()
   .whereEquals("role", "admin")
   .paginate(1, 10);
 
-const recentUsers = baseCriteria.clone()
+const recentUsers = baseCriteria
+  .clone()
   .where("createdAt", "greaterThan", lastWeek)
   .paginate(1, 50);
 
-const searchResults = baseCriteria.clone()
+const searchResults = baseCriteria
+  .clone()
   .search(["name", "email"], searchQuery)
   .limit(20);
 
 // Original is unchanged
-console.log(baseCriteria.getFilters().length);  // 2 (status, email)
+console.log(baseCriteria.getFilters().length); // 2 (status, email)
 ```
 
 ## Error Handling
@@ -357,8 +355,7 @@ console.log(baseCriteria.getFilters().length);  // 2 (status, email)
 
 ```typescript
 try {
-  const criteria = Criteria.create<User>()
-    .where("age", "contains", 18);  // contains not valid for number
+  const criteria = Criteria.create<User>().where("age", "contains", 18); // contains not valid for number
 } catch (error) {
   // InvalidCriteriaError: Operator "contains" is not valid for type "number".
   // Valid operators: equals, notEquals, greaterThan, ...
@@ -387,7 +384,11 @@ const app = express();
 
 // Middleware to parse criteria from query params
 function parseCriteria<T>(adapter?: CriteriaAdapter<any, any>) {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  return (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
     try {
       req.criteria = Criteria.fromQueryParams<T>(req.query, adapter);
       next();
@@ -404,14 +405,18 @@ app.get("/users", parseCriteria<User>(UserAdapter), async (req, res) => {
   res.json(result.toJSON());
 });
 
-app.get("/products", parseCriteria<Product>(ProductAdapter), async (req, res) => {
-  const criteria = req.criteria
-    .whereEquals("published", true)  // Add server-side filter
-    .whereNull("deletedAt");
+app.get(
+  "/products",
+  parseCriteria<Product>(ProductAdapter),
+  async (req, res) => {
+    const criteria = req.criteria
+      .whereEquals("published", true) // Add server-side filter
+      .whereNull("deletedAt");
 
-  const result = await productRepository.find(criteria);
-  res.json(result.toJSON());
-});
+    const result = await productRepository.find(criteria);
+    res.json(result.toJSON());
+  }
+);
 ```
 
 ## Fastify Integration Example
@@ -444,8 +449,8 @@ function useCriteriaQueryString<T>(criteria: Criteria<T>): string {
   // Add filters
   json.filters.forEach((filter) => {
     const key = `${filter.field}:${filter.operator}`;
-    const value = Array.isArray(filter.value) 
-      ? filter.value.join(",") 
+    const value = Array.isArray(filter.value)
+      ? filter.value.join(",")
       : String(filter.value);
     params.set(key, value);
   });
@@ -512,7 +517,7 @@ interface TargetType {
 const adapter: CriteriaAdapter<SourceType, TargetType> = {
   userName: "user_name",
   userEmail: "user_email",
-  "profile": "user_profile",
+  profile: "user_profile",
   "profile.avatar": "user_profile.avatar_url",
 };
 ```

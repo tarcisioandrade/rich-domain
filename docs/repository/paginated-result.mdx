@@ -11,12 +11,12 @@ description: "Working with paginated query results and deep serialization"
 const result = await userRepository.find(criteria);
 
 // Access data and metadata
-result.data;           // User[] - the actual entities
-result.meta.page;      // 1
-result.meta.limit;     // 20
-result.meta.total;     // 150
+result.data; // User[] - the actual entities
+result.meta.page; // 1
+result.meta.limit; // 20
+result.meta.total; // 150
 result.meta.totalPages; // 8
-result.meta.hasNext;   // true
+result.meta.hasNext; // true
 result.meta.hasPrevious; // false
 ```
 
@@ -67,7 +67,8 @@ const result = PaginatedResult.fromArray(allUsers, criteria);
 ```
 
 <Note>
-`fromArray()` is useful for testing or when working with small datasets. For large datasets, always use database-level filtering.
+  `fromArray()` is useful for testing or when working with small datasets. For
+  large datasets, always use database-level filtering.
 </Note>
 
 ## Pagination Metadata
@@ -76,11 +77,11 @@ const result = PaginatedResult.fromArray(allUsers, criteria);
 
 ```typescript
 interface PaginationMeta {
-  page: number;       // Current page (1-based)
-  limit: number;      // Items per page
-  total: number;      // Total matching records
+  page: number; // Current page (1-based)
+  limit: number; // Items per page
+  total: number; // Total matching records
   totalPages: number; // Total number of pages
-  hasNext: boolean;   // Has next page
+  hasNext: boolean; // Has next page
   hasPrevious: boolean; // Has previous page
 }
 ```
@@ -101,11 +102,11 @@ console.log(result.meta);
 // }
 
 // Individual properties
-result.meta.page;        // 1
-result.meta.limit;       // 20
-result.meta.total;       // 150
-result.meta.totalPages;  // 8
-result.meta.hasNext;     // true
+result.meta.page; // 1
+result.meta.limit; // 20
+result.meta.total; // 150
+result.meta.totalPages; // 8
+result.meta.hasNext; // true
 result.meta.hasPrevious; // false
 ```
 
@@ -233,16 +234,16 @@ const json = result.toJSON();
 
 ### What Gets Serialized
 
-| Type | Serialization |
-|------|---------------|
-| `Id` | String value (`id.value`) |
-| `Entity` | Calls `toJson()` |
-| `Aggregate` | Calls `toJson()` |
-| `ValueObject` | Calls `toJson()` |
-| `Date` | ISO string |
-| `Array` | Maps items recursively |
+| Type           | Serialization                     |
+| -------------- | --------------------------------- |
+| `Id`           | String value (`id.value`)         |
+| `Entity`       | Calls `toJson()`                  |
+| `Aggregate`    | Calls `toJson()`                  |
+| `ValueObject`  | Calls `toJson()`                  |
+| `Date`         | ISO string                        |
+| `Array`        | Maps items recursively            |
 | `Plain Object` | Serializes properties recursively |
-| `Primitives` | As-is |
+| `Primitives`   | As-is                             |
 
 ### Type Safety
 
@@ -250,7 +251,7 @@ The return type reflects serialization:
 
 ```typescript
 type PaginatedJsonResult<T> = {
-  data: InferJsonResult<T>[];  // Serialized data
+  data: InferJsonResult<T>[]; // Serialized data
   meta: PaginationMeta;
 };
 
@@ -266,7 +267,7 @@ type PaginatedJsonResult<T> = {
 app.get("/users", async (req, res) => {
   const criteria = Criteria.fromQueryParams<User>(req.query);
   const result = await userRepository.find(criteria);
-  
+
   // toJSON() for API response
   res.json(result.toJSON());
 });
@@ -275,7 +276,7 @@ app.get("/users", async (req, res) => {
 fastify.get("/users", async (request, reply) => {
   const criteria = Criteria.fromQueryParams<User>(request.query);
   const result = await userRepository.find(criteria);
-  
+
   return result.toJSON();
 });
 ```
@@ -300,18 +301,18 @@ function UserList({ data, meta }: PaginatedJsonResult<User>) {
 
       {/* Pagination */}
       <div className="pagination">
-        <button 
+        <button
           disabled={!meta.hasPrevious}
           onClick={() => goToPage(meta.page - 1)}
         >
           Previous
         </button>
-        
+
         <span>
           Page {meta.page} of {meta.totalPages}
         </span>
-        
-        <button 
+
+        <button
           disabled={!meta.hasNext}
           onClick={() => goToPage(meta.page + 1)}
         >
@@ -355,7 +356,7 @@ class UserRepository extends Repository<User> {
 // API endpoint
 app.get("/users", async (req, res) => {
   const { page = 1, limit = 20, search } = req.query;
-  
+
   const result = await userRepository.findActiveUsers(
     Number(page),
     Number(limit),
@@ -412,31 +413,33 @@ const result = PaginatedResult.fromArray(allProducts, criteria);
 ```
 
 <Warning>
-`fromArray()` loads all data into memory before filtering. Only use it for small datasets or testing. For production, implement filtering at the database level.
+  `fromArray()` loads all data into memory before filtering. Only use it for
+  small datasets or testing. For production, implement filtering at the database
+  level.
 </Warning>
 
 ## API Reference
 
 ### Static Methods
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `create` | `data: T[], pagination: Pagination, total: number` | `PaginatedResult<T>` | Create with explicit metadata |
-| `createMeta` | `pagination: Pagination, total: number` | `PaginationMeta` | Create metadata only |
-| `fromArray` | `items: T[], criteria: Criteria<T>` | `PaginatedResult<T>` | Apply criteria to array |
+| Method       | Parameters                                         | Returns              | Description                   |
+| ------------ | -------------------------------------------------- | -------------------- | ----------------------------- |
+| `create`     | `data: T[], pagination: Pagination, total: number` | `PaginatedResult<T>` | Create with explicit metadata |
+| `createMeta` | `pagination: Pagination, total: number`            | `PaginationMeta`     | Create metadata only          |
+| `fromArray`  | `items: T[], criteria: Criteria<T>`                | `PaginatedResult<T>` | Apply criteria to array       |
 
 ### Instance Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `data` | `T[]` | The result items |
-| `meta` | `PaginationMeta` | Pagination metadata |
-| `isEmpty` | `boolean` | True if no data |
-| `hasMore` | `boolean` | True if more pages exist |
+| Property  | Type             | Description              |
+| --------- | ---------------- | ------------------------ |
+| `data`    | `T[]`            | The result items         |
+| `meta`    | `PaginationMeta` | Pagination metadata      |
+| `isEmpty` | `boolean`        | True if no data          |
+| `hasMore` | `boolean`        | True if more pages exist |
 
 ### Instance Methods
 
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `toJSON` | - | `PaginatedJsonResult<T>` | Deep serialize |
-| `map` | `fn: (item: T) => U` | `PaginatedResult<U>` | Transform items |
+| Method   | Parameters           | Returns                  | Description     |
+| -------- | -------------------- | ------------------------ | --------------- |
+| `toJSON` | -                    | `PaginatedJsonResult<T>` | Deep serialize  |
+| `map`    | `fn: (item: T) => U` | `PaginatedResult<U>`     | Transform items |

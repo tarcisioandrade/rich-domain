@@ -12,7 +12,7 @@ describe("Value Object", () => {
   });
 
   it("should compare value objects by value", () => {
-      const tag1 = new TagReference({
+    const tag1 = new TagReference({
       tagId: "1",
       name: "Tag 1",
     });
@@ -33,8 +33,8 @@ describe("Value Object", () => {
 
   it("should convert value object to JSON", () => {
     const tag = new TagReference({
-     name: "Tag 1",
-     tagId: "1",
+      name: "Tag 1",
+      tagId: "1",
     });
 
     const json = tag.toJSON();

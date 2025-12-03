@@ -16,7 +16,7 @@ try {
   if (ValidationError.isValidationError(error)) {
     console.log(error.message);
     // "Validation failed: Name is required, Invalid email format"
-    
+
     console.log(error.issues);
     // [
     //   { path: ["name"], message: "Name is required" },
@@ -33,13 +33,13 @@ try {
 ```typescript
 interface ValidationError extends Error {
   name: "ValidationError";
-  message: string;           // Summary of all errors
+  message: string; // Summary of all errors
   issues: ValidationIssue[]; // Detailed error list
 }
 
 interface ValidationIssue {
-  path: string[];   // Field path (e.g., ["address", "city"])
-  message: string;  // Error message
+  path: string[]; // Field path (e.g., ["address", "city"])
+  message: string; // Error message
 }
 ```
 
@@ -107,7 +107,8 @@ try {
 ```
 
 <Note>
-Always use `ValidationError.isValidationError()` instead of `instanceof` for reliable detection across module boundaries.
+  Always use `ValidationError.isValidationError()` instead of `instanceof` for
+  reliable detection across module boundaries.
 </Note>
 
 ## Throwing Validation Errors
@@ -123,7 +124,7 @@ rules: (entity) => {
   if (entity.price < 0) {
     throwValidationError("price", "Price cannot be negative");
   }
-}
+};
 ```
 
 ### Manually
@@ -135,7 +136,7 @@ import { ValidationError, createValidationIssue } from "@woltz/rich-domain";
 
 // Single issue
 throw new ValidationError([
-  createValidationIssue("email", "Email already exists")
+  createValidationIssue("email", "Email already exists"),
 ]);
 
 // Multiple issues
@@ -146,7 +147,7 @@ throw new ValidationError([
 
 // Nested path
 throw new ValidationError([
-  createValidationIssue(["address", "zipCode"], "Invalid ZIP code")
+  createValidationIssue(["address", "zipCode"], "Invalid ZIP code"),
 ]);
 ```
 
@@ -171,7 +172,7 @@ const user = new UserSafe({ name: "", email: "invalid" });
 // Check for errors
 if (user.hasValidationErrors) {
   const errors = user.validationErrors!;
-  
+
   console.log(errors.getMessages());
   // ["Name is required", "Invalid email format"]
 }
@@ -182,19 +183,19 @@ if (user.hasValidationErrors) {
 <CardGroup cols={2}>
 
 <Card title="Form Validation" icon="rectangle-list">
-Collect all errors to display to user at once
+  Collect all errors to display to user at once
 </Card>
 
 <Card title="Import/Migration" icon="file-import">
-Log errors but continue processing
+  Log errors but continue processing
 </Card>
 
 <Card title="Partial Validation" icon="circle-half-stroke">
-Allow incomplete entities during construction
+  Allow incomplete entities during construction
 </Card>
 
 <Card title="Error Aggregation" icon="layer-group">
-Combine errors from multiple sources
+  Combine errors from multiple sources
 </Card>
 
 </CardGroup>
@@ -210,29 +211,36 @@ import { ValidationError } from "@woltz/rich-domain";
 const app = express();
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (ValidationError.isValidationError(err)) {
-    return res.status(400).json({
-      error: "Validation Error",
-      message: err.message,
-      details: err.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      })),
-    });
-  }
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    if (ValidationError.isValidationError(err)) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: err.message,
+        details: err.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
 
-  // Other errors
-  console.error(err);
-  res.status(500).json({ error: "Internal Server Error" });
-});
+    // Other errors
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+);
 
 // Route
 app.post("/users", async (req, res, next) => {
   try {
     const user = new User(req.body);
     await userRepository.save(user);
-    res.status(201).json(user.toJson());
+    res.status(201).json(user.toJSON());
   } catch (error) {
     next(error); // Pass to error handler
   }
@@ -251,6 +259,7 @@ app.post("/users", async (req, res, next) => {
   ]
 }
 ```
+
 ---
 
 ## Domain Exceptions
@@ -297,12 +306,12 @@ All domain exceptions share these properties:
 
 ```typescript
 interface DomainException extends Error {
-  name: string;        // Exception class name
-  message: string;     // Error message
-  code: string;        // Error code (e.g., "ENTITY_NOT_FOUND")
-  timestamp: Date;     // When the error occurred
-  
-  toJSON(): object;    // Serialize for API responses
+  name: string; // Exception class name
+  message: string; // Error message
+  code: string; // Error code (e.g., "ENTITY_NOT_FOUND")
+  timestamp: Date; // When the error occurred
+
+  toJSON(): object; // Serialize for API responses
 }
 
 // Type checking (works across module boundaries)
@@ -325,14 +334,14 @@ class Order extends Aggregate<OrderProps> {
     if (this.items.length === 0) {
       throw new DomainError("Cannot confirm an empty order");
     }
-    
+
     if (this.status !== "draft") {
       throw new DomainError(
         "Only draft orders can be confirmed",
         "ORDER_NOT_DRAFT" // Optional custom code
       );
     }
-    
+
     this.props.status = "confirmed";
   }
 }
@@ -348,13 +357,13 @@ import { EntityNotFoundError } from "@woltz/rich-domain";
 class UserRepository {
   async findByIdOrFail(id: string): Promise<User> {
     const user = await this.findById(id);
-    
+
     if (!user) {
       throw new EntityNotFoundError("User", id);
       // Message: "User with id 'abc-123' not found"
       // Code: "ENTITY_NOT_FOUND"
     }
-    
+
     return user;
   }
 }
@@ -377,12 +386,12 @@ import { EntityAlreadyExistsError } from "@woltz/rich-domain";
 class UserService {
   async createUser(email: string, name: string): Promise<User> {
     const existing = await this.userRepo.findByEmail(email);
-    
+
     if (existing) {
       throw new EntityAlreadyExistsError("User", existing.id.value);
       // Message: "User with id 'abc-123' already exists"
     }
-    
+
     return new User({ email, name });
   }
 }
@@ -586,10 +595,7 @@ For event-related failures:
 import { DomainEventError, EventHandlerError } from "@woltz/rich-domain";
 
 // General event error
-throw new DomainEventError(
-  "Failed to publish event",
-  "UserCreatedEvent"
-);
+throw new DomainEventError("Failed to publish event", "UserCreatedEvent");
 
 // Handler-specific error
 throw new EventHandlerError(
@@ -612,10 +618,7 @@ import {
 throw new NotImplementedError("Bulk import");
 
 // Missing or invalid configuration
-throw new ConfigurationError(
-  "Database URL is required",
-  "DATABASE_URL"
-);
+throw new ConfigurationError("Database URL is required", "DATABASE_URL");
 
 // Wrap unknown errors
 throw new UnknownError("An unexpected error occurred", originalError);
@@ -693,17 +696,17 @@ function handleError(error: Error, res: Response) {
 
 ### Exception Reference Table
 
-| Exception | HTTP Status | When to Use |
-|-----------|-------------|-------------|
-| `ValidationError` | 400 | Invalid input data |
-| `InvalidCriteriaError` | 400 | Invalid query parameters |
-| `EntityNotFoundError` | 404 | Resource not found |
-| `EntityAlreadyExistsError` | 409 | Duplicate resource |
-| `ConcurrencyError` | 409 | Optimistic lock conflict |
-| `ConstraintViolationError` | 409 | Database constraint failed |
-| `DomainError` | 422 | Business rule violation |
-| `InvalidValueObjectError` | 422 | Invalid value object |
-| `PersistenceError` | 500 | Database error |
-| `TransactionError` | 500 | Transaction failed |
-| `MapperError` | 500 | Mapping failed |
-| `ConfigurationError` | 500 | Configuration missing |
+| Exception                  | HTTP Status | When to Use                |
+| -------------------------- | ----------- | -------------------------- |
+| `ValidationError`          | 400         | Invalid input data         |
+| `InvalidCriteriaError`     | 400         | Invalid query parameters   |
+| `EntityNotFoundError`      | 404         | Resource not found         |
+| `EntityAlreadyExistsError` | 409         | Duplicate resource         |
+| `ConcurrencyError`         | 409         | Optimistic lock conflict   |
+| `ConstraintViolationError` | 409         | Database constraint failed |
+| `DomainError`              | 422         | Business rule violation    |
+| `InvalidValueObjectError`  | 422         | Invalid value object       |
+| `PersistenceError`         | 500         | Database error             |
+| `TransactionError`         | 500         | Transaction failed         |
+| `MapperError`              | 500         | Mapping failed             |
+| `ConfigurationError`       | 500         | Configuration missing      |

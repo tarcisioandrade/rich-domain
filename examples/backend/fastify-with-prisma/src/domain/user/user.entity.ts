@@ -87,8 +87,4 @@ export class User extends Aggregate<UserProps> {
   get updatedAt(): Date {
     return this.props.updatedAt;
   }
-
-  toJSON() {
-    return this.toJson();
-  }
 }

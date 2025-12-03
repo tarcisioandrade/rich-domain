@@ -63,16 +63,19 @@ class Order extends Aggregate<OrderProps> {
 
 <CardGroup cols={2}>
   <Card title="Consistency Boundary" icon="shield">
-    All invariants within an Aggregate are enforced immediately. Changes to other Aggregates are eventually consistent.
+    All invariants within an Aggregate are enforced immediately. Changes to
+    other Aggregates are eventually consistent.
   </Card>
   <Card title="Single Unit of Persistence" icon="database">
-    Aggregates are loaded and saved as a whole. Repositories work with Aggregates, not individual entities.
+    Aggregates are loaded and saved as a whole. Repositories work with
+    Aggregates, not individual entities.
   </Card>
   <Card title="Transactional Boundary" icon="arrows-rotate">
     All changes within an Aggregate happen in a single transaction.
   </Card>
   <Card title="Encapsulation" icon="lock">
-    External objects can only reference the Aggregate root, never internal entities directly.
+    External objects can only reference the Aggregate root, never internal
+    entities directly.
   </Card>
 </CardGroup>
 
@@ -125,7 +128,12 @@ Add schema validation to ensure Aggregates are always valid:
 
 ```typescript
 import { z } from "zod";
-import { Aggregate, EntityValidation, EntityHooks, Id } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  EntityValidation,
+  EntityHooks,
+  Id,
+} from "@woltz/rich-domain";
 
 const orderSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
@@ -178,14 +186,18 @@ const order = new Order({
       unitPrice: 29.99,
     }),
   ],
-  shippingAddress: new Address({ street: "123 Main", city: "NYC", zipCode: "10001" }),
+  shippingAddress: new Address({
+    street: "123 Main",
+    city: "NYC",
+    zipCode: "10001",
+  }),
   createdAt: new Date(),
 });
 
 // Make changes
-order.addItem("prod-b", 1, 49.99);           // Create
-order.items[0].updateQuantity(5);             // Update
-order.removeItem(Id.from("item-1"));          // Delete
+order.addItem("prod-b", 1, 49.99); // Create
+order.items[0].updateQuantity(5); // Update
+order.removeItem(Id.from("item-1")); // Delete
 
 // Get all changes
 const changes = order.getChanges();
@@ -233,9 +245,9 @@ class Order extends Aggregate<OrderProps> {
     if (this.props.items.length === 0) {
       throw new Error("Cannot confirm empty order");
     }
-    
+
     this.props.status = "confirmed";
-    
+
     // Emit event
     this.addDomainEvent(
       new OrderConfirmedEvent(this.id, this.customerId, this.total)
@@ -256,7 +268,7 @@ See more in [Domain Events](/core/domain-events)
 Convert the entire Aggregate (including nested entities) to JSON:
 
 ```typescript
-const json = order.toJson();
+const json = order.toJSON();
 // {
 //   id: "order-123",
 //   customerId: "cust-456",
@@ -283,12 +295,13 @@ const json = order.toJson();
       reviews: Review[];    // Independent lifecycle
       wishlist: Product[];  // Different consistency needs
     }
-    
+
     // ✅ Separate Aggregates
     class Customer extends Aggregate<CustomerProps> { }
     class Order extends Aggregate<OrderProps> { customerId: string; }
     class Review extends Aggregate<ReviewProps> { customerId: string; }
     ```
+
   </Accordion>
   <Accordion title="Reference other Aggregates by ID">
     Don't hold direct references to other Aggregates. Use IDs instead.
@@ -298,12 +311,13 @@ const json = order.toJson();
     class Order extends Aggregate<OrderProps> {
       customer: Customer; // Creates tight coupling
     }
-    
+
     // ✅ Reference by ID
     class Order extends Aggregate<OrderProps> {
       customerId: string;
     }
     ```
+
   </Accordion>
   <Accordion title="Protect invariants">
     All business rules should be enforced through Aggregate methods, never bypassed.
@@ -322,6 +336,7 @@ const json = order.toJson();
       }
     }
     ```
+
   </Accordion>
   <Accordion title="Use factory methods for complex creation">
     When creation logic is complex, use static factory methods.
@@ -342,11 +357,12 @@ const json = order.toJson();
           shippingAddress: cart.shippingAddress,
           createdAt: new Date(),
         });
-        
+
         order.addDomainEvent(new OrderCreatedEvent(order.id, customerId));
         return order;
       }
     }
     ```
+
   </Accordion>
 </AccordionGroup>

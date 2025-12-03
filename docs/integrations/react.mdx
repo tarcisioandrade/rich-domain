@@ -35,13 +35,15 @@ Install components using the shadcn CLI:
 # Install the useCriteria hook
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
 ```
+
 ```bash
 # Install the Filter component (includes useCriteria as dependency)
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
 ```
 
 <Note>
-  The Filter component requires shadcn/ui components: `button`, `input`, `popover`, and `calendar`.
+  The Filter component requires shadcn/ui components: `button`, `input`,
+  `popover`, and `calendar`.
 </Note>
 
 ### What Gets Installed
@@ -107,15 +109,13 @@ function UserList() {
 
   // Use criteria.toJSON() to send to your API
   const fetchUsers = async () => {
-    const response = await fetch(`/api/users?${new URLSearchParams(criteria.toJSON())}`);
+    const response = await fetch(
+      `/api/users?${new URLSearchParams(criteria.toJSON())}`
+    );
     return response.json();
   };
 
-  return (
-    <div>
-      {/* Your UI */}
-    </div>
-  );
+  return <div>{/* Your UI */}</div>;
 }
 ```
 
@@ -124,8 +124,8 @@ function UserList() {
 ```tsx
 interface UseCriteriaOptions<T> {
   // Pagination
-  initialPage?: number;      // Default: 1
-  pageSize?: number;         // Default: 20
+  initialPage?: number; // Default: 1
+  pageSize?: number; // Default: 20
 
   // Initial state
   initialFilters?: Filter<FieldPath<T>, unknown>[];
@@ -139,8 +139,8 @@ interface UseCriteriaOptions<T> {
   onChange?: (criteria: Criteria<T>) => void;
 
   // Persistence
-  persistKey?: string;       // localStorage key
-  syncWithUrl?: boolean;     // Sync with URL params (default: false)
+  persistKey?: string; // localStorage key
+  syncWithUrl?: boolean; // Sync with URL params (default: false)
 }
 ```
 
@@ -191,7 +191,9 @@ interface UseCriteriaReturn<T> {
 
   // Utility methods
   reset: () => void;
-  getFilterByField: (field: FieldPath<T>) => Filter<string, unknown> | undefined;
+  getFilterByField: (
+    field: FieldPath<T>
+  ) => Filter<string, unknown> | undefined;
   getSortByField: (field: FieldPath<T>) => Order | undefined;
 }
 ```
@@ -203,10 +205,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useCriteria } from "@/hooks/use-criteria";
 
 function UserList() {
-  const { criteria, filters, setPage, addFilter, clearFilters } = useCriteria<User>({
-    pageSize: 10,
-    syncWithUrl: true, // Sync state with URL
-  });
+  const { criteria, filters, setPage, addFilter, clearFilters } =
+    useCriteria<User>({
+      pageSize: 10,
+      syncWithUrl: true, // Sync state with URL
+    });
 
   const { data, isLoading } = useQuery({
     queryKey: ["users", criteria.toJSON()],
@@ -222,20 +225,22 @@ function UserList() {
       <button onClick={clearFilters}>Clear Filters</button>
 
       {/* Table */}
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <table>
-          {/* ... */}
-        </table>
-      )}
+      {isLoading ? <p>Loading...</p> : <table>{/* ... */}</table>}
 
       {/* Pagination */}
-      <button onClick={() => setPage(data.meta.page - 1)} disabled={!data.meta.hasPrevious}>
+      <button
+        onClick={() => setPage(data.meta.page - 1)}
+        disabled={!data.meta.hasPrevious}
+      >
         Previous
       </button>
-      <span>Page {data.meta.page} of {data.meta.totalPages}</span>
-      <button onClick={() => setPage(data.meta.page + 1)} disabled={!data.meta.hasNext}>
+      <span>
+        Page {data.meta.page} of {data.meta.totalPages}
+      </span>
+      <button
+        onClick={() => setPage(data.meta.page + 1)}
+        disabled={!data.meta.hasNext}
+      >
         Next
       </button>
     </div>
@@ -329,7 +334,8 @@ const userFields: QueryFilter[] = [
 ];
 
 function UserFilters() {
-  const { filters, addOrReplaceByIndex, removeFilter, clearFilters } = useCriteria<User>();
+  const { filters, addOrReplaceByIndex, removeFilter, clearFilters } =
+    useCriteria<User>();
 
   return (
     <Filter
@@ -369,12 +375,12 @@ interface QueryFilter {
 
 The Filter component automatically shows the appropriate operators based on field type:
 
-| Type | Operators |
-|------|-----------|
-| `string` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `number` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
-| `date` | equals, notEquals, greaterThan, lessThan, between, isNull, isNotNull |
-| `boolean` | equals, notEquals, isNull, isNotNull |
+| Type      | Operators                                                                                                            |
+| --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `string`  | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `number`  | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
+| `date`    | equals, notEquals, greaterThan, lessThan, between, isNull, isNotNull                                                 |
+| `boolean` | equals, notEquals, isNull, isNotNull                                                                                 |
 
 ### With Options (Select Fields)
 
@@ -501,7 +507,10 @@ async function fetchProducts(criteria: Criteria<Product>) {
   // Add sorting
   const orders = criteria.getOrders();
   if (orders.length > 0) {
-    params.set("orderBy", orders.map((o) => `${o.field}:${o.direction}`).join(","));
+    params.set(
+      "orderBy",
+      orders.map((o) => `${o.field}:${o.direction}`).join(",")
+    );
   }
 
   const response = await fetch(`/api/products?${params}`);
@@ -610,23 +619,23 @@ export function ProductList() {
 
 ### useCriteria Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `initialPage` | `number` | `1` | Starting page number |
-| `pageSize` | `number` | `20` | Items per page |
-| `initialFilters` | `Filter[]` | `[]` | Pre-applied filters |
-| `initialSort` | `Order[]` | `[]` | Pre-applied sorting |
-| `initialSearch` | `object` | `undefined` | Pre-applied search |
-| `onChange` | `function` | `undefined` | Callback when criteria changes |
-| `persistKey` | `string` | `undefined` | localStorage key for persistence |
-| `syncWithUrl` | `boolean` | `false` | Sync state with URL params |
+| Option           | Type       | Default     | Description                      |
+| ---------------- | ---------- | ----------- | -------------------------------- |
+| `initialPage`    | `number`   | `1`         | Starting page number             |
+| `pageSize`       | `number`   | `20`        | Items per page                   |
+| `initialFilters` | `Filter[]` | `[]`        | Pre-applied filters              |
+| `initialSort`    | `Order[]`  | `[]`        | Pre-applied sorting              |
+| `initialSearch`  | `object`   | `undefined` | Pre-applied search               |
+| `onChange`       | `function` | `undefined` | Callback when criteria changes   |
+| `persistKey`     | `string`   | `undefined` | localStorage key for persistence |
+| `syncWithUrl`    | `boolean`  | `false`     | Sync state with URL params       |
 
 ### Filter Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fields` | `QueryFilter[]` | Yes | Available fields for filtering |
-| `filters` | `Filter[]` | Yes | Current active filters |
-| `addOrReplaceByIndex` | `function` | Yes | Add or update a filter |
-| `removeFilter` | `function` | Yes | Remove a filter by index |
-| `clearFilters` | `function` | Yes | Clear all filters |
+| Prop                  | Type            | Required | Description                    |
+| --------------------- | --------------- | -------- | ------------------------------ |
+| `fields`              | `QueryFilter[]` | Yes      | Available fields for filtering |
+| `filters`             | `Filter[]`      | Yes      | Current active filters         |
+| `addOrReplaceByIndex` | `function`      | Yes      | Add or update a filter         |
+| `removeFilter`        | `function`      | Yes      | Remove a filter by index       |
+| `clearFilters`        | `function`      | Yes      | Clear all filters              |

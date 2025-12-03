@@ -17,8 +17,12 @@ npm install @woltz/rich-domain zod
 ## Quick Start
 
 ```typescript
-import { defineFilters, CriteriaQuerySchema, PaginatedResponseSchema } from '@woltz/rich-domain-criteria-zod';
-import { z } from 'zod';
+import {
+  defineFilters,
+  CriteriaQuerySchema,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
+import { z } from "zod";
 
 // 1. Define filterable fields
 const filters = defineFilters((f) => ({
@@ -32,7 +36,7 @@ const filters = defineFilters((f) => ({
 
 // 2. Create query schema with orderable fields whitelist
 const querySchema = CriteriaQuerySchema(filters, {
-  orderBy: ['name', 'createdAt', 'age'] as const,
+  orderBy: ["name", "createdAt", "age"] as const,
   pagination: {
     defaultLimit: 20,
     maxLimit: 100,
@@ -54,14 +58,14 @@ const responseSchema = PaginatedResponseSchema(UserDto);
 ### Fastify
 
 ```typescript
-import Fastify from 'fastify';
-import { ZodTypeProvider } from 'fastify-type-provider-zod';
+import Fastify from "fastify";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 const app = Fastify().withTypeProvider<ZodTypeProvider>();
 
 app.route({
-  method: 'GET',
-  url: '/users',
+  method: "GET",
+  url: "/users",
   schema: {
     querystring: querySchema,
     response: { 200: responseSchema },
@@ -76,7 +80,7 @@ app.route({
 ### Express
 
 ```typescript
-app.get('/users', (req, res) => {
+app.get("/users", (req, res) => {
   const result = querySchema.safeParse(req.query);
   if (!result.success) {
     return res.status(400).json({ errors: result.error.flatten() });
@@ -89,10 +93,10 @@ app.get('/users', (req, res) => {
 ### Hono
 
 ```typescript
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from "@hono/zod-validator";
 
-app.get('/users', zValidator('query', querySchema), (c) => {
-  const query = c.req.valid('query');
+app.get("/users", zValidator("query", querySchema), (c) => {
+  const query = c.req.valid("query");
   const criteria = Criteria.fromQueryParams(query);
   // ...
 });
@@ -102,12 +106,10 @@ app.get('/users', zValidator('query', querySchema), (c) => {
 
 ```typescript
 export const userRouter = router({
-  list: publicProcedure
-    .input(querySchema)
-    .query(({ input }) => {
-      const criteria = Criteria.fromQueryParams(input);
-      return userService.list(criteria);
-    }),
+  list: publicProcedure.input(querySchema).query(({ input }) => {
+    const criteria = Criteria.fromQueryParams(input);
+    return userService.list(criteria);
+  }),
 });
 ```
 
@@ -129,26 +131,26 @@ const filters = defineFilters((f) => ({
   // Arrays
   tags: f.array.string(),
   scores: f.array.number(),
-  roles: f.array.enum(['admin', 'user', 'guest']),
+  roles: f.array.enum(["admin", "user", "guest"]),
 
   // Custom operators (restrict available operators)
-  status: f.string({ operators: ['equals', 'in'] }),
+  status: f.string({ operators: ["equals", "in"] }),
 
   // Nested paths
-  ['author.name']: f.string(),
+  ["author.name"]: f.string(),
 }));
 ```
 
 ### Field Types
 
-| Method | Operators |
-|--------|-----------|
-| `f.string()` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `f.email()` | Same as string (with email validation) |
-| `f.number()` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
-| `f.date()` | Same as number |
-| `f.boolean()` | equals, notEquals, isNull, isNotNull |
-| `f.array.*` | in, notIn, isNull, isNotNull |
+| Method        | Operators                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `f.string()`  | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `f.email()`   | Same as string (with email validation)                                                                               |
+| `f.number()`  | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
+| `f.date()`    | Same as number                                                                                                       |
+| `f.boolean()` | equals, notEquals, isNull, isNotNull                                                                                 |
+| `f.array.*`   | in, notIn, isNull, isNotNull                                                                                         |
 
 ### `CriteriaQuerySchema(filters, options?)`
 
@@ -157,7 +159,7 @@ Creates a complete query schema with filters, ordering, pagination, and search.
 ```typescript
 const querySchema = CriteriaQuerySchema(filters, {
   // Whitelist of orderable fields (required for type safety)
-  orderBy: ['name', 'createdAt'] as const,
+  orderBy: ["name", "createdAt"] as const,
 
   // Pagination defaults
   pagination: {
@@ -171,6 +173,7 @@ const querySchema = CriteriaQuerySchema(filters, {
 **Why whitelist for orderBy?**
 
 Not all filterable fields should be orderable:
+
 - Array fields can't be ordered
 - Nested relations may not support ordering
 - Non-indexed fields could cause performance issues
@@ -257,7 +260,7 @@ GET /users?name:contains=john&age:greaterThan=18&orderBy=name:asc&page=1&limit=2
 ## Type Inference
 
 ```typescript
-import { InferCriteriaQuery, OrderEnum } from '@woltz/rich-domain-criteria-zod';
+import { InferCriteriaQuery, OrderEnum } from "@woltz/rich-domain-criteria-zod";
 
 // Infer query type
 type UserQuery = InferCriteriaQuery<typeof querySchema>;
@@ -266,7 +269,7 @@ type UserQuery = InferCriteriaQuery<typeof querySchema>;
 // "name:asc" | "name:desc" | "createdAt:asc" | "createdAt:desc" | ...
 
 // Create order type from fields
-type UserOrder = OrderEnum<['name', 'createdAt']>;
+type UserOrder = OrderEnum<["name", "createdAt"]>;
 // "name:asc" | "name:desc" | "createdAt:asc" | "createdAt:desc"
 ```
 

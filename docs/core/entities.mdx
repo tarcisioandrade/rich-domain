@@ -42,16 +42,17 @@ class OrderItem extends Entity<OrderItemProps> {
 
 ## Entity vs Aggregate
 
-| Feature | Entity | Aggregate |
-|---------|--------|-----------|
-| Has identity | ✅ | ✅ |
-| Can be persisted | ✅ | ✅ |
-| Consistency boundary | ❌ | ✅ |
-| Accessed directly from repository | ❌ | ✅ |
-| Manages child entities | ❌ | ✅ |
+| Feature                           | Entity | Aggregate |
+| --------------------------------- | ------ | --------- |
+| Has identity                      | ✅     | ✅        |
+| Can be persisted                  | ✅     | ✅        |
+| Consistency boundary              | ❌     | ✅        |
+| Accessed directly from repository | ❌     | ✅        |
+| Manages child entities            | ❌     | ✅        |
 
 <Note>
-Use **Entity** for objects that live inside an Aggregate. Use **Aggregate** for root objects that are loaded and saved independently.
+  Use **Entity** for objects that live inside an Aggregate. Use **Aggregate**
+  for root objects that are loaded and saved independently.
 </Note>
 
 ## Creating Entities
@@ -97,8 +98,8 @@ const item1 = new OrderItem({
 const item2 = new OrderItem({
   id: Id.from("item-1"),
   productId: "prod-999", // different product
-  quantity: 10,          // different quantity
-  unitPrice: 99.99,      // different price
+  quantity: 10, // different quantity
+  unitPrice: 99.99, // different price
 });
 
 const item3 = new OrderItem({
@@ -157,7 +158,7 @@ const item = new OrderItem({
   unitPrice: 29.99,
 });
 
-const json = item.toJson();
+const json = item.toJSON();
 // {
 //   id: "item-123",
 //   productId: "prod-456",

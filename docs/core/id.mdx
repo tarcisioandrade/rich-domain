@@ -12,13 +12,13 @@ import { Id } from "@woltz/rich-domain";
 
 // New entity - generates UUID automatically
 const newId = new Id();
-console.log(newId.isNew());  // true
-console.log(newId.value);    // "550e8400-e29b-41d4-a716-446655440000"
+console.log(newId.isNew()); // true
+console.log(newId.value); // "550e8400-e29b-41d4-a716-446655440000"
 
 // Existing entity - uses provided value
 const existingId = new Id("user-123");
-console.log(existingId.isNew());  // false
-console.log(existingId.value);    // "user-123"
+console.log(existingId.isNew()); // false
+console.log(existingId.value); // "user-123"
 ```
 
 ## Creating IDs
@@ -152,11 +152,11 @@ const id = new Id("user-123");
 
 // toString
 console.log(id.toString()); // "user-123"
-console.log(String(id));    // "user-123"
+console.log(String(id)); // "user-123"
 
 // JSON
-console.log(id.toJSON());         // "user-123"
-console.log(JSON.stringify(id));  // '"user-123"'
+console.log(id.toJSON()); // "user-123"
+console.log(JSON.stringify(id)); // '"user-123"'
 
 // In entity toJson()
 const user = new User({
@@ -164,7 +164,7 @@ const user = new User({
   name: "John",
 });
 
-const json = user.toJson();
+const json = user.toJSON();
 console.log(json.id); // "user-123" (string, not Id object)
 ```
 
@@ -233,28 +233,28 @@ console.log(existingOrder.isNew()); // false
 ### Constructor
 
 ```typescript
-new Id()           // Generates UUID, isNew = true
-new Id("value")    // Uses provided value, isNew = false
+new Id(); // Generates UUID, isNew = true
+new Id("value"); // Uses provided value, isNew = false
 ```
 
 ### Static Methods
 
-| Method | Description |
-|--------|-------------|
-| `Id.create()` | Creates a new Id with auto-generated UUID |
-| `Id.from(value)` | Creates an Id from an existing value |
+| Method           | Description                               |
+| ---------------- | ----------------------------------------- |
+| `Id.create()`    | Creates a new Id with auto-generated UUID |
+| `Id.from(value)` | Creates an Id from an existing value      |
 
 ### Instance Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `isNew()` | `boolean` | True if ID was auto-generated |
-| `equals(other)` | `boolean` | Compare with Id or string |
-| `toString()` | `string` | Returns the ID value |
-| `toJSON()` | `string` | Returns the ID value (for serialization) |
+| Method          | Returns   | Description                              |
+| --------------- | --------- | ---------------------------------------- |
+| `isNew()`       | `boolean` | True if ID was auto-generated            |
+| `equals(other)` | `boolean` | Compare with Id or string                |
+| `toString()`    | `string`  | Returns the ID value                     |
+| `toJSON()`      | `string`  | Returns the ID value (for serialization) |
 
 ### Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `value` | `string` | The ID string value |
+| Property | Type     | Description         |
+| -------- | -------- | ------------------- |
+| `value`  | `string` | The ID string value |

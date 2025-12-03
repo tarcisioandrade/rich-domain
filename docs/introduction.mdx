@@ -1,7 +1,17 @@
 ---
 title: "Introduction"
 description: "A TypeScript library for Domain-Driven Design with Standard Schema validation, automatic change tracking, and enterprise-ready repositories"
-keywords: ["ddd","domain-driven-design","entity","aggregate","value-object","validation","standard-schema","typescript"]
+keywords:
+  [
+    "ddd",
+    "domain-driven-design",
+    "entity",
+    "aggregate",
+    "value-object",
+    "validation",
+    "standard-schema",
+    "typescript",
+  ]
 ---
 
 ## What is rich-domain?
@@ -10,7 +20,8 @@ keywords: ["ddd","domain-driven-design","entity","aggregate","value-object","val
 
 <CardGroup cols={2}>
   <Card title="Type-Safe" icon="shield-check">
-    Full TypeScript support with inference for field paths, filters, and operations
+    Full TypeScript support with inference for field paths, filters, and
+    operations
   </Card>
   <Card title="Validation Agnostic" icon="check-double">
     Works with Zod, Valibot, ArkType, or any Standard Schema compatible library
@@ -97,11 +108,9 @@ const result = await orderRepo.find(
 npm install @woltz/rich-domain
 ```
 
-
 ```bash pnpm
 pnpm add @woltz/rich-domain
 ```
-
 
 ```bash yarn
 yarn add @woltz/rich-domain
@@ -131,11 +140,19 @@ class User extends Aggregate<UserProps> {
     schema: userSchema,
   };
 
-  get name() { return this.props.name; }
-  get email() { return this.props.email; }
-  
-  activate() { this.props.status = "active"; }
-  deactivate() { this.props.status = "inactive"; }
+  get name() {
+    return this.props.name;
+  }
+  get email() {
+    return this.props.email;
+  }
+
+  activate() {
+    this.props.status = "active";
+  }
+  deactivate() {
+    this.props.status = "inactive";
+  }
 }
 
 // Use it
@@ -146,7 +163,7 @@ const user = new User({
 });
 
 console.log(user.isNew()); // true
-console.log(user.toJson()); // { id: "...", name: "John Doe", ... }
+console.log(user.toJSON()); // { id: "...", name: "John Doe", ... }
 ```
 
 ## Next Steps

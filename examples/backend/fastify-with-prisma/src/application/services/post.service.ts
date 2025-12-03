@@ -73,6 +73,6 @@ export class PostService {
 
     await this.postRepository.save(post);
 
-    return post.toJson();
+    return post.toJSON();
   }
 }

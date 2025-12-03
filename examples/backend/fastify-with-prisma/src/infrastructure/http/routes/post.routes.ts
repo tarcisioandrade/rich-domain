@@ -33,7 +33,7 @@ export async function postRoutes(app: FastifyInstance) {
       const body = createPostSchema.parse(request.body);
       const post = await postService.create(body);
 
-      return reply.status(201).send(post.toJson());
+      return reply.status(201).send(post.toJSON());
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: z.treeifyError(error) });
@@ -49,7 +49,7 @@ export async function postRoutes(app: FastifyInstance) {
       const params = getPostParamsSchema.parse(request.params);
       const post = await postService.getById(params.id);
 
-      return reply.send(post.toJson());
+      return reply.send(post.toJSON());
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: z.treeifyError(error) });
@@ -66,7 +66,7 @@ export async function postRoutes(app: FastifyInstance) {
       const criteria = Criteria.fromQueryParams(query);
       const posts = await postService.list(criteria);
 
-      return reply.send(posts.map((post) => post.toJson()));
+      return reply.send(posts.map((post) => post.toJSON()));
     } catch (error) {
       return reply.status(500).send({
         error: error instanceof Error ? error.message : "Unknown error",
@@ -74,7 +74,6 @@ export async function postRoutes(app: FastifyInstance) {
     }
   });
 
-  
   app.patch("/posts/:id", async (request, reply) => {
     try {
       const params = OnlyIdSchema.parse(request.params);
@@ -97,7 +96,7 @@ export async function postRoutes(app: FastifyInstance) {
       const params = getPostParamsSchema.parse(request.params);
       const post = await postService.publish(params.id);
 
-      return reply.send(post.toJson());
+      return reply.send(post.toJSON());
     } catch (error) {
       if (error instanceof z.ZodError) {
         return reply.status(400).send({ error: z.treeifyError(error) });
@@ -107,5 +106,4 @@ export async function postRoutes(app: FastifyInstance) {
       });
     }
   });
-
 }

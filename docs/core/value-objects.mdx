@@ -49,19 +49,20 @@ class Money extends ValueObject<MoneyProps> {
 <CardGroup cols={2}>
 
 <Card title="Immutable" icon="lock">
-Once created, a Value Object cannot be changed. Operations return new instances.
+  Once created, a Value Object cannot be changed. Operations return new
+  instances.
 </Card>
 
 <Card title="Equality by Value" icon="equals">
-Two Value Objects are equal if all their attributes are equal.
+  Two Value Objects are equal if all their attributes are equal.
 </Card>
 
 <Card title="Self-Contained" icon="box">
-Value Objects contain all the behavior related to the concept they represent.
+  Value Objects contain all the behavior related to the concept they represent.
 </Card>
 
 <Card title="No Identity" icon="fingerprint">
-Value Objects don't have an ID. They're interchangeable if values match.
+  Value Objects don't have an ID. They're interchangeable if values match.
 </Card>
 
 </CardGroup>
@@ -70,7 +71,7 @@ Value Objects don't have an ID. They're interchangeable if values match.
 
 ```typescript
 const price = new Money({ amount: 99.99, currency: "USD" });
-const tax = new Money({ amount: 8.50, currency: "USD" });
+const tax = new Money({ amount: 8.5, currency: "USD" });
 
 // Operations return new instances
 const total = price.add(tax);
@@ -116,7 +117,7 @@ const address = new Address({
 
 const newAddress = address.changeCity("Boston");
 
-console.log(address.city);    // "New York" (unchanged)
+console.log(address.city); // "New York" (unchanged)
 console.log(newAddress.city); // "Boston" (new instance)
 ```
 
@@ -190,7 +191,11 @@ class TagReference extends ValueObject<{ tagId: string; name: string }> {
   }
 }
 
-class Like extends ValueObject<{ postId: string; userId: string; createdAt: Date }> {
+class Like extends ValueObject<{
+  postId: string;
+  userId: string;
+  createdAt: Date;
+}> {
   // Composite key
   static readonly identityKey = ["postId", "userId"];
 
@@ -213,12 +218,13 @@ const like = new Like({
   createdAt: new Date(),
 });
 
-console.log(like.hasIdentityKey());  // true
-console.log(like.getIdentityKey());  // "post-123:user-456"
+console.log(like.hasIdentityKey()); // true
+console.log(like.getIdentityKey()); // "post-123:user-456"
 ```
 
 <Note>
-Identity keys are used by the change tracking system to detect additions and removals in collections of Value Objects.
+  Identity keys are used by the change tracking system to detect additions and
+  removals in collections of Value Objects.
 </Note>
 
 ## Hooks
@@ -226,7 +232,12 @@ Identity keys are used by the change tracking system to detect additions and rem
 Value Objects support lifecycle hooks:
 
 ```typescript
-import { ValueObject, VOValidation, VOHooks, throwValidationError } from "@woltz/rich-domain";
+import {
+  ValueObject,
+  VOValidation,
+  VOHooks,
+  throwValidationError,
+} from "@woltz/rich-domain";
 
 class Money extends ValueObject<MoneyProps> {
   protected static validation: VOValidation<MoneyProps> = {
@@ -260,7 +271,7 @@ const address = new Address({
   zipCode: "10001",
 });
 
-const json = address.toJson();
+const json = address.toJSON();
 // { street: "123 Main St", city: "New York", zipCode: "10001" }
 ```
 
@@ -299,11 +310,21 @@ class Address extends ValueObject<{
   zipCode: string;
   country: string;
 }> {
-  get street() { return this.props.street; }
-  get city() { return this.props.city; }
-  get state() { return this.props.state; }
-  get zipCode() { return this.props.zipCode; }
-  get country() { return this.props.country; }
+  get street() {
+    return this.props.street;
+  }
+  get city() {
+    return this.props.city;
+  }
+  get state() {
+    return this.props.state;
+  }
+  get zipCode() {
+    return this.props.zipCode;
+  }
+  get country() {
+    return this.props.country;
+  }
 
   format(): string {
     return `${this.street}, ${this.city}, ${this.state} ${this.zipCode}, ${this.country}`;
@@ -327,8 +348,12 @@ class DateRange extends ValueObject<{ start: Date; end: Date }> {
     },
   };
 
-  get start() { return this.props.start; }
-  get end() { return this.props.end; }
+  get start() {
+    return this.props.start;
+  }
+  get end() {
+    return this.props.end;
+  }
 
   getDurationInDays(): number {
     const diff = this.end.getTime() - this.start.getTime();

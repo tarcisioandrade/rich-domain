@@ -140,10 +140,10 @@ app.get("/users/:id", async (req, res) => {
 
 ### API Reference
 
-| Method | Description |
-|--------|-------------|
-| `transaction(work)` | Execute work function in a transaction |
-| `isInTransaction()` | Check if currently in a transaction |
+| Method                | Description                             |
+| --------------------- | --------------------------------------- |
+| `transaction(work)`   | Execute work function in a transaction  |
+| `isInTransaction()`   | Check if currently in a transaction     |
 | `getCurrentContext()` | Get current transaction context or null |
 
 ---
@@ -418,7 +418,7 @@ await executor.execute(changes);
 The executor processes operations in the correct order for foreign key constraints:
 
 1. **Deletes**: Leaf → Root (depth DESC) - delete children before parents
-2. **Creates**: Root → Leaf (depth ASC) - create parents before children  
+2. **Creates**: Root → Leaf (depth ASC) - create parents before children
 3. **Updates**: Any order - no FK dependencies
 
 ### Configuration
@@ -492,14 +492,15 @@ class CreateUserUseCase {
 
 ### Behavior
 
-| Scenario | Behavior |
-|----------|----------|
-| Direct call | Creates new transaction |
-| Already in transaction | Reuses existing one |
-| Error thrown | Automatic rollback |
+| Scenario               | Behavior                |
+| ---------------------- | ----------------------- |
+| Direct call            | Creates new transaction |
+| Already in transaction | Reuses existing one     |
+| Error thrown           | Automatic rollback      |
 
 <Warning>
-The class must have a `uow` property of type `PrismaUnitOfWork` for the decorator to work.
+  The class must have a `uow` property of type `PrismaUnitOfWork` for the
+  decorator to work.
 </Warning>
 
 ---
@@ -525,9 +526,15 @@ const postSchema = z.object({
 class Post extends Entity<z.infer<typeof postSchema>> {
   protected static validation = { schema: postSchema };
 
-  get title() { return this.props.title; }
-  get content() { return this.props.content; }
-  get published() { return this.props.published; }
+  get title() {
+    return this.props.title;
+  }
+  get content() {
+    return this.props.content;
+  }
+  get published() {
+    return this.props.published;
+  }
 
   publish() {
     this.props.published = true;
@@ -546,12 +553,22 @@ const userSchema = z.object({
 class User extends Aggregate<z.infer<typeof userSchema>> {
   protected static validation = { schema: userSchema };
 
-  get name() { return this.props.name; }
-  set name(value: string) { this.props.name = value; }
+  get name() {
+    return this.props.name;
+  }
+  set name(value: string) {
+    this.props.name = value;
+  }
 
-  get email() { return this.props.email; }
-  get status() { return this.props.status; }
-  get posts() { return this.props.posts; }
+  get email() {
+    return this.props.email;
+  }
+  get status() {
+    return this.props.status;
+  }
+  get posts() {
+    return this.props.posts;
+  }
 
   addPost(post: Post) {
     this.props.posts.push(post);
@@ -777,7 +794,7 @@ const app = Fastify();
 // Create user
 app.post("/users", async (request, reply) => {
   const user = await userService.createUser(request.body as any);
-  return reply.status(201).send(user.toJson());
+  return reply.status(201).send(user.toJSON());
 });
 
 // List users with Criteria
@@ -796,7 +813,7 @@ app.post("/users/:id/posts", async (request, reply) => {
     request.params.id,
     request.body as any
   );
-  return user.toJson();
+  return user.toJSON();
 });
 
 app.listen({ port: 3000 });
@@ -811,7 +828,11 @@ app.listen({ port: 3000 });
 ```typescript
 // Unit of Work
 export { PrismaUnitOfWork, Transactional, getCurrentPrismaContext };
-export type { PrismaTransactionContext, PrismaClientLike, PrismaTransactionClient };
+export type {
+  PrismaTransactionContext,
+  PrismaClientLike,
+  PrismaTransactionClient,
+};
 
 // Repository
 export { PrismaRepository };
@@ -827,22 +848,22 @@ export type { EntityDataMapper, BatchExecutorConfig };
 
 ### PrismaUnitOfWork Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `transaction(work)` | `Promise<T>` | Execute work in transaction |
-| `isInTransaction()` | `boolean` | Check if in transaction |
-| `getCurrentContext()` | `PrismaTransactionContext \| null` | Get current context |
+| Method                | Returns                            | Description                 |
+| --------------------- | ---------------------------------- | --------------------------- |
+| `transaction(work)`   | `Promise<T>`                       | Execute work in transaction |
+| `isInTransaction()`   | `boolean`                          | Check if in transaction     |
+| `getCurrentContext()` | `PrismaTransactionContext \| null` | Get current context         |
 
 ### PrismaRepository Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `find(criteria)` | `Promise<PaginatedResult<T>>` | Find with criteria |
-| `findById(id)` | `Promise<T \| null>` | Find by ID |
-| `findOne(criteria)` | `Promise<T \| null>` | Find first match |
-| `count(criteria?)` | `Promise<number>` | Count entities |
-| `exists(id)` | `Promise<boolean>` | Check if exists |
-| `save(entity)` | `Promise<void>` | Create or update |
-| `delete(entity)` | `Promise<void>` | Delete entity |
-| `deleteById(id)` | `Promise<void>` | Delete by ID |
-| `transaction(work)` | `Promise<T>` | Execute in transaction |
+| Method              | Returns                       | Description            |
+| ------------------- | ----------------------------- | ---------------------- |
+| `find(criteria)`    | `Promise<PaginatedResult<T>>` | Find with criteria     |
+| `findById(id)`      | `Promise<T \| null>`          | Find by ID             |
+| `findOne(criteria)` | `Promise<T \| null>`          | Find first match       |
+| `count(criteria?)`  | `Promise<number>`             | Count entities         |
+| `exists(id)`        | `Promise<boolean>`            | Check if exists        |
+| `save(entity)`      | `Promise<void>`               | Create or update       |
+| `delete(entity)`    | `Promise<void>`               | Delete entity          |
+| `deleteById(id)`    | `Promise<void>`               | Delete by ID           |
+| `transaction(work)` | `Promise<T>`                  | Execute in transaction |

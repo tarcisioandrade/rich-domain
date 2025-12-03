@@ -55,12 +55,12 @@ class UserCreatedEvent extends DomainEvent {
 
 Every domain event has:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `eventId` | `string` | Unique identifier for this event occurrence |
-| `eventName` | `string` | Name of the event (class name by default) |
-| `aggregateId` | `string` | ID of the aggregate that raised the event |
-| `occurredOn` | `Date` | When the event occurred |
+| Property      | Type     | Description                                 |
+| ------------- | -------- | ------------------------------------------- |
+| `eventId`     | `string` | Unique identifier for this event occurrence |
+| `eventName`   | `string` | Name of the event (class name by default)   |
+| `aggregateId` | `string` | ID of the aggregate that raised the event   |
+| `occurredOn`  | `Date`   | When the event occurred                     |
 
 ```typescript
 const event = new UserCreatedEvent(
@@ -69,10 +69,10 @@ const event = new UserCreatedEvent(
   "John Doe"
 );
 
-console.log(event.eventId);      // "1699876543210-abc123def"
-console.log(event.eventName);    // "UserCreatedEvent"
-console.log(event.aggregateId);  // "user-123"
-console.log(event.occurredOn);   // 2024-01-15T10:30:00.000Z
+console.log(event.eventId); // "1699876543210-abc123def"
+console.log(event.eventName); // "UserCreatedEvent"
+console.log(event.aggregateId); // "user-123"
+console.log(event.occurredOn); // 2024-01-15T10:30:00.000Z
 ```
 
 ## Raising Events from Aggregates
@@ -83,29 +83,25 @@ Use `addDomainEvent()` inside aggregate methods:
 class User extends Aggregate<UserProps> {
   static create(props: Omit<UserProps, "id">): User {
     const user = new User(props);
-    
-    user.addDomainEvent(
-      new UserCreatedEvent(user.id, user.email, user.name)
-    );
-    
+
+    user.addDomainEvent(new UserCreatedEvent(user.id, user.email, user.name));
+
     return user;
   }
 
   activate() {
     if (this.props.status === "active") return;
-    
+
     this.props.status = "active";
-    
+
     this.addDomainEvent(new UserActivatedEvent(this.id));
   }
 
   changeEmail(newEmail: string) {
     const oldEmail = this.props.email;
     this.props.email = newEmail;
-    
-    this.addDomainEvent(
-      new UserEmailChangedEvent(this.id, oldEmail, newEmail)
-    );
+
+    this.addDomainEvent(new UserEmailChangedEvent(this.id, oldEmail, newEmail));
   }
 }
 ```
@@ -308,7 +304,8 @@ await eventBus.publish(event); // Both handlers are called
 ```
 
 <Note>
-Errors are logged to console but don't break the event flow. Consider adding proper error monitoring in production.
+  Errors are logged to console but don't break the event flow. Consider adding
+  proper error monitoring in production.
 </Note>
 
 ## Complete Example
@@ -335,10 +332,7 @@ class OrderPlacedEvent extends DomainEvent {
 }
 
 class OrderShippedEvent extends DomainEvent {
-  constructor(
-    aggregateId: Id,
-    public readonly trackingNumber: string
-  ) {
+  constructor(aggregateId: Id, public readonly trackingNumber: string) {
     super(aggregateId);
   }
 
@@ -354,11 +348,12 @@ class Order extends Aggregate<OrderProps> {
       customerId,
       status: "placed",
       items: items.map(
-        (item) => new OrderItem({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        })
+        (item) =>
+          new OrderItem({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })
       ),
       createdAt: new Date(),
     });
@@ -367,7 +362,10 @@ class Order extends Aggregate<OrderProps> {
       new OrderPlacedEvent(
         order.id,
         customerId,
-        order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        order.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+        })),
         order.total
       )
     );

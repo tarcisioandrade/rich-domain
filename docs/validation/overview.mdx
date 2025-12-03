@@ -34,19 +34,19 @@ class User extends Aggregate<UserProps> {
 <CardGroup cols={2}>
 
 <Card title="Library Agnostic" icon="puzzle-piece">
-Use Zod, Valibot, ArkType, or any Standard Schema-compatible library
+  Use Zod, Valibot, ArkType, or any Standard Schema-compatible library
 </Card>
 
 <Card title="Type Inference" icon="wand-magic-sparkles">
-Get full TypeScript inference from your schemas
+  Get full TypeScript inference from your schemas
 </Card>
 
 <Card title="Validation Timing" icon="clock">
-Control when validation runs (create, update, or both)
+  Control when validation runs (create, update, or both)
 </Card>
 
 <Card title="Error Handling" icon="triangle-exclamation">
-Choose between throwing errors or collecting them
+  Choose between throwing errors or collecting them
 </Card>
 
 </CardGroup>
@@ -60,10 +60,11 @@ Any library implementing the Standard Schema spec works:
 import { z } from "zod";
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+name: z.string().min(2),
+email: z.string().email(),
 });
-```
+
+````
 
 ```typescript Valibot
 import * as v from "valibot";
@@ -72,7 +73,7 @@ const schema = v.object({
   name: v.pipe(v.string(), v.minLength(2)),
   email: v.pipe(v.string(), v.email()),
 });
-```
+````
 
 ```typescript ArkType
 import { type } from "arktype";
@@ -82,6 +83,7 @@ const schema = type({
   email: "email",
 });
 ```
+
 </CodeGroup>
 
 ## Basic Usage
@@ -112,17 +114,25 @@ class Product extends Aggregate<ProductProps> {
   protected static validation: EntityValidation<ProductProps> = {
     schema: productSchema,
     config: {
-      onCreate: true,    // Validate on construction
-      onUpdate: true,    // Validate on property changes
+      onCreate: true, // Validate on construction
+      onUpdate: true, // Validate on property changes
       throwOnError: true, // Throw ValidationError on failure
     },
   };
 
-  get name() { return this.props.name; }
-  set name(value: string) { this.props.name = value; }
+  get name() {
+    return this.props.name;
+  }
+  set name(value: string) {
+    this.props.name = value;
+  }
 
-  get price() { return this.props.price; }
-  set price(value: number) { this.props.price = value; }
+  get price() {
+    return this.props.price;
+  }
+  set price(value: number) {
+    this.props.price = value;
+  }
 }
 ```
 
@@ -139,9 +149,9 @@ const product = new Product({
 
 // Invalid - throws ValidationError
 const invalid = new Product({
-  name: "",           // ❌ Name is required
-  price: -10,         // ❌ Price must be positive
-  stock: 5.5,         // ❌ Stock must be integer
+  name: "", // ❌ Name is required
+  price: -10, // ❌ Price must be positive
+  stock: 5.5, // ❌ Stock must be integer
   status: "draft",
 });
 ```
@@ -150,8 +160,8 @@ const invalid = new Product({
 
 ```typescript
 interface ValidationConfig {
-  onCreate?: boolean;    // Validate in constructor (default: true)
-  onUpdate?: boolean;    // Validate on property changes (default: true)
+  onCreate?: boolean; // Validate in constructor (default: true)
+  onUpdate?: boolean; // Validate on property changes (default: true)
   throwOnError?: boolean; // Throw or collect errors (default: true)
 }
 ```
@@ -223,7 +233,9 @@ class Email extends ValueObject<{ value: string }> {
     config: { onCreate: true, throwOnError: true },
   };
 
-  get value() { return this.props.value; }
+  get value() {
+    return this.props.value;
+  }
 }
 
 // Valid
@@ -313,11 +325,15 @@ import {
 const orderSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
   customerId: z.string().uuid(),
-  items: z.array(z.object({
-    productId: z.string().uuid(),
-    quantity: z.number().int().positive(),
-    unitPrice: z.number().positive(),
-  })).min(1, "Order must have at least one item"),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.number().int().positive(),
+        unitPrice: z.number().positive(),
+      })
+    )
+    .min(1, "Order must have at least one item"),
   status: z.enum(["draft", "confirmed", "shipped", "delivered"]),
   total: z.number().min(0),
 });
@@ -334,9 +350,15 @@ class Order extends Aggregate<OrderProps> {
     },
   };
 
-  get items() { return this.props.items; }
-  get total() { return this.props.total; }
-  get status() { return this.props.status; }
+  get items() {
+    return this.props.items;
+  }
+  get total() {
+    return this.props.total;
+  }
+  get status() {
+    return this.props.status;
+  }
 
   addItem(productId: string, quantity: number, unitPrice: number) {
     this.props.items.push({ productId, quantity, unitPrice });
@@ -362,7 +384,7 @@ class Order extends Aggregate<OrderProps> {
 try {
   const order = new Order({
     customerId: "123e4567-e89b-12d3-a456-426614174000",
-    items: [],  // ❌ Empty - will fail validation
+    items: [], // ❌ Empty - will fail validation
     status: "draft",
     total: 0,
   });
@@ -382,7 +404,11 @@ try {
   Lifecycle hooks for custom validation rules
 </Card>
 
-<Card title="Error Handling" icon="triangle-exclamation" href="/validation/error-handling">
+<Card
+  title="Error Handling"
+  icon="triangle-exclamation"
+  href="/validation/error-handling"
+>
   Working with ValidationError and error responses
 </Card>
 
