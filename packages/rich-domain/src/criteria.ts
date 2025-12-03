@@ -337,10 +337,12 @@ export class Criteria<T = any> {
     return field;
   }
 
-  static fromQueryParams<T>(
-    query: Record<string, any>,
+  static fromQueryParams<T = any>(
+    query: Record<string, any> | undefined,
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
+    if (!query) return Criteria.create<T>();
+
     const criteria = Criteria.create<T>();
 
     if (adapter) {
@@ -354,80 +356,95 @@ export class Criteria<T = any> {
       if (key === "limit") {
         continue;
       }
-      if (key === "sort") {
-        continue;
-      }
 
-      const [field, operatorWithQuantifier] = key.split(":");
+      if (key === "filters") {
+        const filters: Record<string, any> = criteria.parseFilterValue(value);
 
-      if (!operatorWithQuantifier || !field) continue;
+        for (let [filterKey, filterValue] of Object.entries(filters)) {
+          const [field, operatorWithQuantifier] = filterKey.split(":");
 
-      const [operatorRaw, quantifierRaw] = operatorWithQuantifier.split("@");
-      const operator = isOperator(operatorRaw) ? operatorRaw : null;
-      if (!operator) {
-        throw new InvalidCriteriaError(`Invalid filter operator`, operatorRaw);
-      }
+          if (!operatorWithQuantifier || !field) continue;
 
-      const validQuantifiers = ["some", "every", "none"];
-      const quantifier =
-        quantifierRaw && validQuantifiers.includes(quantifierRaw)
-          ? (quantifierRaw as CriteriaOptions["quantifier"])
-          : undefined;
+          const [operatorRaw, quantifierRaw] =
+            operatorWithQuantifier.split("@");
+          const operator = isOperator(operatorRaw) ? operatorRaw : null;
+          if (!operator) {
+            throw new InvalidCriteriaError(
+              `Invalid filter operator`,
+              operatorRaw
+            );
+          }
 
-      if (quantifierRaw && !quantifier) {
-        throw new InvalidCriteriaError(
-          `Invalid quantifier. Valid values: ${validQuantifiers.join(", ")}`,
-          quantifierRaw
-        );
-      }
+          const validQuantifiers = ["some", "every", "none"];
+          const quantifier =
+            quantifierRaw && validQuantifiers.includes(quantifierRaw)
+              ? (quantifierRaw as CriteriaOptions["quantifier"])
+              : undefined;
 
-      const options: CriteriaOptions | undefined = quantifier
-        ? { quantifier }
-        : undefined;
+          if (quantifierRaw && !quantifier) {
+            throw new InvalidCriteriaError(
+              `Invalid quantifier. Valid values: ${validQuantifiers.join(
+                ", "
+              )}`,
+              quantifierRaw
+            );
+          }
 
-      let parsedValue: any = value;
+          const options: CriteriaOptions | undefined = quantifier
+            ? { quantifier }
+            : undefined;
 
-      const resolvedField = criteria.resolveFieldPath(field as FieldPath<T>);
+          let parsedValue: any = filterValue;
 
-      if (operator === "between") {
-        parsedValue = value
-          .split(",")
-          .map((v: any) => parseQueryValue(v.trim()));
-        if (parsedValue.length === 2) {
+          const resolvedField = criteria.resolveFieldPath(
+            field as FieldPath<T>
+          );
+
+          if (operator === "between") {
+            parsedValue = criteria
+              .parseFilterValue(filterValue)
+              .map((v: any) => parseQueryValue(v.trim()));
+
+            if (parsedValue.length === 2) {
+              criteria.where(
+                resolvedField,
+                "between" as OperatorsForType<PathValue<T, FieldPath<T>>>,
+                [parsedValue[0], parsedValue[1]] as [
+                  PathValue<T, FieldPath<T>>,
+                  PathValue<T, FieldPath<T>>
+                ],
+                options
+              );
+            }
+            continue;
+          }
+
+          if (operator === "in" || operator === "notIn") {
+            parsedValue = criteria
+              .parseFilterValue(filterValue)
+              .map(parseQueryValue);
+
+            criteria.where(
+              field as any,
+              operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+              parsedValue,
+              options
+            );
+            continue;
+          }
+
+          const parsedFinalValue = parseQueryValue(filterValue);
+
+          criteria.validateOperator(operator, parsedFinalValue);
+
           criteria.where(
-            resolvedField,
-            "between" as OperatorsForType<PathValue<T, FieldPath<T>>>,
-            [parsedValue[0], parsedValue[1]] as [
-              PathValue<T, FieldPath<T>>,
-              PathValue<T, FieldPath<T>>
-            ],
+            field as FieldPath<T>,
+            operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+            parsedFinalValue,
             options
           );
         }
-        continue;
       }
-
-      if (operator === "in" || operator === "notIn") {
-        parsedValue = value.split(",").map(parseQueryValue);
-        criteria.where(
-          field as any,
-          operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-          parsedValue,
-          options
-        );
-        continue;
-      }
-
-      const parsedFinalValue = parseQueryValue(value);
-
-      criteria.validateOperator(operator, parsedFinalValue);
-
-      criteria.where(
-        field as FieldPath<T>,
-        operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        parsedFinalValue,
-        options
-      );
     }
 
     const page = query.page ? parseInt(query.page) : undefined;
@@ -437,24 +454,56 @@ export class Criteria<T = any> {
       criteria.paginate(page, limit);
     }
 
+    // 1. orderBy=["field:asc","field2:desc"]
     if (query.orderBy) {
-      const sortParts = query.orderBy.split(",");
-      sortParts.forEach((part: string) => {
-        const [field, direction] = part.split(":");
-        criteria.orderBy(
-          field as FieldPath<T>,
-          (direction as OrderDirection) || "asc"
-        );
-      });
-    }
+      const orderByValue = query.orderBy;
 
-    if (query.search && query.searchFields) {
-      const fields = (query.searchFields as string)
-        .split(",")
-        .filter(Boolean) as FieldPath<T>[];
-
-      const resolvedFields = fields.map(criteria.resolveFieldPath);
-      criteria.search(resolvedFields, query.search as string);
+      if (
+        typeof orderByValue === "string" &&
+        orderByValue.trim().startsWith("[")
+      ) {
+        try {
+          const orderArray = JSON.parse(orderByValue);
+          if (Array.isArray(orderArray)) {
+            orderArray.forEach((item: string) => {
+              const [field, direction] = item.split(":");
+              criteria.orderBy(
+                field as FieldPath<T>,
+                (direction as OrderDirection) || "asc"
+              );
+            });
+          }
+        } catch {
+          throw new InvalidCriteriaError(
+            "Invalid JSON array format for orderBy",
+            orderByValue
+          );
+        }
+      } else if (Array.isArray(orderByValue)) {
+        orderByValue.forEach((item: string) => {
+          const [field, direction] = item.split(":");
+          criteria.orderBy(
+            field as FieldPath<T>,
+            (direction as OrderDirection) || "asc"
+          );
+        });
+      }
+      // 2. orderBy="field:asc,field2:desc"
+      else if (typeof orderByValue === "string" && orderByValue.includes(":")) {
+        const sortParts = orderByValue.split(",");
+        sortParts.forEach((part: string) => {
+          const [field, direction] = part.split(":");
+          criteria.orderBy(
+            field as FieldPath<T>,
+            (direction as OrderDirection) || "asc"
+          );
+        });
+      }
+      // 3. orderBy="field" + orderDirection="asc"
+      else {
+        const direction = (query.orderDirection as OrderDirection) || "asc";
+        criteria.orderBy(orderByValue as FieldPath<T>, direction);
+      }
     }
 
     return criteria;
@@ -475,5 +524,16 @@ export class Criteria<T = any> {
         operator
       );
     }
+  }
+
+  private parseFilterValue(value: any) {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        throw new InvalidCriteriaError(`Invalid filter value`, value);
+      }
+    }
+    return parseQueryValue(value);
   }
 }

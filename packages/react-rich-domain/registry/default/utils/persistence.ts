@@ -39,18 +39,27 @@ export function criteriaToQueryParams<T>(
   const params = new URLSearchParams();
   const json = criteria.toJSON();
 
-  json.filters?.forEach((filter) => {
-    const key = `${filter.field}:${filter.operator}`;
-    if (filter.value !== undefined) {
-      if (Array.isArray(filter.value)) {
-        params.set(key, filter.value.join(","));
-      } else {
-        params.set(key, String(filter.value));
+  if (json.filters && json.filters.length > 0) {
+    const filtersObj: Record<string, unknown> = {};
+    for (const filter of json.filters) {
+      let filterKey = `${filter.field}:${filter.operator}`;
+      if (filter.options && filter.options.quantifier) {
+        filterKey += `@${filter.options.quantifier}`;
       }
-    } else {
-      params.set(key, "");
+      let value: string | undefined;
+      if (filter.value !== undefined) {
+        if (Array.isArray(filter.value)) {
+          value = JSON.stringify(filter.value);
+        } else {
+          value = String(filter.value);
+        }
+      } else {
+        value = "";
+      }
+      filtersObj[filterKey] = value;
     }
-  });
+    params.set("filters", JSON.stringify(filtersObj));
+  }
 
   if (json.pagination) {
     params.set("page", String(json.pagination.page));

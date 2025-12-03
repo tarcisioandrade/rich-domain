@@ -1,6 +1,7 @@
 import { Entity } from "./entity";
 import { ValueObject } from "./value-object";
 import { Id } from "./id";
+import { ConfigurationError } from "./exceptions";
 
 /**
  * Mapping schema for a domain entity.
@@ -93,9 +94,11 @@ export class EntitySchemaRegistry {
   getSchema(entity: string): EntitySchema {
     const schema = this.schemas.get(entity);
     if (!schema) {
-      throw new Error(
+      throw new ConfigurationError(
         `EntitySchemaRegistry: No schema registered for entity '${entity}'. ` +
-          `Available entities: ${Array.from(this.schemas.keys()).join(", ") || "none"}`
+          `Available entities: ${
+            Array.from(this.schemas.keys()).join(", ") || "none"
+          }`
       );
     }
     return schema;
@@ -234,7 +237,12 @@ export class EntitySchemaRegistry {
     if (Array.isArray(value)) return true;
     if (value instanceof Entity) return true;
     if (value instanceof ValueObject) return true;
-    if (typeof value === 'object' && value.id && typeof value.id === 'object' && 'value' in value.id) {
+    if (
+      typeof value === "object" &&
+      value.id &&
+      typeof value.id === "object" &&
+      "value" in value.id
+    ) {
       return true;
     }
     return false;

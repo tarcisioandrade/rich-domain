@@ -1,7 +1,7 @@
 {
-  "name": "@woltz/rich-domain",
-  "version": "1.2.4",
-  "description": "Rich Domain Library with Standard Schema validation support",
+  "name": "@woltz/rich-domain-criteria-zod",
+  "version": "0.1.0",
+  "description": "Zod integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "type": "module",
   "main": "dist/index.js",
@@ -17,15 +17,20 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/tarcisioandrade/rich-domain.git",
-    "directory": "packages/rich-domain"
+    "directory": "packages/rich-domain-criteria-zod"
   },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "echo 'No tests yet'",
+    "test:watch": "echo 'No tests yet'",
     "check": "tsc --noEmit",
-    "coverage": "jest --coverage",
-    "lint": "eslint src",
+    "coverage": "echo 'No coverage yet'",
+    "lint": "echo 'No linting yet'",
     "clean": "rm -rf dist coverage node_modules",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
@@ -34,32 +39,17 @@
     "release:patch": "standard-version --release-as patch"
   },
   "keywords": [
-    "ddd",
-    "domain-driven-design",
-    "entity",
-    "aggregate",
-    "value-object",
-    "validation",
-    "standard-schema",
+    "@woltz/rich-domain",
+    "zod",
+    "criteria",
+    "query",
+    "builder",
     "typescript"
   ],
-  "files": [
-    "dist",
-    "src",
-    "**/*.js",
-    "**/*.mjs",
-    "**/*.cjs",
-    "**/*.d.ts",
-    "**/*.d.mts",
-    "**/*.d.cts",
-    "**/package.json"
-  ],
-  "devDependencies": {
-    "@faker-js/faker": "^9.9.0",
-    "zod": "^4.1.5"
-  },
   "peerDependencies": {
-    "typescript": ">=4.7.0"
+    "@woltz/rich-domain": "^1.2.4",
+    "typescript": ">=5.4.3",
+    "zod": "^4.1.5"
   },
   "engines": {
     "node": ">=20.0.0"
