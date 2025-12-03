@@ -1,0 +1,57 @@
+{
+  "name": "@woltz/rich-domain-criteria-zod",
+  "version": "0.1.0",
+  "description": "Zod integration for Rich Domain Library",
+  "homepage": "https://woltz.mintlify.app",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain-criteria-zod"
+  },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'No tests yet'",
+    "test:watch": "echo 'No tests yet'",
+    "check": "tsc --noEmit",
+    "coverage": "echo 'No coverage yet'",
+    "lint": "echo 'No linting yet'",
+    "clean": "rm -rf dist coverage node_modules",
+    "prepublishOnly": "npm run build",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch"
+  },
+  "keywords": [
+    "@woltz/rich-domain",
+    "zod",
+    "criteria",
+    "query",
+    "builder",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.2.4",
+    "typescript": ">=5.4.3",
+    "zod": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
