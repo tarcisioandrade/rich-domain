@@ -41,7 +41,16 @@ export abstract class BaseEntity<T extends BaseProps> {
       this,
       "validation"
     );
+
     const hooks = getStaticProperty<EntityHooks<T, any>>(this, "hooks");
+
+    if (!props.id) {
+      props.id = new Id();
+    }
+
+    if (hooks?.onBeforeCreate) {
+      hooks.onBeforeCreate(props as T);
+    }
 
     this.entityHooks = hooks;
 
@@ -55,10 +64,6 @@ export abstract class BaseEntity<T extends BaseProps> {
     };
 
     let finalProps = { ...props } as T;
-
-    if (!finalProps.id) {
-      finalProps.id = new Id();
-    }
 
     if (this.entitySchema && this.validationConfig.onCreate) {
       this.validateProps(finalProps);

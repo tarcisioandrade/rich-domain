@@ -27,7 +27,6 @@ class User extends Aggregate<UserProps> {
   };
 
   protected static hooks: EntityHooks<UserProps, User> = {
-    onCreate: (entity) => {},
     onBeforeUpdate: (entity, snapshot) => {
       if (snapshot.email !== entity.email) {
         return false;
@@ -228,6 +227,52 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(() => {
         user.name = "admin";
       }).toThrow(Error);
+    });
+
+    it("should call onBeforeCreate hook", () => {
+      class OnBeforeCreateHook extends Aggregate<UserProps> {
+        protected static hooks: EntityHooks<UserProps, OnBeforeCreateHook> = {
+          onBeforeCreate: (props) => {
+            props.name = "OnBeforeCreateHook";
+          },
+        };
+        get name(): string {
+          return this.props.name;
+        }
+      }
+      const user = new OnBeforeCreateHook({
+        name: "John Doe",
+        email: "john@example.com",
+        age: 30,
+        status: "active",
+      });
+
+      expect(user.name).toBe("OnBeforeCreateHook");
+    });
+
+    it("should call onCreate hook", () => {
+      class OnCreateHook extends Aggregate<UserProps> {
+        protected static hooks: EntityHooks<UserProps, OnCreateHook> = {
+          onCreate: (entity) => {
+            entity.name = "OnCreateHook";
+          },
+        };
+        get name(): string {
+          return this.props.name;
+        }
+        set name(value: string) {
+          this.props.name = value;
+        }
+      }
+
+      const user = new OnCreateHook({
+        name: "John Doe",
+        email: "john@example.com",
+        age: 30,
+        status: "active",
+      });
+
+      expect(user.name).toBe("OnCreateHook");
     });
   });
 
