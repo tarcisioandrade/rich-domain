@@ -9,6 +9,8 @@ export interface BaseOperation {
   entity: string;
   /** Depth in the aggregate tree (0 = root, 1 = direct children, etc.) */
   depth: number;
+  /** Name of the relation field in the parent entity (e.g., 'tags', 'comments') */
+  relationField?: string;
 }
 
 /**
@@ -64,6 +66,8 @@ export interface BatchCreateItem<T = any> {
   data: T;
   /** Parent ID (for FK) */
   parentId?: string;
+  /** Relation field name */
+  relationField?: string;
 }
 
 /**
@@ -77,6 +81,16 @@ export interface BatchUpdateItem {
 }
 
 /**
+ * Item for batch delete.
+ */
+export interface BatchDeleteItem {
+  /** Entity ID */
+  id: string;
+  /** Relation field name */
+  relationField?: string;
+}
+
+/**
  * Grouped and ordered operations for batch execution.
  */
 export interface BatchOperations {
@@ -87,6 +101,10 @@ export interface BatchOperations {
     entity: string;
     depth: number;
     ids: string[];
+    /** Relation field name (for determining owned vs reference) */
+    relationField?: string;
+    /** Individual items with their relation fields (when mixed) */
+    items?: BatchDeleteItem[];
   }>;
 
   /**
@@ -96,6 +114,8 @@ export interface BatchOperations {
     entity: string;
     depth: number;
     items: BatchCreateItem[];
+    /** Relation field name (for determining owned vs reference) */
+    relationField?: string;
   }>;
 
   /**
