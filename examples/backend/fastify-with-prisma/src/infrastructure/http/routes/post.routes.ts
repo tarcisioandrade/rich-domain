@@ -36,7 +36,7 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.status(201).send(post.toJson());
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
+        return reply.status(400).send({ error: z.treeifyError(error) });
       }
       return reply.status(400).send({
         error: error instanceof Error ? error.message : "Unknown error",
@@ -52,7 +52,7 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.send(post.toJson());
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
+        return reply.status(400).send({ error: z.treeifyError(error) });
       }
       return reply.status(404).send({
         error: error instanceof Error ? error.message : "Unknown error",
@@ -84,7 +84,7 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.send({ message: "Post updated successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
+        return reply.status(400).send({ error: z.treeifyError(error) });
       }
       return reply.status(404).send({
         error: error instanceof Error ? error.message : "Unknown error",
@@ -100,7 +100,7 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.send(post.toJson());
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: error.errors });
+        return reply.status(400).send({ error: z.treeifyError(error) });
       }
       return reply.status(404).send({
         error: error instanceof Error ? error.message : "Unknown error",

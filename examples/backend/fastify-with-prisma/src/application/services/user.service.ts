@@ -33,8 +33,6 @@ export class UserService {
     });
 
     await this.userRepository.save(user);
-
-    throw new Error("test");
     await user.dispatchAll(EVENT_BUS);
 
     return user;
