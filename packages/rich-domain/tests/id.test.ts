@@ -181,7 +181,7 @@ describe("Entity with Id Class", () => {
     });
   });
 
-  describe("toJson()", () => {
+  describe("toJSON()", () => {
     it("should serialize Id to string", () => {
       const post = new Post({
         id: new Id("post-123"),
@@ -191,7 +191,7 @@ describe("Entity with Id Class", () => {
         content: "Content",
       });
 
-      const json = post.toJson();
+      const json = post.toJSON();
 
       expect(json.id).toBe("post-123");
       expect(typeof json.id).toBe("string");
@@ -328,7 +328,7 @@ describe("Aggregate with Id Class", () => {
       }),
     });
 
-    const json = user.toJson();
+    const json = user.toJSON();
 
     expect(json.id).toBe("user-1");
     expect(json.posts[0].id).toBe("post-1");

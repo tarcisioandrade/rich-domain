@@ -998,8 +998,8 @@ export class ChangeTracker {
       return obj.value;
     }
 
-    if (typeof obj.toJson === "function") {
-      return obj.toJson();
+    if (typeof obj.toJSON === "function") {
+      return obj.toJSON();
     }
 
     if (Array.isArray(obj)) {

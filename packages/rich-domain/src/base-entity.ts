@@ -228,7 +228,7 @@ export abstract class BaseEntity<T extends BaseProps> {
       obj.constructor.name !== "Array"
     ) {
       if (
-        typeof obj.toJson === "function" &&
+        typeof obj.toJSON === "function" &&
         typeof obj.equals === "function"
       ) {
         return obj;
@@ -376,7 +376,7 @@ export abstract class BaseEntity<T extends BaseProps> {
     return this.domainEvents.length > 0;
   }
 
-  toJson(): DeepJsonResult<T> {
+  toJSON(): DeepJsonResult<T> {
     return this.deepToJson(this._props) as DeepJsonResult<T>;
   }
 
@@ -385,8 +385,8 @@ export abstract class BaseEntity<T extends BaseProps> {
     if (obj instanceof Id) return obj.value;
     if (obj instanceof Date) return obj.toISOString();
     if (Array.isArray(obj)) return obj.map((item) => this.deepToJson(item));
-    if (obj instanceof BaseEntity) return obj.toJson();
-    if (obj && typeof obj.toJson === "function") return obj.toJson();
+    if (obj instanceof BaseEntity) return obj.toJSON();
+    if (obj && typeof obj.toJSON === "function") return obj.toJSON();
     if (typeof obj === "object") {
       const result: any = {};
       for (const key in obj) {

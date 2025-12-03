@@ -229,7 +229,7 @@ export abstract class ValueObject<T> {
     return this.domainEvents.length > 0;
   }
 
-  toJson(): T {
+  toJSON(): T {
     return { ...this.props };
   }
 

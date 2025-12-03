@@ -37,7 +37,7 @@ describe("Value Object", () => {
      tagId: "1",
     });
 
-    const json = tag.toJson();
+    const json = tag.toJSON();
     expect(json).toEqual({
       name: "Tag 1",
       tagId: "1",

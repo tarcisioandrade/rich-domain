@@ -4,10 +4,10 @@ import type { Pagination, PaginationMeta, Filter } from "./types";
 
 /**
  * Infers the JSON result type from T
- * - If T has toJson(), returns its return type
+ * - If T has toJSON(), returns its return type
  * - Otherwise returns T as-is
  */
-type InferJsonResult<T> = T extends { toJson(): infer R } ? R : T;
+type InferJsonResult<T> = T extends { toJSON(): infer R } ? R : T;
 
 /**
  * Type for the serialized result of PaginatedResult.toJSON()
@@ -106,8 +106,8 @@ export class PaginatedResult<T> {
 
   /**
    * Converts the result to JSON, deeply serializing all entities/aggregates/value objects
-   * - Entities/Aggregates → calls toJson() recursively
-   * - Value Objects → calls toJson()
+   * - Entities/Aggregates → calls toJSON() recursively
+   * - Value Objects → calls toJSON()
    * - Id → converts to string
    * - Arrays → maps recursively
    * - Plain objects → serializes properties recursively
@@ -134,8 +134,8 @@ export class PaginatedResult<T> {
       return obj.map((item) => this.deepSerialize(item));
     }
 
-    if (obj && typeof obj.toJson === "function") {
-      return obj.toJson();
+    if (obj && typeof obj.toJSON === "function") {
+      return obj.toJSON();
     }
 
     if (typeof obj === "object") {

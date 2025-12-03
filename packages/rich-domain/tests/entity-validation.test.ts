@@ -240,7 +240,7 @@ describe("Rich Domain with Standard Schema Validation", () => {
         status: "active",
       });
 
-      const json = user.toJson();
+      const json = user.toJSON();
 
       expect(json.name).toBe("John Doe");
       expect(json.email).toBe("john@example.com");

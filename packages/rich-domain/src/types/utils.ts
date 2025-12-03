@@ -3,10 +3,10 @@ import { Id } from "../id";
 export type DeepJsonResult<T> = {
   [K in keyof T]: T[K] extends Id
     ? string
-    : T[K] extends { toJson(): infer U }
+    : T[K] extends { toJSON(): infer U }
     ? U
     : T[K] extends Array<infer U>
-    ? U extends { toJson(): infer V }
+    ? U extends { toJSON(): infer V }
       ? V[]
       : U extends Id
       ? string[]

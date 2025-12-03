@@ -1,7 +1,7 @@
 import { Entity, Id } from "../src";
 import { Post, User, Address } from "./utils";
 
-describe("toJson Functionality", () => {
+describe("toJSON Functionality", () => {
   it("should convert simple entity to JSON", () => {
     const post = new Post({
       id: new Id("1"),
@@ -11,7 +11,7 @@ describe("toJson Functionality", () => {
       comments: [],
     });
 
-    const json = post.toJson();
+    const json = post.toJSON();
     expect(json).toEqual({
       id: "1",
       title: "First Post",
@@ -49,7 +49,7 @@ describe("toJson Functionality", () => {
       tags: [],
     });
 
-    const json = user.toJson();
+    const json = user.toJSON();
 
     expect(json.id).toBe("1");
     expect(json.name).toBe("John Doe");
@@ -79,7 +79,7 @@ describe("toJson Functionality", () => {
       tags: [],
     });
 
-    const json = user.toJson();
+    const json = user.toJSON();
     expect(typeof json).toBe("object");
     expect(Array.isArray(json.posts)).toBe(true);
     expect(json.posts[0].id).toBe("1");
@@ -93,7 +93,7 @@ describe("toJson Functionality", () => {
       createdAt: new Date(),
     });
 
-    const json = test.toJson();
+    const json = test.toJSON();
     expect(json.createdAt).toBe(test.props.createdAt.toISOString());
   });
 });
