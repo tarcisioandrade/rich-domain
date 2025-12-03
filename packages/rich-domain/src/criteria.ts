@@ -27,7 +27,7 @@ export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];
   private _orders: Order[] = [];
   private _pagination: Pagination = { page: 1, limit: 20, offset: 0 };
-  private _search?: Search<T>;
+  private _search?: Search;
   private _adapter?: CriteriaAdapter<any, any>;
 
   private constructor() {}
@@ -155,11 +155,8 @@ export class Criteria<T = any> {
     return this.orderBy(field, "desc");
   }
 
-  search<K extends FieldPath<T>>(fields: K[], value: string): this {
-    this._search = {
-      fields: fields.map(this.resolveFieldPath),
-      value,
-    };
+  search(value: string): this {
+    this._search = value;
     return this;
   }
 
@@ -167,13 +164,8 @@ export class Criteria<T = any> {
     return !!this._search;
   }
 
-  getSearch() {
-    return this._search
-      ? {
-          fields: this._search.fields.map(this.resolveFieldPath),
-          value: this._search.value,
-        }
-      : undefined;
+  getSearch(): Search | undefined {
+    return this._search;
   }
 
   paginate(page: number, limit: number): this {
@@ -241,12 +233,7 @@ export class Criteria<T = any> {
       })),
     ];
     cloned._pagination = { ...this._pagination };
-    cloned._search = this._search
-      ? {
-          fields: this._search.fields.map(this.resolveFieldPath),
-          value: this._search.value,
-        }
-      : undefined;
+    cloned._search = this._search;
 
     if (this._adapter) {
       cloned.useAdapter(this._adapter);
@@ -268,12 +255,7 @@ export class Criteria<T = any> {
         direction: order.direction,
       })),
       pagination: this._pagination,
-      search: this._search
-        ? {
-            fields: this._search.fields.map(this.resolveFieldPath),
-            value: this._search.value,
-          }
-        : undefined,
+      search: this._search,
     };
   }
 
@@ -282,7 +264,7 @@ export class Criteria<T = any> {
       filters?: TypedFilter<T>[];
       orders?: TypedOrder<T>[];
       pagination?: Pagination;
-      search?: { fields: FieldPath<T>[]; value: string };
+      search?: Search;
     },
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
@@ -307,11 +289,7 @@ export class Criteria<T = any> {
         })),
       ];
     if (obj.pagination) criteria._pagination = { ...obj.pagination };
-    if (obj.search)
-      criteria._search = {
-        ...obj.search,
-        fields: obj.search.fields.map(criteria.resolveFieldPath),
-      };
+    if (obj.search) criteria._search = obj.search;
 
     return criteria;
   }
@@ -504,6 +482,10 @@ export class Criteria<T = any> {
         const direction = (query.orderDirection as OrderDirection) || "asc";
         criteria.orderBy(orderByValue as FieldPath<T>, direction);
       }
+    }
+
+    if (query.search && typeof query.search === "string") {
+      criteria.search(query.search);
     }
 
     return criteria;

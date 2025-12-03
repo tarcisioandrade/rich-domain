@@ -58,18 +58,6 @@ export class PaginatedResult<T> {
     let result = [...items];
     let total = result.length;
 
-    const search = criteria.getSearch();
-    if (search) {
-      result = result.filter((item) => {
-        return search.fields.some((field) => {
-          return String(getNestedValue(item, field))
-            .toLowerCase()
-            .includes(search.value.trim().toLowerCase());
-        });
-      });
-      total = result.length;
-    }
-
     for (const filter of criteria.getFilters()) {
       result = result.filter((item) => applyFilter(item, filter));
       total = result.length;
@@ -89,19 +77,11 @@ export class PaginatedResult<T> {
     }
 
     const pagination = criteria.getPagination();
-    if (pagination && !criteria.hasSearch()) {
-      result = result.slice(
-        pagination.offset,
-        pagination.offset + pagination.limit
-      );
-      return PaginatedResult.create(result, pagination, total);
-    }
-
-    return PaginatedResult.create(
-      result,
-      { page: 1, limit: result.length, offset: 0 },
-      total
+    result = result.slice(
+      pagination.offset,
+      pagination.offset + pagination.limit
     );
+    return PaginatedResult.create(result, pagination, total);
   }
 
   /**

@@ -112,30 +112,23 @@ describe("Criteria", () => {
       expect(filters[1].operator).toBe("contains");
       expect(filters[2].operator).toBe("in");
     });
+
+    it("should set search value", () => {
+      const criteria = Criteria.create<TestUser>().search("john");
+
+      expect(criteria.hasSearch()).toBe(true);
+      expect(criteria.getSearch()).toBe("john");
+    });
+
+    it("should include search in toJSON", () => {
+      const criteria = Criteria.create<TestUser>().search("test");
+
+      const json = criteria.toJSON();
+      expect(json.search).toBe("test");
+    });
   });
 
   describe("Filtering", () => {
-    it("should filter by search", () => {
-      const criteria = Criteria.create<TestUser>().search(["name"], "Bob");
-
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe("Bob");
-    });
-
-    it("should search by all items ignoring pagination and limit", () => {
-      const criteria = Criteria.create<TestUser>()
-        .search(["name"], "Eve")
-        .paginate(3, 1);
-      const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe("Eve");
-      expect(result.meta.total).toBe(1);
-      expect(result.meta.totalPages).toBe(1);
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.limit).toBe(1);
-    });
-
     it("should filter by greaterThan", () => {
       const criteria = Criteria.create<TestUser>().where(
         "age",
@@ -442,6 +435,17 @@ describe("Criteria", () => {
       expect(orders[1].direction).toBe("desc");
       expect(orders[2].field).toBe("age");
       expect(orders[2].direction).toBe("asc");
+    });
+
+    it("should parse search from query params", () => {
+      const queryParams = {
+        search: "john doe",
+      };
+
+      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
+
+      expect(criteria.hasSearch()).toBe(true);
+      expect(criteria.getSearch()).toBe("john doe");
     });
 
     it("should support JSON array orderBy format", () => {

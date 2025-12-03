@@ -129,10 +129,7 @@ export interface Pagination {
   offset: number;
 }
 
-export interface Search<T> {
-  fields: FieldPath<T>[];
-  value: string;
-}
+export type Search = string;
 
 export interface PaginationMeta {
   page: number;
