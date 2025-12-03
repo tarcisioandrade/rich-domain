@@ -337,7 +337,7 @@ export class Criteria<T = any> {
     return field;
   }
 
-  static fromQueryParams<T>(
+  static fromQueryParams<T = any>(
     query: Record<string, any> | undefined,
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
@@ -504,15 +504,6 @@ export class Criteria<T = any> {
         const direction = (query.orderDirection as OrderDirection) || "asc";
         criteria.orderBy(orderByValue as FieldPath<T>, direction);
       }
-    }
-
-    if (query.search && query.searchFields) {
-      const fields = (query.searchFields as string)
-        .split(",")
-        .filter(Boolean) as FieldPath<T>[];
-
-      const resolvedFields = fields.map(criteria.resolveFieldPath);
-      criteria.search(resolvedFields, query.search as string);
     }
 
     return criteria;
