@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.4...v1.3.0) (2025-12-05)
+
+
+### Features
+
+* add docs favicon ([d901f21](https://github.com/tarcisioandrade/rich-domain/commit/d901f21a0affc79ed1e8351807d0cf431815cd37))
+* add Tag and Group models, implement tagging functionality in Post service ([58bc9b8](https://github.com/tarcisioandrade/rich-domain/commit/58bc9b8149db9a1e866396843ebd1a797e4bdb90))
+* enhance criteria parsing to support filters with quantifiers and improve error handling ([db72d14](https://github.com/tarcisioandrade/rich-domain/commit/db72d14e03c4adfd2dfc83a25ca5168c87bbe16d))
+* enhance Criteria.fromQueryParams to support multiple orderBy formats ([94a3b7d](https://github.com/tarcisioandrade/rich-domain/commit/94a3b7d87c9ebdf9409462c497c704cdac3f6cf9))
+* include parentId and parentEntity for N:N relation support ([afa5d5f](https://github.com/tarcisioandrade/rich-domain/commit/afa5d5f2346ff371ead349e132235194561ad070))
+* integrate Fastify Swagger and rich-domain-criteria-zod ([65b86cf](https://github.com/tarcisioandrade/rich-domain/commit/65b86cfc234d1cf0453ce523617543925c9efaa1))
+* introduce error handling for batch operations and enhance Prisma repository with validation ([ba9e9af](https://github.com/tarcisioandrade/rich-domain/commit/ba9e9af3da4bb3e9925dcb16136efebb514145cf))
+* onBeforeCreate implementation ([6055817](https://github.com/tarcisioandrade/rich-domain/commit/6055817f3772d822cd5e91c16e38c77cd313bb31))
+* refactor criteriaToQueryParams to support quantifiers in filters and improve value handling ([29c6d94](https://github.com/tarcisioandrade/rich-domain/commit/29c6d94d6ccd7fb6f1eef95fd7d6471e9512d637))
+* relation field implementation to N:N actions ([4a286f4](https://github.com/tarcisioandrade/rich-domain/commit/4a286f459d0b9a62a290e68fbd6d2557fc82ea10))
+* rich domain criteria zod package implementation ([e25b45b](https://github.com/tarcisioandrade/rich-domain/commit/e25b45b0a42a4237d1db043568e682de0a86b030))
+
+
+### Chores
+
+* update package.json files for rich-domain and rich-domain-prisma ([4857580](https://github.com/tarcisioandrade/rich-domain/commit/4857580accfe8a4ec1cc4d73f57f2ef9bc62fc65))
+* update zod dependency to version 4.1.5 and adjust Criteria.fromQueryParams type ([40d0a41](https://github.com/tarcisioandrade/rich-domain/commit/40d0a41acf13adf08d0b3d2998b9a99023ee6749))
+
+
+### Documentation
+
+* change toJson to toJSON ([df27a2c](https://github.com/tarcisioandrade/rich-domain/commit/df27a2c16874a6ae30554f4c796c46946e739871))
+
+
+### Refactoring
+
+* enhance search handling in useCriteria hook and related types ([caa7ff6](https://github.com/tarcisioandrade/rich-domain/commit/caa7ff6656369135216b7c8c48f88cb9a52cd8ef))
+* improve search parameter handling in criteria persistence utilities ([eca3695](https://github.com/tarcisioandrade/rich-domain/commit/eca36950def882b6565e64846e201f44101f9027))
+* remove redundant comments and improve constructor formatting in error classes ([0dab1ea](https://github.com/tarcisioandrade/rich-domain/commit/0dab1ea740c0af229ab3be703b4e2a91b54bc696))
+* rename toJson methods to toJSON for consistency across rich-domain classes ([d37eaef](https://github.com/tarcisioandrade/rich-domain/commit/d37eaefce2ba6fc4c4da735000a2fe1b672c89c5))
+* simplify search handling in Criteria class and update related types ([bd3e840](https://github.com/tarcisioandrade/rich-domain/commit/bd3e8403e91ed9bc33f0a1ca2feebe555e84ec2d))
+* streamline EntitySchemaRegistry configuration for Post and User mappers ([566999f](https://github.com/tarcisioandrade/rich-domain/commit/566999ff0aedb68b130968f7875a957e98245940))
+* update filter components and utility functions for improved criteria handling ([baa05f8](https://github.com/tarcisioandrade/rich-domain/commit/baa05f864576049678147c3a596afb054382dc94))
+
 ### [1.2.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.2...v1.2.4) (2025-11-30)
 
 
