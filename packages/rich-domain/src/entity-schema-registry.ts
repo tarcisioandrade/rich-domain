@@ -161,6 +161,13 @@ export class EntitySchemaRegistry {
   }
 
   /**
+   * Gets all registered schemas.
+   */
+  getAllSchemas(): EntitySchema[] {
+    return Array.from(this.schemas.values());
+  }
+
+  /**
    * Tries to get the schema of an entity, returns null if not found.
    * @param entity - Entity name.
    */

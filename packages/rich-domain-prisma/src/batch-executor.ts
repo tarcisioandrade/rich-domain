@@ -439,10 +439,8 @@ export class PrismaBatchExecutor {
   /**
    * Get list of registered entities for better error messages.
    */
-  private getRegisteredEntities(): string[] {
-    // This would require exposing entity list from registry
-    // For now, return empty array
-    return [];
+  private getRegisteredEntities() {
+    return this.config.registry.getAllSchemas().map((schema) => schema.entity);
   }
 }
 
