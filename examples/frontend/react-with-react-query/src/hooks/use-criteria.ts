@@ -8,6 +8,8 @@ import {
   type FilterValueFor,
   type PathValue,
   type OperatorsForType,
+  type CriteriaOptions,
+  type Search,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -48,7 +50,7 @@ export function useCriteria<T = unknown>(
       filters: Filter<string, unknown>[];
       orders: Order[];
       pagination: { page: number; limit: number; offset: number };
-      search?: { fields: FieldPath<T>[]; value: string } | null;
+      search?: Search | null;
     }): Criteria<T> => {
       const criteria = Criteria.create<T>();
 
@@ -63,8 +65,7 @@ export function useCriteria<T = unknown>(
         criteria.orderBy(o.field as FieldPath<T>, o.direction)
       );
       criteria.paginate(parts.pagination.page, parts.pagination.limit);
-      if (parts.search)
-        criteria.search(parts.search.fields, parts.search.value);
+      if (parts.search) criteria.search(parts.search);
 
       return criteria;
     },
@@ -97,7 +98,7 @@ export function useCriteria<T = unknown>(
     });
 
     if (initialSearch) {
-      criteria.search(initialSearch.fields, initialSearch.value);
+      criteria.search(initialSearch);
     }
 
     return criteria;
@@ -137,7 +138,8 @@ export function useCriteria<T = unknown>(
     <K extends FieldPath<T>>(
       field: K,
       operator: OperatorsForType<PathValue<T, K>>,
-      value?: FilterValueFor<PathValue<T, K>>
+      value?: FilterValueFor<PathValue<T, K>>,
+      options?: CriteriaOptions
     ) => {
       setCriteria((prev) => {
         const currentFilters = prev.getFilters();
@@ -149,11 +151,56 @@ export function useCriteria<T = unknown>(
         let newFilters;
         if (existingIndex !== -1) {
           newFilters = [...currentFilters];
-          newFilters[existingIndex] = { field, operator, value };
+          newFilters[existingIndex] = { field, operator, value, options };
         } else {
-          newFilters = [...currentFilters, { field, operator, value }];
+          newFilters = [...currentFilters, { field, operator, value, options }];
         }
 
+        return buildCriteria({
+          filters: newFilters,
+          orders: prev.getOrders(),
+          pagination: prev.getPagination(),
+          search: prev.hasSearch() ? prev.getSearch() : null,
+        });
+      });
+    },
+    [buildCriteria]
+  );
+
+  const removeFilter = useCallback(
+    (index: number) => {
+      setCriteria((prev) => {
+        const currentFilters = prev.getFilters();
+        const newFilters = currentFilters.filter((_, i) => i !== index);
+
+        return buildCriteria({
+          filters: newFilters,
+          orders: prev.getOrders(),
+          pagination: prev.getPagination(),
+          search: prev.hasSearch() ? prev.getSearch() : null,
+        });
+      });
+    },
+    [buildCriteria]
+  );
+
+  const addOrReplaceByIndex = useCallback(
+    (props: {
+      field: FieldPath<T>;
+      operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
+      value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
+      options?: CriteriaOptions;
+      replaceIndex?: number;
+    }) => {
+      const { field, operator, value, options, replaceIndex } = props;
+      setCriteria((prev) => {
+        const currentFilters = prev.getFilters();
+        const newFilters = [...currentFilters];
+        if (replaceIndex !== undefined) {
+          newFilters[replaceIndex] = { field, operator, value, options };
+        } else {
+          newFilters.push({ field, operator, value, options });
+        }
         return buildCriteria({
           filters: newFilters,
           orders: prev.getOrders(),
@@ -179,23 +226,6 @@ export function useCriteria<T = unknown>(
       return sorting.find((s) => s.field === field) as Order | undefined;
     },
     [sorting]
-  );
-
-  const removeFilter = useCallback(
-    (index: number) => {
-      setCriteria((prev) => {
-        const currentFilters = prev.getFilters();
-        const newFilters = currentFilters.filter((_, i) => i !== index);
-
-        return buildCriteria({
-          filters: newFilters,
-          orders: prev.getOrders(),
-          pagination: prev.getPagination(),
-          search: prev.hasSearch() ? prev.getSearch() : null,
-        });
-      });
-    },
-    [buildCriteria]
   );
 
   const removeFilterByField = useCallback(
@@ -354,13 +384,13 @@ export function useCriteria<T = unknown>(
   }, [buildCriteria]);
 
   const setSearch = useCallback(
-    (fields: FieldPath<T>[], value: string) => {
+    (value: string) => {
       setCriteria((prev) => {
         return buildCriteria({
           filters: prev.getFilters(),
           orders: prev.getOrders(),
           pagination: prev.getPagination(),
-          search: { fields, value },
+          search: value,
         });
       });
     },
@@ -390,7 +420,8 @@ export function useCriteria<T = unknown>(
       newCriteria.where(
         filter.field,
         filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>,
+        filter.options
       );
     });
 
@@ -399,10 +430,7 @@ export function useCriteria<T = unknown>(
     });
 
     if (config.initialSearch) {
-      newCriteria.search(
-        config.initialSearch.fields,
-        config.initialSearch.value
-      );
+      newCriteria.search(config.initialSearch);
     }
 
     setCriteria(newCriteria);
@@ -418,18 +446,20 @@ export function useCriteria<T = unknown>(
 
   return {
     criteria,
+    addOrReplaceByIndex,
     filters,
     sorting,
     pagination,
     search,
     addFilter,
+    getSortByField,
+    getFilterByField,
     removeFilter,
     removeFilterByField,
     clearFilters,
     addSort,
     removeSort,
     removeSortByField,
-    getSortByField,
     clearSort,
     setPage,
     setPageSize,
@@ -440,6 +470,5 @@ export function useCriteria<T = unknown>(
     reset,
     toJSON,
     clone,
-    getFilterByField,
   };
 }

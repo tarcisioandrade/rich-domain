@@ -9,6 +9,7 @@ import type {
   FilterValueFor,
   PathValue,
   OperatorsForType,
+  CriteriaOptions,
 } from "@woltz/rich-domain";
 
 /**
@@ -38,7 +39,7 @@ export interface UseCriteriaOptions<T> {
   /**
    * Initial search configuration
    */
-  initialSearch?: Search<T>;
+  initialSearch?: Search;
 
   /**
    * Callback fired when criteria changes
@@ -83,7 +84,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Current search state
    */
-  search: Search<T> | null;
+  search: Search | null;
 
   /**
    * Add a filter. If a filter for the same field exists, it will be replaced.
@@ -91,7 +92,8 @@ export interface UseCriteriaReturn<T> {
   addFilter: <K extends FieldPath<T>>(
     field: K,
     operator: OperatorsForType<PathValue<T, K>>,
-    value?: FilterValueFor<PathValue<T, K>>
+    value?: FilterValueFor<PathValue<T, K>>,
+    options?: CriteriaOptions
   ) => void;
 
   /**
@@ -115,28 +117,36 @@ export interface UseCriteriaReturn<T> {
   addSort: (field: FieldPath<T>, direction?: OrderDirection) => void;
 
   /**
+   * Remove sort by index
+   */
+  removeSort: (index: number) => void;
+
+  /**
+   * Replace a filter by index
+   */
+  addOrReplaceByIndex: (props: {
+    field: FieldPath<T>;
+    operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
+    value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
+    options?: CriteriaOptions;
+    replaceIndex?: number;
+  }) => void;
+  /**
+   * Remove sort by field name
+   */
+  removeSortByField: (field: FieldPath<T>) => void;
+
+  /**
    * Get filter by field name
    */
-  getFilterByField: <K extends FieldPath<T>> (
+  getFilterByField: <K extends FieldPath<T>>(
     field: K
   ) => Filter<string, FilterValueFor<PathValue<T, K>>> | undefined;
 
   /**
    * Get sort by field name
    */
-  getSortByField: <K extends FieldPath<T>>(
-    field: K
-  ) => Order | undefined;
-
-  /**
-   * Remove sort by index
-   */
-  removeSort: (index: number) => void;
-
-  /**
-   * Remove sort by field name
-   */
-  removeSortByField: (field: FieldPath<T>) => void;
+  getSortByField: <K extends FieldPath<T>>(field: K) => Order | undefined;
 
   /**
    * Clear all sorting
@@ -166,7 +176,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Set search
    */
-  setSearch: (fields: FieldPath<T>[], value: string) => void;
+  setSearch: (value: string) => void;
 
   /**
    * Clear search

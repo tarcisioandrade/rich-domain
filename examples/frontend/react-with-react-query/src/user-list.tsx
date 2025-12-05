@@ -56,13 +56,13 @@ export function UserList() {
   });
 
   const [searchValue, setSearchValue] = useState<string | undefined>(
-    search?.value ?? ""
+    search ?? ""
   );
 
   const handleSearch = (searchValue: string) => {
     setSearchValue(searchValue);
     if (searchValue.trim()) {
-      setSearch(["name"], searchValue);
+      setSearch(searchValue);
     } else {
       clearSearch();
     }
