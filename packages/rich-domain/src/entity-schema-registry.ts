@@ -2,6 +2,46 @@ import { Entity } from "./entity";
 import { ValueObject } from "./value-object";
 import { Id } from "./id";
 import { ConfigurationError } from "./exceptions";
+import { levenshteinDistance } from "./utils/helpers";
+
+/**
+ * Type of collection relationship.
+ * - 'owned': Parent owns the children (1:N). Delete parent = delete children.
+ * - 'reference': Parent references existing entities (N:N). Delete parent = unlink only.
+ */
+export type CollectionType = "owned" | "reference";
+
+/**
+ * Configuration for a collection (1:N or N:N relationship).
+ */
+export interface CollectionConfig {
+  /**
+   * Type of relationship.
+   * - 'owned': Children are created/deleted with the parent (default for 1:N)
+   * - 'reference': Only the link is created/removed (for N:N)
+   * @default 'owned'
+   */
+  type: CollectionType;
+
+  /**
+   * Target entity name (required for 'reference' type).
+   * @example 'Tag'
+   */
+  entity?: string;
+
+  /**
+   * Junction table configuration (optional, for ORMs that need it like Drizzle).
+   * Prisma handles this automatically, so it's optional.
+   */
+  junction?: {
+    /** Junction table name (e.g., 'post_tags', '_PostToTag') */
+    table: string;
+    /** FK field pointing to the source entity (e.g., 'post_id') */
+    sourceKey: string;
+    /** FK field pointing to the target entity (e.g., 'tag_id') */
+    targetKey: string;
+  };
+}
 
 /**
  * Mapping schema for a domain entity.
@@ -18,7 +58,7 @@ export interface EntitySchema {
    */
   fields?: Record<string, string>;
   /**
-   * FK configuration for parent relation.
+   * FK configuration for parent relation (1:N owned).
    */
   parentFk?: {
     /** Name of the FK field in the database (e.g., 'author_id') */
@@ -26,6 +66,18 @@ export interface EntitySchema {
     /** Name of the parent entity (e.g., 'User') */
     parentEntity: string;
   };
+  /**
+   * Collection configurations for this entity's relations.
+   * Key is the property name in the domain entity.
+   * @example
+   * ```typescript
+   * collections: {
+   *   comments: { type: 'owned' },
+   *   tags: { type: 'reference', entity: 'Tag' }
+   * }
+   * ```
+   */
+  collections?: Record<string, CollectionConfig>;
 }
 
 /**
@@ -51,11 +103,15 @@ export interface MappedEntityData {
  *     table: 'blog_posts',
  *     fields: { content: 'post_content' },
  *     parentFk: { field: 'author_id', parentEntity: 'User' },
+ *     collections: {
+ *       comments: { type: 'owned' },
+ *       tags: { type: 'reference', entity: 'Tag' }
+ *     }
  *   });
  *
  * const table = registry.getTable('Post'); // 'blog_posts'
- * const mapped = registry.mapFields('User', { email: 'test@test.com' });
- * // { user_email: 'test@test.com' }
+ * const tagConfig = registry.getCollectionConfig('Post', 'tags');
+ * // { type: 'reference', entity: 'Tag' }
  * ```
  */
 export class EntitySchemaRegistry {
@@ -102,6 +158,14 @@ export class EntitySchemaRegistry {
       );
     }
     return schema;
+  }
+
+  /**
+   * Tries to get the schema of an entity, returns null if not found.
+   * @param entity - Entity name.
+   */
+  tryGetSchema(entity: string): EntitySchema | null {
+    return this.schemas.get(entity) ?? null;
   }
 
   /**
@@ -216,6 +280,104 @@ export class EntitySchemaRegistry {
   }
 
   /**
+   * Gets the collection configuration for a specific field.
+   *
+   * @param entity - Parent entity name (e.g., 'Post')
+   * @param fieldName - Collection field name (e.g., 'tags')
+   * @returns CollectionConfig or null if not configured
+   *
+   * @example
+   * ```typescript
+   * const config = registry.getCollectionConfig('Post', 'tags');
+   * if (config?.type === 'reference') {
+   *   // Handle N:N relation - use connect/disconnect
+   * } else {
+   *   // Handle 1:N relation - use create/delete
+   * }
+   * ```
+   */
+  getCollectionConfig(
+    entity: string,
+    fieldName: string
+  ): CollectionConfig | null {
+    const schema = this.tryGetSchema(entity);
+    if (!schema?.collections) return null;
+    return schema.collections[fieldName] ?? null;
+  }
+
+  /**
+   * Checks if a collection is a reference type (N:N).
+   *
+   * @param entity - Parent entity name
+   * @param fieldName - Collection field name
+   * @returns true if the collection is a reference (N:N), false otherwise
+   *
+   * @example
+   * ```typescript
+   * if (registry.isReferenceCollection('Post', 'tags')) {
+   *   // Use connect/disconnect instead of create/delete
+   * }
+   * ```
+   */
+  isReferenceCollection(entity: string, fieldName: string): boolean {
+    const config = this.getCollectionConfig(entity, fieldName);
+    return config?.type === "reference";
+  }
+
+  /**
+   * Checks if a collection is owned (1:N).
+   * Returns true if explicitly configured as 'owned' or if not configured at all.
+   *
+   * @param entity - Parent entity name
+   * @param fieldName - Collection field name
+   * @returns true if the collection is owned (1:N), false if reference
+   */
+  isOwnedCollection(entity: string, fieldName: string): boolean {
+    const config = this.getCollectionConfig(entity, fieldName);
+    // Default to owned if not configured
+    return config?.type !== "reference";
+  }
+
+  /**
+   * Gets all collections configured for an entity.
+   *
+   * @param entity - Entity name
+   * @returns Record of field names to collection configs, or empty object
+   */
+  getCollections(entity: string): Record<string, CollectionConfig> {
+    const schema = this.tryGetSchema(entity);
+    return schema?.collections ?? {};
+  }
+
+  /**
+   * Gets all reference (N:N) collections for an entity.
+   *
+   * @param entity - Entity name
+   * @returns Array of field names that are reference collections
+   */
+  getReferenceCollections(entity: string): string[] {
+    const collections = this.getCollections(entity);
+    return Object.entries(collections)
+      .filter(([_, config]) => config.type === "reference")
+      .map(([field]) => field);
+  }
+
+  /**
+   * Gets the junction table configuration for a reference collection.
+   *
+   * @param entity - Parent entity name
+   * @param fieldName - Collection field name
+   * @returns Junction config or null
+   */
+  getJunctionConfig(
+    entity: string,
+    fieldName: string
+  ): CollectionConfig["junction"] | null {
+    const config = this.getCollectionConfig(entity, fieldName);
+    return config?.junction ?? null;
+  }
+
+  /**
    * Lists all registered entities.
    */
   getRegisteredEntities(): string[] {
@@ -259,5 +421,82 @@ export class EntitySchemaRegistry {
       return value.value;
     }
     return value;
+  }
+
+  /**
+   * Validates that a relation field exists in the entity's collections.
+   *
+   * @param entity - Parent entity name
+   * @param relationField - Relation field to validate
+   * @throws ConfigurationError if the field doesn't exist
+   *
+   */
+  public validateRelationField(entity: string, relationField: string): void {
+    const schema = this.tryGetSchema(entity);
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (uuidPattern.test(entity)) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Received an ID '${entity}' instead of an entity name. ` +
+          `This usually means 'parentEntity' is not being set correctly in the ChangeTracker. ` +
+          `Check that addDelete/addCreate are receiving the entity NAME (e.g., 'Post'), not the ID.`
+      );
+    }
+
+    if (!schema) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Cannot validate relation '${relationField}' - ` +
+          `entity '${entity}' is not registered. ` +
+          `Available entities: ${
+            this.getRegisteredEntities().join(", ") || "none"
+          }`
+      );
+    }
+
+    const collections = schema.collections ?? {};
+    const availableCollections = Object.keys(collections);
+
+    if (availableCollections.length === 0) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Entity '${entity}' has no collections configured, ` +
+          `but received operation for relation '${relationField}'. ` +
+          `Did you forget to configure collections in the schema?`
+      );
+    }
+
+    if (!collections[relationField]) {
+      const suggestions = this.findSimilarNames(
+        relationField,
+        availableCollections
+      );
+      const suggestionText =
+        suggestions.length > 0
+          ? ` Did you mean: '${suggestions.join("' or '")}'?`
+          : "";
+
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Unknown relation '${relationField}' for entity '${entity}'. ` +
+          `Available collections: ${availableCollections.join(
+            ", "
+          )}.${suggestionText}`
+      );
+    }
+  }
+
+  private findSimilarNames(input: string, candidates: string[]): string[] {
+    return candidates
+      .map((candidate) => ({
+        name: candidate,
+        distance: levenshteinDistance(
+          input.toLowerCase(),
+          candidate.toLowerCase()
+        ),
+      }))
+      .filter(({ distance }) => distance <= 3)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 2)
+      .map(({ name }) => name);
   }
 }

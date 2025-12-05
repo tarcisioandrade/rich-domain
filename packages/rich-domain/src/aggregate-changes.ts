@@ -17,6 +17,7 @@ import { EntityChanges } from "./entity-changes";
  * - Orders operations respecting FK dependencies
  * - Groups operations by entity for batch execution
  * - Provides query and iteration methods
+ * - Includes relationField, parentId, parentEntity for N:N support
  *
  * @example
  * ```typescript
@@ -31,9 +32,9 @@ import { EntityChanges } from "./entity-changes";
  * const changes = user.getChanges<UserEntities>();
  *
  * // Filtering by entity with autocompletion
- * const postChanges = changes.for('Post'); // 'Post' autocompletes
+ * const postChanges = changes.for('Post');
  * postChanges.creates.forEach(post => {
- *   console.log(post.title); // 'post' is typed as Post
+ *   console.log(post.title);
  * });
  * ```
  */
@@ -46,13 +47,21 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
 
   /**
    * Adds a create operation.
+   *
+   * @param entity - Entity name
+   * @param data - Entity data
+   * @param depth - Depth in the aggregate tree
+   * @param parentId - Parent entity ID (for FK)
+   * @param parentEntity - Parent entity name
+   * @param relationField - Name of the relation field in parent (e.g., 'tags', 'comments')
    */
   addCreate<T>(
     entity: string,
     data: T,
     depth: number,
     parentId?: string,
-    parentEntity?: string
+    parentEntity?: string,
+    relationField?: string
   ): void {
     this.ops.push({
       type: "create",
@@ -61,6 +70,7 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
       depth,
       parentId,
       parentEntity,
+      relationField,
     } as CreateOperation<T>);
   }
 
@@ -86,14 +96,33 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
 
   /**
    * Adds a delete operation.
+   *
+   * @param entity - Entity name
+   * @param id - Entity ID
+   * @param data - Entity data (for reference)
+   * @param depth - Depth in the aggregate tree
+   * @param relationField - Name of the relation field in parent (e.g., 'tags', 'comments')
+   * @param parentId - Parent entity ID (for N:N disconnect)
+   * @param parentEntity - Parent entity name (for N:N disconnect)
    */
-  addDelete<T>(entity: string, id: string, data: T, depth: number): void {
+  addDelete<T>(
+    entity: string,
+    id: string,
+    data: T,
+    depth: number,
+    relationField?: string,
+    parentId?: string,
+    parentEntity?: string
+  ): void {
     this.ops.push({
       type: "delete",
       entity,
       id,
       data,
       depth,
+      relationField,
+      parentId,
+      parentEntity,
     } as DeleteOperation<T>);
   }
 
@@ -145,8 +174,8 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
    * Converts the changes into BatchOperations for optimized execution.
    *
    * Groups operations by entity and sorts by depth:
-   * - Deletes: depth DESC (leaf → root)
-   * - Creates: depth ASC (root → leaf)
+   * - Deletes: depth DESC (leaf → root), grouped by entity + relationField + parentId
+   * - Creates: depth ASC (root → leaf), grouped by entity + relationField
    * - Updates: grouped by entity
    *
    * @example
@@ -155,12 +184,16 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
    *
    * // Run deletes
    * for (const del of batch.deletes) {
-   *   await tx[del.entity].deleteMany({ where: { id: { in: del.ids } } });
-   * }
-   *
-   * // Run creates
-   * for (const create of batch.creates) {
-   *   await tx[create.entity].createMany({ data: create.items });
+   *   if (registry.isReferenceCollection(del.parentEntity, del.relationField)) {
+   *     // N:N - disconnect only
+   *     await prisma[del.parentEntity].update({
+   *       where: { id: del.parentId },
+   *       data: { [del.relationField]: { disconnect: del.ids.map(id => ({ id })) } }
+   *     });
+   *   } else {
+   *     // 1:N - delete entities
+   *     await prisma[del.entity].deleteMany({ where: { id: { in: del.ids } } });
+   *   }
    * }
    * ```
    */
@@ -173,46 +206,90 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
   }
 
   /**
-   * Groups deletes by entity, sorted by descending depth.
+   * Groups deletes by entity + relationField + parentId, sorted by descending depth.
+   *
+   * For N:N relations, we need to group by parentId because disconnect
+   * operations are performed on the parent entity.
    */
   private groupDeletes(): BatchOperations["deletes"] {
     const deleteOps = this.deletes();
-    const grouped = new Map<string, { depth: number; ids: string[] }>();
+    const grouped = new Map<
+      string,
+      {
+        depth: number;
+        ids: string[];
+        relationField?: string;
+        parentEntity?: string;
+        parentId?: string;
+      }
+    >();
 
     for (const op of deleteOps) {
-      if (!grouped.has(op.entity)) {
-        grouped.set(op.entity, { depth: op.depth, ids: [] });
+      // Group by entity + relationField + parentId
+      // This ensures N:N disconnects are grouped per parent
+      const key = `${op.entity}:${op.relationField ?? ""}:${op.parentId ?? ""}`;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          depth: op.depth,
+          ids: [],
+          relationField: op.relationField,
+          parentEntity: op.parentEntity,
+          parentId: op.parentId,
+        });
       }
-      grouped.get(op.entity)!.ids.push(op.id);
+      grouped.get(key)!.ids.push(op.id);
     }
 
     return Array.from(grouped.entries())
-      .map(([entity, { depth, ids }]) => ({ entity, depth, ids }))
+      .map(([key, { depth, ids, relationField, parentEntity, parentId }]) => {
+        const entity = key.split(":")[0];
+        return { entity, depth, ids, parentId, relationField, parentEntity };
+      })
       .sort((a, b) => b.depth - a.depth);
   }
 
   /**
-   * Groups creates by entity, sorted by ascending depth.
+   * Groups creates by entity + relationField, sorted by ascending depth.
+   *
+   * Preserves parentEntity for N:N connect operations.
    */
   private groupCreates(): BatchOperations["creates"] {
     const createOps = this.creates();
     const grouped = new Map<
       string,
-      { depth: number; items: BatchCreateItem[] }
+      {
+        depth: number;
+        items: BatchCreateItem[];
+        relationField?: string;
+        parentEntity?: string;
+      }
     >();
 
     for (const op of createOps) {
-      if (!grouped.has(op.entity)) {
-        grouped.set(op.entity, { depth: op.depth, items: [] });
+      const key = `${op.entity}:${op.relationField ?? ""}`;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          depth: op.depth,
+          items: [],
+          relationField: op.relationField,
+          parentEntity: op.parentEntity,
+        });
       }
-      grouped.get(op.entity)!.items.push({
+      grouped.get(key)!.items.push({
         data: op.data,
         parentId: op.parentId,
+        parentEntity: op.parentEntity,
+        relationField: op.relationField,
       });
     }
 
     return Array.from(grouped.entries())
-      .map(([entity, { depth, items }]) => ({ entity, depth, items }))
+      .map(([key, { depth, items, relationField, parentEntity }]) => {
+        const entity = key.split(":")[0];
+        return { entity, depth, items, relationField, parentEntity };
+      })
       .sort((a, b) => a.depth - b.depth);
   }
 
@@ -259,6 +336,25 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
   for<K extends keyof TEntityMap>(entityName: K): EntityChanges<TEntityMap[K]> {
     const filtered = this.ops.filter((op) => op.entity === entityName);
     return new EntityChanges<TEntityMap[K]>(filtered);
+  }
+
+  /**
+   * Filters changes by relation field.
+   *
+   * @param relationField - Name of the relation field (e.g., 'tags', 'comments')
+   * @returns New AggregateChanges containing only operations for this relation
+   *
+   * @example
+   * ```typescript
+   * const tagChanges = changes.forRelation('tags');
+   * // Contains only creates/deletes for the 'tags' relation
+   * ```
+   */
+  forRelation(relationField: string): AggregateChanges<TEntityMap> {
+    const filtered = this.ops.filter(
+      (op) => op.relationField === relationField
+    );
+    return new AggregateChanges<TEntityMap>(filtered);
   }
 
   /**
@@ -317,6 +413,19 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
     const entities = new Set<string>();
     this.ops.forEach((op) => entities.add(op.entity));
     return Array.from(entities);
+  }
+
+  /**
+   * Lists all relation fields that have changes.
+   */
+  getAffectedRelations(): string[] {
+    const relations = new Set<string>();
+    this.ops.forEach((op) => {
+      if (op.relationField) {
+        relations.add(op.relationField);
+      }
+    });
+    return Array.from(relations);
   }
 
   /**

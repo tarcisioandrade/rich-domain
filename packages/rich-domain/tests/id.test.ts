@@ -1,10 +1,6 @@
 import { Id } from "../src";
 import { Address, Post, User } from "./utils";
 
-// ============================================================================
-// Id Class Tests
-// ============================================================================
-
 describe("Id Class", () => {
   describe("Construction", () => {
     it("should generate UUID when no value provided", () => {
@@ -13,7 +9,6 @@ describe("Id Class", () => {
       expect(id.value).toBeDefined();
       expect(typeof id.value).toBe("string");
       expect(id.value.length).toBeGreaterThan(0);
-      // UUID v4 format check
       expect(id.value).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
       );
@@ -99,10 +94,6 @@ describe("Id Class", () => {
     });
   });
 });
-
-// ============================================================================
-// Entity with Id Tests
-// ============================================================================
 
 describe("Entity with Id Class", () => {
   describe("New Entity", () => {
@@ -231,8 +222,6 @@ describe("Entity with Id Class", () => {
 
       const changes = user.getTypedChanges();
 
-      console.dir(changes.creates(), { depth: null });
-
       expect(changes.creates().length).toBe(2);
     });
 
@@ -269,10 +258,6 @@ describe("Entity with Id Class", () => {
     });
   });
 });
-
-// ============================================================================
-// Aggregate with Id Tests
-// ============================================================================
 
 describe("Aggregate with Id Class", () => {
   it("should be new when Id is auto-generated", () => {

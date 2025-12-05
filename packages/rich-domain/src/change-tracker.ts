@@ -431,9 +431,18 @@ export class ChangeTracker {
 
       const { depth, parentId, parentEntity } = arrayState.metadata;
 
+      const relationField = this.extractRelationField(path);
+
       for (const item of created) {
         const itemEntityName = this.getEntityName(item);
-        changes.addCreate(itemEntityName, item, depth, parentId, parentEntity);
+        changes.addCreate(
+          itemEntityName,
+          item,
+          depth,
+          parentId,
+          parentEntity,
+          relationField
+        );
 
         this.markNestedItemsAsCreated(item, depth, changes);
       }
@@ -458,7 +467,15 @@ export class ChangeTracker {
         if (id || key) {
           const itemEntityName = this.getEntityName(item);
           const deleteId = id || key!;
-          changes.addDelete(itemEntityName, deleteId, item, depth);
+          changes.addDelete(
+            itemEntityName,
+            deleteId,
+            item,
+            depth,
+            relationField,
+            parentId,
+            parentEntity
+          );
 
           this.markNestedItemsAsDeleted(item, depth, changes, rootTracker);
         }
@@ -476,37 +493,41 @@ export class ChangeTracker {
   ): void {
     if (!item || typeof item !== "object") return;
 
-    const itemId = this.getEntityId(item);
-    if (!itemId) return;
+    const propsToScan = item.props || item;
+    const parentId = this.getEntityId(item);
+    const parentEntity = this.getEntityName(item);
 
-    const props = item.props || item;
-
-    for (const [propName, value] of Object.entries(props)) {
+    for (const [propName, value] of Object.entries(propsToScan)) {
       if (propName === "id") continue;
 
       if (Array.isArray(value)) {
-        for (const nestedItem of value) {
-          if (this.isEntityOrVO(nestedItem)) {
-            const nestedId = this.getEntityId(nestedItem);
-            const nestedKey = this.getItemKey(nestedItem);
-            if (nestedId || nestedKey) {
-              const entityName = this.getEntityName(nestedItem);
-              changes.addCreate(
-                entityName,
-                nestedItem,
-                parentDepth + 1,
-                itemId,
-                this.getEntityName(item)
-              );
+        const relationField = propName;
 
-              this.markNestedItemsAsCreated(
-                nestedItem,
-                parentDepth + 1,
-                changes
-              );
-            }
+        for (const child of value) {
+          if (this.isEntityOrVO(child)) {
+            const childEntityName = this.getEntityName(child);
+            changes.addCreate(
+              childEntityName,
+              child,
+              parentDepth + 1,
+              parentId,
+              parentEntity,
+              relationField
+            );
+            this.markNestedItemsAsCreated(child, parentDepth + 1, changes);
           }
         }
+      } else if (this.isEntityOrVO(value)) {
+        const childEntityName = this.getEntityName(value);
+        changes.addCreate(
+          childEntityName,
+          value,
+          parentDepth + 1,
+          parentId,
+          parentEntity,
+          propName
+        );
+        this.markNestedItemsAsCreated(value, parentDepth + 1, changes);
       }
     }
   }
@@ -526,8 +547,12 @@ export class ChangeTracker {
     const itemId = this.getEntityId(item);
     if (!itemId) return;
 
-    for (const [, arrayState] of rootTracker.trackedArrays) {
+    for (const [path, arrayState] of rootTracker.trackedArrays) {
       if (arrayState.metadata.parentId === itemId) {
+        const relationField = this.extractRelationField(path);
+        const parentEntity = arrayState.metadata.parentEntity;
+        const parentId = arrayState.metadata.parentId;
+
         for (const nestedItem of arrayState.cloned) {
           const id =
             typeof nestedItem === "object" && nestedItem !== null
@@ -535,7 +560,15 @@ export class ChangeTracker {
               : undefined;
           if (id) {
             const entityName = arrayState.metadata.entityName;
-            changes.addDelete(entityName, id, nestedItem, parentDepth + 1);
+            changes.addDelete(
+              entityName,
+              id,
+              nestedItem,
+              parentDepth + 1,
+              relationField,
+              parentEntity,
+              parentId
+            );
 
             this.markNestedJsonItemAsDeleted(
               id,
@@ -559,21 +592,28 @@ export class ChangeTracker {
     changes: AggregateChanges<any>,
     rootTracker: ChangeTracker
   ): void {
-    for (const [, arrayState] of rootTracker.trackedArrays) {
+    for (const [path, arrayState] of rootTracker.trackedArrays) {
       if (arrayState.metadata.parentId === itemId) {
+        const relationField = this.extractRelationField(path);
+
         for (const nestedJsonItem of arrayState.cloned) {
           if (typeof nestedJsonItem !== "object" || nestedJsonItem === null)
             continue;
 
           const nestedId = nestedJsonItem.id;
           const entityName = arrayState.metadata.entityName;
+          const parentEntity = arrayState.metadata.parentEntity;
+          const parentId = arrayState.metadata.parentId;
 
           if (nestedId) {
             changes.addDelete(
               entityName,
               nestedId,
               nestedJsonItem,
-              parentDepth + 1
+              parentDepth + 1,
+              relationField,
+              parentId,
+              parentEntity
             );
 
             this.markNestedJsonItemAsDeleted(
@@ -592,7 +632,10 @@ export class ChangeTracker {
                 entityName,
                 key,
                 nestedJsonItem,
-                parentDepth + 1
+                parentDepth + 1,
+                relationField,
+                parentId,
+                parentEntity
               );
             }
           }
@@ -668,6 +711,8 @@ export class ChangeTracker {
       const { entityName, depth, parentId, parentEntity } =
         trackedItem.metadata;
 
+      const relationField = this.extractRelationField(path);
+
       const state = this.detectEntityChangeState(originalValue, currentValue);
 
       switch (state) {
@@ -677,28 +722,46 @@ export class ChangeTracker {
             currentValue,
             depth,
             parentId,
-            parentEntity
+            parentEntity,
+            relationField
           );
           break;
 
         case "deleted":
           const id = this.getEntityId(originalValue);
           if (id) {
-            changes.addDelete(entityName, id, originalEntity, depth);
+            changes.addDelete(
+              entityName,
+              id,
+              originalEntity,
+              depth,
+              relationField,
+              parentId,
+              parentEntity
+            );
           }
           break;
 
         case "replaced":
           const oldId = this.getEntityId(originalValue);
           if (oldId) {
-            changes.addDelete(entityName, oldId, originalEntity, depth);
+            changes.addDelete(
+              entityName,
+              oldId,
+              originalEntity,
+              depth,
+              relationField,
+              parentId,
+              parentEntity
+            );
           }
           changes.addCreate(
             entityName,
             currentValue,
             depth,
             parentId,
-            parentEntity
+            parentEntity,
+            relationField
           );
           break;
 
@@ -892,6 +955,12 @@ export class ChangeTracker {
     }
 
     return current;
+  }
+
+  private extractRelationField(path: string): string {
+    const withoutIndices = path.replace(/\[\d+\]/g, "");
+    const parts = withoutIndices.split(".");
+    return parts[parts.length - 1];
   }
 
   private getItemKey(item: any): string | undefined {
