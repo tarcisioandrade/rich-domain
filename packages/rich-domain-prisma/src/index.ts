@@ -18,3 +18,10 @@ export {
   type EntityDataMapper,
   type BatchExecutorConfig,
 } from "./batch-executor";
+export {
+  PrismaRepositoryError,
+  ModelNotFoundError,
+  TableNotFoundError,
+  NoRecordsAffectedError,
+  BatchOperationError,
+} from "./errors";

@@ -13,6 +13,7 @@ import {
   PrismaUnitOfWork,
   UOWStorage,
 } from "./unit-of-work";
+import { ModelNotFoundError, NoRecordsAffectedError } from "./errors";
 
 export interface PrismaRepositoryConfig {
   prisma: PrismaClientLike;
@@ -44,6 +45,13 @@ export abstract class PrismaRepository<
   protected abstract get model(): string;
 
   /**
+   * Generate search query for Prisma.
+   * @param search - The search value.
+   * @returns The search query.
+   */
+  protected abstract generateSearchQuery(search: string): any
+
+  /**
    * Relations to include when fetching.
    * Override in subclass.
    *
@@ -64,9 +72,40 @@ export abstract class PrismaRepository<
 
   /**
    * Get model accessor from context.
+   * Throws ModelNotFoundError if model doesn't exist.
    */
   protected get modelAccessor(): any {
-    return (this.context as any)[this.model];
+    const model = (this.context as any)[this.model];
+
+    if (!model) {
+      const availableModels = this.getAvailableModels();
+      throw new ModelNotFoundError(this.model, availableModels);
+    }
+
+    return model;
+  }
+
+  /**
+   * Get list of available Prisma models for better error messages.
+   */
+  private getAvailableModels(): string[] {
+    const models: string[] = [];
+    const ctx = this.context as any;
+
+    for (const key of Object.keys(ctx)) {
+      const value = ctx[key];
+      // Check if it looks like a Prisma model (has common methods)
+      if (
+        value &&
+        typeof value === "object" &&
+        typeof value.findMany === "function" &&
+        typeof value.create === "function"
+      ) {
+        models.push(key);
+      }
+    }
+
+    return models;
   }
 
   async count(criteria?: Criteria<TDomain>): Promise<number> {
@@ -120,15 +159,36 @@ export abstract class PrismaRepository<
   }
 
   async delete(entity: TDomain): Promise<void> {
-    await this.modelAccessor.delete({
-      where: { id: entity.id.value },
-    });
+    try {
+      await this.modelAccessor.delete({
+        where: { id: entity.id.value },
+      });
+    } catch (error: any) {
+      // Prisma throws P2025 when record is not found
+      if (error.code === "P2025") {
+        throw new NoRecordsAffectedError(
+          "Delete",
+          this.model,
+          entity.id.value,
+          error
+        );
+      }
+      throw error;
+    }
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.modelAccessor.delete({
-      where: { id },
-    });
+    try {
+      await this.modelAccessor.delete({
+        where: { id },
+      });
+    } catch (error: any) {
+      // Prisma throws P2025 when record is not found
+      if (error.code === "P2025") {
+        throw new NoRecordsAffectedError("Delete", this.model, id, error);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -174,9 +234,7 @@ export abstract class PrismaRepository<
 
     if (criteria.hasSearch()) {
       const search = criteria.getSearch()!;
-      const or = search.fields.map((field) =>
-        this.buildNestedContains(field, search.value)
-      );
+      const or = this.generateSearchQuery(search)
 
       if (Object.keys(where).length > 0) {
         args.where = { AND: [where, { OR: or }] };
