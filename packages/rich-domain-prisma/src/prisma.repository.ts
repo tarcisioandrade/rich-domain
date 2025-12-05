@@ -45,11 +45,24 @@ export abstract class PrismaRepository<
   protected abstract get model(): string;
 
   /**
-   * Generate search query for Prisma.
-   * @param search - The search value.
-   * @returns The search query.
+   * Generate search conditions for full-text search.
+   *
+   * @param search - The search term entered by the user
+   * @returns Array of OR conditions for Prisma where clause
+   *
+   * @example
+   * ```typescript
+   * // In your repository implementation:
+   * protected generateSearchQuery(search: string): Prisma.PostWhereInput[] {
+   *   return [
+   *     { title: { contains: search, mode: 'insensitive' } },
+   *     { content: { contains: search, mode: 'insensitive' } },
+   *     { author: { name: { contains: search, mode: 'insensitive' } } }
+   *   ];
+   * }
+   * ```
    */
-  protected abstract generateSearchQuery(search: string): any
+  protected abstract generateSearchQuery(search: string): any[];
 
   /**
    * Relations to include when fetching.
@@ -234,12 +247,12 @@ export abstract class PrismaRepository<
 
     if (criteria.hasSearch()) {
       const search = criteria.getSearch()!;
-      const or = this.generateSearchQuery(search)
+      const searchConditions = this.generateSearchQuery(search);
 
       if (Object.keys(where).length > 0) {
-        args.where = { AND: [where, { OR: or }] };
+        args.where = { AND: [where, { OR: searchConditions }] };
       } else {
-        args.where = { OR: or };
+        args.where = { OR: searchConditions };
       }
     }
 

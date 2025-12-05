@@ -5,7 +5,6 @@ import {
 } from "@woltz/rich-domain";
 import {
   PrismaClientLike,
-  PrismaTransactionClient,
   PrismaUnitOfWork,
   UOWStorage,
   Transactional,
@@ -35,12 +34,12 @@ import {
  * }
  * ```
  */
-export abstract class PrismaToPersistence<TDomain> extends Mapper<
+export abstract class PrismaToPersistence<
   TDomain,
-  void
-> {
+  PrismaClient = PrismaClientLike
+> extends Mapper<TDomain, void> {
   constructor(
-    public readonly prisma: PrismaClientLike,
+    public readonly prisma: PrismaClient,
     public readonly uow: PrismaUnitOfWork
   ) {
     super();
@@ -55,7 +54,7 @@ export abstract class PrismaToPersistence<TDomain> extends Mapper<
   /**
    * Get current context (transaction or prisma client).
    */
-  protected get context(): PrismaClientLike | PrismaTransactionClient {
+  protected get context(): PrismaClient {
     const ctx = UOWStorage.getStore()?.ctx;
     return ctx?.client ?? this.prisma;
   }
