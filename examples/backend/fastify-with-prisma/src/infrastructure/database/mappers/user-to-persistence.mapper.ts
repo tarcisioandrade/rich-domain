@@ -9,12 +9,6 @@ const schemaRegistry = new EntitySchemaRegistry()
   .register({
     entity: "User",
     table: "user",
-    collections: {
-      groups: {
-        type: "reference",
-        entity: "Group",
-      },
-    },
   })
   .register({
     entity: "Post",
@@ -28,10 +22,6 @@ const schemaRegistry = new EntitySchemaRegistry()
     fields: {
       content: "main_content",
     },
-  })
-  .register({
-    entity: "Group",
-    table: "group",
   });
 
 export class PrismaUserToPersistenceMapper extends PrismaToPersistence<User> {

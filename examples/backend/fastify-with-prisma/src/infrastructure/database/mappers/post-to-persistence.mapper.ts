@@ -6,28 +6,23 @@ import {
 } from "@woltz/rich-domain-prisma";
 
 export class PrismaPostToPersistenceMapper extends PrismaToPersistence<Post> {
-  protected readonly registry = new EntitySchemaRegistry()
-    .register({
-      entity: "Post",
-      table: "post",
-      fields: {
-        content: "main_content",
+  protected readonly registry = new EntitySchemaRegistry().register({
+    entity: "Post",
+    table: "post",
+    fields: {
+      content: "main_content",
+    },
+    collections: {
+      tags: {
+        type: "reference",
+        entity: "Tag",
       },
-      collections: {
-        tags: {
-          type: "reference",
-          entity: "Tag",
-        },
-      },
-      parentFk: {
-        field: "authorId",
-        parentEntity: "User",
-      },
-    })
-    .register({
-      entity: "Tag",
-      table: "Tag",
-    });
+    },
+    parentFk: {
+      field: "authorId",
+      parentEntity: "User",
+    },
+  });
 
   protected async onCreate(post: Post): Promise<void> {
     await this.context.post.create({
