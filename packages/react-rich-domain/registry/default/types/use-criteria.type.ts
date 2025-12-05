@@ -39,7 +39,7 @@ export interface UseCriteriaOptions<T> {
   /**
    * Initial search configuration
    */
-  initialSearch?: Search<T>;
+  initialSearch?: Search;
 
   /**
    * Callback fired when criteria changes
@@ -84,7 +84,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Current search state
    */
-  search: Search<T> | null;
+  search: Search | null;
 
   /**
    * Add a filter. If a filter for the same field exists, it will be replaced.
@@ -176,7 +176,7 @@ export interface UseCriteriaReturn<T> {
   /**
    * Set search
    */
-  setSearch: (fields: FieldPath<T>[], value: string) => void;
+  setSearch: (value: string) => void;
 
   /**
    * Clear search

@@ -9,6 +9,7 @@ import {
   type PathValue,
   type OperatorsForType,
   type CriteriaOptions,
+  type Search,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaOptions,
@@ -49,7 +50,7 @@ export function useCriteria<T = unknown>(
       filters: Filter<string, unknown>[];
       orders: Order[];
       pagination: { page: number; limit: number; offset: number };
-      search?: { fields: FieldPath<T>[]; value: string } | null;
+      search?: Search | null;
     }): Criteria<T> => {
       const criteria = Criteria.create<T>();
 
@@ -64,8 +65,7 @@ export function useCriteria<T = unknown>(
         criteria.orderBy(o.field as FieldPath<T>, o.direction)
       );
       criteria.paginate(parts.pagination.page, parts.pagination.limit);
-      if (parts.search)
-        criteria.search(parts.search.fields, parts.search.value);
+      if (parts.search) criteria.search(parts.search);
 
       return criteria;
     },
@@ -98,7 +98,7 @@ export function useCriteria<T = unknown>(
     });
 
     if (initialSearch) {
-      criteria.search(initialSearch.fields, initialSearch.value);
+      criteria.search(initialSearch);
     }
 
     return criteria;
@@ -384,13 +384,13 @@ export function useCriteria<T = unknown>(
   }, [buildCriteria]);
 
   const setSearch = useCallback(
-    (fields: FieldPath<T>[], value: string) => {
+    (value: string) => {
       setCriteria((prev) => {
         return buildCriteria({
           filters: prev.getFilters(),
           orders: prev.getOrders(),
           pagination: prev.getPagination(),
-          search: { fields, value },
+          search: value,
         });
       });
     },
@@ -430,10 +430,7 @@ export function useCriteria<T = unknown>(
     });
 
     if (config.initialSearch) {
-      newCriteria.search(
-        config.initialSearch.fields,
-        config.initialSearch.value
-      );
+      newCriteria.search(config.initialSearch);
     }
 
     setCriteria(newCriteria);

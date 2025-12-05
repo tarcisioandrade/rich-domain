@@ -75,16 +75,12 @@ describe("useCriteria", () => {
     it("should create criteria with initial search", () => {
       const { result } = renderHook(() =>
         useCriteria<TestUser>({
-          initialSearch: {
-            fields: ["name", "email"],
-            value: "john",
-          },
+          initialSearch: "john",
         })
       );
 
       expect(result.current.search).not.toBeNull();
-      expect(result.current.search?.fields).toEqual(["name", "email"]);
-      expect(result.current.search?.value).toBe("john");
+      expect(result.current.search).toBe("john");
     });
   });
 
@@ -256,21 +252,17 @@ describe("useCriteria", () => {
       const { result } = renderHook(() => useCriteria<TestUser>());
 
       act(() => {
-        result.current.setSearch(["name", "email"], "john");
+        result.current.setSearch("john");
       });
 
       expect(result.current.search).not.toBeNull();
-      expect(result.current.search?.fields).toEqual(["name", "email"]);
-      expect(result.current.search?.value).toBe("john");
+      expect(result.current.search).toBe("john");
     });
 
     it("should clear search", () => {
       const { result } = renderHook(() =>
         useCriteria<TestUser>({
-          initialSearch: {
-            fields: ["name"],
-            value: "test",
-          },
+          initialSearch: "test",
         })
       );
 
@@ -305,7 +297,6 @@ describe("useCriteria", () => {
     it("should load from localStorage on mount", () => {
       const persistKey = "test-criteria";
 
-      // First render - set some criteria
       const { result: result1, unmount } = renderHook(() =>
         useCriteria<TestUser>({
           persistKey,

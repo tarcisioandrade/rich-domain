@@ -100,7 +100,7 @@ export function Filter({
   };
 
   const handleConfirmAddFilter = () => {
-    if (!selectedFieldForAdd) return;
+    if (!selectedFieldForAdd || tempValue === null) return;
 
     addOrReplaceByIndex({
       field: selectedFieldForAdd.field as FieldPath<unknown>,
@@ -191,6 +191,9 @@ export function Filter({
     if (!selectedFieldForAdd) return false;
     return isValidOperatorForType(tempValue, tempOperator);
   }, [tempValue, tempOperator, selectedFieldForAdd]);
+
+  const STEP_VALUE_ADD_FILTER_BUTTON_DISABLED =
+    !canAddFilter || tempValue === null || tempValue === "";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -344,7 +347,7 @@ export function Filter({
                   <Button
                     size="sm"
                     className="h-7 flex-1 text-xs"
-                    disabled={!canAddFilter}
+                    disabled={STEP_VALUE_ADD_FILTER_BUTTON_DISABLED}
                     onClick={handleConfirmAddFilter}
                   >
                     Add Filter
