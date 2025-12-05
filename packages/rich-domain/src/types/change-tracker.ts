@@ -48,6 +48,10 @@ export interface DeleteOperation<T = any> extends BaseOperation {
   id: string;
   /** Entity data (for reference) */
   data: T;
+  /** Parent entity name */
+  parentEntity?: string;
+  /** Parent ID */
+  parentId?: string;
 }
 
 /**
@@ -66,6 +70,8 @@ export interface BatchCreateItem<T = any> {
   data: T;
   /** Parent ID (for FK) */
   parentId?: string;
+  /** Parent entity name */
+  parentEntity?: string;
   /** Relation field name */
   relationField?: string;
 }
@@ -101,8 +107,11 @@ export interface BatchOperations {
     entity: string;
     depth: number;
     ids: string[];
+    parentId?: string;
     /** Relation field name (for determining owned vs reference) */
     relationField?: string;
+    /** Parent entity name */
+    parentEntity?: string;
     /** Individual items with their relation fields (when mixed) */
     items?: BatchDeleteItem[];
   }>;
@@ -116,6 +125,8 @@ export interface BatchOperations {
     items: BatchCreateItem[];
     /** Relation field name (for determining owned vs reference) */
     relationField?: string;
+    /** Parent entity name */
+    parentEntity?: string;
   }>;
 
   /**

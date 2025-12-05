@@ -472,7 +472,9 @@ export class ChangeTracker {
             deleteId,
             item,
             depth,
-            relationField
+            relationField,
+            parentId,
+            parentEntity
           );
 
           this.markNestedItemsAsDeleted(item, depth, changes, rootTracker);
@@ -541,14 +543,16 @@ export class ChangeTracker {
     rootTracker: ChangeTracker
   ): void {
     if (!item || typeof item !== "object") return;
-  
+
     const itemId = this.getEntityId(item);
     if (!itemId) return;
-  
+
     for (const [path, arrayState] of rootTracker.trackedArrays) {
       if (arrayState.metadata.parentId === itemId) {
         const relationField = this.extractRelationField(path);
-  
+        const parentEntity = arrayState.metadata.parentEntity;
+        const parentId = arrayState.metadata.parentId;
+
         for (const nestedItem of arrayState.cloned) {
           const id =
             typeof nestedItem === "object" && nestedItem !== null
@@ -561,9 +565,11 @@ export class ChangeTracker {
               id,
               nestedItem,
               parentDepth + 1,
-              relationField
+              relationField,
+              parentEntity,
+              parentId
             );
-  
+
             this.markNestedJsonItemAsDeleted(
               id,
               parentDepth + 1,
@@ -589,23 +595,27 @@ export class ChangeTracker {
     for (const [path, arrayState] of rootTracker.trackedArrays) {
       if (arrayState.metadata.parentId === itemId) {
         const relationField = this.extractRelationField(path);
-  
+
         for (const nestedJsonItem of arrayState.cloned) {
           if (typeof nestedJsonItem !== "object" || nestedJsonItem === null)
             continue;
-  
+
           const nestedId = nestedJsonItem.id;
           const entityName = arrayState.metadata.entityName;
-  
+          const parentEntity = arrayState.metadata.parentEntity;
+          const parentId = arrayState.metadata.parentId;
+
           if (nestedId) {
             changes.addDelete(
               entityName,
               nestedId,
               nestedJsonItem,
               parentDepth + 1,
-              relationField
+              relationField,
+              parentId,
+              parentEntity
             );
-  
+
             this.markNestedJsonItemAsDeleted(
               nestedId,
               parentDepth + 1,
@@ -623,7 +633,9 @@ export class ChangeTracker {
                 key,
                 nestedJsonItem,
                 parentDepth + 1,
-                relationField
+                relationField,
+                parentId,
+                parentEntity
               );
             }
           }
@@ -723,7 +735,9 @@ export class ChangeTracker {
               id,
               originalEntity,
               depth,
-              relationField
+              relationField,
+              parentId,
+              parentEntity
             );
           }
           break;
@@ -736,7 +750,9 @@ export class ChangeTracker {
               oldId,
               originalEntity,
               depth,
-              relationField
+              relationField,
+              parentId,
+              parentEntity
             );
           }
           changes.addCreate(

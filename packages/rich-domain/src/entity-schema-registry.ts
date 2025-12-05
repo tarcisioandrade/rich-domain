@@ -2,6 +2,7 @@ import { Entity } from "./entity";
 import { ValueObject } from "./value-object";
 import { Id } from "./id";
 import { ConfigurationError } from "./exceptions";
+import { levenshteinDistance } from "./utils/helpers";
 
 /**
  * Type of collection relationship.
@@ -420,5 +421,82 @@ export class EntitySchemaRegistry {
       return value.value;
     }
     return value;
+  }
+
+  /**
+   * Validates that a relation field exists in the entity's collections.
+   *
+   * @param entity - Parent entity name
+   * @param relationField - Relation field to validate
+   * @throws ConfigurationError if the field doesn't exist
+   *
+   */
+  public validateRelationField(entity: string, relationField: string): void {
+    const schema = this.tryGetSchema(entity);
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (uuidPattern.test(entity)) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Received an ID '${entity}' instead of an entity name. ` +
+          `This usually means 'parentEntity' is not being set correctly in the ChangeTracker. ` +
+          `Check that addDelete/addCreate are receiving the entity NAME (e.g., 'Post'), not the ID.`
+      );
+    }
+
+    if (!schema) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Cannot validate relation '${relationField}' - ` +
+          `entity '${entity}' is not registered. ` +
+          `Available entities: ${
+            this.getRegisteredEntities().join(", ") || "none"
+          }`
+      );
+    }
+
+    const collections = schema.collections ?? {};
+    const availableCollections = Object.keys(collections);
+
+    if (availableCollections.length === 0) {
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Entity '${entity}' has no collections configured, ` +
+          `but received operation for relation '${relationField}'. ` +
+          `Did you forget to configure collections in the schema?`
+      );
+    }
+
+    if (!collections[relationField]) {
+      const suggestions = this.findSimilarNames(
+        relationField,
+        availableCollections
+      );
+      const suggestionText =
+        suggestions.length > 0
+          ? ` Did you mean: '${suggestions.join("' or '")}'?`
+          : "";
+
+      throw new ConfigurationError(
+        `EntitySchemaRegistry: Unknown relation '${relationField}' for entity '${entity}'. ` +
+          `Available collections: ${availableCollections.join(
+            ", "
+          )}.${suggestionText}`
+      );
+    }
+  }
+
+  private findSimilarNames(input: string, candidates: string[]): string[] {
+    return candidates
+      .map((candidate) => ({
+        name: candidate,
+        distance: levenshteinDistance(
+          input.toLowerCase(),
+          candidate.toLowerCase()
+        ),
+      }))
+      .filter(({ distance }) => distance <= 3)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 2)
+      .map(({ name }) => name);
   }
 }
