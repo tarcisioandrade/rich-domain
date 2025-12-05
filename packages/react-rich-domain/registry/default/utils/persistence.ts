@@ -74,8 +74,7 @@ export function criteriaToQueryParams<T>(
   }
 
   if (json.search) {
-    params.set("search", json.search.value);
-    params.set("searchFields", json.search.fields.join(","));
+    params.set("search", json.search);
   }
 
   return params;
