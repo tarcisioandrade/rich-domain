@@ -17,6 +17,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   posts     Post[]
+  groups    Group[]
 
   @@map("users")
 }
@@ -30,6 +31,22 @@ model Post {
   author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  tags         Tag[]
 
   @@map("posts")
+}
+
+model Tag {
+  id    String @id // TagName
+  posts Post[]
+
+  @@map("tags")
+}
+
+model Group {
+  id    String @id @default(uuid())
+  name  String
+  users User[]
+
+  @@map("groups")
 }

@@ -1,10 +1,10 @@
-import { UserRepository } from "../../domain/user/user.repository";
-import { User } from "../../domain/user/user.entity";
-import { UserSchema } from "../database/schemas/user.schema";
-import { PrismaUserToDomainMapper } from "../database/mappers/user-to-domain.mapper";
-import { PrismaUserToPersistenceMapper } from "../database/mappers/user-to-persistence.mapper";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { UserRepository } from "../../../domain/user/user.repository";
+import { PrismaUserToDomainMapper } from "../mappers/user-to-domain.mapper";
+import { PrismaUserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
+import { UserSchema } from "../schemas/user.schema";
+import { User } from "../../../domain/user/user.entity";
 
 export class PrismaUserRepository
   extends PrismaRepository<User, UserSchema>
@@ -14,8 +14,18 @@ export class PrismaUserRepository
     return "user";
   }
 
+  protected generateSearchQuery(search: string) {
+    return {
+      name: { contains: search, mode: "insensitive" },
+    };
+  }
+
   protected readonly includes = {
-    posts: true,
+    posts: {
+      include: {
+        tags: true,
+      },
+    },
   } satisfies Prisma.UserInclude;
 
   constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {

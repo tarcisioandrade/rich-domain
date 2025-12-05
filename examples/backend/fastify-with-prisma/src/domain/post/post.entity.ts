@@ -1,13 +1,15 @@
 import { z } from "zod";
-import { Entity, EntityValidation, Id } from "@woltz/rich-domain";
+import { DomainError, Entity, EntityValidation, Id } from "@woltz/rich-domain";
 import { User } from "../user/user.entity";
+import { Tag } from "../value-objects/tags";
 
 export const PostSchema = z.object({
   id: z.custom<Id>(),
   title: z.string().min(1),
   content: z.string().min(1),
   published: z.boolean(),
-  authorId: z.string().uuid(),
+  authorId: z.string(),
+  tags: z.array(z.instanceof(Tag)),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -45,6 +47,20 @@ export class Post extends Entity<PostProps> {
     this.props.published = false;
   }
 
+  addTag(tag: Tag): void {
+    this.props.tags.push(tag);
+  }
+
+  removeTag(tag: Tag): void {
+    const tagToRemove = this.props.tags.find((t) => t.id.equals(tag.id));
+
+    if (!tagToRemove) {
+      throw new DomainError("Tag not found");
+    }
+
+    this.props.tags = this.props.tags.filter((t) => !t.id.equals(tag.id));
+  }
+
   public getTypedChanges() {
     type PostEntities = {
       Post: Post;
@@ -76,5 +92,9 @@ export class Post extends Entity<PostProps> {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get tags(): Tag[] {
+    return this.props.tags;
   }
 }

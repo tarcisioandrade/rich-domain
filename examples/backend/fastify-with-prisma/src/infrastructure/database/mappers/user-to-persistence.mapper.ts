@@ -9,14 +9,31 @@ const schemaRegistry = new EntitySchemaRegistry()
   .register({
     entity: "User",
     table: "user",
+    collections: {
+      groups: {
+        type: "reference",
+        entity: "Group",
+      },
+    },
   })
   .register({
     entity: "Post",
     table: "post",
+    collections: {
+      tags: {
+        type: "reference",
+        entity: "Tag",
+      },
+    },
     fields: {
       content: "main_content",
     },
+  })
+  .register({
+    entity: "Group",
+    table: "group",
   });
+
 export class PrismaUserToPersistenceMapper extends PrismaToPersistence<User> {
   protected readonly registry = schemaRegistry;
 

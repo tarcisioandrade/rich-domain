@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { PrismaUserRepository } from "../../repositories/prisma-user.repository";
+import { PrismaUserRepository } from "../../database/repositories/prisma-user.repository";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { UserService } from "../../../application/services/user.service";

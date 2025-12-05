@@ -1,25 +1,26 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { PrismaPostRepository } from "../../repositories/prisma-post.repository";
-import { PrismaUserRepository } from "../../repositories/prisma-user.repository";
+import { PrismaPostRepository } from "../../database/repositories/prisma-post.repository";
+import { PrismaUserRepository } from "../../database/repositories/prisma-user.repository";
 import { Criteria } from "@woltz/rich-domain";
 import { prisma } from "../../database/prisma";
 import { PostSchema } from "../../../domain/post/post.entity";
 import { PostService } from "../../../application/services/post.service";
 import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 const createPostSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
-  authorId: z.string().uuid(),
+  authorId: z.string(),
 });
 
 const OnlyIdSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
 });
 
 const getPostParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
 });
 
 export async function postRoutes(app: FastifyInstance) {
@@ -105,5 +106,54 @@ export async function postRoutes(app: FastifyInstance) {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
+  });
+
+  app.withTypeProvider<ZodTypeProvider>().patch("/posts/:id/tags", {
+    schema: {
+      body: z.object({
+        tagId: z.string(),
+      }),
+    },
+    handler: async (request, reply) => {
+      try {
+        const params = getPostParamsSchema.parse(request.params);
+        await postService.addTag(params.id, request.body.tagId);
+
+        return reply.send({ message: "Tag added successfully" });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({ error: z.treeifyError(error) });
+        }
+        return reply.status(404).send({
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  });
+
+  app.withTypeProvider<ZodTypeProvider>().delete("/posts/:postId/tags/:tagId", {
+    schema: {
+      params: z.object({
+        postId: z.string(),
+        tagId: z.string(),
+      }),
+    },
+    handler: async (request, reply) => {
+      try {
+        await postService.removeTag(
+          request.params.postId,
+          request.params.tagId
+        );
+
+        return reply.send({ message: "Tag removed successfully" });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({ error: z.treeifyError(error) });
+        }
+        return reply.status(404).send({
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
   });
 }

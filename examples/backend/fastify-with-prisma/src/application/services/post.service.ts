@@ -2,6 +2,7 @@ import { Criteria, EntityNotFoundError, Id } from "@woltz/rich-domain";
 import { Post, PostProps } from "../../domain/post/post.entity";
 import { PostRepository } from "../../domain/post/post.repository";
 import { UserRepository } from "../../domain/user/user.repository";
+import { Tag } from "../../domain/value-objects/tags";
 
 interface CreatePostInput {
   title: string;
@@ -29,6 +30,7 @@ export class PostService {
       authorId: input.authorId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      tags: [],
       published: false,
     });
 
@@ -74,5 +76,21 @@ export class PostService {
     await this.postRepository.save(post);
 
     return post.toJSON();
+  }
+
+  async addTag(id: string, tagId: string) {
+    const post = await this.getById(id);
+
+    post.addTag(new Tag({ id: new Id(tagId) }));
+
+    await this.postRepository.save(post);
+  }
+
+  async removeTag(id: string, tagId: string) {
+    const post = await this.getById(id);
+
+    post.removeTag(new Tag({ id: new Id(tagId) }));
+
+    await this.postRepository.save(post);
   }
 }
