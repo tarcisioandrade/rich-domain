@@ -243,7 +243,6 @@ export function FilterValueSelector({
     <Input
       type={filter.type === "number" ? "number" : "text"}
       placeholder="Enter value..."
-      // value={simpleValue}
       defaultValue={simpleValue}
       onChange={(e) => {
         const newValue =

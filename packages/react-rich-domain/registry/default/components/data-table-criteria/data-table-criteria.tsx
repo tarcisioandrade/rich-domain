@@ -47,7 +47,7 @@ export function DataTableCriteria<TData>({
   const columnCount = table.getAllColumns().length;
   const hasSearch = showSearch && onSearchChange;
   const showActionBar = actionBar || showColumnToggle;
-  const hasFilters = filterProps && filterProps.filters.length > 0;
+  const hasFilters = filterProps && filterProps.fields.length > 0;
 
   return (
     <div className="space-y-4">
