@@ -7,13 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { QueryFilter, FilterOperator } from "../../lib/filter-utils";
-import { operatorSupportsMultipleValues, operatorIsBetween } from "../../lib/filter-utils";
+import {
+  operatorSupportsMultipleValues,
+  operatorIsBetween,
+} from "../../lib/filter-utils";
 
 interface FilterValueSelectorProps {
   filter: QueryFilter;
   operator: FilterOperator;
-  value: string | string[] | number | number[] | [string, string] | [number, number];
-  onChange: (value: string | string[] | number | number[] | [string, string] | [number, number]) => void;
+  value:
+    | string
+    | string[]
+    | number
+    | number[]
+    | [string, string]
+    | [number, number];
+  onChange: (
+    value:
+      | string
+      | string[]
+      | number
+      | number[]
+      | [string, string]
+      | [number, number]
+  ) => void;
 }
 
 export function FilterValueSelector({
@@ -71,9 +88,10 @@ export function FilterValueSelector({
   };
 
   if (isBetween && !hasOptions) {
-    const betweenValue: [string | number, string | number] = Array.isArray(value) && value.length === 2
-      ? [value[0], value[1]]
-      : ["", ""];
+    const betweenValue: [string | number, string | number] =
+      Array.isArray(value) && value.length === 2
+        ? [value[0], value[1]]
+        : ["", ""];
     const fromValue = betweenValue[0];
     const toValue = betweenValue[1];
 
@@ -84,9 +102,12 @@ export function FilterValueSelector({
           placeholder="From..."
           value={fromValue ?? ""}
           onChange={(e) => {
-            const newFrom = filter.type === "number"
-              ? (e.target.value ? Number(e.target.value) : 0)
-              : e.target.value;
+            const newFrom =
+              filter.type === "number"
+                ? e.target.value
+                  ? Number(e.target.value)
+                  : 0
+                : e.target.value;
             onChange([newFrom, toValue] as [number, number] | [string, string]);
           }}
           className="h-7 w-24 text-sm"
@@ -97,9 +118,12 @@ export function FilterValueSelector({
           placeholder="To..."
           value={toValue ?? ""}
           onChange={(e) => {
-            const newTo = filter.type === "number"
-              ? (e.target.value ? Number(e.target.value) : 0)
-              : e.target.value;
+            const newTo =
+              filter.type === "number"
+                ? e.target.value
+                  ? Number(e.target.value)
+                  : 0
+                : e.target.value;
             onChange([fromValue, newTo] as [number, number] | [string, string]);
           }}
           className="h-7 w-24 text-sm"
@@ -219,11 +243,15 @@ export function FilterValueSelector({
     <Input
       type={filter.type === "number" ? "number" : "text"}
       placeholder="Enter value..."
-      value={simpleValue}
+      // value={simpleValue}
+      defaultValue={simpleValue}
       onChange={(e) => {
-        const newValue = filter.type === "number"
-          ? (e.target.value ? Number(e.target.value) : 0)
-          : e.target.value;
+        const newValue =
+          filter.type === "number"
+            ? e.target.value
+              ? Number(e.target.value)
+              : 0
+            : e.target.value;
         onChange(newValue);
       }}
       className="h-7 w-32 text-sm"

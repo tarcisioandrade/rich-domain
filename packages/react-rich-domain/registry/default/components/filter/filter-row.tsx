@@ -55,7 +55,8 @@ export function FilterRow({
       newValue = null;
     } else if (!prevOperatorIsBetween && newOperatorIsBetween) {
       // Switching to between operator
-      newValue = type === "number" ? [0, 0] : type === "date" ? ["", ""] : ["", ""];
+      newValue =
+        type === "number" ? [0, 0] : type === "date" ? ["", ""] : ["", ""];
     } else if (prevOperatorIsBetween && !newOperatorIsBetween) {
       // Switching from between operator
       newValue = defineDefaultFilterValue(type, operator);
@@ -113,7 +114,6 @@ export function FilterRow({
     return null;
   };
 
-
   return (
     <div className="group flex items-center gap-1.5 rounded-md border border-border bg-card p-1">
       <FilterFieldSelector
@@ -132,7 +132,7 @@ export function FilterRow({
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground ml-auto"
         onClick={onRemove}
       >
         <X className="h-4 w-4" />

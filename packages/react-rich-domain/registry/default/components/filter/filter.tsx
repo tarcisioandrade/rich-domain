@@ -41,6 +41,7 @@ import {
 } from "@woltz/rich-domain";
 import type { UseCriteriaReturn } from "@/types/use-criteria.type";
 import { cn } from "@/lib/utils";
+import { useDebounceCallback } from "@/hooks/use-debounce-callback";
 
 interface FilterProps {
   fields: QueryFilter[];
@@ -172,6 +173,13 @@ export function Filter({
     });
   };
 
+  const [handleUpdateFilterDebounced] = useDebounceCallback(
+    (index: number, newValue: FilterValue) => {
+      handleUpdateFilter(index, newValue);
+    },
+    300
+  );
+
   const handleSelectField = (index: number, newValue: FilterValue) => {
     const filterToUpdate = filters[index];
     if (!filterToUpdate) return;
@@ -216,7 +224,7 @@ export function Filter({
           key={`${filter.field}-${index}`}
           fields={fields}
           value={filter}
-          onChange={(newValue) => handleUpdateFilter(index, newValue)}
+          onChange={(newValue) => handleUpdateFilterDebounced(index, newValue)}
           onSelectField={(newValue) => handleSelectField(index, newValue)}
           onRemove={() => handleRemoveFilter(index)}
           usedFields={usedFields}

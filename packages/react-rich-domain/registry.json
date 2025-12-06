@@ -85,6 +85,94 @@
           "type": "registry:file",
           "description": "A utility to filter data.",
           "target": "~/src/lib/filter-utils.ts"
+        },
+        {
+          "path": "registry/default/hooks/use-debounce-callback.ts",
+          "type": "registry:hook",
+          "description": "A hook to debounce a callback.",
+          "target": "~/src/hooks/use-debounce-callback.ts"
+        }
+      ]
+    },
+    {
+      "name": "data-table-criteria",
+      "type": "registry:block",
+      "title": "DataTable Criteria",
+      "description": "A component to display a data table with @woltz/rich-domain criteria and @tanstack/react-query.",
+      "dependencies": [
+        "@woltz/rich-domain",
+        "@tanstack/react-table",
+        "@tanstack/react-query"
+      ],
+      "registryDependencies": [
+        "@shadcn/button",
+        "@shadcn/input",
+        "@shadcn/popover",
+        "@shadcn/dropdown-menu",
+        "@shadcn/table",
+        "use-criteria",
+        "filter"
+      ],
+      "files": [
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-criteria.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria",
+          "target": "~/src/components/data-table-criteria/data-table-criteria.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-pagination.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Pagination",
+          "target": "~/src/components/data-table-criteria/data-table-pagination.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-column-toggle.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Column Toggle",
+          "target": "~/src/components/data-table-criteria/data-table-column-toggle.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-column-header.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Column Header",
+          "target": "~/src/components/data-table-criteria/data-table-column-header.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-column-header.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Column Header",
+          "target": "~/src/components/data-table-criteria/data-table-column-header.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Filter",
+          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter-popover.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Filter Popover",
+          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter-popover.tsx"
+        },
+        {
+          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter-row.tsx",
+          "type": "registry:component",
+          "description": "DataTable Criteria Filter Row",
+          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter-row.tsx"
+        },
+        {
+          "path": "registry/default/types/use-criteria-table.type.ts",
+          "type": "registry:file",
+          "description": "A type for the data table criteria",
+          "target": "~/src/types/use-criteria-table.type.ts"
+        },
+        {
+          "path": "registry/default/hooks/use-criteria-table.ts",
+          "type": "registry:hook",
+          "description": "A hook to use criteria table.",
+          "target": "~/src/hooks/use-criteria-table.ts"
         }
       ]
     }

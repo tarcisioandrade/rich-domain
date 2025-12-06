@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -34,15 +34,12 @@ export function useCriteriaTable<T>(
     searchDebounceMs = 300,
   } = options;
 
-  // Initialize useCriteria for state management
   const criteriaState = useCriteria<T>(criteriaOptions);
 
-  // Debounced search that updates criteria
   const [debouncedSetSearch] = useDebounceCallback((value: string) => {
     criteriaState.setSearch(value);
   }, searchDebounceMs);
 
-  // Handle search change with debounce
   const handleSearchChange = useCallback(
     (value: string) => {
       debouncedSetSearch(value);
@@ -50,16 +47,13 @@ export function useCriteriaTable<T>(
     [debouncedSetSearch]
   );
 
-  // Fetch data using React Query
   const query = useQuery({
     queryKey: [...queryKey, criteriaState.criteria.toJSON()],
     queryFn: () => queryFn(criteriaState.criteria),
   });
 
-  // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // Convert criteria sorting to TanStack Table format
   const sorting: SortingState = useMemo(() => {
     return criteriaState.sorting.map((order) => ({
       id: order.field,
@@ -67,7 +61,6 @@ export function useCriteriaTable<T>(
     }));
   }, [criteriaState.sorting]);
 
-  // Handle sorting changes from TanStack Table
   const handleSortingChange: OnChangeFn<SortingState> = useCallback(
     (updater) => {
       const newSorting =
@@ -78,7 +71,6 @@ export function useCriteriaTable<T>(
         return;
       }
 
-      // For single sort, just use the first item
       const sortItem = newSorting[0];
       if (!sortItem) return;
 
@@ -88,7 +80,6 @@ export function useCriteriaTable<T>(
     [sorting, criteriaState]
   );
 
-  // Pagination state from criteria
   const paginationState: PaginationState = useMemo(() => {
     return {
       pageIndex: criteriaState.pagination.page - 1, // TanStack uses 0-based index
@@ -96,18 +87,15 @@ export function useCriteriaTable<T>(
     };
   }, [criteriaState.pagination]);
 
-  // Handle pagination changes from TanStack Table
   const handlePaginationChange: OnChangeFn<PaginationState> = useCallback(
     (updater) => {
       const newPagination =
         typeof updater === "function" ? updater(paginationState) : updater;
 
-      // Update page if changed
       if (newPagination.pageIndex !== paginationState.pageIndex) {
         criteriaState.setPage(newPagination.pageIndex + 1); // Convert back to 1-based
       }
 
-      // Update page size if changed
       if (newPagination.pageSize !== paginationState.pageSize) {
         criteriaState.setPageSize(newPagination.pageSize);
       }
@@ -115,12 +103,10 @@ export function useCriteriaTable<T>(
     [paginationState, criteriaState]
   );
 
-  // Calculate page count from query meta
   const pageCount = useMemo(() => {
     return query.data?.meta.totalPages ?? -1;
   }, [query.data?.meta.totalPages]);
 
-  // Initialize TanStack Table
   const table = useReactTable({
     data: query.data?.data ?? [],
     columns,
@@ -154,13 +140,6 @@ export function useCriteriaTable<T>(
     ...tableOptions,
   });
 
-  // Sync TanStack Table state back to URL/storage when criteria changes
-  useEffect(() => {
-    // This effect ensures criteria persistence is triggered
-    // The actual persistence is handled by useCriteria
-  }, [criteriaState.criteria]);
-
-  // Filter props for Filter component integration
   const filterProps = useMemo(
     () => ({
       fields: filterFields,
@@ -178,7 +157,6 @@ export function useCriteriaTable<T>(
     ]
   );
 
-  // Search props for DataTableCriteria integration
   const searchProps = useMemo(
     () => ({
       searchValue: criteriaState.search || "",

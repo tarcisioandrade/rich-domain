@@ -1,11 +1,10 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { getUsers, type TestUser } from "./service/get-users";
 import { useCriteriaTable } from "./hooks/use-criteria-table";
-import { DataTableCriteria } from "./components/table/data-table-criteria";
-import { Filter } from "./components/filter/filter";
+import { DataTableCriteria } from "./components/data-table-criteria/data-table-criteria";
 import type { QueryFilter } from "./lib/filter-utils";
 import { cn } from "./lib/utils";
-import { DataTableColumnHeader } from "./components/table/data-table-column-header";
+import { DataTableColumnHeader } from "./components/data-table-criteria/data-table-column-header";
 import { Button } from "./components/ui/button";
 
 const filterFields: QueryFilter[] = [
@@ -74,8 +73,8 @@ const columns: ColumnDef<TestUser>[] = [
 export function UserList() {
   const { table, data, isLoading, filterProps, searchProps } =
     useCriteriaTable<TestUser>({
-      columns,
       filterFields,
+      columns,
       queryKey: ["users"],
       queryFn: getUsers,
       criteriaOptions: {
@@ -86,7 +85,6 @@ export function UserList() {
 
   return (
     <div className="space-y-4">
-      <Filter {...filterProps} />
       <DataTableCriteria
         table={table}
         data={data}
@@ -98,6 +96,7 @@ export function UserList() {
         }
         emptyMessage="No users found."
         searchPlaceholder="Search users..."
+        filterProps={filterProps}
         {...searchProps}
       />
     </div>

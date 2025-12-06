@@ -27,7 +27,7 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
   const totalCount = meta?.total ?? table.getFilteredRowModel().rows.length;
-  const currentPage = meta?.currentPage ?? table.getState().pagination.pageIndex + 1;
+  const currentPage = meta?.page ?? table.getState().pagination.pageIndex + 1;
   const totalPages = meta?.totalPages ?? table.getPageCount();
   const hasNext = meta?.hasNext ?? table.getCanNextPage();
   const hasPrevious = meta?.hasPrevious ?? table.getCanPreviousPage();

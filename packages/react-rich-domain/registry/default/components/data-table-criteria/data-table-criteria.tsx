@@ -14,6 +14,8 @@ import { DataTableViewOptions } from "./data-table-column-toggle";
 import type { PaginatedResult } from "@woltz/rich-domain";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { DataTableFilter } from "./data-table-filter/data-table-filter";
+import type { FilterIntegrationProps } from "@/types/use-criteria-table.type";
 
 interface DataTableCriteriaProps<TData> {
   table: TableType<TData>;
@@ -26,6 +28,7 @@ interface DataTableCriteriaProps<TData> {
   searchPlaceholder?: string;
   showSearch?: boolean;
   actionBar?: React.ReactNode;
+  filterProps?: FilterIntegrationProps;
 }
 
 export function DataTableCriteria<TData>({
@@ -39,25 +42,30 @@ export function DataTableCriteria<TData>({
   searchPlaceholder = "Search...",
   showSearch = false,
   actionBar,
+  filterProps,
 }: DataTableCriteriaProps<TData>) {
   const columnCount = table.getAllColumns().length;
   const hasSearch = showSearch && onSearchChange;
-
   const showActionBar = actionBar || showColumnToggle;
+  const hasFilters = filterProps && filterProps.filters.length > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {hasSearch && (
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              onChange={(e) => onSearchChange(e.target.value)}
-              defaultValue={searchValue}
-              className="pl-8 pr-8 h-8"
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {hasSearch && (
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                onChange={(e) => onSearchChange(e.target.value)}
+                defaultValue={searchValue}
+                className="pl-8 pr-8 h-8"
+              />
+            </div>
+          )}
+          {hasFilters && <DataTableFilter {...filterProps} />}
+        </div>
         {showActionBar && (
           <div className="ml-auto flex gap-2">
             {actionBar}
