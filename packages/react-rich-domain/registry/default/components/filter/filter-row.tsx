@@ -95,6 +95,7 @@ export function FilterRow({
     return null;
   };
 
+
   return (
     <div className="group flex items-center gap-1.5 rounded-md border border-border bg-card p-1">
       <FilterFieldSelector
@@ -105,6 +106,7 @@ export function FilterRow({
       />
       <FilterOperatorSelector
         type={type}
+        isNullable={currentField?.isNullable}
         selectedOperator={value.operator}
         onSelect={handleOperatorChange}
       />

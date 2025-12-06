@@ -29,6 +29,7 @@ export function UserFilterExample() {
     {
       type: "string",
       field: "email",
+      isNullable: true,
       fieldLabel: "Email",
     },
     {

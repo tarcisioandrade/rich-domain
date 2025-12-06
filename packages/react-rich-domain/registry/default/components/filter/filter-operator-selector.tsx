@@ -18,17 +18,25 @@ import {
 
 interface FilterOperatorSelectorProps {
   type: FilterType;
+  isNullable?: boolean;
   selectedOperator: FilterOperator;
   onSelect: (operator: FilterOperator) => void;
 }
 
 export function FilterOperatorSelector({
   type,
+  isNullable,
   selectedOperator,
   onSelect,
 }: FilterOperatorSelectorProps) {
   const [open, setOpen] = React.useState(false);
-  const operators = getOperatorsByType(type);
+  const op = getOperatorsByType(type);
+
+  const operators = isNullable
+    ? op
+    : op.filter(
+        (operator) => operator !== "isNull" && operator !== "isNotNull"
+      );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

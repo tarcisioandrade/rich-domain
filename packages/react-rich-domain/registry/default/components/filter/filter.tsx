@@ -300,6 +300,7 @@ export function Filter({
                   <div className="space-y-2 h-7">
                     <FilterOperatorSelector
                       type={selectedFieldForAdd.type}
+                      isNullable={selectedFieldForAdd.isNullable}
                       selectedOperator={tempOperator}
                       onSelect={(op) => {
                         setTempOperator(op);

@@ -65,6 +65,8 @@ export function FilterValueSelector({
     );
   };
 
+  console.log("value", value);
+
   if (hasOptions) {
     const renderDisplayContent = () => {
       if (selectedValues.length === 0) {
@@ -173,7 +175,7 @@ export function FilterValueSelector({
     <Input
       type={filter.type === "number" ? "number" : "text"}
       placeholder="Enter value..."
-      value={typeof value === "string" ? value : ""}
+      value={value}
       onChange={(e) => onChange(e.target.value)}
       className="h-7 w-32 text-sm"
     />

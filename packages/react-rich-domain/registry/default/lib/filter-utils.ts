@@ -18,6 +18,7 @@ export type QueryFilter = {
   type: FilterType;
   field: string;
   fieldLabel: string;
+  isNullable?: boolean;
   multiSelect?: boolean;
   options?: {
     label: string;
