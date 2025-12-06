@@ -23,6 +23,10 @@ const schemaRegistry = new EntitySchemaRegistry()
     fields: {
       content: "main_content",
     },
+    parentFk: {
+      field: "authorId",
+      parentEntity: "User",
+    },
   });
 
 export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
@@ -31,7 +35,7 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
 > {
   protected readonly registry = schemaRegistry;
 
-  protected async onCreate(user: User){
+  protected async onCreate(user: User) {
     await this.context.user.create({
       data: {
         id: user.id.value,
@@ -63,6 +67,7 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
     user: User,
     changes: AggregateChanges
   ): Promise<void> {
+    console.dir({ changes }, { depth: null });
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,

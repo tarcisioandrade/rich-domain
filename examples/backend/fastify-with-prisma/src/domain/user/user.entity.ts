@@ -47,6 +47,10 @@ export class User extends Aggregate<UserProps> {
     });
   }
 
+  addPost(post: Post): void {
+    this.props.posts.push(post);
+  }
+
   public getTypedChanges() {
     return this.getChanges<UserEntities>();
   }

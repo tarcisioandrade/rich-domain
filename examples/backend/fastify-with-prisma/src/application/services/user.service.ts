@@ -2,7 +2,8 @@ import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
 import { Criteria, Id } from "@woltz/rich-domain";
 import { EVENT_BUS } from "../../infrastructure/queue/event-bus";
-import { PrismaUnitOfWork, Transactional } from "@woltz/rich-domain-prisma";
+import { Transactional } from "@woltz/rich-domain-prisma";
+import { uow } from "../../infrastructure/database/prisma";
 
 interface CreateUserInput {
   email: string;
@@ -10,12 +11,9 @@ interface CreateUserInput {
 }
 
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly uow: PrismaUnitOfWork
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
-  @Transactional()
+  @Transactional(uow)
   async create(input: CreateUserInput): Promise<User> {
     const existingUser = await this.userRepository.findByEmail(input.email);
 

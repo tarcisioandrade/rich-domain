@@ -5,6 +5,7 @@ import { PrismaPostToDomainMapper } from "../mappers/post-to-domain.mapper";
 import { PrismaPostToPersistenceMapper } from "../mappers/post-to-persistence.mapper";
 import { PostSchema } from "../schemas/post.schema";
 import { Post } from "../../../domain/post/post.entity";
+import { Criteria, PaginatedResult } from "@woltz/rich-domain";
 
 export class PrismaPostRepository
   extends PrismaRepository<Post, PostSchema>
@@ -23,7 +24,6 @@ export class PrismaPostRepository
     return [
       {
         title: search,
-        
       },
       {
         main_content: search,
@@ -47,5 +47,12 @@ export class PrismaPostRepository
 
   get model() {
     return "post";
+  }
+
+  override async find(
+    criteria: Criteria<Post>
+  ): Promise<PaginatedResult<Post>> {
+    criteria.orderByDesc("createdAt");
+    return super.find(criteria);
   }
 }

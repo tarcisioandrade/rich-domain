@@ -37,7 +37,7 @@ const UserResponseSchema = z.object({
 export async function userRoutes(app: FastifyInstance) {
   const uow = new PrismaUnitOfWork(prisma);
   const userRepository = new PrismaUserRepository(prisma, uow);
-  const userService = new UserService(userRepository, uow);
+  const userService = new UserService(userRepository);
 
   app.post("/users", async (request, reply) => {
     try {
