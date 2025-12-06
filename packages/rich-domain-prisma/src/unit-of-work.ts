@@ -90,7 +90,7 @@ export class PrismaUnitOfWork {
  * }
  * ```
  */
-export function Transactional() {
+export function Transactional(input_wow?: PrismaUnitOfWork) {
   return function (
     _target: any,
     _propertyKey: string,
@@ -103,7 +103,7 @@ export function Transactional() {
         return original.apply(this, args);
       }
 
-      const uow = findUnitOfWork(this);
+      const uow = input_wow ?? findUnitOfWork(this);
 
       if (!uow) {
         throw new Error(

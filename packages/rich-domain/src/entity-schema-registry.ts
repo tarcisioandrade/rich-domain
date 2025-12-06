@@ -466,11 +466,7 @@ export class EntitySchemaRegistry {
     const availableCollections = Object.keys(collections);
 
     if (availableCollections.length === 0) {
-      throw new ConfigurationError(
-        `EntitySchemaRegistry: Entity '${entity}' has no collections configured, ` +
-          `but received operation for relation '${relationField}'. ` +
-          `Did you forget to configure collections in the schema?`
-      );
+      return;
     }
 
     if (!collections[relationField]) {
