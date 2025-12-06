@@ -1,3 +1,4 @@
+import { PrismaClient } from "@prisma/client";
 import { User } from "../../../domain/user/user.entity";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
 import {
@@ -24,10 +25,13 @@ const schemaRegistry = new EntitySchemaRegistry()
     },
   });
 
-export class PrismaUserToPersistenceMapper extends PrismaToPersistence<User> {
+export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
+  User,
+  PrismaClient
+> {
   protected readonly registry = schemaRegistry;
 
-  protected async onCreate(user: User): Promise<void> {
+  protected async onCreate(user: User){
     await this.context.user.create({
       data: {
         id: user.id.value,

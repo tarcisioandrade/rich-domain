@@ -15,9 +15,11 @@ export class PrismaUserRepository
   }
 
   protected generateSearchQuery(search: string) {
-    return {
-      name: { contains: search, mode: "insensitive" },
-    };
+    return [
+      {
+        name: { contains: search, mode: "insensitive" },
+      },
+    ] satisfies Prisma.UserWhereInput[];
   }
 
   protected readonly includes = {

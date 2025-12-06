@@ -4,8 +4,12 @@ import {
   PrismaBatchExecutor,
   PrismaToPersistence,
 } from "@woltz/rich-domain-prisma";
+import { PrismaClient } from "@prisma/client";
 
-export class PrismaPostToPersistenceMapper extends PrismaToPersistence<Post> {
+export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
+  Post,
+  PrismaClient
+> {
   protected readonly registry = new EntitySchemaRegistry().register({
     entity: "Post",
     table: "post",

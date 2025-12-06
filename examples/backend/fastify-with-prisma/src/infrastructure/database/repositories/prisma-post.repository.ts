@@ -14,10 +14,26 @@ export class PrismaPostRepository
     tags: true,
   } satisfies Prisma.PostInclude;
 
-  protected generateSearchQuery(search: string) {
-    return {
-      title: { contains: search, mode: "insensitive" },
-    };
+  protected generateSearchQuery(s: string) {
+    const search = {
+      contains: s,
+      mode: "insensitive",
+    } as const;
+
+    return [
+      {
+        title: search,
+        
+      },
+      {
+        main_content: search,
+      },
+      {
+        author: {
+          name: search,
+        },
+      },
+    ] satisfies Prisma.PostWhereInput[];
   }
 
   constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
