@@ -81,6 +81,18 @@ export class PaginatedResult<T> {
       pagination.offset,
       pagination.offset + pagination.limit
     );
+
+    const search = criteria.getSearch();
+
+    if (search) {
+      result = result.filter((item) => {
+        const values = Object.values(item as Record<string, unknown>);
+        return values.some((val) =>
+          String(val).toLowerCase().includes(search.toLowerCase())
+        );
+      });
+    }
+
     return PaginatedResult.create(result, pagination, total);
   }
 
