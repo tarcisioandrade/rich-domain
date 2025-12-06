@@ -175,3 +175,7 @@ export function operatorSupportsMultipleValues(
 ): boolean {
   return operator === "in" || operator === "notIn";
 }
+
+export function operatorIsBetween(operator: FilterOperator): boolean {
+  return operator === "between";
+}

@@ -1,4 +1,5 @@
 "use client";
+
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FilterFieldSelector } from "./filter-field-selector";
@@ -12,6 +13,8 @@ import {
   type FilterOperator,
   getDefaultOperator,
   operatorRequiresValue,
+  operatorIsBetween,
+  defineDefaultFilterValue,
 } from "@/lib/filter-utils";
 
 interface FilterRowProps {
@@ -43,10 +46,25 @@ export function FilterRow({
   };
 
   const handleOperatorChange = (operator: FilterOperator) => {
+    const prevOperatorIsBetween = operatorIsBetween(value.operator);
+    const newOperatorIsBetween = operatorIsBetween(operator);
+
+    let newValue = value.value;
+
+    if (!operatorRequiresValue(operator)) {
+      newValue = null;
+    } else if (!prevOperatorIsBetween && newOperatorIsBetween) {
+      // Switching to between operator
+      newValue = type === "number" ? [0, 0] : type === "date" ? ["", ""] : ["", ""];
+    } else if (prevOperatorIsBetween && !newOperatorIsBetween) {
+      // Switching from between operator
+      newValue = defineDefaultFilterValue(type, operator);
+    }
+
     onChange({
       ...value,
       operator,
-      value: operatorRequiresValue(operator) ? value.value : null,
+      value: newValue,
     });
   };
 

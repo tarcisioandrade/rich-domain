@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { QueryFilter, FilterOperator } from "../../lib/filter-utils";
-import { operatorSupportsMultipleValues } from "../../lib/filter-utils";
+import { operatorSupportsMultipleValues, operatorIsBetween } from "../../lib/filter-utils";
 
 interface FilterValueSelectorProps {
   filter: QueryFilter;
   operator: FilterOperator;
-  value: string | string[];
-  onChange: (value: string | string[]) => void;
+  value: string | string[] | number | number[] | [string, string] | [number, number];
+  onChange: (value: string | string[] | number | number[] | [string, string] | [number, number]) => void;
 }
 
 export function FilterValueSelector({
@@ -25,9 +25,14 @@ export function FilterValueSelector({
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const isMultiple = operatorSupportsMultipleValues(operator);
+  const isBetween = operatorIsBetween(operator);
   const hasOptions = filter.options && filter.options.length > 0;
 
-  const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
+  const selectedValues: string[] = React.useMemo(() => {
+    if (isBetween || !value) return [];
+    if (Array.isArray(value)) return value.map(String);
+    return [String(value)];
+  }, [value, isBetween]);
 
   const filteredOptions =
     filter.options?.filter((opt) =>
@@ -65,7 +70,43 @@ export function FilterValueSelector({
     );
   };
 
-  console.log("value", value);
+  if (isBetween && !hasOptions) {
+    const betweenValue: [string | number, string | number] = Array.isArray(value) && value.length === 2
+      ? [value[0], value[1]]
+      : ["", ""];
+    const fromValue = betweenValue[0];
+    const toValue = betweenValue[1];
+
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          type={filter.type === "number" ? "number" : "text"}
+          placeholder="From..."
+          value={fromValue ?? ""}
+          onChange={(e) => {
+            const newFrom = filter.type === "number"
+              ? (e.target.value ? Number(e.target.value) : 0)
+              : e.target.value;
+            onChange([newFrom, toValue] as [number, number] | [string, string]);
+          }}
+          className="h-7 w-24 text-sm"
+        />
+        <span className="text-xs text-muted-foreground">to</span>
+        <Input
+          type={filter.type === "number" ? "number" : "text"}
+          placeholder="To..."
+          value={toValue ?? ""}
+          onChange={(e) => {
+            const newTo = filter.type === "number"
+              ? (e.target.value ? Number(e.target.value) : 0)
+              : e.target.value;
+            onChange([fromValue, newTo] as [number, number] | [string, string]);
+          }}
+          className="h-7 w-24 text-sm"
+        />
+      </div>
+    );
+  }
 
   if (hasOptions) {
     const renderDisplayContent = () => {
@@ -171,12 +212,20 @@ export function FilterValueSelector({
     );
   }
 
+  // Simple input for non-array values
+  const simpleValue = Array.isArray(value) ? "" : value ?? "";
+
   return (
     <Input
       type={filter.type === "number" ? "number" : "text"}
       placeholder="Enter value..."
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      value={simpleValue}
+      onChange={(e) => {
+        const newValue = filter.type === "number"
+          ? (e.target.value ? Number(e.target.value) : 0)
+          : e.target.value;
+        onChange(newValue);
+      }}
       className="h-7 w-32 text-sm"
     />
   );

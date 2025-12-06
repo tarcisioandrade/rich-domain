@@ -30,6 +30,7 @@ import {
   defineDefaultFilterValue,
   operatorSupportsMultipleValues,
   operatorRequiresValue,
+  operatorIsBetween,
 } from "../../lib/filter-utils";
 import {
   type FieldPath,
@@ -94,7 +95,12 @@ export function Filter({
     setSelectedFieldForAdd(field);
     const defaultOp = getDefaultOperator(field.type);
     setTempOperator(defaultOp);
-    setTempValue(defineDefaultFilterValue(field.type, defaultOp));
+    const defaultValue = operatorIsBetween(defaultOp)
+      ? field.type === "number"
+        ? [0, 0]
+        : ["", ""]
+      : defineDefaultFilterValue(field.type, defaultOp);
+    setTempValue(defaultValue);
     setSearch("");
     setAddFilterStep("value");
   };
@@ -145,9 +151,17 @@ export function Filter({
     const prevOperatorIsArrayOperator = operatorSupportsMultipleValues(
       prevFilter.operator
     );
+    const newOperatorIsBetween = operatorIsBetween(operator);
+    const prevOperatorIsBetween = operatorIsBetween(prevFilter.operator);
 
     if (prevOperatorIsArrayOperator && !newOperatorIsArrayOperator) {
       value = null;
+    }
+
+    if (prevOperatorIsBetween && !newOperatorIsBetween) {
+      value = null;
+    } else if (!prevOperatorIsBetween && newOperatorIsBetween) {
+      value = newField.type === "number" ? [0, 0] : ["", ""];
     }
 
     addOrReplaceByIndex({
@@ -243,8 +257,8 @@ export function Filter({
           </PopoverTrigger>
           <PopoverContent
             className={cn(
-              addFilterStep === "field" ? "w-52 p-0" : "min-w-64 p-3",
-              "bg-card"
+              addFilterStep === "field" ? "p-0" : "min-w-64 p-3",
+              "bg-card w-fit"
             )}
             align="start"
           >
@@ -303,9 +317,35 @@ export function Filter({
                       isNullable={selectedFieldForAdd.isNullable}
                       selectedOperator={tempOperator}
                       onSelect={(op) => {
+                        const prevOperatorIsBetween =
+                          operatorIsBetween(tempOperator);
+                        const newOperatorIsBetween = operatorIsBetween(op);
+
                         setTempOperator(op);
+
                         if (!operatorRequiresValue(op)) {
                           setTempValue(null);
+                        } else if (
+                          !prevOperatorIsBetween &&
+                          newOperatorIsBetween
+                        ) {
+                          // Switching to between operator
+                          setTempValue(
+                            selectedFieldForAdd.type === "number"
+                              ? [0, 0]
+                              : ["", ""]
+                          );
+                        } else if (
+                          prevOperatorIsBetween &&
+                          !newOperatorIsBetween
+                        ) {
+                          // Switching from between operator
+                          setTempValue(
+                            defineDefaultFilterValue(
+                              selectedFieldForAdd.type,
+                              op
+                            )
+                          );
                         }
                       }}
                     />
