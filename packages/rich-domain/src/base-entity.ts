@@ -105,7 +105,10 @@ export abstract class BaseEntity<T extends BaseProps> {
         result.issues.map((issue) => ({
           path: issue.path?.map((p) => this.extractPathKey(p)) || [],
           message: issue.message,
-        }))
+        })),
+        {
+          entityName: this.constructor.name,
+        }
       );
 
       if (this.validationConfig.throwOnError) {
@@ -171,7 +174,10 @@ export abstract class BaseEntity<T extends BaseProps> {
               result.issues.map((issue) => ({
                 path: issue.path?.map((p) => self.extractPathKey(p)) || [],
                 message: issue.message,
-              }))
+              })),
+              {
+                entityName: self.constructor.name,
+              }
             );
 
             (self._props as any)[path] = originalValue;

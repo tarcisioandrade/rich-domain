@@ -99,6 +99,118 @@ class UserSafe extends Aggregate<UserProps> {
 }
 
 describe("Rich Domain with Standard Schema Validation", () => {
+  describe("ValidationError Messages", () => {
+    it("should include entity name in error message", () => {
+      try {
+        new User({
+          name: "J",
+          email: "invalid-email",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        expect(validationError.message).toContain("[User]");
+        expect(validationError.entityName).toBe("User");
+      }
+    });
+
+    it("should include property path in single error message", () => {
+      try {
+        new User({
+          name: "J",
+          email: "john@example.com",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        expect(validationError.message).toContain('"name"');
+        expect(validationError.message).toContain("Validation failed");
+      }
+    });
+
+    it("should format multiple errors with numbered list", () => {
+      try {
+        new User({
+          name: "J",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        expect(validationError.message).toContain("[User]");
+        expect(validationError.message).toContain("Validation failed with");
+        expect(validationError.message).toContain("1.");
+        expect(validationError.message).toContain("2.");
+      }
+    });
+
+    it("should provide formatted errors via getFormattedErrors()", () => {
+      try {
+        new User({
+          name: "J",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        const formatted = validationError.getFormattedErrors();
+        expect(formatted).toContain("[name]");
+        expect(formatted).toContain("[email]");
+      }
+    });
+
+    it("should provide summary via getSummary()", () => {
+      try {
+        new User({
+          name: "J",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        const summary = validationError.getSummary();
+        expect(summary).toContain("[User]");
+        expect(summary).toContain("Validation failed on:");
+        expect(summary).toContain("name");
+        expect(summary).toContain("email");
+      }
+    });
+
+    it("should include entity name in toJSON()", () => {
+      try {
+        new User({
+          name: "J",
+          email: "john@example.com",
+          age: 30,
+          status: "active",
+        });
+        fail("Should have thrown ValidationError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        const validationError = error as ValidationError;
+        const json = validationError.toJSON();
+        expect(json.entityName).toBe("User");
+        expect(json.name).toBe("ValidationError");
+        expect(json.issues).toBeDefined();
+      }
+    });
+  });
+
   describe("User Creation with Validation", () => {
     it("should create user with valid data", () => {
       const user = new User({
