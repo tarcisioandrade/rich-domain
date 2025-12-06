@@ -1,8 +1,12 @@
-import type {
-  BooleanOperators,
-  DateOperators,
-  NumberOperators,
-  StringOperators,
+import {
+  type BooleanOperators,
+  type DateOperators,
+  type NumberOperators,
+  type StringOperators,
+  STRING_OPERATORS,
+  NUMBER_OPERATORS,
+  DATE_OPERATORS,
+  BOOLEAN_OPERATORS,
 } from "@woltz/rich-domain";
 import type React from "react";
 
@@ -92,53 +96,6 @@ export function defineDefaultFilterValue(
   }
   return defaultValue;
 }
-
-export const STRING_OPERATORS: StringOperators[] = [
-  "equals",
-  "notEquals",
-  "contains",
-  "startsWith",
-  "endsWith",
-  "in",
-  "notIn",
-  "isNull",
-  "isNotNull",
-];
-
-export const NUMBER_OPERATORS: NumberOperators[] = [
-  "equals",
-  "notEquals",
-  "greaterThan",
-  "greaterThanOrEqual",
-  "lessThan",
-  "lessThanOrEqual",
-  "in",
-  "notIn",
-  "between",
-  "isNull",
-  "isNotNull",
-];
-
-export const DATE_OPERATORS: DateOperators[] = [
-  "equals",
-  "notEquals",
-  "greaterThan",
-  "greaterThanOrEqual",
-  "lessThan",
-  "lessThanOrEqual",
-  "in",
-  "notIn",
-  "between",
-  "isNull",
-  "isNotNull",
-];
-
-export const BOOLEAN_OPERATORS: BooleanOperators[] = [
-  "equals",
-  "notEquals",
-  "isNull",
-  "isNotNull",
-];
 
 export function getOperatorsByType(type: FilterType): FilterOperator[] {
   switch (type) {
