@@ -1,4 +1,4 @@
-import { PaginatedResult, type Criteria } from "@woltz/rich-domain";
+import { Criteria, PaginatedResult } from "@woltz/rich-domain";
 import users from "./users.json";
 
 export type TestUser = {
@@ -14,12 +14,12 @@ export type TestUser = {
 };
 
 export async function getUsers(
-  Criteria: Criteria
+  criteria: Criteria = Criteria.create<TestUser>()
 ): Promise<PaginatedResult<TestUser>> {
   try {
     const response = Promise.resolve(users);
     const data = (await response) as TestUser[];
-    const result = PaginatedResult.fromArray<TestUser>(data, Criteria);
+    const result = PaginatedResult.fromArray<TestUser>(data, criteria);
 
     return result;
   } catch (error) {
