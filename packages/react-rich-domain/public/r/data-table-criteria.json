@@ -15,8 +15,8 @@
     "@shadcn/popover",
     "@shadcn/dropdown-menu",
     "@shadcn/table",
-    "use-criteria",
-    "filter"
+    "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json",
+    "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
   ],
   "files": [
     {

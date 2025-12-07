@@ -12,7 +12,7 @@
     "@shadcn/input",
     "@shadcn/popover",
     "@shadcn/calendar",
-    "use-criteria"
+    "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
   ],
   "files": [
     {
