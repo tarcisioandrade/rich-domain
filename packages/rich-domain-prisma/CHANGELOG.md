@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.6.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.1...v0.6.0) (2025-12-07)
+
+
+### Features
+
+* add filter-field-selector component implementation and update registry.json ([5bb20d1](https://github.com/tarcisioandrade/rich-domain/commit/5bb20d160c5deb596b6b033207ed5a50656eb7f2))
+* add filter-field-selector component to registry.json ([d8e4979](https://github.com/tarcisioandrade/rich-domain/commit/d8e49799d518901eeaa91fe3a21d5b71619605ec))
+* react-rich-domain component implementation in react example ([1676eb4](https://github.com/tarcisioandrade/rich-domain/commit/1676eb42b6812964d93ea9c47df9dd1312aa8de8))
+
+
+### Bug Fixes
+
+* update data-table-criteria, filter, and JSON to dependencies url ([0bb3427](https://github.com/tarcisioandrade/rich-domain/commit/0bb34275a9dd4c2add405556a936c83103801edb))
+* update registry.json to replace static references with URLs for use-criteria and filter ([934406d](https://github.com/tarcisioandrade/rich-domain/commit/934406de367c0f22a203913ec13462196cb50420))
+
 ## [0.5.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.3.0...v0.5.0) (2025-12-05)
 
 ## [0.4.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.4...v0.4.0) (2025-12-05)
