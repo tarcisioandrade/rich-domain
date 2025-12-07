@@ -1,17 +1,7 @@
 ---
 title: "Introduction"
 description: "A TypeScript library for Domain-Driven Design with Standard Schema validation, automatic change tracking, and enterprise-ready repositories"
-keywords:
-  [
-    "ddd",
-    "domain-driven-design",
-    "entity",
-    "aggregate",
-    "value-object",
-    "validation",
-    "standard-schema",
-    "typescript",
-  ]
+keywords: ["ddd","domain-driven-design","entity","aggregate","value-object","validation","standard-schema","typescript"]
 ---
 
 ## What is rich-domain?
@@ -20,8 +10,7 @@ keywords:
 
 <CardGroup cols={2}>
   <Card title="Type-Safe" icon="shield-check">
-    Full TypeScript support with inference for field paths, filters, and
-    operations
+    Full TypeScript support with inference for field paths, filters, and operations
   </Card>
   <Card title="Validation Agnostic" icon="check-double">
     Works with Zod, Valibot, ArkType, or any Standard Schema compatible library
@@ -108,9 +97,11 @@ const result = await orderRepo.find(
 npm install @woltz/rich-domain
 ```
 
+
 ```bash pnpm
 pnpm add @woltz/rich-domain
 ```
+
 
 ```bash yarn
 yarn add @woltz/rich-domain
@@ -123,8 +114,10 @@ yarn add @woltz/rich-domain
 ```typescript
 import { z } from "zod";
 import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+import { UserCreatedEvent } from "./events/user-create.event";
 
 // Define schema
+// Work with any validation library that implement standart schema
 const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
   name: z.string().min(2),
@@ -138,6 +131,14 @@ type UserProps = z.infer<typeof userSchema>;
 class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
+  };
+
+  protected static hooks: EntityHooks<UserProps, User> = {
+    onCreate: (entity) => {
+      if (entity.isNew()) {
+        entity.addDomainEvent(new UserCreatedEvent(entity.id.value));
+      }
+    },
   };
 
   get name() {

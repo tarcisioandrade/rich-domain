@@ -11,9 +11,11 @@ description: "Get up and running with rich-domain in 5 minutes"
 npm install @woltz/rich-domain
 ```
 
+
 ```bash pnpm
 pnpm add @woltz/rich-domain
 ```
+
 
 ```bash yarn
 yarn add @woltz/rich-domain
@@ -28,8 +30,7 @@ npm install zod
 ```
 
 <Note>
-  @woltz/rich-domain works with any Standard Schema compatible library: Zod,
-  Valibot, ArkType, and others.
+  @woltz/rich-domain works with any Standard Schema compatible library: Zod, Valibot, ArkType, and others.
 </Note>
 
 ## Create Your First Aggregate
@@ -166,6 +167,11 @@ class Product extends Aggregate<ProductProps> {
   };
 
   protected static hooks: EntityHooks<ProductProps, Product> = {
+    // Runs before create entity (Props is a plain object);
+    onBeforeCreate: (props) => {
+      console.log('Props to create entity', { props })
+    }
+    
     // Runs after entity is created
     onCreate: (product) => {
       console.log(`Product created: ${product.name}`);
@@ -231,11 +237,7 @@ const invalid = new Product({
   <Card title="Value Objects" icon="gem" href="/core/value-objects">
     Immutable objects compared by value
   </Card>
-  <Card
-    title="Change Tracking"
-    icon="clock-rotate-left"
-    href="/change-tracking/overview"
-  >
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/change-tracking/overview">
     Track and persist changes efficiently
   </Card>
   <Card title="Repository Pattern" icon="database" href="/repository/overview">

@@ -27,9 +27,9 @@
           {
             "group": "Core Concepts",
             "pages": [
-              "core/entities",
-              "core/aggregates",
+              "core/entities-and-aggregates",
               "core/value-objects",
+              "core/change-tracking",
               "core/id",
               "core/domain-events"
             ]
@@ -40,14 +40,6 @@
               "validation/overview",
               "validation/hooks",
               "validation/error-handling"
-            ]
-          },
-          {
-            "group": "Change Tracking",
-            "pages": [
-              "change-tracking/overview",
-              "change-tracking/aggregate-changes",
-              "change-tracking/nested-entities"
             ]
           },
           {

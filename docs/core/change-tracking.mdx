@@ -1,0 +1,702 @@
+---
+title: "Change Tracking"
+description: "Automatically track and persist all changes across your aggregate hierarchy"
+---
+
+## What is Change Tracking?
+
+Change Tracking automatically monitors all modifications made to an Aggregate and its nested entities. Instead of manually tracking changes, the library uses JavaScript Proxies to intercept property assignments and maintain a complete history.
+```typescript
+const order = new Order({
+  id: Id.from("order-123"),
+  status: "draft",
+  items: [
+    new OrderItem({ id: Id.from("item-1"), quantity: 2, unitPrice: 29.99 }),
+  ],
+});
+
+// Make changes naturally
+order.confirm();
+order.items[0].updateQuantity(5);
+order.addItem("prod-456", 1, 49.99);
+
+// Get all changes with a single call
+const changes = order.getChanges();
+
+console.log(changes.hasUpdates()); // true - order status and item quantity changed
+console.log(changes.hasCreates()); // true - new item added
+```
+
+<CardGroup cols={2}>
+  <Card title="Efficient Persistence" icon="bolt">
+    Only persist what actually changed, not the entire aggregate
+  </Card>
+  <Card title="Zero Boilerplate" icon="wand-magic-sparkles">
+    Changes tracked automatically - no manual code needed
+  </Card>
+  <Card title="Correct Ordering" icon="arrow-down-1-9">
+    Operations automatically ordered to respect FK constraints
+  </Card>
+  <Card title="Batch Operations" icon="layer-group">
+    Group changes by entity type for optimized database operations
+  </Card>
+</CardGroup>
+
+## Basic Usage
+
+### Getting Changes
+```typescript
+const changes = order.getChanges();
+
+// Check what changed
+changes.hasCreates();  // Any new entities?
+changes.hasUpdates();  // Any modified entities?
+changes.hasDeletes();  // Any deleted entities?
+changes.hasChanges();  // Any changes at all?
+changes.isEmpty();     // No changes?
+
+// Get count
+changes.count;  // Total number of operations
+```
+
+### Accessing Operations
+```typescript
+// Get all creates (ordered root → leaf)
+const creates = changes.creates();
+// CreateOperation[]
+
+// Get all updates (no specific order)
+const updates = changes.updates();
+// UpdateOperation[]
+
+// Get all deletes (ordered leaf → root)
+const deletes = changes.deletes();
+// DeleteOperation[]
+
+// Iterate over all operations
+for (const op of changes.operations()) {
+  console.log(op.type, op.entity, op.depth);
+}
+```
+
+### Filtering by Entity
+
+Get changes for a specific entity type:
+```typescript
+const itemChanges = changes.for("OrderItem");
+
+// Access entities directly
+itemChanges.creates;   // OrderItem[] - new items
+itemChanges.deletes;   // OrderItem[] - deleted items
+itemChanges.updates;   // Array<{ entity: OrderItem, changed: {...} }>
+
+// Get IDs
+itemChanges.createIds;  // string[]
+itemChanges.updateIds;  // string[]
+itemChanges.deleteIds;  // string[]
+
+// Check for changes
+itemChanges.hasCreates();
+itemChanges.hasUpdates();
+itemChanges.hasDeletes();
+
+// Count
+itemChanges.count;
+```
+
+### Clearing Changes
+
+After persisting, mark the aggregate as clean:
+```typescript
+await repository.save(order);
+
+// Clear change history
+order.markAsClean();
+
+// Now tracking starts fresh
+const changes = order.getChanges();
+console.log(changes.isEmpty()); // true
+```
+
+<Warning>
+Always call `markAsClean()` after successfully persisting. Otherwise, the same changes will be detected again.
+</Warning>
+
+## Batch Operations
+
+For efficient database persistence, use `toBatchOperations()` to group changes by entity:
+
+<Info>
+Prisma ORM is being used in the example due to our high compatibility.
+</Info>
+
+```typescript
+const batch = changes.toBatchOperations();
+
+// Deletes (leaf → root, respects FK constraints)
+for (const del of batch.deletes) {
+  console.log(`Delete ${del.ids.length} ${del.entity}(s)`);
+  await db[del.entity].deleteMany({
+    where: { id: { in: del.ids } },
+  });
+}
+
+// Creates (root → leaf, respects FK constraints)
+for (const create of batch.creates) {
+  console.log(`Create ${create.items.length} ${create.entity}(s)`);
+  await db[create.entity].createMany({
+    data: create.items.map((item) => ({
+      ...mapToPersistence(item.data),
+      parentId: item.parentId, // FK to parent
+    })),
+  });
+}
+
+// Updates (any order, no FK dependencies)
+for (const update of batch.updates) {
+  console.log(`Update ${update.items.length} ${update.entity}(s)`);
+  for (const item of update.items) {
+    await db[update.entity].update({
+      where: { id: item.id },
+      data: item.changedFields, // Only changed fields
+    });
+  }
+}
+```
+
+<Note>
+Operations are automatically ordered to prevent foreign key violations:
+- **Deletes**: Children first, then parents
+- **Creates**: Parents first, then children
+- **Updates**: Any order (no FK impact)
+</Note>
+
+## Operation Ordering
+
+The library automatically orders operations to respect foreign key constraints:
+
+### Deletes: Leaf → Root
+
+Children must be deleted before parents to avoid FK violations:
+
+```typescript
+// Given this structure:
+// Order
+// └── OrderItem
+//     └── ItemDiscount
+
+const deletes = changes.deletes();
+// Returns in order:
+// 1. ItemDiscount (depth: 2)
+// 2. OrderItem (depth: 1)
+// 3. Order (depth: 0)
+```
+
+### Creates: Root → Leaf
+
+Parents must be created before children so FKs can reference them:
+
+```typescript
+const creates = changes.creates();
+// Returns in order:
+// 1. Order (depth: 0)
+// 2. OrderItem (depth: 1)
+// 3. ItemDiscount (depth: 2)
+```
+
+### Updates: Any Order
+
+Updates typically don't affect relationships, so order doesn't matter:
+
+```typescript
+const updates = changes.updates();
+// Order not guaranteed - apply in any order
+```
+
+
+## Working with Collections
+
+### Adding Items
+```typescript
+const order = new Order({
+  id: Id.from("order-123"),
+  items: [],
+});
+
+order.addItem("prod-1", 2, 29.99);
+order.addItem("prod-2", 1, 49.99);
+
+const itemChanges = order.getChanges().for("OrderItem");
+console.log(itemChanges.creates.length); // 2
+```
+
+### Removing Items
+```typescript
+const order = new Order({
+  id: Id.from("order-123"),
+  items: [
+    new OrderItem({ id: Id.from("item-1"), ... }),
+    new OrderItem({ id: Id.from("item-2"), ... }),
+  ],
+});
+
+order.removeItem(Id.from("item-1"));
+
+const itemChanges = order.getChanges().for("OrderItem");
+console.log(itemChanges.deleteIds); // ["item-1"]
+```
+
+### Updating Items
+```typescript
+const order = new Order({
+  id: Id.from("order-123"),
+  items: [
+    new OrderItem({ id: Id.from("item-1"), quantity: 2, ... }),
+  ],
+});
+
+order.items[0].updateQuantity(5);
+
+const itemChanges = order.getChanges().for("OrderItem");
+console.log(itemChanges.updates[0].changed); // { quantity: 5 }
+```
+
+### Mixed Operations
+```typescript
+// Create, update, and delete in the same transaction
+order.addItem("prod-new", 1, 39.99);        // Create
+order.items[0].updateQuantity(10);          // Update
+order.removeItem(Id.from("item-old"));      // Delete
+
+const itemChanges = order.getChanges().for("OrderItem");
+console.log(itemChanges.creates.length); // 1
+console.log(itemChanges.updates.length); // 1
+console.log(itemChanges.deletes.length); // 1
+```
+
+## Working with Single Entities (1:1)
+
+### Setting an Entity
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  address: null,
+});
+
+user.setAddress(new Address({
+  street: "123 Main St",
+  city: "New York",
+}));
+
+const addressChanges = user.getChanges().for("Address");
+console.log(addressChanges.hasCreates()); // true
+```
+
+### Removing an Entity
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  address: new Address({ id: Id.from("addr-1"), ... }),
+});
+
+user.removeAddress();
+
+const addressChanges = user.getChanges().for("Address");
+console.log(addressChanges.deleteIds); // ["addr-1"]
+```
+
+### Updating an Entity
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  address: new Address({ id: Id.from("addr-1"), street: "Old St", ... }),
+});
+
+user.address.changeStreet("New Street");
+
+const addressChanges = user.getChanges().for("Address");
+console.log(addressChanges.updates[0].changed); // { street: "New Street" }
+```
+
+### Replacing an Entity
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  address: new Address({ id: Id.from("addr-1"), ... }),
+});
+
+// Replace with completely new address (different ID)
+user.setAddress(new Address({
+  street: "789 Pine Rd",
+  city: "Boston",
+}));
+
+const addressChanges = user.getChanges().for("Address");
+console.log(addressChanges.hasDeletes()); // true - old address
+console.log(addressChanges.hasCreates()); // true - new address
+```
+
+## Deeply Nested Changes
+
+Change tracking works at any depth automatically:
+```typescript
+// Structure: User → Post → Comment → Like
+const user = new User({
+  id: Id.from("user-1"),
+  posts: [
+    new Post({
+      id: Id.from("post-1"),
+      comments: [
+        new Comment({
+          id: Id.from("comment-1"),
+          likes: [],
+        }),
+      ],
+    }),
+  ],
+});
+
+// Add a like (depth 3)
+user.posts[0].comments[0].addLike(new Like({ ... }));
+
+// Update comment (depth 2)
+user.posts[0].comments[0].changeText("Updated");
+
+// Add new comment (depth 2)
+user.posts[0].addComment(new Comment({ ... }));
+
+const changes = user.getChanges();
+console.log(changes.for("Comment").hasCreates()); // true
+console.log(changes.for("Comment").hasUpdates()); // true
+console.log(changes.for("Like").hasCreates());    // true
+```
+
+### Cascading Deletes
+
+When you delete a parent entity, all children are automatically tracked as deletes:
+```typescript
+const user = new User({
+  posts: [
+    new Post({
+      id: Id.from("post-1"),
+      comments: [
+        new Comment({ id: Id.from("comment-1"), likes: [...] }),
+        new Comment({ id: Id.from("comment-2"), likes: [] }),
+      ],
+    }),
+  ],
+});
+
+// Delete post (cascades to comments and likes)
+user.removePost(Id.from("post-1"));
+
+const changes = user.getChanges();
+console.log(changes.for("Post").deleteIds);    // ["post-1"]
+console.log(changes.for("Comment").deleteIds); // ["comment-1", "comment-2"]
+console.log(changes.for("Like").deleteIds);    // [...]
+
+// Batch operations handle correct order automatically
+const batch = changes.toBatchOperations();
+// Order: Like → Comment → Post (leaf to root)
+```
+
+### Cascading Creates
+
+When you create a parent with children, all are tracked:
+```typescript
+user.addPost(new Post({
+  title: "New Post",
+  comments: [
+    new Comment({
+      text: "First comment",
+      likes: [
+        new Like({ ... }),
+        new Like({ ... }),
+      ],
+    }),
+  ],
+}));
+
+const changes = user.getChanges();
+console.log(changes.for("Post").creates.length);    // 1
+console.log(changes.for("Comment").creates.length); // 1
+console.log(changes.for("Like").creates.length);    // 2
+
+// Batch operations handle correct order automatically
+const batch = changes.toBatchOperations();
+// Order: Post → Comment → Like (root to leaf)
+```
+
+## Value Objects with Identity Key
+
+Value Objects don't have IDs, but you can define an identity key for tracking:
+
+### Single Identity Key
+
+```typescript
+class TagReference extends ValueObject<{ tagId: string; name: string }> {
+  static readonly identityKey = "tagId";
+
+  get tagId() { return this.props.tagId; }
+  get name() { return this.props.name; }
+}
+```
+
+### Composite Identity Key
+
+```typescript
+class Like extends ValueObject<{ postId: string; userId: string; createdAt: Date }> {
+  static readonly identityKey = ["postId", "userId"];
+
+  get postId() { return this.props.postId; }
+  get userId() { return this.props.userId; }
+}
+```
+
+### How Identity Keys Work
+
+The identity key is used to detect additions and removals:
+
+```typescript
+const user = new User({
+  id: Id.from("user-1"),
+  tags: [
+    new TagReference({ tagId: "tag-1", name: "JavaScript" }),
+    new TagReference({ tagId: "tag-2", name: "TypeScript" }),
+  ],
+});
+
+// Remove a tag
+user.removeTag("tag-1");
+
+// Add a new tag
+user.addTag(new TagReference({ tagId: "tag-3", name: "Node.js" }));
+
+const changes = user.getChanges();
+const tagChanges = changes.for("TagReference");
+
+console.log(tagChanges.deleteIds); // ["tag-1"]
+console.log(tagChanges.createIds); // ["tag-3"]
+```
+
+### Composite Key Example
+
+```typescript
+const comment = new Comment({
+  id: Id.from("comment-1"),
+  text: "Great post!",
+  likes: [
+    new Like({ postId: "post-1", userId: "user-1", createdAt: new Date() }),
+    new Like({ postId: "post-1", userId: "user-2", createdAt: new Date() }),
+  ],
+});
+
+// Remove a specific like using composite key
+comment.removeLike("post-1", "user-2");
+
+const changes = comment.getChanges();
+const likeChanges = changes.for("Like");
+
+console.log(likeChanges.deleteIds); // ["post-1:user-2"]
+```
+
+## Type-Safe Changes
+
+For better TypeScript support, define an entity map:
+```typescript
+type OrderEntities = {
+  Order: Order;
+  OrderItem: OrderItem;
+  ItemDiscount: ItemDiscount;
+  ShippingAddress: Address;
+};
+
+// Get typed changes
+const changes = order.getChanges<OrderEntities>();
+
+// Now 'for' has autocomplete
+const itemChanges = changes.for("OrderItem");
+//                              ^? "Order" | "OrderItem" | "ItemDiscount" | "ShippingAddress"
+
+// Returns are properly typed
+itemChanges.creates.forEach((item) => {
+  console.log(item.quantity); // item is OrderItem
+});
+```
+
+### Helper Method Pattern
+```typescript
+class Order extends Aggregate<OrderProps> {
+  getTypedChanges() {
+    type Entities = {
+      Order: Order;
+      OrderItem: OrderItem;
+      ItemDiscount: ItemDiscount;
+    };
+    return this.getChanges<Entities>();
+  }
+}
+
+// Usage
+const changes = order.getTypedChanges();
+const items = changes.for("OrderItem"); // Fully typed!
+```
+
+## Complete Example with Prisma
+```typescript
+class OrderService {
+  constructor(
+    private prisma: PrismaClient,
+    private orderRepo: OrderRepository
+  ) {}
+
+  async confirmOrder(orderId: string): Promise<void> {
+    // Load order
+    const order = await this.orderRepo.findById(orderId);
+    if (!order) throw new Error("Order not found");
+
+    // Business logic
+    order.confirm();
+    order.items.forEach((item) => {
+      if (item.quantity > 10) {
+        item.applyBulkDiscount(5);
+      }
+    });
+
+    // Get changes
+    const changes = order.getTypedChanges();
+
+    if (changes.isEmpty()) {
+      return; // Nothing to persist
+    }
+
+    // Log what's changing
+    console.log("Affected entities:", changes.getAffectedEntities());
+    console.log("Total operations:", changes.count);
+
+    // Persist
+    const batch = changes.toBatchOperations();
+
+    await this.prisma.$transaction(async (tx) => {
+      // Process in correct order
+      await this.processDeletes(tx, batch.deletes);
+      await this.processCreates(tx, batch.creates);
+      await this.processUpdates(tx, batch.updates);
+    });
+
+    // Clear change history
+    order.markAsClean();
+  }
+
+  private async processDeletes(tx: any, deletes: BatchOperations["deletes"]) {
+    for (const del of deletes) {
+      await tx[this.getTableName(del.entity)].deleteMany({
+        where: { id: { in: del.ids } },
+      });
+    }
+  }
+
+  private async processCreates(tx: any, creates: BatchOperations["creates"]) {
+    for (const create of creates) {
+      const table = this.getTableName(create.entity);
+      await tx[table].createMany({
+        data: create.items.map((item) =>
+          this.mapToDatabase(create.entity, item.data, item.parentId)
+        ),
+      });
+    }
+  }
+
+  private async processUpdates(tx: any, updates: BatchOperations["updates"]) {
+    for (const update of updates) {
+      const table = this.getTableName(update.entity);
+      for (const item of update.items) {
+        await tx[table].update({
+          where: { id: item.id },
+          data: item.changedFields,
+        });
+      }
+    }
+  }
+
+  private getTableName(entity: string): string {
+    const map: Record<string, string> = {
+      Order: "order",
+      OrderItem: "orderItem",
+      ItemDiscount: "itemDiscount",
+    };
+    return map[entity];
+  }
+
+  private mapToDatabase(entity: string, data: any, parentId?: string): any {
+    // Map domain entity to database record
+    // ... implementation
+  }
+}
+```
+
+## API Reference
+
+### AggregateChanges
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `creates()` | `CreateOperation[]` | All creates, ordered root → leaf |
+| `updates()` | `UpdateOperation[]` | All updates |
+| `deletes()` | `DeleteOperation[]` | All deletes, ordered leaf → root |
+| `for(entity)` | `EntityChanges<T>` | Filter changes by entity name |
+| `toBatchOperations()` | `BatchOperations` | Group changes for bulk operations |
+| `hasCreates()` | `boolean` | Has any creates |
+| `hasUpdates()` | `boolean` | Has any updates |
+| `hasDeletes()` | `boolean` | Has any deletes |
+| `hasChanges()` | `boolean` | Has any operations |
+| `isEmpty()` | `boolean` | No operations |
+| `getAffectedEntities()` | `string[]` | List of entity names with changes |
+| `operations()` | `Generator` | Iterate all operations in order |
+| `toArray()` | `Operation[]` | All operations as array |
+| `count` | `number` | Total number of operations |
+
+### EntityChanges
+
+| Property/Method | Returns | Description |
+|----------------|---------|-------------|
+| `creates` | `T[]` | Created entities |
+| `updates` | `Array<{entity: T, changed: Record}>` | Updated entities with changes |
+| `deletes` | `T[]` | Deleted entities |
+| `createIds` | `string[]` | IDs of created entities |
+| `updateIds` | `string[]` | IDs of updated entities |
+| `deleteIds` | `string[]` | IDs of deleted entities |
+| `hasCreates()` | `boolean` | Has any creates |
+| `hasUpdates()` | `boolean` | Has any updates |
+| `hasDeletes()` | `boolean` | Has any deletes |
+| `hasChanges()` | `boolean` | Has any operations |
+| `isEmpty()` | `boolean` | No operations |
+| `count` | `number` | Total operations |
+
+### BatchOperations
+```typescript
+interface BatchOperations {
+  deletes: Array<{
+    entity: string;
+    depth: number;
+    ids: string[];
+  }>;
+
+  creates: Array<{
+    entity: string;
+    depth: number;
+    items: Array<{
+      data: any;
+      parentId?: string;
+    }>;
+  }>;
+
+  updates: Array<{
+    entity: string;
+    items: Array<{
+      id: string;
+      changedFields: Record<string, any>;
+    }>;
+  }>;
+}
+```
