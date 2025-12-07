@@ -15,7 +15,6 @@ export type VOValidation<T> = DomainValidation<T>;
 
 export interface VOHooks<T, E> {
   onBeforeCreate?: (props: T) => void;
-  onBeforeUpdate?: (entity: E, snapshot: T) => boolean;
   onCreate?: (entity: E) => void;
   rules?: (entity: E) => void;
 }

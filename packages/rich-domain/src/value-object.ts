@@ -57,6 +57,10 @@ export abstract class ValueObject<T> {
     );
     const hooks = getStaticProperty<VOHooks<T, any>>(this, "hooks");
 
+    if (hooks?.onBeforeCreate) {
+      hooks.onBeforeCreate(props as T);
+    }
+
     this.domainHooks = hooks;
 
     if (validation?.schema) {
