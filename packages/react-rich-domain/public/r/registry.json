@@ -63,6 +63,12 @@
           "target": "~/src/components/filter/filter-value-selector.tsx"
         },
         {
+          "path": "registry/default/components/filter/filter-field-selector.tsx",
+          "type": "registry:component",
+          "description": "A component to filter data.",
+          "target": "~/src/components/filter/filter-field-selector.tsx"
+        },
+        {
           "path": "registry/default/components/filter/filter-operator-selector.tsx",
           "type": "registry:component",
           "description": "A component to filter data.",
