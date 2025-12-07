@@ -11,7 +11,11 @@ import {
 } from "../../utils/fs.js";
 import { parsePrismaSchema } from "./prisma-parser.js";
 import { analyzeDependencies, getGenerationOrder } from "./dependency-graph.js";
-import { generateModelFiles, generateEnumsFile } from "./generators.js";
+import {
+  generateModelFiles,
+  generateEnumsFile,
+  generateIndexFiles,
+} from "./generators.js";
 import type { GenerateOptions } from "./generators.js";
 
 /**
@@ -54,22 +58,17 @@ function detectPackages(): DetectedPackages {
     const packageJsonContent = readFileSync(packageJsonPath, "utf-8");
     const packageJson = JSON.parse(packageJsonContent);
 
-    const deps = packageJson.dependencies || {};
-    const devDeps = packageJson.devDependencies || {};
-
     const allDeps: Record<string, string> = {
-      ...deps,
-      ...devDeps,
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {}),
     };
 
-    const result = {
+    return {
       richDomainPrisma: "@woltz/rich-domain-prisma" in allDeps,
       zod: "zod" in allDeps,
       valibot: "valibot" in allDeps,
       arktype: "arktype" in allDeps,
     };
-
-    return result;
   } catch (error) {
     logger.warn(`Could not read package.json: ${error}`);
     return defaultResult;
@@ -284,9 +283,13 @@ export async function generateFromPrisma(
   const orderedModels = getGenerationOrder(analysis);
 
   for (const model of orderedModels) {
-    const files = generateModelFiles(model, analysis, genOptions);
+    const files = generateModelFiles(model, genOptions);
     generatedFiles.push(...files);
   }
+
+  // Generate index files for each folder
+  const indexFiles = generateIndexFiles(orderedModels, genOptions);
+  generatedFiles.push(...indexFiles);
 
   genSpinner.succeed(`Generated ${generatedFiles.length} files`);
 
@@ -309,8 +312,6 @@ export async function generateFromPrisma(
       logger.file("created", relativePath(file.path));
     }
   }
-
-  if (options.dryRun) return;
 
   // Show next steps
   logger.newLine();
