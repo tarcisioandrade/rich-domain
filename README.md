@@ -1,5 +1,7 @@
 <div align="center">
-  <h1>Rich Domain Monorepo</h1>
+ 
+<img width="1463" height="246" alt="Dark" src="https://github.com/user-attachments/assets/8b848f42-307f-41a2-9fc3-8074348d3f83" />
+
   <p>
     <strong>Enterprise-grade Domain-Driven Design (DDD) toolkit for TypeScript</strong>
   </p>
@@ -26,7 +28,9 @@ A comprehensive monorepo containing Domain-Driven Design (DDD) libraries, tools,
 
 - **[@woltz/rich-domain-prisma](./packages/rich-domain-prisma)** - Prisma ORM integration with ready-to-use repository implementations and Unit of Work pattern
 - **[@woltz/rich-domain-criteria-zod](./packages/rich-domain-criteria-zod)** - Zod schemas for validating Criteria queries from external sources (APIs, GraphQL)
-- **[@woltz/react-rich-domain](./packages/react-rich-domain)** - React components and hooks for working with Rich Domain entities (Data Tables, Filters, Forms)
+- **[@woltz/react-rich-domain](./packages/react-rich-domain)** (Shadcn Registry) - React components and hooks for working with Rich Domain entities (Data Tables, Filters, Forms)
+- **@woltz/rich-domain-drizzle** - Planned
+- **@woltz/rich-domain-typeorm** - Planned
 
 ### Tooling
 
@@ -63,77 +67,24 @@ For Prisma integration:
 npm install @woltz/rich-domain-prisma
 ```
 
-For React components:
+React components:
+
+UseCriteria Hook 
 
 ```bash
-npm install @woltz/react-rich-domain
+npx shadcn@lates add https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json
 ```
 
-### Example: Creating a Domain Model
+DataTableCriteria component 
 
-```typescript
-import { z } from "zod";
-import { Aggregate, Id, EntityValidation, EntityHooks } from "@woltz/rich-domain";
-
-interface UserProps extends BaseProps {
-  name: string;
-  email: string;
-  age: number;
-  status: "active" | "inactive";
-}
-
-const userSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(2),
-  email: z.string().email(),
-  age: z.number().min(0).max(150),
-  status: z.enum(["active", "inactive"]),
-});
-
-class User extends Aggregate<UserProps> {
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: { onCreate: true, onUpdate: true, throwOnError: true },
-  };
-
-  protected static hooks: EntityHooks<UserProps, User> = {
-    onCreate: (entity) => console.log(`User created: ${entity.name}`),
-  };
-
-  get name() { return this.props.name; }
-  set name(value: string) { this.props.name = value; }
-
-  activate() { this.props.status = "active"; }
-  deactivate() { this.props.status = "inactive"; }
-}
+```bash
+npx shadcn@lates add https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-table-criteria.json
 ```
 
-### Example: Using Repository & Criteria
+Filter component 
 
-```typescript
-import { InMemoryRepository, Criteria } from "@woltz/rich-domain";
-
-const userRepo = new InMemoryRepository<User>();
-
-const user = new User({
-  name: "John Doe",
-  email: "john@example.com",
-  age: 30,
-  status: "active",
-});
-
-await userRepo.save(user);
-
-const result = await userRepo.find(
-  Criteria.create<User>()
-    .whereEquals("status", "active")
-    .where("age", "greaterThan", 18)
-    .orderByDesc("age")
-    .paginate(1, 10)
-);
-
-console.log(result.data); // User[]
-console.log(result.meta); // { page, limit, total, totalPages, hasNext, hasPrevious }
+```bash
+npx shadcn@lates add https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json
 ```
 
 ## Development
