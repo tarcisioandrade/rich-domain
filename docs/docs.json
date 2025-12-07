@@ -38,20 +38,26 @@
             "group": "Validation",
             "pages": [
               "validation/overview",
-              "validation/hooks",
+              "validation/lifecycle-hooks",
               "validation/error-handling"
+            ]
+          },
+         {
+            "group": "Criteria",
+            "pages": [
+              "criteria/overview",
+              "criteria/filters",
+              "criteria/ordering",
+              "criteria/advanced"
             ]
           },
           {
             "group": "Repository",
             "pages": [
               "repository/overview",
-              "repository/paginated-result",
               "repository/mappers",
-              "repository/criteria",
-              "repository/filters",
-              "repository/ordering",
-              "repository/advanced"
+              "repository/schema-registry",
+              "repository/paginated-result"
             ]
           },
           {

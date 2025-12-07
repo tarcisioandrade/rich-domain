@@ -15,8 +15,9 @@ await userRepository.save(user);
 
 // The domain code doesn't know about:
 // - Database connections
-// - SQL/ORM queries
+// - SQL/ORM queries  
 // - Data mapping
+// - Which database is being used
 ```
 
 ## Why Use Repositories?
@@ -24,22 +25,50 @@ await userRepository.save(user);
 <CardGroup cols={2}>
 
 <Card title="Domain Isolation" icon="shield-halved">
-Domain code stays free of persistence concerns
+  Domain code stays free of persistence concerns
 </Card>
 
 <Card title="Testability" icon="flask-vial">
-Easy to mock or use in-memory implementations for testing
+  Easy to mock or use in-memory implementations for testing
 </Card>
 
 <Card title="Flexibility" icon="arrows-rotate">
-Switch databases or ORMs without changing domain code
+  Switch databases or ORMs without changing domain code
 </Card>
 
 <Card title="Consistency" icon="check-double">
-Centralized place for query logic and data access patterns
+  Centralized place for query logic and data access patterns
 </Card>
 
 </CardGroup>
+
+## Database Agnostic
+
+The Repository pattern in rich-domain is **completely database agnostic**. The core library provides abstract base classes that you implement for your specific database/ORM:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Domain Layer                          │
+│  (Entities, Aggregates, Value Objects, Domain Services)  │
+└─────────────────────────┬───────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│              Repository Interface                        │
+│   Repository<T>, ReadRepository<T>, WriteRepository<T>   │
+└─────────────────────────┬───────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+   ┌────────────┐  ┌────────────┐  ┌────────────┐
+   │   Prisma   │  │  Drizzle   │  │  MongoDB   │
+   │   Adapter  │  │   Adapter  │  │   Custom   │
+   └────────────┘  └────────────┘  └────────────┘
+```
+
+<Info>
+  rich-domain provides an official [Prisma Adapter](/integrations/prisma) (`@woltz/rich-domain-prisma`) with full support for change tracking, batch operations, and transactions.
+</Info>
 
 ## Repository Types
 
@@ -50,6 +79,8 @@ The library provides several base classes for different use cases:
 Complete read and write operations:
 
 ```typescript
+import { Repository, Aggregate, Criteria, PaginatedResult } from "@woltz/rich-domain";
+
 abstract class Repository<TDomain extends Aggregate<any>> {
   abstract find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
   abstract findById(id: string): Promise<TDomain | null>;
@@ -62,7 +93,7 @@ abstract class Repository<TDomain extends Aggregate<any>> {
 
 ### ReadRepository
 
-Read-only operations:
+Read-only operations (useful for CQRS read models):
 
 ```typescript
 abstract class ReadRepository<TDomain extends Aggregate<any>> {
@@ -84,12 +115,15 @@ abstract class WriteRepository<TDomain extends Aggregate<any>> {
 }
 ```
 
-## Basic Implementation
+## Implementing a Repository
 
-### 1. Define Your Aggregate
+### Step 1: Define Your Aggregate
 
 ```typescript
-interface UserProps extends BaseProps {
+import { Aggregate, Id } from "@woltz/rich-domain";
+
+interface UserProps {
+  id: Id;
   name: string;
   email: string;
   status: "active" | "inactive";
@@ -110,9 +144,13 @@ class User extends Aggregate<UserProps> {
 }
 ```
 
-### 2. Create Mappers
+### Step 2: Create Mappers
+
+Mappers transform data between domain models and persistence format:
 
 ```typescript
+import { Mapper, Id } from "@woltz/rich-domain";
+
 // Domain → Persistence
 class UserToPersistenceMapper extends Mapper<User, UserRecord> {
   build(user: User): UserRecord {
@@ -140,40 +178,36 @@ class UserToDomainMapper extends Mapper<UserRecord, User> {
 }
 ```
 
-### 3. Implement Repository
+### Step 3: Implement Repository
+
+Here's a database-agnostic implementation skeleton:
 
 ```typescript
+import { Repository, Criteria, PaginatedResult } from "@woltz/rich-domain";
+
 class UserRepository extends Repository<User> {
   constructor(
-    private db: Database,
-    protected readonly mapperToDomain: UserToDomainMapper,
-    protected readonly mapperToPersistence: UserToPersistenceMapper
+    private db: YourDatabaseClient,  // Any database client
+    private mapperToDomain: UserToDomainMapper,
+    private mapperToPersistence: UserToPersistenceMapper
   ) {
     super();
   }
 
-  get model() {
-    return this.db.users;
-  }
-
   async findById(id: string): Promise<User | null> {
-    const record = await this.db.users.findUnique({ where: { id } });
+    // Implement using your database client
+    const record = await this.db.findOne("users", { id });
     return record ? this.mapperToDomain.build(record) : null;
   }
 
   async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
-    const where = this.buildWhere(criteria);
-    const orderBy = this.buildOrderBy(criteria);
+    // Convert criteria to your database's query format
+    const query = this.buildQuery(criteria);
     const pagination = criteria.getPagination();
 
     const [records, total] = await Promise.all([
-      this.db.users.findMany({
-        where,
-        orderBy,
-        skip: pagination.offset,
-        take: pagination.limit,
-      }),
-      this.db.users.count({ where }),
+      this.db.query("users", query, pagination),
+      this.db.count("users", query),
     ]);
 
     const users = records.map((r) => this.mapperToDomain.build(r));
@@ -184,39 +218,37 @@ class UserRepository extends Repository<User> {
     const data = this.mapperToPersistence.build(user);
     
     if (user.isNew()) {
-      await this.db.users.create({ data });
+      await this.db.insert("users", data);
     } else {
-      await this.db.users.update({
-        where: { id: user.id.value },
-        data,
-      });
+      await this.db.update("users", user.id.value, data);
     }
   }
 
   async delete(user: User): Promise<void> {
-    await this.db.users.delete({ where: { id: user.id.value } });
+    await this.db.delete("users", user.id.value);
   }
 
   async exists(id: string): Promise<boolean> {
-    const count = await this.db.users.count({ where: { id } });
-    return count > 0;
+    return this.db.exists("users", { id });
   }
 
   async count(criteria?: Criteria<User>): Promise<number> {
-    const where = criteria ? this.buildWhere(criteria) : {};
-    return this.db.users.count({ where });
+    const query = criteria ? this.buildQuery(criteria) : {};
+    return this.db.count("users", query);
   }
 
-  private buildWhere(criteria: Criteria<User>): any {
-    // Convert criteria filters to database query
-    // See integration guides for ORM-specific implementations
-  }
-
-  private buildOrderBy(criteria: Criteria<User>): any {
-    // Convert criteria orders to database query
+  private buildQuery(criteria: Criteria<User>): object {
+    // Convert criteria filters/orders to your database format
+    // This is ORM/database-specific
   }
 }
 ```
+
+<Note>
+  For complete implementations with specific ORMs, see:
+  - [Prisma Integration](/integrations/prisma) - Full-featured adapter with change tracking
+  - [Drizzle Integration](/integrations/drizzle) - Coming soon
+</Note>
 
 ## Using the Repository
 
@@ -246,7 +278,7 @@ const count = await userRepository.count(
 ### Saving Entities
 
 ```typescript
-// Create new
+// Create new entity
 const user = new User({
   name: "John Doe",
   email: "john@example.com",
@@ -254,7 +286,7 @@ const user = new User({
 });
 await userRepository.save(user);  // INSERT
 
-// Update existing
+// Update existing entity
 const user = await userRepository.findById("user-123");
 user.changeName("Jane Doe");
 await userRepository.save(user);  // UPDATE
@@ -269,16 +301,14 @@ await userRepository.delete(user);
 
 ## Custom Query Methods
 
-Add domain-specific query methods:
+Add domain-specific query methods to your repository:
 
 ```typescript
 class UserRepository extends Repository<User> {
   // ... base implementation
 
   async findByEmail(email: string): Promise<User | null> {
-    const record = await this.db.users.findUnique({
-      where: { email },
-    });
+    const record = await this.db.findOne("users", { email });
     return record ? this.mapperToDomain.build(record) : null;
   }
 
@@ -314,63 +344,64 @@ class UserRepository extends Repository<User> {
 
 ## Repository with Change Tracking
 
-For aggregates with complex nested structures, use change tracking:
+For aggregates with complex nested structures, use change tracking to efficiently persist only what changed:
 
 ```typescript
 class OrderRepository extends Repository<Order> {
   async save(order: Order): Promise<void> {
     const changes = order.getChanges();
 
+    // Skip if no changes
     if (changes.isEmpty() && !order.isNew()) {
-      return; // Nothing to save
+      return;
     }
 
-    await this.db.$transaction(async (tx) => {
+    // Use transaction for consistency
+    await this.db.transaction(async (tx) => {
       if (order.isNew()) {
         // Create root aggregate
-        await tx.orders.create({
-          data: this.mapperToPersistence.build(order),
-        });
+        await tx.insert("orders", this.mapOrder(order));
       }
 
-      // Process batch operations
+      // Process batch operations in correct order
       const batch = changes.toBatchOperations();
 
-      // Deletes (leaf → root)
+      // 1. Deletes (leaf → root for FK constraints)
       for (const del of batch.deletes) {
-        await tx[this.getTable(del.entity)].deleteMany({
-          where: { id: { in: del.ids } },
-        });
+        await tx.deleteMany(del.entity, { id: { in: del.ids } });
       }
 
-      // Creates (root → leaf)
+      // 2. Creates (root → leaf for FK constraints)
       for (const create of batch.creates) {
-        await tx[this.getTable(create.entity)].createMany({
-          data: create.items.map((item) => 
-            this.mapItem(create.entity, item.data, item.parentId)
-          ),
-        });
+        await tx.insertMany(
+          create.entity,
+          create.items.map((item) => this.mapItem(item))
+        );
       }
 
-      // Updates
+      // 3. Updates
       for (const update of batch.updates) {
         for (const item of update.items) {
-          await tx[this.getTable(update.entity)].update({
-            where: { id: item.id },
-            data: item.changedFields,
-          });
+          await tx.update(update.entity, item.id, item.changedFields);
         }
       }
     });
 
+    // Mark aggregate as clean after successful save
     order.markAsClean();
   }
 }
 ```
 
+<Tip>
+  The [Prisma Adapter](/integrations/prisma) provides `PrismaBatchExecutor` that handles all this automatically.
+</Tip>
+
 ## Testing with Repositories
 
 ### In-Memory Implementation
+
+Create an in-memory implementation for unit tests:
 
 ```typescript
 class InMemoryUserRepository extends Repository<User> {
@@ -390,6 +421,7 @@ class InMemoryUserRepository extends Repository<User> {
 
   async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
     const all = Array.from(this.store.values());
+    // PaginatedResult.fromArray applies criteria in-memory
     return PaginatedResult.fromArray(all, criteria);
   }
 
@@ -407,6 +439,10 @@ class InMemoryUserRepository extends Repository<User> {
   clear(): void {
     this.store.clear();
   }
+
+  getAll(): User[] {
+    return Array.from(this.store.values());
+  }
 }
 ```
 
@@ -420,6 +456,10 @@ describe("UserService", () => {
   beforeEach(() => {
     userRepository = new InMemoryUserRepository();
     userService = new UserService(userRepository);
+  });
+
+  afterEach(() => {
+    userRepository.clear();
   });
 
   it("should create a user", async () => {
@@ -438,10 +478,12 @@ describe("UserService", () => {
     await userRepository.save(new User({ name: "Inactive", status: "inactive" }));
 
     // Test
-    const activeUsers = await userService.getActiveUsers();
+    const result = await userRepository.find(
+      Criteria.create<User>().whereEquals("status", "active")
+    );
 
-    expect(activeUsers.length).toBe(1);
-    expect(activeUsers[0].name).toBe("Active");
+    expect(result.data.length).toBe(1);
+    expect(result.data[0].name).toBe("Active");
   });
 });
 ```
@@ -450,20 +492,20 @@ describe("UserService", () => {
 
 <CardGroup cols={2}>
 
+<Card title="Criteria" icon="filter" href="/criteria/overview">
+  Learn about type-safe query building
+</Card>
+
 <Card title="Mappers" icon="right-left" href="/repository/mappers">
-  Learn about domain ↔ persistence mapping
+  Domain ↔ persistence data transformation
+</Card>
+
+<Card title="Schema Registry" icon="sitemap" href="/repository/schema-registry">
+  Map entities to database tables
 </Card>
 
 <Card title="Prisma Integration" icon="database" href="/integrations/prisma">
-  Complete Prisma implementation guide
-</Card>
-
-<Card title="Drizzle Integration" icon="droplet" href="/integrations/drizzle">
-  Complete Drizzle implementation guide
-</Card>
-
-<Card title="Change Tracking" icon="clock-rotate-left" href="/change-tracking/overview">
-  Automatic change tracking for complex aggregates
+  Complete Prisma implementation
 </Card>
 
 </CardGroup>

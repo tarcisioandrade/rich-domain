@@ -1,0 +1,456 @@
+---
+title: "Schema Registry"
+description: "Map domain entities to database tables and fields"
+---
+
+## Overview
+
+`EntitySchemaRegistry` provides a centralized mapping between your domain entities and database tables. It handles field name translations, foreign key relationships, and collection configurations - making your mappers cleaner and more maintainable.
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "users",
+    fields: { email: "user_email" },
+  })
+  .register({
+    entity: "Post",
+    table: "blog_posts",
+    fields: { content: "post_content" },
+    parentFk: { field: "author_id", parentEntity: "User" },
+  });
+```
+
+## Why Use Schema Registry?
+
+<CardGroup cols={2}>
+
+<Card title="Centralized Mapping" icon="sitemap">
+  Define all entity-to-table mappings in one place
+</Card>
+
+<Card title="Field Translation" icon="language">
+  Map camelCase domain fields to snake_case database columns
+</Card>
+
+<Card title="FK Management" icon="link">
+  Configure parent-child relationships and foreign keys
+</Card>
+
+<Card title="Collection Types" icon="layer-group">
+  Distinguish between owned (1:N) and reference (N:N) relations
+</Card>
+
+</CardGroup>
+
+## Basic Usage
+
+### Registering Entities
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+const registry = new EntitySchemaRegistry();
+
+// Simple entity - same field names in domain and database
+registry.register({
+  entity: "Category",
+  table: "categories",
+});
+
+// Entity with field mapping
+registry.register({
+  entity: "User",
+  table: "users",
+  fields: {
+    firstName: "first_name",  // domain → database
+    lastName: "last_name",
+    createdAt: "created_at",
+  },
+});
+
+// Chained registration
+registry
+  .register({ entity: "User", table: "users" })
+  .register({ entity: "Post", table: "posts" })
+  .register({ entity: "Comment", table: "comments" });
+```
+
+### Bulk Registration
+
+```typescript
+registry.registerAll([
+  { entity: "User", table: "users" },
+  { entity: "Post", table: "posts" },
+  { entity: "Comment", table: "comments" },
+  { entity: "Tag", table: "tags" },
+]);
+```
+
+## Field Mapping
+
+Map domain property names to database column names:
+
+```typescript
+registry.register({
+  entity: "User",
+  table: "users",
+  fields: {
+    firstName: "first_name",
+    lastName: "last_name",
+    emailAddress: "email",
+    phoneNumber: "phone",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+});
+
+// Get mapped field name
+registry.mapFieldName("User", "firstName"); // "first_name"
+registry.mapFieldName("User", "status");    // "status" (unchanged)
+
+// Get all field mappings
+registry.getFieldsMap("User");
+// { firstName: "first_name", lastName: "last_name", ... }
+```
+
+### Mapping Entity Data
+
+Transform a complete domain entity to database format:
+
+```typescript
+const user = new User({
+  firstName: "John",
+  lastName: "Doe",
+  email: "john@example.com",
+  posts: [...], // Ignored - it's a collection
+});
+
+const dbData = registry.mapEntity("User", user);
+// {
+//   id: "user-123",
+//   first_name: "John",
+//   last_name: "Doe",
+//   email: "john@example.com"
+// }
+```
+
+### Mapping Partial Fields
+
+Transform only specific fields (useful for updates):
+
+```typescript
+const changedFields = { firstName: "Jane", updatedAt: new Date() };
+
+const dbFields = registry.mapFields("User", changedFields);
+// { first_name: "Jane", updated_at: Date }
+```
+
+## Parent-Child Relationships
+
+Configure foreign key relationships for 1:N (owned) relationships:
+
+```typescript
+registry
+  .register({
+    entity: "User",
+    table: "users",
+  })
+  .register({
+    entity: "Post",
+    table: "posts",
+    parentFk: {
+      field: "author_id",      // FK column name in database
+      parentEntity: "User",    // Parent entity name
+    },
+  })
+  .register({
+    entity: "Comment",
+    table: "comments",
+    parentFk: {
+      field: "post_id",
+      parentEntity: "Post",
+    },
+  });
+```
+
+### Getting FK Information
+
+```typescript
+// Get parent entity name
+registry.getParentEntity("Post");    // "User"
+registry.getParentEntity("Comment"); // "Post"
+registry.getParentEntity("User");    // null (root entity)
+
+// Get FK field name
+registry.getParentFkField("Post");    // "author_id"
+registry.getParentFkField("Comment"); // "post_id"
+
+// Get FK object for insert
+registry.getParentFk("Post", "user-123");
+// { author_id: "user-123" }
+
+registry.getParentFk("Comment", "post-456");
+// { post_id: "post-456" }
+```
+
+## Collection Configuration
+
+Configure how collections (1:N and N:N) should be handled:
+
+```typescript
+registry.register({
+  entity: "Post",
+  table: "posts",
+  parentFk: { field: "author_id", parentEntity: "User" },
+  collections: {
+    // 1:N owned relationship - comments belong to post
+    comments: { type: "owned" },
+    
+    // N:N reference relationship - tags exist independently
+    tags: { 
+      type: "reference", 
+      entity: "Tag",
+      // Optional: junction table config (for ORMs that need it)
+      junction: {
+        table: "post_tags",
+        sourceKey: "post_id",
+        targetKey: "tag_id",
+      },
+    },
+  },
+});
+```
+
+### Collection Types
+
+| Type | Relationship | Behavior |
+|------|--------------|----------|
+| `owned` | 1:N | Children are created/deleted with parent |
+| `reference` | N:N | Only links are created/removed, entities persist |
+
+### Checking Collection Types
+
+```typescript
+// Check if it's a reference (N:N) collection
+registry.isReferenceCollection("Post", "tags");      // true
+registry.isReferenceCollection("Post", "comments");  // false
+
+// Check if it's an owned (1:N) collection
+registry.isOwnedCollection("Post", "comments");      // true
+registry.isOwnedCollection("Post", "tags");          // false
+
+// Get full collection config
+const tagConfig = registry.getCollectionConfig("Post", "tags");
+// { type: "reference", entity: "Tag", junction: { ... } }
+```
+
+## Query Methods
+
+```typescript
+// Check if entity is registered
+registry.has("User");  // true
+registry.has("Order"); // false
+
+// Get schema (throws if not found)
+const schema = registry.getSchema("User");
+
+// Try get schema (returns null if not found)
+const schema = registry.tryGetSchema("Order"); // null
+
+// Get table name
+registry.getTable("User"); // "users"
+
+// Get all registered entity names
+registry.getRegisteredEntities(); // ["User", "Post", "Comment"]
+
+// Get all schemas
+registry.getAllSchemas(); // [{ entity: "User", ... }, ...]
+
+// Clear all registrations
+registry.clear();
+```
+
+## Using with Mappers
+
+The registry is commonly used in persistence mappers:
+
+```typescript
+import { Mapper, EntitySchemaRegistry } from "@woltz/rich-domain";
+
+class UserToPersistenceMapper extends Mapper<User, UserRecord> {
+  constructor(private registry: EntitySchemaRegistry) {
+    super();
+  }
+
+  build(user: User): UserRecord {
+    // Use registry to map the entity
+    const data = this.registry.mapEntity("User", user);
+    
+    return {
+      ...data,
+      // Add any custom transformations
+      status: user.status.toUpperCase(),
+    };
+  }
+}
+```
+
+## Using with BatchExecutor
+
+The registry integrates with `PrismaBatchExecutor` for automatic field mapping:
+
+```typescript
+import { PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
+
+const executor = new PrismaBatchExecutor(prismaContext, {
+  registry: schemaRegistry,
+  rootId: user.id.value,
+});
+
+// BatchExecutor uses registry to:
+// - Get correct table names
+// - Map field names
+// - Handle FK relationships
+await executor.execute(changes);
+```
+
+## Complete Example
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+// Define the schema registry for your domain
+export const schemaRegistry = new EntitySchemaRegistry()
+  // Root aggregate
+  .register({
+    entity: "User",
+    table: "users",
+    fields: {
+      firstName: "first_name",
+      lastName: "last_name",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    collections: {
+      posts: { type: "owned" },
+      followers: { type: "reference", entity: "User" },
+    },
+  })
+  // Child entity (1:N owned)
+  .register({
+    entity: "Post",
+    table: "posts",
+    fields: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    parentFk: {
+      field: "author_id",
+      parentEntity: "User",
+    },
+    collections: {
+      comments: { type: "owned" },
+      tags: { 
+        type: "reference", 
+        entity: "Tag",
+        junction: {
+          table: "post_tags",
+          sourceKey: "post_id",
+          targetKey: "tag_id",
+        },
+      },
+    },
+  })
+  // Nested child (1:N owned)
+  .register({
+    entity: "Comment",
+    table: "comments",
+    fields: {
+      createdAt: "created_at",
+    },
+    parentFk: {
+      field: "post_id",
+      parentEntity: "Post",
+    },
+  })
+  // Independent entity (referenced via N:N)
+  .register({
+    entity: "Tag",
+    table: "tags",
+  });
+
+// Usage in mapper
+class UserToPersistenceMapper extends PrismaToPersistence<User> {
+  protected readonly registry = schemaRegistry;
+
+  protected async onCreate(user: User): Promise<void> {
+    await this.context.user.create({
+      data: this.registry.mapEntity("User", user),
+    });
+  }
+
+  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+      rootId: user.id.value,
+    });
+
+    await executor.execute(changes);
+  }
+}
+```
+
+## API Reference
+
+### EntitySchema Interface
+
+```typescript
+interface EntitySchema {
+  entity: string;                           // Domain entity name
+  table: string;                            // Database table name
+  fields?: Record<string, string>;          // Field name mappings
+  parentFk?: {
+    field: string;                          // FK column name
+    parentEntity: string;                   // Parent entity name
+  };
+  collections?: Record<string, CollectionConfig>;
+}
+
+interface CollectionConfig {
+  type: "owned" | "reference";
+  entity?: string;                          // Target entity (for reference)
+  junction?: {
+    table: string;                          // Junction table name
+    sourceKey: string;                      // FK to source entity
+    targetKey: string;                      // FK to target entity
+  };
+}
+```
+
+### Registry Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `register(schema)` | `this` | Register an entity schema |
+| `registerAll(schemas)` | `this` | Register multiple schemas |
+| `has(entity)` | `boolean` | Check if entity is registered |
+| `getSchema(entity)` | `EntitySchema` | Get schema (throws if not found) |
+| `tryGetSchema(entity)` | `EntitySchema \| null` | Get schema or null |
+| `getTable(entity)` | `string` | Get table name |
+| `getFieldsMap(entity)` | `Record<string, string>` | Get field mappings |
+| `mapFieldName(entity, field)` | `string` | Map single field name |
+| `mapFields(entity, data)` | `object` | Map partial fields |
+| `mapEntity(entity, domainEntity)` | `object` | Map complete entity |
+| `getParentEntity(entity)` | `string \| null` | Get parent entity name |
+| `getParentFkField(entity)` | `string \| null` | Get FK field name |
+| `getParentFk(entity, parentId)` | `object \| null` | Get FK object |
+| `getCollectionConfig(entity, field)` | `CollectionConfig \| null` | Get collection config |
+| `isReferenceCollection(entity, field)` | `boolean` | Check if N:N relation |
+| `isOwnedCollection(entity, field)` | `boolean` | Check if 1:N relation |
+| `getRegisteredEntities()` | `string[]` | Get all entity names |
+| `getAllSchemas()` | `EntitySchema[]` | Get all schemas |
+| `clear()` | `void` | Remove all registrations |

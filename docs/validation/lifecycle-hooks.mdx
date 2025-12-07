@@ -10,8 +10,12 @@ Hooks provide a way to add custom logic at specific points in an entity's lifecy
 ```typescript
 class User extends Aggregate<UserProps> {
   protected static hooks: EntityHooks<UserProps, User> = {
+    onBeforeCreate: (props) => {
+      console.log(`User (PROPS: Plain Object): ${props.name}`);
+    },
+
     onCreate: (entity) => {
-      console.log(`User created: ${entity.name}`);
+      console.log(`User (Entity) created: ${entity.name}`);
     },
 
     onBeforeUpdate: (entity, snapshot) => {
@@ -34,6 +38,27 @@ class User extends Aggregate<UserProps> {
 
 ## Available Hooks
 
+### onBeforeCreate
+
+#### Usage
+
+Called before the entity is created and validated:
+
+```typescript
+protected static hooks: EntityHooks<UserProps, User> = {
+  onBeforeCreate: (props) => {
+    // Props is a plain object
+    console.log(`User ${props.name}`);
+  },
+};
+```
+
+**Timing:** Runs before constructor completes, before any execution.
+
+#### Use Cases
+
+- Change data before it is validated
+
 ### onCreate
 
 Called after the entity is successfully created and validated:
@@ -43,10 +68,10 @@ protected static hooks: EntityHooks<UserProps, User> = {
   onCreate: (entity) => {
     // Entity is fully constructed and valid
     console.log(`User ${entity.id.value} created`);
-    
+
     // Initialize derived values
     entity.initializeDefaults();
-    
+
     // Emit domain event
     entity.addDomainEvent(new UserCreatedEvent(entity.id));
   },
@@ -56,6 +81,7 @@ protected static hooks: EntityHooks<UserProps, User> = {
 **Timing:** Runs after constructor completes, after schema validation.
 
 **Use cases:**
+
 - Logging
 - Initializing computed values
 - Adding domain events
@@ -90,10 +116,12 @@ protected static hooks: EntityHooks<UserProps, User> = {
 **Timing:** Runs before property change is finalized.
 
 **Parameters:**
+
 - `entity`: Current state (with proposed change)
 - `snapshot`: State before the change
 
 **Return value:**
+
 - `true` or `undefined`: Allow the change
 - `false`: Reject the change (value reverts)
 
@@ -126,6 +154,7 @@ protected static hooks: EntityHooks<UserProps, User> = {
 **Timing:** Runs after schema validation, both on create and update.
 
 **Use cases:**
+
 - Cross-field validation
 - Business rule validation
 - Reserved value checks
@@ -146,7 +175,7 @@ rules: (entity) => {
   if (entity.endDate < entity.startDate) {
     throwValidationError("endDate", "End date must be after start date");
   }
-}
+};
 ```
 
 The helper throws a `ValidationError` with proper structure:
@@ -154,7 +183,7 @@ The helper throws a `ValidationError` with proper structure:
 ```typescript
 // Equivalent to:
 throw new ValidationError([
-  { path: ["price"], message: "Price cannot be less than cost" }
+  { path: ["price"], message: "Price cannot be less than cost" },
 ]);
 ```
 
@@ -181,10 +210,7 @@ class Product extends Aggregate<ProductProps> {
     rules: (entity) => {
       // Cross-field validation not possible in schema
       if (entity.price < entity.cost * 1.1) {
-        throwValidationError(
-          "price",
-          "Price must be at least 10% above cost"
-        );
+        throwValidationError("price", "Price must be at least 10% above cost");
       }
     },
 
@@ -207,6 +233,8 @@ class Product extends Aggregate<ProductProps> {
 
 ```
 Constructor Called
+        ↓
+onBeforeCreate Hook
         ↓
 Schema Validation (if onCreate: true)
         ↓
@@ -235,27 +263,29 @@ Value Objects support similar hooks:
 import { ValueObject, VOHooks, throwValidationError } from "@woltz/rich-domain";
 
 class Money extends ValueObject<{ amount: number; currency: string }> {
-  protected static hooks: VOHooks<{ amount: number; currency: string }, Money> = {
-    rules: (money) => {
-      if (money.amount > 1000000) {
-        throwValidationError("amount", "Amount cannot exceed 1,000,000");
-      }
+  protected static hooks: VOHooks<{ amount: number; currency: string }, Money> =
+    {
+      rules: (money) => {
+        if (money.amount > 1000000) {
+          throwValidationError("amount", "Amount cannot exceed 1,000,000");
+        }
 
-      const validCurrencies = ["USD", "EUR", "GBP", "BRL"];
-      if (!validCurrencies.includes(money.currency)) {
-        throwValidationError("currency", "Invalid currency code");
-      }
-    },
+        const validCurrencies = ["USD", "EUR", "GBP", "BRL"];
+        if (!validCurrencies.includes(money.currency)) {
+          throwValidationError("currency", "Invalid currency code");
+        }
+      },
 
-    onCreate: (money) => {
-      console.log(`Money created: ${money.currency} ${money.amount}`);
-    },
-  };
+      onCreate: (money) => {
+        console.log(`Money created: ${money.currency} ${money.amount}`);
+      },
+    };
 }
 ```
 
 <Note>
-Value Objects don't have `onBeforeUpdate` because they're immutable - you create new instances instead of modifying.
+  Value Objects don't have `onBeforeUpdate` because they're immutable - you
+  create new instances instead of modifying.
 </Note>
 
 ## Real-World Examples
@@ -268,10 +298,16 @@ class User extends Aggregate<UserProps> {
     rules: (user) => {
       // Username rules
       if (user.username.length < 3) {
-        throwValidationError("username", "Username must be at least 3 characters");
+        throwValidationError(
+          "username",
+          "Username must be at least 3 characters"
+        );
       }
       if (!/^[a-zA-Z0-9_]+$/.test(user.username)) {
-        throwValidationError("username", "Username can only contain letters, numbers, and underscores");
+        throwValidationError(
+          "username",
+          "Username can only contain letters, numbers, and underscores"
+        );
       }
 
       // Age verification
@@ -406,10 +442,7 @@ class InventoryItem extends Aggregate<InventoryProps> {
 
       // Location format
       if (item.location && !/^[A-Z]\d{2}-\d{3}$/.test(item.location)) {
-        throwValidationError(
-          "location",
-          "Location must be in format A00-000"
-        );
+        throwValidationError("location", "Location must be in format A00-000");
       }
     },
 
