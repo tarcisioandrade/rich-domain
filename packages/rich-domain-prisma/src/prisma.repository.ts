@@ -27,7 +27,7 @@ export interface PrismaRepositoryConfig {
  */
 export abstract class PrismaRepository<
   TDomain extends Aggregate<any>,
-  TPersistence = any
+  TPersistence
 > extends Repository<TDomain> {
   constructor(
     protected readonly mapperToPersistence: Mapper<TDomain, void>,
