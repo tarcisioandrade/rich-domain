@@ -148,7 +148,7 @@ describe("prisma-parser", () => {
         hasDefaultValue: false,
       };
 
-      expect(prismaTypeToZod(field)).toBe("z.email()");
+      expect(prismaTypeToZod(field)).toBe("z.string().email()");
     });
 
     it("should add min(8) validation for password field", () => {

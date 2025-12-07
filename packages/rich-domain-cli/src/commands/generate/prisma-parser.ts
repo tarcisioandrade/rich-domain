@@ -213,7 +213,7 @@ export function prismaTypeToZod(field: PrismaField): string {
 
   // Special cases for common field names
   if (field.name === "email") {
-    return "z.email()";
+    return "z.string().email()";
   }
   if (field.name === "password") {
     return "z.string().min(8)";
@@ -297,4 +297,118 @@ export function toKebabCase(str: string): string {
  */
 export function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
+/**
+ * Map Prisma type to Valibot schema
+ */
+export function prismaTypeToValibot(field: PrismaField): string {
+  const valibotMap: Record<string, string> = {
+    String: "v.string()",
+    Int: "v.pipe(v.number(), v.integer())",
+    Float: "v.number()",
+    Decimal: "v.number()",
+    Boolean: "v.boolean()",
+    DateTime: "v.date()",
+    Json: "v.unknown()",
+    BigInt: "v.bigint()",
+    Bytes: "v.instance(Buffer)",
+  };
+
+  // Special cases for common field names
+  if (field.name === "email") {
+    return "v.pipe(v.string(), v.email())";
+  }
+  if (field.name === "password") {
+    return "v.pipe(v.string(), v.minLength(8))";
+  }
+  if (field.name === "url" || field.name.endsWith("Url")) {
+    return "v.pipe(v.string(), v.url())";
+  }
+
+  let valibotType: string;
+
+  if (field.kind === "enum") {
+    valibotType = `v.enum(${field.type})`;
+  } else if (field.kind === "object") {
+    valibotType = `v.instance(${field.type})`;
+  } else {
+    valibotType = valibotMap[field.type] ?? "v.unknown()";
+  }
+
+  // Handle lists
+  if (field.isList) {
+    valibotType = `v.array(${valibotType})`;
+  }
+
+  // Handle nullable
+  if (!field.isRequired) {
+    valibotType = `v.nullable(${valibotType})`;
+  }
+
+  // Handle defaults
+  if (field.hasDefaultValue && field.default !== undefined) {
+    const defaultValue = formatDefaultValue(field.default, field.type);
+    if (defaultValue) {
+      valibotType = `v.optional(${valibotType}, ${defaultValue})`;
+    }
+  }
+
+  return valibotType;
+}
+
+/**
+ * Map Prisma type to ArkType schema
+ */
+export function prismaTypeToArktype(field: PrismaField): string {
+  const arktypeMap: Record<string, string> = {
+    String: '"string"',
+    Int: '"number.integer"',
+    Float: '"number"',
+    Decimal: '"number"',
+    Boolean: '"boolean"',
+    DateTime: "type.instanceOf(Date)",
+    Json: '"unknown"',
+    BigInt: '"bigint"',
+    Bytes: "type.instanceOf(Buffer)",
+  };
+
+  // Special cases for common field names
+  if (field.name === "email") {
+    return '"string.email"';
+  }
+  if (field.name === "url" || field.name.endsWith("Url")) {
+    return '"string.url"';
+  }
+
+  let arktypeType: string;
+
+  if (field.kind === "enum") {
+    // ArkType enum handling
+    arktypeType = `type.enumerated(...Object.values(${field.type}))`;
+  } else if (field.kind === "object") {
+    arktypeType = `type.instanceOf(${field.type})`;
+  } else {
+    arktypeType = arktypeMap[field.type] ?? '"unknown"';
+  }
+
+  // Handle lists - wrap in type() if it's a string literal
+  if (field.isList) {
+    if (arktypeType.startsWith('"')) {
+      arktypeType = `type(${arktypeType}).array()`;
+    } else {
+      arktypeType = `${arktypeType}.array()`;
+    }
+  }
+
+  // Handle nullable
+  if (!field.isRequired) {
+    if (arktypeType.startsWith('"')) {
+      arktypeType = `type(${arktypeType}).or(type("null"))`;
+    } else {
+      arktypeType = `${arktypeType}.or(type("null"))`;
+    }
+  }
+
+  return arktypeType;
 }

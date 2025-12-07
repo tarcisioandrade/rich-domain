@@ -1,5 +1,6 @@
 import ora from "ora";
 import prompts from "prompts";
+import { readFileSync } from "node:fs";
 import { logger, code, path as pathStyle } from "../../utils/logger.js";
 import {
   findPrismaSchema,
@@ -35,39 +36,43 @@ interface DetectedPackages {
   arktype: boolean;
 }
 
-async function detectPackages(): Promise<DetectedPackages> {
-  const { readFileSync } = await import("node:fs");
+function detectPackages(): DetectedPackages {
+  const defaultResult: DetectedPackages = {
+    richDomainPrisma: false,
+    zod: false,
+    valibot: false,
+    arktype: false,
+  };
 
   try {
     const packageJsonPath = resolvePath("package.json");
+
     if (!fileExists(packageJsonPath)) {
-      return {
-        richDomainPrisma: false,
-        zod: false,
-        valibot: false,
-        arktype: false,
-      };
+      return defaultResult;
     }
 
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const allDeps = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
+    const packageJsonContent = readFileSync(packageJsonPath, "utf-8");
+    const packageJson = JSON.parse(packageJsonContent);
+
+    const deps = packageJson.dependencies || {};
+    const devDeps = packageJson.devDependencies || {};
+
+    const allDeps: Record<string, string> = {
+      ...deps,
+      ...devDeps,
     };
 
-    return {
+    const result = {
       richDomainPrisma: "@woltz/rich-domain-prisma" in allDeps,
       zod: "zod" in allDeps,
       valibot: "valibot" in allDeps,
       arktype: "arktype" in allDeps,
     };
-  } catch {
-    return {
-      richDomainPrisma: false,
-      zod: false,
-      valibot: false,
-      arktype: false,
-    };
+
+    return result;
+  } catch (error) {
+    logger.warn(`Could not read package.json: ${error}`);
+    return defaultResult;
   }
 }
 
@@ -80,7 +85,7 @@ export async function generateFromPrisma(
   logger.header("🔍 Rich Domain Generator");
 
   // Detect installed packages
-  const packages = await detectPackages();
+  const packages = detectPackages();
 
   // Find or validate schema path
   let schemaPath = options.schema
@@ -120,15 +125,20 @@ export async function generateFromPrisma(
   );
 
   // Determine validation library
-  let validation = options.validation;
+  let validation: "zod" | "valibot" | "arktype" | "none" =
+    options.validation as any;
   if (!validation) {
     if (packages.zod) validation = "zod";
     else if (packages.valibot) validation = "valibot";
     else if (packages.arktype) validation = "arktype";
-    else validation = "zod"; // default
+    else validation = "none";
   }
 
-  logger.listItem(`Validation library: ${code(validation)}`);
+  logger.listItem(
+    `Validation library: ${
+      validation === "none" ? code("none (interface only)") : code(validation)
+    }`
+  );
 
   // Warn if rich-domain-prisma is not installed
   if (!packages.richDomainPrisma) {
@@ -137,6 +147,15 @@ export async function generateFromPrisma(
       "Repository and mapper files will NOT be generated (requires @woltz/rich-domain-prisma)"
     );
     logger.dim("  Install it with: npm install @woltz/rich-domain-prisma");
+  }
+
+  // Warn if no validation library
+  if (validation === "none") {
+    logger.newLine();
+    logger.warn(
+      "No validation library detected - generating TypeScript interfaces only"
+    );
+    logger.dim("  For runtime validation, install: npm install zod");
   }
 
   // Parse schema
@@ -290,6 +309,8 @@ export async function generateFromPrisma(
       logger.file("created", relativePath(file.path));
     }
   }
+
+  if (options.dryRun) return;
 
   // Show next steps
   logger.newLine();

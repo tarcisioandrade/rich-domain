@@ -6,6 +6,8 @@ import {
   isCreateField,
   isForeignKey,
   prismaTypeToZod,
+  prismaTypeToValibot,
+  prismaTypeToArktype,
   toKebabCase,
   toCamelCase,
 } from "./prisma-parser.js";
@@ -15,7 +17,7 @@ import type { DependencyAnalysis } from "./dependency-graph.js";
  * Options for code generation
  */
 export interface GenerateOptions {
-  validation: "zod" | "valibot" | "arktype";
+  validation: "zod" | "valibot" | "arktype" | "none";
   outputDir: string;
   generatePrismaFiles: boolean;
 }
@@ -46,7 +48,7 @@ export function generateModelFiles(
     path: `${
       options.outputDir
     }/${folderName}/${model.name.toLowerCase()}.schema.ts`,
-    content: generateSchema(model, analysis),
+    content: generateSchema(model, analysis, options),
   });
 
   // Generate entity/aggregate
@@ -54,7 +56,9 @@ export function generateModelFiles(
     path: `${options.outputDir}/${folderName}/${model.name.toLowerCase()}.${
       isAggregate ? "aggregate" : "entity"
     }.ts`,
-    content: isAggregate ? generateAggregate(model) : generateEntity(model),
+    content: isAggregate
+      ? generateAggregate(model, options)
+      : generateEntity(model, options),
   });
 
   // Generate repository and mappers only if rich-domain-prisma is installed
@@ -129,41 +133,58 @@ export function generateEnumsFile(
 }
 
 /**
- * Generate Zod schema for a model
+ * Generate schema file for a model (supports zod, valibot, arktype, or none)
  */
 function generateSchema(
+  model: PrismaModel,
+  analysis: DependencyAnalysis,
+  options: GenerateOptions
+): string {
+  switch (options.validation) {
+    case "zod":
+      return generateZodSchema(model, analysis);
+    case "valibot":
+      return generateValibotSchema(model, analysis);
+    case "arktype":
+      return generateArktypeSchema(model, analysis);
+    case "none":
+      return generateInterfaceOnly(model, analysis);
+    default:
+      return generateInterfaceOnly(model, analysis);
+  }
+}
+
+/**
+ * Generate Zod schema
+ */
+function generateZodSchema(
   model: PrismaModel,
   analysis: DependencyAnalysis
 ): string {
   const lines: string[] = [];
-  const imports = new Set<string>();
   const enumImports = new Set<string>();
   const entityImports = new Set<string>();
-
-  // Collect imports
-  imports.add('import { z } from "zod";');
-  imports.add('import { Id } from "@woltz/rich-domain";');
 
   const scalarFields = getScalarFields(model);
   const relationFields = getRelationFields(model);
 
-  // Check for enum fields
+  // Collect enum imports
   for (const field of scalarFields) {
     if (field.kind === "enum") {
       enumImports.add(field.type);
     }
   }
 
-  // Check for relation imports
+  // Collect relation imports
   for (const field of relationFields) {
-    const relatedNode = analysis.nodes.get(field.type);
-    if (relatedNode) {
+    if (analysis.nodes.has(field.type)) {
       entityImports.add(field.type);
     }
   }
 
   // Add imports
-  lines.push(...imports);
+  lines.push('import { z } from "zod";');
+  lines.push('import { Id } from "@woltz/rich-domain";');
 
   if (enumImports.size > 0) {
     lines.push(
@@ -193,7 +214,6 @@ function generateSchema(
   // Scalar fields (excluding id)
   for (const field of scalarFields) {
     if (field.isId) continue;
-
     const zodType = prismaTypeToZod(field);
     lines.push(`  ${field.name}: ${zodType},`);
   }
@@ -201,7 +221,6 @@ function generateSchema(
   // Relation fields
   for (const field of relationFields) {
     let zodType: string;
-
     if (field.isList) {
       zodType = `z.array(z.instanceof(${field.type}))`;
     } else if (!field.isRequired) {
@@ -209,11 +228,267 @@ function generateSchema(
     } else {
       zodType = `z.instanceof(${field.type})`;
     }
-
     lines.push(`  ${field.name}: ${zodType},`);
   }
 
   lines.push("});");
+  lines.push("");
+  lines.push(
+    `export type ${model.name}Props = z.infer<typeof ${toCamelCase(
+      model.name
+    )}Schema>;`
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate Valibot schema
+ */
+function generateValibotSchema(
+  model: PrismaModel,
+  analysis: DependencyAnalysis
+): string {
+  const lines: string[] = [];
+  const enumImports = new Set<string>();
+  const entityImports = new Set<string>();
+
+  const scalarFields = getScalarFields(model);
+  const relationFields = getRelationFields(model);
+
+  // Collect imports
+  for (const field of scalarFields) {
+    if (field.kind === "enum") {
+      enumImports.add(field.type);
+    }
+  }
+
+  for (const field of relationFields) {
+    if (analysis.nodes.has(field.type)) {
+      entityImports.add(field.type);
+    }
+  }
+
+  // Add imports
+  lines.push('import * as v from "valibot";');
+  lines.push('import { Id } from "@woltz/rich-domain";');
+
+  if (enumImports.size > 0) {
+    lines.push(
+      `import { ${Array.from(enumImports).join(
+        ", "
+      )} } from "../shared/enums.js";`
+    );
+  }
+
+  for (const entityName of entityImports) {
+    const folder = toKebabCase(entityName);
+    lines.push(`import { ${entityName} } from "../${folder}/index.js";`);
+  }
+
+  lines.push("");
+  lines.push("/**");
+  lines.push(" * Auto-generated from Prisma schema");
+  if (model.documentation) {
+    lines.push(` * ${model.documentation}`);
+  }
+  lines.push(" */");
+  lines.push(`export const ${toCamelCase(model.name)}Schema = v.object({`);
+
+  // ID field
+  lines.push("  id: v.instance(Id),");
+
+  // Scalar fields
+  for (const field of scalarFields) {
+    if (field.isId) continue;
+    const valibotType = prismaTypeToValibot(field);
+    lines.push(`  ${field.name}: ${valibotType},`);
+  }
+
+  // Relation fields
+  for (const field of relationFields) {
+    let valibotType: string;
+    if (field.isList) {
+      valibotType = `v.array(v.instance(${field.type}))`;
+    } else if (!field.isRequired) {
+      valibotType = `v.nullable(v.instance(${field.type}))`;
+    } else {
+      valibotType = `v.instance(${field.type})`;
+    }
+    lines.push(`  ${field.name}: ${valibotType},`);
+  }
+
+  lines.push("});");
+  lines.push("");
+  lines.push(
+    `export type ${model.name}Props = v.InferOutput<typeof ${toCamelCase(
+      model.name
+    )}Schema>;`
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate ArkType schema
+ */
+function generateArktypeSchema(
+  model: PrismaModel,
+  analysis: DependencyAnalysis
+): string {
+  const lines: string[] = [];
+  const enumImports = new Set<string>();
+  const entityImports = new Set<string>();
+
+  const scalarFields = getScalarFields(model);
+  const relationFields = getRelationFields(model);
+
+  // Collect imports
+  for (const field of scalarFields) {
+    if (field.kind === "enum") {
+      enumImports.add(field.type);
+    }
+  }
+
+  for (const field of relationFields) {
+    if (analysis.nodes.has(field.type)) {
+      entityImports.add(field.type);
+    }
+  }
+
+  // Add imports
+  lines.push('import { type } from "arktype";');
+  lines.push('import { Id } from "@woltz/rich-domain";');
+
+  if (enumImports.size > 0) {
+    lines.push(
+      `import { ${Array.from(enumImports).join(
+        ", "
+      )} } from "../shared/enums.js";`
+    );
+  }
+
+  for (const entityName of entityImports) {
+    const folder = toKebabCase(entityName);
+    lines.push(`import { ${entityName} } from "../${folder}/index.js";`);
+  }
+
+  lines.push("");
+  lines.push("/**");
+  lines.push(" * Auto-generated from Prisma schema");
+  if (model.documentation) {
+    lines.push(` * ${model.documentation}`);
+  }
+  lines.push(" */");
+  lines.push(`export const ${toCamelCase(model.name)}Schema = type({`);
+
+  // ID field
+  lines.push("  id: type.instanceOf(Id),");
+
+  // Scalar fields
+  for (const field of scalarFields) {
+    if (field.isId) continue;
+    const arktypeType = prismaTypeToArktype(field);
+    lines.push(`  ${field.name}: ${arktypeType},`);
+  }
+
+  // Relation fields
+  for (const field of relationFields) {
+    let arktypeType: string;
+    if (field.isList) {
+      arktypeType = `type.instanceOf(${field.type}).array()`;
+    } else if (!field.isRequired) {
+      arktypeType = `type.instanceOf(${field.type}).or(type("null"))`;
+    } else {
+      arktypeType = `type.instanceOf(${field.type})`;
+    }
+    lines.push(`  ${field.name}: ${arktypeType},`);
+  }
+
+  lines.push("});");
+  lines.push("");
+  lines.push(
+    `export type ${model.name}Props = typeof ${toCamelCase(
+      model.name
+    )}Schema.infer;`
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate interface-only (no validation library)
+ */
+function generateInterfaceOnly(
+  model: PrismaModel,
+  analysis: DependencyAnalysis
+): string {
+  const lines: string[] = [];
+  const enumImports = new Set<string>();
+  const entityImports = new Set<string>();
+
+  const scalarFields = getScalarFields(model);
+  const relationFields = getRelationFields(model);
+
+  // Collect imports
+  for (const field of scalarFields) {
+    if (field.kind === "enum") {
+      enumImports.add(field.type);
+    }
+  }
+
+  for (const field of relationFields) {
+    if (analysis.nodes.has(field.type)) {
+      entityImports.add(field.type);
+    }
+  }
+
+  // Add imports
+  lines.push('import { Id } from "@woltz/rich-domain";');
+
+  if (enumImports.size > 0) {
+    lines.push(
+      `import { ${Array.from(enumImports).join(
+        ", "
+      )} } from "../shared/enums.js";`
+    );
+  }
+
+  for (const entityName of entityImports) {
+    const folder = toKebabCase(entityName);
+    lines.push(`import type { ${entityName} } from "../${folder}/index.js";`);
+  }
+
+  lines.push("");
+  lines.push("/**");
+  lines.push(" * Auto-generated from Prisma schema");
+  if (model.documentation) {
+    lines.push(` * ${model.documentation}`);
+  }
+  lines.push(" */");
+  lines.push(`export interface ${model.name}Props {`);
+
+  // ID field
+  lines.push("  id: Id;");
+
+  // Scalar fields
+  for (const field of scalarFields) {
+    if (field.isId) continue;
+    const tsType = getTypeScriptType(field);
+    lines.push(`  ${field.name}: ${tsType};`);
+  }
+
+  // Relation fields
+  for (const field of relationFields) {
+    const tsType = field.isList
+      ? `${field.type}[]`
+      : field.isRequired
+      ? field.type
+      : `${field.type} | null`;
+    lines.push(`  ${field.name}: ${tsType};`);
+  }
+
+  lines.push("}");
 
   return lines.join("\n");
 }
@@ -221,19 +496,45 @@ function generateSchema(
 /**
  * Generate Aggregate class
  */
-function generateAggregate(model: PrismaModel): string {
+function generateAggregate(
+  model: PrismaModel,
+  options: GenerateOptions
+): string {
   const lines: string[] = [];
   const schemaName = `${toCamelCase(model.name)}Schema`;
 
   const scalarFields = getScalarFields(model).filter((f) => !f.isId);
   const relationFields = getRelationFields(model);
 
-  // Imports
+  // Imports based on validation type
   lines.push('import { Aggregate, Id } from "@woltz/rich-domain";');
-  lines.push('import { z } from "zod";');
-  lines.push(
-    `import { ${schemaName} } from "./${model.name.toLowerCase()}.schema.js";`
-  );
+
+  if (options.validation === "zod") {
+    lines.push(
+      `import { ${schemaName}, type ${
+        model.name
+      }Props } from "./${model.name.toLowerCase()}.schema.js";`
+    );
+  } else if (options.validation === "valibot") {
+    lines.push(
+      `import { ${schemaName}, type ${
+        model.name
+      }Props } from "./${model.name.toLowerCase()}.schema.js";`
+    );
+  } else if (options.validation === "arktype") {
+    lines.push(
+      `import { ${schemaName}, type ${
+        model.name
+      }Props } from "./${model.name.toLowerCase()}.schema.js";`
+    );
+  } else {
+    // No validation - import interface directly
+    lines.push(
+      `import type { ${
+        model.name
+      }Props } from "./${model.name.toLowerCase()}.schema.js";`
+    );
+  }
 
   // Import related entities
   const relatedImports = new Set<string>();
@@ -258,8 +559,6 @@ function generateAggregate(model: PrismaModel): string {
   }
 
   lines.push("");
-  lines.push(`type ${model.name}Props = z.infer<typeof ${schemaName}>;`);
-  lines.push("");
 
   // Class definition
   lines.push("/**");
@@ -272,10 +571,14 @@ function generateAggregate(model: PrismaModel): string {
   lines.push(
     `export class ${model.name} extends Aggregate<${model.name}Props> {`
   );
-  lines.push(`  protected static validation = {`);
-  lines.push(`    schema: ${schemaName},`);
-  lines.push("  };");
-  lines.push("");
+
+  // Add validation only if using a validation library
+  if (options.validation !== "none") {
+    lines.push("  protected static validation = {");
+    lines.push(`    schema: ${schemaName},`);
+    lines.push("  };");
+    lines.push("");
+  }
 
   // Getters
   lines.push(
@@ -464,9 +767,12 @@ function generateAggregate(model: PrismaModel): string {
 /**
  * Generate Entity class (similar to Aggregate but simpler)
  */
-function generateEntity(model: PrismaModel): string {
+function generateEntity(
+  model: PrismaModel,
+  options: GenerateOptions
+): string {
   // Similar to aggregate but extends Entity instead
-  const content = generateAggregate(model);
+  const content = generateAggregate(model, options);
   return content
     .replace("extends Aggregate", "extends Entity")
     .replace(
@@ -666,7 +972,9 @@ function generateToDomainMapper(
 /**
  * Generate to-persistence mapper
  */
-function generateToPersistenceMapper(model: PrismaModel): string {
+function generateToPersistenceMapper(
+  model: PrismaModel
+): string {
   const lines: string[] = [];
   const scalarFields = getScalarFields(model).filter((f) => !f.isId);
   const relationFields = getRelationFields(model);

@@ -1,7 +1,10 @@
 import cac from "cac";
-import { version } from "../package.json" with { type: "json" };
+import { createRequire } from "node:module";
 import { generateFromPrisma } from "./commands/generate/index.js";
 import type { GenerateCommandOptions } from "./commands/generate/index.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 /**
  * Create and configure the CLI
@@ -11,40 +14,27 @@ export function createCli() {
 
   // Generate command
   cli
-    .command(
-      "generate",
-      "Generate domain entities from Prisma schema"
-    )
-    .option(
-      "-s, --schema <path>",
-      "Path to Prisma schema file",
-      { default: undefined }
-    )
-    .option(
-      "-o, --output <path>",
-      "Output directory for generated files",
-      { default: "src/domain" }
-    )
+    .command("generate", "Generate domain entities from Prisma schema")
+    .option("-s, --schema <path>", "Path to Prisma schema file", {
+      default: undefined,
+    })
+    .option("-o, --output <path>", "Output directory for generated files", {
+      default: "src/domain",
+    })
     .option(
       "-v, --validation <type>",
       "Validation library to use (zod, valibot, arktype)",
-      { default: "zod" }
+      { default: undefined }
     )
     .option(
       "-m, --models <names>",
       "Comma-separated list of models to generate",
       { default: undefined }
     )
-    .option(
-      "--dry-run",
-      "Show what would be generated without writing files",
-      { default: false }
-    )
-    .option(
-      "-f, --force",
-      "Skip confirmation prompts",
-      { default: false }
-    )
+    .option("--dry-run", "Show what would be generated without writing files", {
+      default: false,
+    })
+    .option("-f, --force", "Skip confirmation prompts", { default: false })
     .example("  $ rich-domain generate")
     .example("  $ rich-domain generate --schema prisma/schema.prisma")
     .example("  $ rich-domain generate --output src/domain --validation zod")
