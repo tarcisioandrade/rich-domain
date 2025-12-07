@@ -21,7 +21,8 @@
             "group": "Getting Started",
             "pages": [
               "introduction",
-              "quickstart"
+              "quickstart",
+              "CLI"
             ]
           },
           {
@@ -64,8 +65,9 @@
             "group": "Integrations",
             "pages": [
               "integrations/prisma",
-              "integrations/drizzle",
-              "integrations/react"
+              "integrations/zod",
+              "integrations/react",
+              "integrations/drizzle"
             ]
           }
         ]
