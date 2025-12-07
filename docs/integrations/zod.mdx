@@ -1,0 +1,502 @@
+---
+title: "Zod Criteria"
+description: "Type-safe Zod schemas for Criteria query parameters validation"
+---
+
+## Overview
+
+`@woltz/rich-domain-criteria-zod` provides Zod schema builders for validating Criteria query parameters. It's framework-agnostic and works with any HTTP framework that supports Zod validation (Fastify, Express, Hono, tRPC, etc.).
+
+```bash
+npm install @woltz/rich-domain-criteria-zod
+```
+
+### Peer Dependencies
+
+```bash
+npm install @woltz/rich-domain zod
+```
+
+<CardGroup cols={2}>
+
+<Card title="Type-Safe Filters" icon="filter">
+  Define filterable fields with their types and operators
+</Card>
+
+<Card title="Orderable Fields Whitelist" icon="arrow-up-down">
+  Control which fields can be used for ordering
+</Card>
+
+<Card title="Pagination Defaults" icon="book-open">
+  Configure default and max pagination values
+</Card>
+
+<Card title="Framework Agnostic" icon="plug">
+  Works with Fastify, Express, Hono, tRPC, and more
+</Card>
+
+</CardGroup>
+
+## Quick Start
+
+```typescript
+import {
+  defineFilters,
+  CriteriaQuerySchema,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
+import { z } from "zod";
+
+// 1. Define filterable fields
+const filters = defineFilters((f) => ({
+  name: f.string(),
+  email: f.email(),
+  age: f.number(),
+  isActive: f.boolean(),
+  createdAt: f.date(),
+  tags: f.array.string(),
+}));
+
+// 2. Create query schema with orderable fields whitelist
+const querySchema = CriteriaQuerySchema(filters, {
+  orderBy: ["name", "createdAt", "age"] as const,
+  pagination: {
+    defaultLimit: 20,
+    maxLimit: 100,
+  },
+});
+
+// 3. Define response schema
+const UserDto = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+
+const responseSchema = PaginatedResponseSchema(UserDto);
+```
+
+---
+
+## defineFilters
+
+Define which fields can be filtered and their types.
+
+```typescript
+import { defineFilters } from "@woltz/rich-domain-criteria-zod";
+
+const filters = defineFilters((f) => ({
+  // Basic types
+  name: f.string(),
+  email: f.email(),
+  age: f.number(),
+  isActive: f.boolean(),
+  createdAt: f.date(),
+
+  // Arrays
+  tags: f.array.string(),
+  scores: f.array.number(),
+  roles: f.array.enum(["admin", "user", "guest"]),
+
+  // Custom operators (restrict available operators)
+  status: f.string({ operators: ["equals", "in"] }),
+
+  // Nested paths (for relations)
+  ["author.name"]: f.string(),
+  ["profile.bio"]: f.string(),
+}));
+```
+
+### Field Types and Operators
+
+| Method | Default Operators |
+|--------|-------------------|
+| `f.string()` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
+| `f.email()` | Same as string (with email validation) |
+| `f.number()` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
+| `f.date()` | Same as number |
+| `f.boolean()` | equals, notEquals, isNull, isNotNull |
+| `f.array.*` | in, notIn, isNull, isNotNull |
+
+### Restricting Operators
+
+You can limit which operators are available for a field:
+
+```typescript
+const filters = defineFilters((f) => ({
+  // Only allow exact match and list
+  status: f.string({ operators: ["equals", "in"] }),
+  
+  // Only allow comparison operators
+  price: f.number({ operators: ["greaterThan", "lessThan", "between"] }),
+}));
+```
+
+---
+
+## CriteriaQuerySchema
+
+Creates a complete query schema with filters, ordering, pagination, and search.
+
+```typescript
+import { CriteriaQuerySchema } from "@woltz/rich-domain-criteria-zod";
+
+const querySchema = CriteriaQuerySchema(filters, {
+  // Whitelist of orderable fields (required for type safety)
+  orderBy: ["name", "createdAt", "email"] as const,
+
+  // Pagination defaults
+  pagination: {
+    defaultPage: 1,
+    defaultLimit: 20,
+    maxLimit: 100,
+  },
+});
+```
+
+### Why Whitelist for orderBy?
+
+Not all filterable fields should be orderable:
+
+- **Array fields** can't be ordered
+- **Nested relations** may not support ordering in your ORM
+- **Non-indexed fields** could cause performance issues
+
+```typescript
+const filters = defineFilters((f) => ({
+  name: f.string(),           // ✅ Can order
+  tags: f.array.string(),     // ❌ Can't order arrays
+  ["author.name"]: f.string() // ⚠️ May not support ordering
+}));
+
+const querySchema = CriteriaQuerySchema(filters, {
+  orderBy: ["name"] as const, // Only include orderable fields
+});
+```
+
+### Query Format
+
+The schema accepts query parameters in this format:
+
+```
+GET /users?filters[name:contains]=John&orderBy=createdAt:desc&pagination[page]=1&pagination[limit]=10&search=test
+```
+
+Or as JSON (for POST requests):
+
+```json
+{
+  "filters": {
+    "name:contains": "John",
+    "age:greaterThan": 18
+  },
+  "orderBy": ["createdAt:desc", "name:asc"],
+  "pagination": {
+    "page": 1,
+    "limit": 10
+  },
+  "search": "test"
+}
+```
+
+---
+
+## PaginatedResponseSchema
+
+Creates a response schema that matches `PaginatedResult.toJSON()` output.
+
+```typescript
+import { PaginatedResponseSchema } from "@woltz/rich-domain-criteria-zod";
+
+const UserDto = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  createdAt: z.string().datetime(),
+});
+
+const responseSchema = PaginatedResponseSchema(UserDto);
+
+// Resulting type:
+// {
+//   data: UserDto[],
+//   meta: {
+//     page: number,
+//     limit: number,
+//     total: number,
+//     totalPages: number
+//   }
+// }
+```
+
+---
+
+## Framework Integration
+
+### Fastify
+
+```typescript
+import Fastify from "fastify";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
+import { Criteria } from "@woltz/rich-domain";
+
+const app = Fastify().withTypeProvider<ZodTypeProvider>();
+
+app.route({
+  method: "GET",
+  url: "/users",
+  schema: {
+    querystring: querySchema,
+    response: { 200: responseSchema },
+  },
+  handler: async (request) => {
+    // request.query is fully typed!
+    const criteria = Criteria.fromQueryParams(request.query);
+    return userService.list(criteria);
+  },
+});
+```
+
+### Express
+
+```typescript
+import express from "express";
+import { Criteria } from "@woltz/rich-domain";
+
+const app = express();
+
+app.get("/users", (req, res) => {
+  const result = querySchema.safeParse(req.query);
+  
+  if (!result.success) {
+    return res.status(400).json({ 
+      errors: result.error.flatten() 
+    });
+  }
+  
+  const criteria = Criteria.fromQueryParams(result.data);
+  const users = await userService.list(criteria);
+  res.json(users);
+});
+```
+
+### Hono
+
+```typescript
+import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { Criteria } from "@woltz/rich-domain";
+
+const app = new Hono();
+
+app.get(
+  "/users",
+  zValidator("query", querySchema),
+  async (c) => {
+    const query = c.req.valid("query");
+    const criteria = Criteria.fromQueryParams(query);
+    const users = await userService.list(criteria);
+    return c.json(users);
+  }
+);
+```
+
+### tRPC
+
+```typescript
+import { router, publicProcedure } from "./trpc";
+import { Criteria } from "@woltz/rich-domain";
+
+export const userRouter = router({
+  list: publicProcedure
+    .input(querySchema)
+    .output(responseSchema)
+    .query(async ({ input }) => {
+      const criteria = Criteria.fromQueryParams(input);
+      return userService.list(criteria);
+    }),
+});
+```
+
+---
+
+## Complete Example
+
+```typescript
+import {
+  defineFilters,
+  CriteriaQuerySchema,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
+import { z } from "zod";
+import { Criteria } from "@woltz/rich-domain";
+
+// ===== Schema Definitions =====
+
+const userFilters = defineFilters((f) => ({
+  // Basic fields
+  name: f.string(),
+  email: f.email(),
+  status: f.string({ operators: ["equals", "in"] }),
+  
+  // Numeric
+  age: f.number(),
+  balance: f.number(),
+  
+  // Dates
+  createdAt: f.date(),
+  lastLoginAt: f.date(),
+  
+  // Boolean
+  isVerified: f.boolean(),
+  
+  // Arrays
+  roles: f.array.enum(["admin", "user", "moderator"]),
+  tags: f.array.string(),
+  
+  // Nested
+  ["profile.country"]: f.string(),
+  ["company.name"]: f.string(),
+}));
+
+const userQuerySchema = CriteriaQuerySchema(userFilters, {
+  orderBy: ["name", "email", "createdAt", "lastLoginAt", "balance"] as const,
+  pagination: {
+    defaultPage: 1,
+    defaultLimit: 20,
+    maxLimit: 100,
+  },
+});
+
+const UserDto = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  status: z.enum(["active", "inactive", "pending"]),
+  age: z.number().nullable(),
+  isVerified: z.boolean(),
+  roles: z.array(z.string()),
+  createdAt: z.string().datetime(),
+});
+
+const userResponseSchema = PaginatedResponseSchema(UserDto);
+
+// ===== Route Handler =====
+
+// Fastify example
+app.route({
+  method: "GET",
+  url: "/api/users",
+  schema: {
+    querystring: userQuerySchema,
+    response: { 200: userResponseSchema },
+  },
+  handler: async (request, reply) => {
+    const criteria = Criteria.fromQueryParams<User>(request.query);
+    
+    const result = await userRepository.find(criteria);
+    
+    return result.toJSON();
+  },
+});
+
+// ===== Usage Examples =====
+
+// GET /api/users?filters[name:contains]=john&filters[status:in]=active,pending&orderBy=createdAt:desc&pagination[limit]=10
+
+// GET /api/users?filters[age:between]=18,65&filters[isVerified:equals]=true
+
+// GET /api/users?filters[roles:in]=admin,moderator&filters[profile.country:equals]=US
+```
+
+---
+
+## Type Utilities
+
+### InferCriteriaQuery
+
+Extract TypeScript type from a query schema:
+
+```typescript
+import { InferCriteriaQuery } from "@woltz/rich-domain-criteria-zod";
+
+type UserQuery = InferCriteriaQuery<typeof userQuerySchema>;
+
+// {
+//   filters?: { ... },
+//   orderBy?: "name:asc" | "name:desc" | "createdAt:asc" | ...,
+//   pagination?: { page: number, limit: number },
+//   search?: string
+// }
+```
+
+### OrderEnum
+
+Create order enum type from field names:
+
+```typescript
+import { OrderEnum } from "@woltz/rich-domain-criteria-zod";
+
+type UserOrderEnum = OrderEnum<["name", "createdAt", "email"]>;
+// "name:asc" | "name:desc" | "createdAt:asc" | "createdAt:desc" | "email:asc" | "email:desc"
+```
+
+---
+
+## API Reference
+
+### defineFilters
+
+```typescript
+function defineFilters<T>(
+  shape: (queryBuilder: QueryBuilder) => Record<string, FieldDef>
+): ZodObject<...>
+```
+
+### CriteriaQuerySchema
+
+```typescript
+function CriteriaQuerySchema<F, O extends readonly string[]>(
+  filterSchema: F,
+  options?: {
+    orderBy?: O;
+    pagination?: {
+      defaultPage?: number;
+      defaultLimit?: number;
+      maxLimit?: number;
+    };
+  }
+): ZodType<CriteriaQueryResult<F, O>>
+```
+
+### PaginatedResponseSchema
+
+```typescript
+function PaginatedResponseSchema<T extends ZodObject<any>>(
+  itemSchema: T
+): ZodObject<{
+  data: ZodArray<T>;
+  meta: ZodObject<{
+    page: ZodNumber;
+    limit: ZodNumber;
+    total: ZodNumber;
+    totalPages: ZodNumber;
+  }>;
+}>
+```
+
+### QueryBuilder Methods
+
+| Method | Description | Operators |
+|--------|-------------|-----------|
+| `f.string()` | String field | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
+| `f.email()` | Email field (validated) | Same as string |
+| `f.number()` | Number field | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
+| `f.date()` | Date field | Same as number |
+| `f.boolean()` | Boolean field | equals, notEquals, isNull, isNotNull |
+| `f.array.string()` | String array | in, notIn, isNull, isNotNull |
+| `f.array.number()` | Number array | in, notIn, isNull, isNotNull |
+| `f.array.boolean()` | Boolean array | in, notIn, isNull, isNotNull |
+| `f.array.date()` | Date array | in, notIn, isNull, isNotNull |
+| `f.array.enum(values)` | Enum array | in, notIn, isNull, isNotNull |
+| `f.array.of(schema)` | Custom schema array | in, notIn, isNull, isNotNull |

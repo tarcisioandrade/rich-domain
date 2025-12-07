@@ -1,5 +1,5 @@
 ---
-title: "Prisma"
+title: "Prisma Adapter"
 description: "Plug-and-play integration between rich-domain and Prisma ORM"
 ---
 
@@ -140,11 +140,93 @@ app.get("/users/:id", async (req, res) => {
 
 ### API Reference
 
-| Method                | Description                             |
-| --------------------- | --------------------------------------- |
-| `transaction(work)`   | Execute work function in a transaction  |
-| `isInTransaction()`   | Check if currently in a transaction     |
+| Method | Description |
+|--------|-------------|
+| `transaction(work)` | Execute work function in a transaction |
+| `isInTransaction()` | Check if currently in a transaction |
 | `getCurrentContext()` | Get current transaction context or null |
+
+---
+
+## @Transactional Decorator
+
+Decorator that automatically wraps a method in a transaction.
+
+```typescript
+import { Transactional } from "@woltz/rich-domain-prisma";
+
+class CreateUserUseCase {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly uow: PrismaUnitOfWork
+  ) {}
+
+  @Transactional()
+  async execute(input: CreateUserInput): Promise<User> {
+    // Everything here runs in a transaction automatically
+    const user = new User({ ...input, posts: [] });
+    await this.userRepository.save(user);
+    return user;
+  }
+}
+```
+
+### With Explicit UoW Parameter
+
+You can pass the UoW instance directly to the decorator instead of relying on constructor injection:
+
+```typescript
+class CreateUserUseCase {
+  constructor(private readonly userRepository: UserRepository) {}
+
+  @Transactional({ uow: myUnitOfWork })
+  async execute(input: CreateUserInput): Promise<User> {
+    // Uses the explicitly provided UoW
+    const user = new User({ ...input, posts: [] });
+    await this.userRepository.save(user);
+    return user;
+  }
+}
+```
+
+### UoW Resolution Order
+
+The decorator looks for the UoW instance in this order:
+
+1. **Decorator parameter** - `@Transactional({ uow: myUow })`
+2. **Instance property** - `this.uow`
+3. **Private property** - `this._uow`
+4. **Any property** - Any property that is a `PrismaUnitOfWork` instance
+
+```typescript
+// Option 1: Via decorator parameter
+@Transactional({ uow: globalUow })
+async method1() { ... }
+
+// Option 2: Via constructor (recommended)
+class MyService {
+  constructor(private readonly uow: PrismaUnitOfWork) {}
+  
+  @Transactional()
+  async method2() { ... }
+}
+
+// Option 3: Via any instance property
+class MyService {
+  unitOfWork = new PrismaUnitOfWork(prisma);
+  
+  @Transactional()
+  async method3() { ... }
+}
+```
+
+### Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| Direct call | Creates new transaction |
+| Already in transaction | Reuses existing one |
+| Error thrown | Automatic rollback |
 
 ---
 
@@ -158,6 +240,9 @@ import { PrismaRepository } from "@woltz/rich-domain-prisma";
 abstract class PrismaRepository<TDomain, TPersistence> {
   // Required: Prisma model name
   protected abstract get model(): string;
+  
+  // Required: Search query generator
+  protected abstract generateSearchQuery(search: string): any[];
 
   // Optional: relations to include
   protected readonly includes: Record<string, any> = {};
@@ -179,15 +264,6 @@ abstract class PrismaRepository<TDomain, TPersistence> {
 
 ```typescript
 import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { Criteria } from "@woltz/rich-domain";
-
-interface UserRecord {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-  posts: PostRecord[];
-}
 
 class UserRepository extends PrismaRepository<User, UserRecord> {
   protected readonly model = "user";
@@ -204,6 +280,14 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
       uow
     );
   }
+  
+  // Required: implement search query generation
+  protected generateSearchQuery(search: string): any[] {
+    return [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   // Custom query methods
   async findByEmail(email: string): Promise<User | null> {
@@ -212,27 +296,6 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
       include: this.includes,
     });
     return data ? this.mapperToDomain.build(data) : null;
-  }
-
-  async findActiveUsers(): Promise<User[]> {
-    const criteria = Criteria.create<User>()
-      .whereEquals("status", "active")
-      .orderByDesc("createdAt");
-
-    const result = await this.find(criteria);
-    return result.data;
-  }
-
-  async findRecentlyJoined(days: number): Promise<User[]> {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-
-    const criteria = Criteria.create<User>()
-      .where("createdAt", "greaterThan", since)
-      .orderByDesc("createdAt");
-
-    const result = await this.find(criteria);
-    return result.data;
   }
 }
 ```
@@ -243,9 +306,7 @@ The repository automatically uses the transaction context when available:
 
 ```typescript
 class UserRepository extends PrismaRepository<User, UserRecord> {
-  // ...
-
-  // Use this.context instead of this.prisma for transaction support
+  // Use this.context for transaction-aware queries
   async customQuery(): Promise<User[]> {
     const data = await (this.context as any).user.findMany({
       where: { status: "active" },
@@ -254,6 +315,99 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
     return data.map((d) => this.mapperToDomain.build(d));
   }
 }
+```
+
+---
+
+## EntitySchemaRegistry
+
+Maps domain entities to database tables, handles field mapping, and configures relationships.
+
+<Info>
+  See the complete [Schema Registry documentation](/repository/schema-registry) for all features.
+</Info>
+
+### Basic Registration
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "user",
+  })
+  .register({
+    entity: "Post",
+    table: "post",
+    fields: {
+      content: "main_content", // domain → database mapping
+    },
+    parentFk: {
+      field: "authorId",
+      parentEntity: "User",
+    },
+  });
+```
+
+### Collection Configuration (N:N Relations)
+
+For N:N relationships, configure collections with `type: "reference"`:
+
+```typescript
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "user",
+    collections: {
+      posts: { type: "owned" },           // 1:N - User owns Posts
+      followers: { 
+        type: "reference",                 // N:N - User references other Users
+        entity: "User" 
+      },
+    },
+  })
+  .register({
+    entity: "Post",
+    table: "post",
+    parentFk: { field: "authorId", parentEntity: "User" },
+    collections: {
+      comments: { type: "owned" },         // 1:N - Post owns Comments
+      tags: { 
+        type: "reference",                 // N:N - Post references Tags
+        entity: "Tag",
+        // Optional: junction table config (Prisma handles this automatically)
+        junction: {
+          table: "post_tags",
+          sourceKey: "post_id",
+          targetKey: "tag_id",
+        },
+      },
+    },
+  })
+  .register({
+    entity: "Tag",
+    table: "tag",
+  });
+```
+
+### Collection Types
+
+| Type | Relationship | Batch Behavior |
+|------|--------------|----------------|
+| `owned` | 1:N | `createMany` / `deleteMany` |
+| `reference` | N:N | `connect` / `disconnect` |
+
+The `PrismaBatchExecutor` automatically uses the correct Prisma operations based on collection type:
+
+```typescript
+// For 'owned' collections (1:N):
+// - Creates use: prisma.post.createMany({ data: [...] })
+// - Deletes use: prisma.post.deleteMany({ where: { id: { in: [...] } } })
+
+// For 'reference' collections (N:N):
+// - Creates use: prisma.post.update({ data: { tags: { connect: [...] } } })
+// - Deletes use: prisma.post.update({ data: { tags: { disconnect: [...] } } })
 ```
 
 ---
@@ -284,56 +438,22 @@ abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
 }
 ```
 
-### EntitySchemaRegistry
-
-Maps domain entities to database tables and fields:
+### Complete Example
 
 ```typescript
-import { EntitySchemaRegistry } from "@woltz/rich-domain";
-
-const schemaRegistry = new EntitySchemaRegistry()
-  .register({
-    entity: "User",
-    table: "user",
-  })
-  .register({
-    entity: "Post",
-    table: "post",
-    fields: {
-      content: "main_content", // Domain field → DB column
-    },
-    parentFk: {
-      field: "authorId",
-      parentEntity: "User",
-    },
-  })
-  .register({
-    entity: "Comment",
-    table: "comment",
-    parentFk: {
-      field: "postId",
-      parentEntity: "Post",
-    },
-  });
-```
-
-### Complete Mapper Implementation
-
-```typescript
-import {
-  PrismaToPersistence,
-  PrismaBatchExecutor,
-  PrismaUnitOfWork,
-} from "@woltz/rich-domain-prisma";
-import { EntitySchemaRegistry, AggregateChanges } from "@woltz/rich-domain";
-
 class UserToPersistenceMapper extends PrismaToPersistence<User> {
   protected readonly registry = new EntitySchemaRegistry()
-    .register({ entity: "User", table: "user" })
+    .register({ 
+      entity: "User", 
+      table: "user",
+      collections: {
+        posts: { type: "owned" },
+        tags: { type: "reference", entity: "Tag" },
+      },
+    })
     .register({
       entity: "Post",
       table: "post",
-      fields: { content: "main_content" },
       parentFk: { field: "authorId", parentEntity: "User" },
     });
 
@@ -343,25 +463,20 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
         id: user.id.value,
         name: user.name,
         email: user.email,
-        status: user.status,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        // Nested create for posts
-        posts: user.posts.length
-          ? {
-              createMany: {
-                data: user.posts.map((post) => ({
-                  id: post.id.value,
-                  title: post.title,
-                  main_content: post.content,
-                  published: post.published,
-                  authorId: user.id.value,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                })),
-              },
-            }
-          : undefined,
+        posts: {
+          createMany: {
+            data: user.posts.map((p) => ({
+              id: p.id.value,
+              title: p.title,
+              content: p.content,
+              authorId: user.id.value,
+            })),
+          },
+        },
+        // N:N - connect existing tags
+        tags: {
+          connect: user.tags.map((t) => ({ id: t.id.value })),
+        },
       },
     });
   }
@@ -370,7 +485,6 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     user: User,
     changes: AggregateChanges
   ): Promise<void> {
-    // Use BatchExecutor for efficient change processing
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,
@@ -378,11 +492,8 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
         Post: (item) => ({
           id: item.data.id.value,
           title: item.data.title,
-          main_content: item.data.content,
-          published: item.data.published,
+          content: item.data.content,
           authorId: item.parentId,
-          createdAt: item.data.createdAt ?? new Date(),
-          updatedAt: new Date(),
         }),
       },
     });
@@ -396,30 +507,39 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
 
 ## PrismaBatchExecutor
 
-Executes batch operations from `AggregateChanges` efficiently.
+Executes batch operations from `AggregateChanges` with proper ordering and relationship handling.
 
 ```typescript
 import { PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
 
-const executor = new PrismaBatchExecutor(prismaContext, {
+const executor = new PrismaBatchExecutor(context, {
   registry: schemaRegistry,
-  rootId: aggregate.id.value,
+  rootId: user.id.value,
   dataMappers: {
-    Post: (item) => ({ ... }),
-    Comment: (item) => ({ ... }),
+    Post: (item) => ({
+      id: item.data.id.value,
+      title: item.data.title,
+      authorId: item.parentId,
+    }),
   },
 });
 
 await executor.execute(changes);
 ```
 
-### Operation Order
+### Execution Order
 
-The executor processes operations in the correct order for foreign key constraints:
+The executor respects referential integrity:
 
-1. **Deletes**: Leaf → Root (depth DESC) - delete children before parents
-2. **Creates**: Root → Leaf (depth ASC) - create parents before children
-3. **Updates**: Any order - no FK dependencies
+1. **Deletes** - Leaf → Root (depth DESC)
+   - `owned`: Uses `deleteMany`
+   - `reference`: Uses `disconnect`
+
+2. **Creates** - Root → Leaf (depth ASC)
+   - `owned`: Uses `createMany`
+   - `reference`: Uses `connect`
+
+3. **Updates** - Any order
 
 ### Configuration
 
@@ -428,8 +548,8 @@ interface BatchExecutorConfig {
   // Schema registry for table/field mapping
   registry: EntitySchemaRegistry;
 
-  // Root entity ID (used as parentId for children)
-  rootId?: string;
+  // Root aggregate ID
+  rootId: string;
 
   // Custom data mappers per entity
   dataMappers?: Record<string, EntityDataMapper>;
@@ -439,17 +559,17 @@ type EntityDataMapper<T = any> = (item: {
   data: T;
   parentId?: string;
   parentEntity?: string;
+  relationField?: string;
 }) => Record<string, any>;
 ```
 
 ### Convenience Function
 
-For one-off usage:
-
 ```typescript
 import { executeBatch } from "@woltz/rich-domain-prisma";
 
-await executeBatch(prismaContext, changes, {
+// Shorthand for simple cases
+await executeBatch(context, changes, {
   registry: schemaRegistry,
   rootId: user.id.value,
 });
@@ -457,88 +577,39 @@ await executeBatch(prismaContext, changes, {
 
 ---
 
-## @Transactional Decorator
-
-Automatically wraps methods in a transaction.
-
-```typescript
-import { Transactional } from "@woltz/rich-domain-prisma";
-
-class CreateUserUseCase {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly uow: PrismaUnitOfWork // Required!
-  ) {}
-
-  @Transactional()
-  async execute(input: CreateUserInput): Promise<User> {
-    // Everything here runs in a transaction
-    const existing = await this.userRepository.findByEmail(input.email);
-    if (existing) {
-      throw new EntityAlreadyExistsError("User", existing.id.value);
-    }
-
-    const user = new User({
-      name: input.name,
-      email: input.email,
-      posts: [],
-    });
-
-    await this.userRepository.save(user);
-    return user;
-  }
-}
-```
-
-### Behavior
-
-| Scenario               | Behavior                |
-| ---------------------- | ----------------------- |
-| Direct call            | Creates new transaction |
-| Already in transaction | Reuses existing one     |
-| Error thrown           | Automatic rollback      |
-
-<Warning>
-  The class must have a `uow` property of type `PrismaUnitOfWork` for the
-  decorator to work.
-</Warning>
-
----
-
 ## Complete Example
-
-Putting it all together:
 
 ### Domain Model
 
 ```typescript
-import { Aggregate, Entity, Id } from "@woltz/rich-domain";
 import { z } from "zod";
+import { Aggregate, Entity, Id, EntityValidation } from "@woltz/rich-domain";
 
 // Post Entity
 const postSchema = z.object({
   id: z.custom<Id>((v) => v instanceof Id),
   title: z.string().min(1),
   content: z.string(),
-  published: z.boolean(),
+  published: z.boolean().default(false),
 });
 
 class Post extends Entity<z.infer<typeof postSchema>> {
-  protected static validation = { schema: postSchema };
+  protected static validation: EntityValidation<z.infer<typeof postSchema>> = {
+    schema: postSchema,
+  };
 
-  get title() {
-    return this.props.title;
-  }
-  get content() {
-    return this.props.content;
-  }
-  get published() {
-    return this.props.published;
-  }
+  get title() { return this.props.title; }
+  get content() { return this.props.content; }
+  get published() { return this.props.published; }
 
   publish() {
     this.props.published = true;
   }
+}
+
+// Tag Entity (for N:N reference)
+class Tag extends Entity<{ id: Id; name: string }> {
+  get name() { return this.props.name; }
 }
 
 // User Aggregate
@@ -546,29 +617,18 @@ const userSchema = z.object({
   id: z.custom<Id>((v) => v instanceof Id),
   name: z.string().min(2),
   email: z.string().email(),
-  status: z.enum(["active", "inactive"]),
   posts: z.array(z.custom<Post>((v) => v instanceof Post)),
+  tags: z.array(z.custom<Tag>((v) => v instanceof Tag)),
 });
 
 class User extends Aggregate<z.infer<typeof userSchema>> {
   protected static validation = { schema: userSchema };
 
-  get name() {
-    return this.props.name;
-  }
-  set name(value: string) {
-    this.props.name = value;
-  }
-
-  get email() {
-    return this.props.email;
-  }
-  get status() {
-    return this.props.status;
-  }
-  get posts() {
-    return this.props.posts;
-  }
+  get name() { return this.props.name; }
+  set name(value: string) { this.props.name = value; }
+  get email() { return this.props.email; }
+  get posts() { return this.props.posts; }
+  get tags() { return this.props.tags; }
 
   addPost(post: Post) {
     this.props.posts.push(post);
@@ -576,34 +636,52 @@ class User extends Aggregate<z.infer<typeof userSchema>> {
 
   removePost(postId: Id) {
     const index = this.props.posts.findIndex((p) => p.id.equals(postId));
-    if (index !== -1) {
-      this.props.posts.splice(index, 1);
+    if (index !== -1) this.props.posts.splice(index, 1);
+  }
+
+  addTag(tag: Tag) {
+    if (!this.props.tags.some((t) => t.id.equals(tag.id))) {
+      this.props.tags.push(tag);
     }
   }
 
-  deactivate() {
-    this.props.status = "inactive";
+  removeTag(tagId: Id) {
+    const index = this.props.tags.findIndex((t) => t.id.equals(tagId));
+    if (index !== -1) this.props.tags.splice(index, 1);
   }
 }
+```
+
+### Schema Registry
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+const schemaRegistry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "user",
+    collections: {
+      posts: { type: "owned" },
+      tags: { type: "reference", entity: "Tag" },
+    },
+  })
+  .register({
+    entity: "Post",
+    table: "post",
+    parentFk: { field: "authorId", parentEntity: "User" },
+  })
+  .register({
+    entity: "Tag",
+    table: "tag",
+  });
 ```
 
 ### Mappers
 
 ```typescript
-import { Mapper, EntitySchemaRegistry } from "@woltz/rich-domain";
-import {
-  PrismaToPersistence,
-  PrismaBatchExecutor,
-} from "@woltz/rich-domain-prisma";
-
-// Schema Registry
-const schemaRegistry = new EntitySchemaRegistry()
-  .register({ entity: "User", table: "user" })
-  .register({
-    entity: "Post",
-    table: "post",
-    parentFk: { field: "authorId", parentEntity: "User" },
-  });
+import { Mapper } from "@woltz/rich-domain";
+import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
 
 // Domain Mapper
 class UserToDomainMapper extends Mapper<UserRecord, User> {
@@ -612,15 +690,16 @@ class UserToDomainMapper extends Mapper<UserRecord, User> {
       id: Id.from(record.id),
       name: record.name,
       email: record.email,
-      status: record.status as "active" | "inactive",
       posts: record.posts.map(
-        (p) =>
-          new Post({
-            id: Id.from(p.id),
-            title: p.title,
-            content: p.content,
-            published: p.published,
-          })
+        (p) => new Post({
+          id: Id.from(p.id),
+          title: p.title,
+          content: p.content,
+          published: p.published,
+        })
+      ),
+      tags: record.tags.map(
+        (t) => new Tag({ id: Id.from(t.id), name: t.name })
       ),
     });
   }
@@ -636,7 +715,6 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
         id: user.id.value,
         name: user.name,
         email: user.email,
-        status: user.status,
         posts: {
           createMany: {
             data: user.posts.map((p) => ({
@@ -648,14 +726,14 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
             })),
           },
         },
+        tags: {
+          connect: user.tags.map((t) => ({ id: t.id.value })),
+        },
       },
     });
   }
 
-  protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
-  ): Promise<void> {
+  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,
@@ -682,7 +760,7 @@ import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 
 class UserRepository extends PrismaRepository<User, UserRecord> {
   protected readonly model = "user";
-  protected readonly includes = { posts: true };
+  protected readonly includes = { posts: true, tags: true };
 
   constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
     super(
@@ -691,6 +769,13 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
       prisma,
       uow
     );
+  }
+
+  protected generateSearchQuery(search: string): any[] {
+    return [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -707,10 +792,7 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
 
 ```typescript
 import { Transactional } from "@woltz/rich-domain-prisma";
-import {
-  EntityNotFoundError,
-  EntityAlreadyExistsError,
-} from "@woltz/rich-domain";
+import { EntityNotFoundError } from "@woltz/rich-domain";
 
 class UserService {
   constructor(
@@ -719,104 +801,59 @@ class UserService {
   ) {}
 
   @Transactional()
-  async createUser(input: { name: string; email: string }): Promise<User> {
-    const existing = await this.userRepository.findByEmail(input.email);
-    if (existing) {
-      throw new EntityAlreadyExistsError("User", existing.id.value);
-    }
-
-    const user = new User({
-      name: input.name,
-      email: input.email,
-      status: "active",
-      posts: [],
-    });
-
-    await this.userRepository.save(user);
-    return user;
-  }
-
-  @Transactional()
-  async addPost(
-    userId: string,
-    postData: { title: string; content: string }
-  ): Promise<User> {
+  async addTagToUser(userId: string, tag: Tag): Promise<User> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new EntityNotFoundError("User", userId);
     }
 
-    const post = new Post({
-      title: postData.title,
-      content: postData.content,
-      published: false,
-    });
-
-    user.addPost(post);
-    await this.userRepository.save(user); // Change tracking detects the new post
+    user.addTag(tag); // N:N reference
+    await this.userRepository.save(user); // Uses connect
 
     return user;
   }
 
   @Transactional()
-  async publishAllPosts(userId: string): Promise<User> {
+  async removeTagFromUser(userId: string, tagId: string): Promise<User> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new EntityNotFoundError("User", userId);
     }
 
-    for (const post of user.posts) {
-      post.publish();
-    }
-
-    await this.userRepository.save(user); // Change tracking detects the updates
+    user.removeTag(Id.from(tagId)); // N:N reference
+    await this.userRepository.save(user); // Uses disconnect
 
     return user;
   }
 }
 ```
 
-### API Route (Fastify)
+---
+
+## Error Handling
+
+The adapter provides specific error types:
 
 ```typescript
-import Fastify from "fastify";
-import { PrismaClient } from "@prisma/client";
-import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { Criteria } from "@woltz/rich-domain";
+import {
+  PrismaRepositoryError,
+  ModelNotFoundError,
+  TableNotFoundError,
+  NoRecordsAffectedError,
+  BatchOperationError,
+} from "@woltz/rich-domain-prisma";
 
-const prisma = new PrismaClient();
-const uow = new PrismaUnitOfWork(prisma);
-const userRepository = new UserRepository(prisma, uow);
-const userService = new UserService(userRepository, uow);
-
-const app = Fastify();
-
-// Create user
-app.post("/users", async (request, reply) => {
-  const user = await userService.createUser(request.body as any);
-  return reply.status(201).send(user.toJSON());
-});
-
-// List users with Criteria
-app.get("/users", async (request, reply) => {
-  const criteria = Criteria.fromQueryParams<User>(
-    request.query as Record<string, string>
-  );
-
-  const result = await userRepository.find(criteria);
-  return result.toJSON();
-});
-
-// Add post to user
-app.post("/users/:id/posts", async (request, reply) => {
-  const user = await userService.addPost(
-    request.params.id,
-    request.body as any
-  );
-  return user.toJSON();
-});
-
-app.listen({ port: 3000 });
+try {
+  await userRepository.save(user);
+} catch (error) {
+  if (error instanceof ModelNotFoundError) {
+    // Model not in Prisma schema
+  } else if (error instanceof TableNotFoundError) {
+    // Entity not in registry
+  } else if (error instanceof BatchOperationError) {
+    // Batch operation failed
+  }
+}
 ```
 
 ---
@@ -828,11 +865,7 @@ app.listen({ port: 3000 });
 ```typescript
 // Unit of Work
 export { PrismaUnitOfWork, Transactional, getCurrentPrismaContext };
-export type {
-  PrismaTransactionContext,
-  PrismaClientLike,
-  PrismaTransactionClient,
-};
+export type { PrismaTransactionContext, PrismaClientLike, PrismaTransactionClient };
 
 // Repository
 export { PrismaRepository };
@@ -844,26 +877,35 @@ export { PrismaToPersistence };
 // Batch Executor
 export { PrismaBatchExecutor, executeBatch };
 export type { EntityDataMapper, BatchExecutorConfig };
+
+// Errors
+export {
+  PrismaRepositoryError,
+  ModelNotFoundError,
+  TableNotFoundError,
+  NoRecordsAffectedError,
+  BatchOperationError,
+};
 ```
 
 ### PrismaUnitOfWork Methods
 
-| Method                | Returns                            | Description                 |
-| --------------------- | ---------------------------------- | --------------------------- |
-| `transaction(work)`   | `Promise<T>`                       | Execute work in transaction |
-| `isInTransaction()`   | `boolean`                          | Check if in transaction     |
-| `getCurrentContext()` | `PrismaTransactionContext \| null` | Get current context         |
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `transaction(work)` | `Promise<T>` | Execute work in transaction |
+| `isInTransaction()` | `boolean` | Check if in transaction |
+| `getCurrentContext()` | `PrismaTransactionContext \| null` | Get current context |
 
 ### PrismaRepository Methods
 
-| Method              | Returns                       | Description            |
-| ------------------- | ----------------------------- | ---------------------- |
-| `find(criteria)`    | `Promise<PaginatedResult<T>>` | Find with criteria     |
-| `findById(id)`      | `Promise<T \| null>`          | Find by ID             |
-| `findOne(criteria)` | `Promise<T \| null>`          | Find first match       |
-| `count(criteria?)`  | `Promise<number>`             | Count entities         |
-| `exists(id)`        | `Promise<boolean>`            | Check if exists        |
-| `save(entity)`      | `Promise<void>`               | Create or update       |
-| `delete(entity)`    | `Promise<void>`               | Delete entity          |
-| `deleteById(id)`    | `Promise<void>`               | Delete by ID           |
-| `transaction(work)` | `Promise<T>`                  | Execute in transaction |
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `find(criteria)` | `Promise<PaginatedResult<T>>` | Find with criteria |
+| `findById(id)` | `Promise<T \| null>` | Find by ID |
+| `findOne(criteria)` | `Promise<T \| null>` | Find first match |
+| `count(criteria?)` | `Promise<number>` | Count entities |
+| `exists(id)` | `Promise<boolean>` | Check if exists |
+| `save(entity)` | `Promise<void>` | Create or update |
+| `delete(entity)` | `Promise<void>` | Delete entity |
+| `deleteById(id)` | `Promise<void>` | Delete by ID |
+| `transaction(work)` | `Promise<T>` | Execute in transaction |
