@@ -3,7 +3,6 @@ import {
   getScalarFields,
   getRelationFields,
   isTimestampField,
-  isCreateField,
   isForeignKey,
   prismaTypeToZod,
   prismaTypeToValibot,
@@ -610,71 +609,6 @@ function generateAggregate(
     lines.push("");
   }
 
-  // Factory method
-  lines.push(
-    "  // ─────────────────────────────────────────────────────────────"
-  );
-  lines.push("  // Factory");
-  lines.push(
-    "  // ─────────────────────────────────────────────────────────────"
-  );
-  lines.push("");
-
-  const createFields = scalarFields.filter(
-    (f) => isCreateField(f) && !isForeignKey(f, model)
-  );
-  const requiredCreateFields = createFields.filter(
-    (f) => f.isRequired && !f.hasDefaultValue
-  );
-  const optionalCreateFields = createFields.filter(
-    (f) => !f.isRequired || f.hasDefaultValue
-  );
-
-  lines.push("  static create(");
-  lines.push(
-    `    props: Pick<${model.name}Props, ${
-      requiredCreateFields.map((f) => `"${f.name}"`).join(" | ") || "never"
-    }>`
-  );
-  if (optionalCreateFields.length > 0) {
-    lines.push(
-      `      & Partial<Pick<${model.name}Props, ${optionalCreateFields
-        .map((f) => `"${f.name}"`)
-        .join(" | ")}>>`
-    );
-  }
-  lines.push(`  ): ${model.name} {`);
-  lines.push(`    return new ${model.name}({`);
-  lines.push("      ...props,");
-  lines.push("      id: new Id(),");
-
-  // Set defaults for optional fields
-  for (const field of optionalCreateFields) {
-    const defaultValue = getDefaultValue(field);
-    lines.push(`      ${field.name}: props.${field.name} ?? ${defaultValue},`);
-  }
-
-  // Set timestamps
-  if (scalarFields.some((f) => f.name === "createdAt")) {
-    lines.push("      createdAt: new Date(),");
-  }
-  if (scalarFields.some((f) => f.name === "updatedAt")) {
-    lines.push("      updatedAt: new Date(),");
-  }
-
-  // Set empty arrays/nulls for relations
-  for (const field of relationFields) {
-    if (field.isList) {
-      lines.push(`      ${field.name}: [],`);
-    } else {
-      lines.push(`      ${field.name}: null,`);
-    }
-  }
-
-  lines.push("    });");
-  lines.push("  }");
-  lines.push("");
-
   // Domain methods
   lines.push(
     "  // ─────────────────────────────────────────────────────────────"
@@ -767,10 +701,7 @@ function generateAggregate(
 /**
  * Generate Entity class (similar to Aggregate but simpler)
  */
-function generateEntity(
-  model: PrismaModel,
-  options: GenerateOptions
-): string {
+function generateEntity(model: PrismaModel, options: GenerateOptions): string {
   // Similar to aggregate but extends Entity instead
   const content = generateAggregate(model, options);
   return content
@@ -972,9 +903,7 @@ function generateToDomainMapper(
 /**
  * Generate to-persistence mapper
  */
-function generateToPersistenceMapper(
-  model: PrismaModel
-): string {
+function generateToPersistenceMapper(model: PrismaModel): string {
   const lines: string[] = [];
   const scalarFields = getScalarFields(model).filter((f) => !f.isId);
   const relationFields = getRelationFields(model);
@@ -1119,22 +1048,4 @@ function getTypeScriptType(field: PrismaField): string {
   }
 
   return baseType;
-}
-
-/**
- * Get default value for a field
- */
-function getDefaultValue(field: PrismaField): string {
-  if (field.hasDefaultValue && field.default !== undefined) {
-    if (typeof field.default === "string") return `"${field.default}"`;
-    if (typeof field.default === "number") return String(field.default);
-    if (typeof field.default === "boolean") return String(field.default);
-  }
-
-  if (!field.isRequired) return "null";
-  if (field.type === "String") return '""';
-  if (field.type === "Int" || field.type === "Float") return "0";
-  if (field.type === "Boolean") return "false";
-
-  return "null";
 }

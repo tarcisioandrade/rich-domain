@@ -161,17 +161,6 @@ export class User extends Aggregate<UserProps> {
     return this.props.posts;
   }
 
-  static create(props: Pick<UserProps, "email" | "name"> & Partial<Pick<UserProps, "role">>): User {
-    return new User({
-      ...props,
-      id: new Id(),
-      role: props.role ?? Role.USER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      posts: [],
-    });
-  }
-
   updateEmail(email: string): void {
     this.props.email = email;
     this.props.updatedAt = new Date();
@@ -213,9 +202,10 @@ If circular dependencies are detected, the CLI will:
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 20
 - Prisma schema file
-- `@woltz/rich-domain` and `@woltz/rich-domain-prisma` installed
+- `@woltz/rich-domain`
+- `@woltz/rich-domain-prisma` [Optional]
 
 ## License
 
