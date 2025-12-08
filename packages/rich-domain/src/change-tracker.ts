@@ -1,9 +1,9 @@
-import { Id } from "./id";
-import { Entity } from "./entity";
-import { ValueObject } from "./value-object";
-import { ArrayState, HistoryEntry, TrackedItem } from "./types";
-import { EntityChangeState } from "./types/change-tracker";
-import { AggregateChanges } from "./aggregate-changes";
+import { Id } from "./id.js";
+import { Entity } from "./entity.js";
+import { ValueObject } from "./value-object.js";
+import { ArrayState, HistoryEntry, TrackedItem } from "./types/index.js";
+import { EntityChangeState } from "./types/change-tracker.js";
+import { AggregateChanges } from "./aggregate-changes.js";
 
 /**
  * Callback for validation on property change.

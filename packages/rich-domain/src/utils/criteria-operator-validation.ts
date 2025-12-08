@@ -6,7 +6,7 @@ import {
   FilterOperator,
   NumberOperators,
   StringOperators,
-} from "../types";
+} from "../types/index.js";
 
 const FORCE_STRING_OPERATORS = new Set(["contains", "startsWith", "endsWith"]);
 

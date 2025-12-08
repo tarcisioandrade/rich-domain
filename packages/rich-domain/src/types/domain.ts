@@ -1,5 +1,5 @@
-import { Id } from "../id";
-import { StandardSchema } from "./standard-schema";
+import { Id } from "../id.js";
+import { StandardSchema } from "./standard-schema.js";
 
 export interface BaseProps {
   id: Id;

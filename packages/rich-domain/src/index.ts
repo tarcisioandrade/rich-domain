@@ -1,16 +1,16 @@
-export * from "./validation-error";
-export * from "./domain-event";
-export * from "./domain-event-bus";
-export * from "./exceptions";
-export * from "./criteria";
-export * from "./paginated-result";
-export * from "./repository";
-export { Id } from "./id";
-export { Entity, Aggregate } from "./entity";
-export { ValueObject } from "./value-object";
-export { Mapper } from "./mapper";
-export { EntitySchemaRegistry } from "./entity-schema-registry";
-export { AggregateChanges } from "./aggregate-changes";
+export * from "./validation-error.js";
+export * from "./domain-event.js";
+export * from "./domain-event-bus.js";
+export * from "./exceptions.js";
+export * from "./criteria.js";
+export * from "./paginated-result.js";
+export * from "./repository/index.js";
+export { Id } from "./id.js";
+export { Entity, Aggregate } from "./entity.js";
+export { ValueObject } from "./value-object.js";
+export { Mapper } from "./mapper.js";
+export { EntitySchemaRegistry } from "./entity-schema-registry.js";
+export { AggregateChanges } from "./aggregate-changes.js";
 export type {
   DomainEventHandler,
   EntityHooks,
@@ -41,7 +41,7 @@ export type {
   ArrayOperators,
   CriteriaOptions,
   DeepJsonResult,
-} from "./types";
+} from "./types/index.js";
 export {
   ARRAY_OPERATORS,
   BOOLEAN_OPERATORS,
@@ -49,5 +49,5 @@ export {
   NUMBER_OPERATORS,
   STRING_OPERATORS,
   FILTER_OPERATORS,
-} from "./constants";
-export { isValidOperatorForType } from "./utils/criteria-operator-validation";
+} from "./constants.js";
+export { isValidOperatorForType } from "./utils/criteria-operator-validation.js";

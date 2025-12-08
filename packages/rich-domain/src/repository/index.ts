@@ -1,3 +1,3 @@
-export { Mapper } from "../mapper";
-export * from "./base-repository";
-export { UnitOfWork, BaseTransactionContext } from "./unit-of-work";
+export { Mapper } from "../mapper.js";
+export * from "./base-repository.js";
+export { UnitOfWork, BaseTransactionContext } from "./unit-of-work.js";

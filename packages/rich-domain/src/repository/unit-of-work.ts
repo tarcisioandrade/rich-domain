@@ -1,4 +1,4 @@
-import type { IUnitOfWork, TransactionContext } from "../types";
+import type { IUnitOfWork, TransactionContext } from "../types/index.js";
 
 /**
  * Abstract Unit of Work

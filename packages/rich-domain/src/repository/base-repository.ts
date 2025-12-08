@@ -1,7 +1,7 @@
-import type { Aggregate } from "../entity";
-import type { Criteria } from "../criteria";
-import { PaginatedResult } from "../paginated-result";
-import { Mapper } from "../mapper";
+import type { Aggregate } from "../entity.js";
+import type { Criteria } from "../criteria.js";
+import { PaginatedResult } from "../paginated-result.js";
+import { Mapper } from "../mapper.js";
 
 export abstract class ReadRepository<Agg extends Aggregate<any>> {
   abstract find(criteria?: Criteria<Agg>): Promise<PaginatedResult<Agg>>;

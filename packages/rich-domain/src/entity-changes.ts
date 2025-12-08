@@ -3,7 +3,7 @@ import {
   CreateOperation,
   UpdateOperation,
   DeleteOperation,
-} from "./types/change-tracker";
+} from "./types/change-tracker.js";
 
 /**
  * Represents the changes filtered for a specific entity.

@@ -1,5 +1,5 @@
 import { IDomainEvent } from ".";
-import { Id } from "./id";
+import { Id } from "./id.js";
 
 /**
  * Base class for domain events

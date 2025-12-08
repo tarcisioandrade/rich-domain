@@ -727,3 +727,24 @@ MIT
 - [Documentação Completa](https://github.com/yourusername/rich-domain)
 - [Exemplos](./src/repository/examples)
 - [Issues](https://github.com/yourusername/rich-domain/issues)
+
+## Package Formats
+
+This library is published as a **dual package** supporting both CommonJS and ES Modules:
+
+### CommonJS (Node.js)
+```javascript
+const { Id, Entity, Aggregate } = require('@woltz/rich-domain');
+```
+
+### ES Modules (Modern bundlers & Node.js with ESM)
+```javascript
+import { Id, Entity, Aggregate } from '@woltz/rich-domain';
+```
+
+### Benefits
+- ✅ **Universal compatibility**: Works in any Node.js environment
+- ✅ **Tree-shaking**: Modern bundlers (Vite, Rollup, Webpack 5+) can eliminate unused code
+- ✅ **TypeScript support**: Full type definitions included
+- ✅ **Zero configuration**: Automatically uses the correct format for your environment
+

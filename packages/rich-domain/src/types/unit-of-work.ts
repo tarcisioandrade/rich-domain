@@ -1,5 +1,5 @@
-import { Aggregate } from "../entity";
-import { Repository } from "../repository/base-repository";
+import { Aggregate } from "../entity.js";
+import { Repository } from "../repository/base-repository.js";
 
 /**
  * Transaction context for Unit of Work

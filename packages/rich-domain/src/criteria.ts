@@ -1,4 +1,4 @@
-import { InvalidCriteriaError } from "./exceptions";
+import { InvalidCriteriaError } from "./exceptions.js";
 import {
   CriteriaAdapter,
   CriteriaOptions,
@@ -14,14 +14,14 @@ import {
   Search,
   TypedFilter,
   TypedOrder,
-} from "./types";
+} from "./types/index.js";
 import {
   isValidOperatorForType,
   getValidOperatorsForType,
   isOperator,
   sanitizeFieldValue,
-} from "./utils/criteria-operator-validation";
-import { parseQueryValue } from "./utils/helpers";
+} from "./utils/criteria-operator-validation.js";
+import { parseQueryValue } from "./utils/helpers.js";
 
 export class Criteria<T = any> {
   private _filters: Filter<FieldPath<T>, any>[] = [];

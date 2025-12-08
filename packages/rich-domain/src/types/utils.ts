@@ -1,4 +1,4 @@
-import { Id } from "../id";
+import { Id } from "../id.js";
 
 export type DeepJsonResult<T> = {
   [K in keyof T]: T[K] extends Id

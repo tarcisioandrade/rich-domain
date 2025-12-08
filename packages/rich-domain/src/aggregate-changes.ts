@@ -6,8 +6,8 @@ import {
   BatchOperations,
   BatchCreateItem,
   BatchUpdateItem,
-} from "./types/change-tracker";
-import { EntityChanges } from "./entity-changes";
+} from "./types/change-tracker.js";
+import { EntityChanges } from "./entity-changes.js";
 
 /**
  * Manages and organizes the changes of an Aggregate.

@@ -1,6 +1,6 @@
-import { Id } from "./id";
-import type { Criteria } from "./criteria";
-import type { Pagination, PaginationMeta, Filter } from "./types";
+import { Id } from "./id.js";
+import type { Criteria } from "./criteria.js";
+import type { Pagination, PaginationMeta, Filter } from "./types/index.js";
 
 /**
  * Infers the JSON result type from T

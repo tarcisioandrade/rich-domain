@@ -1,5 +1,5 @@
-import { Entity } from "../entity";
-import { ValueObject } from "../value-object";
+import { Entity } from "../entity.js";
+import { ValueObject } from "../value-object.js";
 
 /**
  * Base operation with common information.

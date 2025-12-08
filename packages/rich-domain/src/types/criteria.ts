@@ -1,4 +1,4 @@
-import { Primitive } from "./utils";
+import { Primitive } from "./utils.js";
 
 export const FILTER_OPERATORS = [
   "equals",

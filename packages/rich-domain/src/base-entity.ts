@@ -1,5 +1,5 @@
-import { Id } from "./id";
-import { ValidationError } from "./validation-error";
+import { Id } from "./id.js";
+import { ValidationError } from "./validation-error.js";
 import { IDomainEvent } from ".";
 import {
   BaseProps,
@@ -9,12 +9,12 @@ import {
   ValidationConfig,
   StandardSchema,
   EntityValidation,
-} from "./types";
-import { DomainEventBus } from "./domain-event-bus";
-import { DEFAULT_VALIDATION_CONFIG } from "./constants";
-import { DomainError } from "./exceptions";
-import { ChangeTracker } from "./change-tracker";
-import { AggregateChanges } from "./aggregate-changes";
+} from "./types/index.js";
+import { DomainEventBus } from "./domain-event-bus.js";
+import { DEFAULT_VALIDATION_CONFIG } from "./constants.js";
+import { DomainError } from "./exceptions.js";
+import { ChangeTracker } from "./change-tracker.js";
+import { AggregateChanges } from "./aggregate-changes.js";
 
 function getStaticProperty<T>(
   instance: any,

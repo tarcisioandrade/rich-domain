@@ -2,7 +2,7 @@
 // Id Class - Smart Identity Management
 // ============================================================================
 
-import UUID from "./crypto";
+import UUID from "./crypto.js";
 
 export class Id {
   private readonly _value: string;
