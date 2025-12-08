@@ -1,15 +1,16 @@
 {
   "name": "@woltz/rich-domain",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Rich Domain Library with Standard Schema validation support",
   "homepage": "https://woltz.mintlify.app",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
     }
   },
   "author": "Tarcisio Andrade",
@@ -26,13 +27,17 @@
     "directory": "packages/rich-domain"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "check": "tsc --noEmit",
     "coverage": "jest --coverage",
     "lint": "eslint src",
-    "clean": "rm -rf dist coverage node_modules tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
