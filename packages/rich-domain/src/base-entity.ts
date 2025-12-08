@@ -142,7 +142,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   private setupUpdateValidation(): void {
     const self = this;
 
-    this.tracker.setOnChangeValidator((path, oldValue, newValue) => {
+    this.tracker.setOnChangeValidator((path, newValue) => {
       const originalValue = self._props[path as keyof T];
       (self._props as any)[path] = newValue;
 

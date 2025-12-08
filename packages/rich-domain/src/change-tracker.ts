@@ -9,11 +9,7 @@ import { AggregateChanges } from "./aggregate-changes";
  * Callback for validation on property change.
  * Return false to reject the change, or throw an error.
  */
-export type OnChangeValidator = (
-  path: string,
-  oldValue: any,
-  newValue: any
-) => boolean | void;
+export type OnChangeValidator = (path: string, newValue: any) => boolean | void;
 
 /**
  * Tracks changes in Aggregates using Proxy.
@@ -39,7 +35,9 @@ export class ChangeTracker {
     private rootEntityName: string,
     private path: string = "",
     private depth: number = 0,
+    // @ts-expect-error - This is a private property
     private parentId?: string,
+    // @ts-expect-error - This is a private property
     private parentEntity?: string,
     private rootTracker?: ChangeTracker
   ) {
@@ -195,11 +193,7 @@ export class ChangeTracker {
         const rootTracker = this.getRootTracker();
         if (rootTracker.onChangeValidator) {
           try {
-            const result = rootTracker.onChangeValidator(
-              currentPath,
-              oldValue,
-              newValue
-            );
+            const result = rootTracker.onChangeValidator(currentPath, newValue);
             if (result === false) {
               return true;
             }
@@ -272,7 +266,7 @@ export class ChangeTracker {
 
               if (rootTracker.onChangeValidator) {
                 try {
-                  const result = rootTracker.onChangeValidator(path, oldArray, [
+                  const result = rootTracker.onChangeValidator(path, [
                     ...oldArray,
                     ...args,
                   ]);
@@ -322,11 +316,7 @@ export class ChangeTracker {
 
           if (rootTracker.onChangeValidator) {
             try {
-              const result = rootTracker.onChangeValidator(
-                path,
-                oldArray,
-                newValue
-              );
+              const result = rootTracker.onChangeValidator(path, newValue);
               if (result === false) {
                 return true;
               }

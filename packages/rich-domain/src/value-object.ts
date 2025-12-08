@@ -24,6 +24,7 @@ export type IdentityKeyDefinition<T> = (keyof T)[] | keyof T;
 export abstract class ValueObject<T> {
   protected readonly props!: T;
   private validationConfig: Required<ValidationConfig>;
+  // @ts-expect-error - This is a private property
   private domainHooks?: VOHooks<T, any>;
   private domainSchema?: StandardSchema<T>;
   private domainEvents: IDomainEvent[] = [];

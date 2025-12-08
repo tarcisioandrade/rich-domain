@@ -11,7 +11,7 @@ export { ValueObject } from "./value-object";
 export { Mapper } from "./mapper";
 export { EntitySchemaRegistry } from "./entity-schema-registry";
 export { AggregateChanges } from "./aggregate-changes";
-export {
+export type {
   DomainEventHandler,
   EntityHooks,
   Filter,
