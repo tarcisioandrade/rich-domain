@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.6.0...v1.3.1) (2025-12-08)
+
+
+### Features
+
+* add onBeforeCreate hook to ValueObject for pre-creation logic ([5d5d84d](https://github.com/tarcisioandrade/rich-domain/commit/5d5d84d3512693a8fae83963e3eee51fef7276d7))
+* new command init and template structure ([c00dec7](https://github.com/tarcisioandrade/rich-domain/commit/c00dec71fe4ddd644c4a94b2468ef839ba8f07cc))
+
+
+### Bug Fixes
+
+* directory path not found error ([08f4080](https://github.com/tarcisioandrade/rich-domain/commit/08f40803a4558365e70752911f729597fd19b536))
+
+
+### Refactoring
+
+* cli folders strucuture and other fixes ([3ac73b6](https://github.com/tarcisioandrade/rich-domain/commit/3ac73b60e84cb3071f0dd3dc0817aa3e19c9167c))
+
+
+### Chores
+
+* update @woltz/rich-domain-prisma to version 0.6.0 and add peer dependencies ([7c85297](https://github.com/tarcisioandrade/rich-domain/commit/7c8529705fa74deab0da5f4fe4dc8b7040359e2f))
+
 ## [1.3.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.2.4...v1.3.0) (2025-12-05)
 
 
