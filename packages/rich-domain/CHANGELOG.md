@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.2](https://github.com/tarcisioandrade/rich-domain/compare/v1.3.1...v1.3.2) (2025-12-08)
+
+
+### Chores
+
+* remove obsolete TypeScript build info file from rich-domain package ([50b44af](https://github.com/tarcisioandrade/rich-domain/commit/50b44afbbf3a5c0d0124e5b722efd3d8779b86d9))
+* update rich-domain to version 1.3.1 and adjust package configurations ([d8585bd](https://github.com/tarcisioandrade/rich-domain/commit/d8585bd8fb82d666e01d5c6540247a730d161d2c))
+* update TypeScript configuration and refactor import paths in repositories ([1e99e7d](https://github.com/tarcisioandrade/rich-domain/commit/1e99e7d8358e3b6e78a850655be828890a13c815))
+
 ### [1.3.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.6.0...v1.3.1) (2025-12-08)
 
 
