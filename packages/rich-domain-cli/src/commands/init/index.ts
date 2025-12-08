@@ -1,7 +1,7 @@
 import ora from "ora";
 import prompts from "prompts";
 import { existsSync, mkdirSync, writeFileSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { logger, code, path as pathStyle } from "../../utils/logger.js";
 import { templateRegistry, TemplateOptions } from "./templates/index.js";
 
@@ -158,12 +158,10 @@ export async function initProject(
     // Write files
     for (const file of files) {
       const filePath = join(absoluteTargetDir, file.path);
-      const dir = filePath.substring(0, filePath.lastIndexOf("/"));
-
+      const dir = dirname(filePath);
       if (dir && !existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
       }
-
       writeFileSync(filePath, file.content);
     }
 

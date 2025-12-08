@@ -493,8 +493,8 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
 import { config } from "./config/index.js";
-import { userRoutes } from "./application/controllers/user.controller.js";
-import { postRoutes } from "./application/controllers/post.controller.js";
+import { userRoutes } from "./infra/http/controllers/user.controller.js";
+import { postRoutes } from "./infra/http/controllers/post.controller.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -1085,23 +1085,15 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         content: `export * from "./queues.js";
 `,
       },
-    ];
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Application layer
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  private generateApplicationLayer(): TemplateFile[] {
-    return [
+      // HTTP
       {
-        path: "src/application/controllers/user.controller.ts",
+        path: "src/infra/http/controllers/user.controller.ts",
         content: `import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { prisma } from "../../infra/database/prisma.js";
-import { createUnitOfWork } from "../../infra/database/unit-of-work.js";
-import { UserRepository } from "../../infra/repository/user.repository.js";
-import { User } from "../../domain/entities/user.aggregate.js";
+import { prisma } from "../database/prisma.js";
+import { createUnitOfWork } from "../database/unit-of-work.js"; 
+import { UserRepository } from "../repository/user.repository.js";
+import { User } from "../domain/entities/user.aggregate.js";
 import { Id, Criteria } from "@woltz/rich-domain";
 
 const createUserSchema = z.object({
@@ -1249,14 +1241,14 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 `,
       },
       {
-        path: "src/application/controllers/post.controller.ts",
+        path: "src/infra/http/controllers/post.controller.ts",
         content: `import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { prisma } from "../../infra/database/prisma.js";
-import { createUnitOfWork } from "../../infra/database/unit-of-work.js";
-import { PostRepository } from "../../infra/repository/post.repository.js";
-import { UserRepository } from "../../infra/repository/user.repository.js";
-import { Post } from "../../domain/entities/post.aggregate.js";
+import { prisma } from "../database/prisma.js";
+import { createUnitOfWork } from "../database/unit-of-work.js";
+import { PostRepository } from "../repository/post.repository.js";
+import { UserRepository } from "../repository/user.repository.js";
+import { Post } from "../domain/entities/post.aggregate.js";
 import { Id, Criteria } from "@woltz/rich-domain";
 
 const createPostSchema = z.object({
@@ -1430,6 +1422,35 @@ export const postRoutes: FastifyPluginAsync = async (fastify) => {
         path: "src/application/controllers/index.ts",
         content: `export * from "./user.controller.js";
 export * from "./post.controller.js";
+`,
+      },
+    ];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Application layer
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  private generateApplicationLayer(): TemplateFile[] {
+    return [
+      {
+        path: "src/application/services/user.service.ts",
+        content: `export class UserService {
+  constructor(private readonly userRepository: UserRepository) {}
+}
+`,
+      },
+      {
+        path: "src/application/services/post.service.ts",
+        content: `export class PostService {
+  constructor(private readonly postRepository: PostRepository) {}
+}
+`,
+      },
+      {
+        path: "src/application/services/index.ts",
+        content: `export * from "./user.service.js";
+export * from "./post.service.js";
 `,
       },
     ];
