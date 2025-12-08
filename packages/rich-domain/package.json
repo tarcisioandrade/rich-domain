@@ -6,6 +6,12 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "author": "Tarcisio Andrade",
   "license": "MIT",
   "publishConfig": {
@@ -26,7 +32,7 @@
     "check": "tsc --noEmit",
     "coverage": "jest --coverage",
     "lint": "eslint src",
-    "clean": "rm -rf dist coverage node_modules",
+    "clean": "rm -rf dist coverage node_modules tsconfig.tsbuildinfo",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
@@ -44,15 +50,7 @@
     "typescript"
   ],
   "files": [
-    "dist",
-    "src",
-    "**/*.js",
-    "**/*.mjs",
-    "**/*.cjs",
-    "**/*.d.ts",
-    "**/*.d.mts",
-    "**/*.d.cts",
-    "**/package.json"
+    "dist"
   ],
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",

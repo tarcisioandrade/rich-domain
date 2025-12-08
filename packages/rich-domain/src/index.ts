@@ -40,6 +40,7 @@ export type {
   BooleanOperators,
   ArrayOperators,
   CriteriaOptions,
+  DeepJsonResult,
 } from "./types";
 export {
   ARRAY_OPERATORS,

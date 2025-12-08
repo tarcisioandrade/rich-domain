@@ -55,7 +55,7 @@ export class FullstackTemplate extends BaseTemplate {
 
   getDependencies(): Record<string, string> {
     return {
-      "@woltz/rich-domain": "^1.3.0",
+      "@woltz/rich-domain": "^1.3.1",
       "@woltz/rich-domain-prisma": "^0.6.0",
       "@prisma/client": "^6.1.0",
       fastify: "^5.1.0",
