@@ -55,19 +55,20 @@ export class FullstackTemplate extends BaseTemplate {
 
   getDependencies(): Record<string, string> {
     return {
-      "@woltz/rich-domain": "^1.3.2",
-      "@woltz/rich-domain-prisma": "^0.6.0",
-      "@prisma/client": "^6.1.0",
-      fastify: "^5.1.0",
       "@fastify/cors": "^10.0.1",
       "@fastify/helmet": "^13.0.0",
       "@fastify/sensible": "^6.0.1",
-      bullmq: "^5.30.1",
-      ioredis: "^5.4.1",
-      zod: "^4.1.5",
+      "@prisma/client": "^6.1.0",
+      "@woltz/rich-domain": "^1.4.0",
+      "@woltz/rich-domain-criteria-zod": "^0.1.1",
+      "@woltz/rich-domain-prisma": "^0.6.0",
+      bullmq: "^5.64.0",
       dotenv: "^16.4.7",
+      fastify: "^5.1.0",
+      "fastify-type-provider-zod": "^6.1.0",
       pino: "^9.5.0",
       "pino-pretty": "^13.0.0",
+      zod: "^4.1.5",
     };
   }
 
@@ -98,7 +99,7 @@ export class FullstackTemplate extends BaseTemplate {
       lint: "tsc --noEmit",
       "docker:up": "docker-compose up -d",
       "docker:down": "docker-compose down",
-      "worker:start": "tsx src/infra/jobs/worker.ts",
+      "worker:start": "tsx watch src/worker.ts",
     };
   }
 
@@ -126,24 +127,28 @@ export class FullstackTemplate extends BaseTemplate {
   private generateTsConfig(): TemplateFile {
     const config = {
       compilerOptions: {
-        target: "ES2022",
-        module: "NodeNext",
-        moduleResolution: "NodeNext",
+        target: "ES2020",
+        module: "ESNext",
         lib: ["ES2022"],
-        outDir: "./dist",
+        moduleResolution: "bundler",
         rootDir: "./src",
-        strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
-        forceConsistentCasingInFileNames: true,
-        resolveJsonModule: true,
+        outDir: "./dist",
+        baseUrl: ".",
+        paths: {
+          "@/*": ["src/*"],
+        },
         declaration: true,
         declarationMap: true,
         sourceMap: true,
-        baseUrl: ".",
-        paths: {
-          "@/*": ["./src/*"],
-        },
+        esModuleInterop: true,
+        emitDecoratorMetadata: true,
+        experimentalDecorators: true,
+        forceConsistentCasingInFileNames: true,
+        strict: true,
+        skipLibCheck: true,
+        resolveJsonModule: true,
+        noUncheckedIndexedAccess: true,
+        noFallthroughCasesInSwitch: true,
       },
       include: ["src/**/*"],
       exclude: ["node_modules", "dist"],
@@ -425,7 +430,12 @@ enum Role {
   // ─────────────────────────────────────────────────────────────────────────────
 
   private generateSrcFiles(): TemplateFile[] {
-    return [this.generateMain(), this.generateConfig(), this.generateServer()];
+    return [
+      this.generateMain(),
+      this.generateConfig(),
+      this.generateServer(),
+      this.generateWorker(),
+    ];
   }
 
   private generateMain(): TemplateFile {
@@ -435,6 +445,8 @@ enum Role {
 import { buildServer } from "./server.js";
 import { config } from "./config/index.js";
 import { prisma } from "./infra/database/prisma.js";
+import { EVENT_BUS } from "./infra/queue/event-bus.js";
+import { enqueueDomainEvent } from "./infra/queue/event-queue.js";
 
 async function main() {
   const server = await buildServer();
@@ -443,8 +455,14 @@ async function main() {
     await prisma.$connect();
     console.log("📦 Database connected");
 
+    EVENT_BUS.subscribeAll(async (event) => {
+      await enqueueDomainEvent(event);
+    });
+
+    await server.ready();
     await server.listen({ port: config.port, host: "0.0.0.0" });
-    console.log(\`🚀 Server running at http://localhost:\${config.port}\`);
+
+    console.log("🚀 Server running");
   } catch (error) {
     server.log.error(error);
     await prisma.$disconnect();
@@ -454,7 +472,7 @@ async function main() {
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
-  console.log("\\n👋 Shutting down...");
+  console.log("👋 Shutting down...");
   await prisma.$disconnect();
   process.exit(0);
 });
@@ -494,7 +512,10 @@ import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
 import { config } from "./config/index.js";
 import { userRoutes } from "./infra/http/controllers/user.controller.js";
-import { postRoutes } from "./infra/http/controllers/post.controller.js";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 
 export async function buildServer() {
   const server = Fastify({
@@ -506,6 +527,9 @@ export async function buildServer() {
     },
   });
 
+  server.setValidatorCompiler(validatorCompiler);
+  server.setSerializerCompiler(serializerCompiler);
+
   // Plugins
   await server.register(cors, { origin: true });
   await server.register(helmet);
@@ -516,11 +540,17 @@ export async function buildServer() {
 
   // Routes
   await server.register(userRoutes, { prefix: "/users" });
-  await server.register(postRoutes, { prefix: "/posts" });
 
   return server;
 }
 `,
+    };
+  }
+
+  private generateWorker(): TemplateFile {
+    return {
+      path: "src/worker.ts",
+      content: `import "./infra/queue/event-worker";`,
     };
   }
 
@@ -536,6 +566,7 @@ export async function buildServer() {
         content: `import { Aggregate, Id, EntityValidation } from "@woltz/rich-domain";
 import { z } from "zod";
 import { Role } from "./enums.js";
+import { Post } from "./post.aggregate.js";
 
 /**
  * User Validation Schema (scalar fields only)
@@ -545,6 +576,7 @@ export const userSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
   password: z.string().min(8),
+  posts: z.array(z.instanceof(Post)),
   role: z.nativeEnum(Role),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -553,7 +585,7 @@ export const userSchema = z.object({
 /**
  * User Props Type
  */
-export type UserProps = z.infer<typeof userSchema>
+export type UserProps = z.infer<typeof userSchema>;
 
 /**
  * User Aggregate
@@ -587,7 +619,6 @@ export class User extends Aggregate<UserProps> {
     return this.props.updatedAt;
   }
 
-
   // Domain methods
   updateName(name: string): void {
     this.props.name = name;
@@ -597,6 +628,16 @@ export class User extends Aggregate<UserProps> {
   promoteToAdmin(): void {
     this.props.role = Role.ADMIN;
     this.props.updatedAt = new Date();
+  }
+
+  addPost(post: Post): void {
+    this.props.posts.push(post);
+  }
+
+  removePost(postId: Id): void {
+    this.props.posts = this.props.posts.filter(
+      (post) => !post.id.equals(postId)
+    );
   }
 }
 `,
@@ -722,6 +763,14 @@ export interface IPostRepository extends Repository<Post> {
 export * from "./post.repository.js";
 `,
       },
+      // Events
+      {
+        path: "src/domain/events/user/user-created.event.ts",
+        content: `import { DomainEvent } from "@woltz/rich-domain";
+
+export class UserCreatedEvent extends DomainEvent {}
+`,
+      },
     ];
   }
 
@@ -754,20 +803,18 @@ export function createUnitOfWork(): PrismaUnitOfWork {
       // Schemas
       {
         path: "src/infra/schemas/user.schema.ts",
-        content: `import { User as PrismaUser, Post as PrismaPost } from "@prisma/client";
+        content: `import { Prisma } from "@prisma/client";
 
-export type PrismaUserWithRelations = PrismaUser & {
-  posts?: PrismaPost[];
-};
+export type PrismaUserWithRelations = Prisma.UserGetPayload<{
+  include: { posts: true };
+}>;
 `,
       },
       {
         path: "src/infra/schemas/post.schema.ts",
-        content: `import { Post as PrismaPost, User as PrismaUser } from "@prisma/client";
+        content: `import { Post } from "@prisma/client";
 
-export type PrismaPostWithRelations = PrismaPost & {
-  author?: PrismaUser | null;
-};
+export type PrismaPostWithRelations = Post;
 `,
       },
       {
@@ -782,6 +829,8 @@ export * from "./post.schema.js";
         content: `import { Mapper, Id } from "@woltz/rich-domain";
 import { PrismaUserWithRelations } from "../schemas/user.schema.js";
 import { User } from "../../domain/entities/user.aggregate.js";
+import { Post } from "@/domain/entities/post.aggregate.js";
+import { Role } from "@/domain/entities/enums.js";
 
 export class UserToDomainMapper extends Mapper<PrismaUserWithRelations, User> {
   build(raw: PrismaUserWithRelations): User {
@@ -790,12 +839,25 @@ export class UserToDomainMapper extends Mapper<PrismaUserWithRelations, User> {
       email: raw.email,
       name: raw.name,
       password: raw.password,
-      role: raw.role,
+      posts: raw.posts.map(
+        (post) =>
+          new Post({
+            id: Id.from(post.id),
+            title: post.title,
+            content: post.content,
+            published: post.published,
+            authorId: post.authorId,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+          })
+      ),
+      role: raw.role as Role,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
   }
 }
+
 `,
       },
       {
@@ -928,7 +990,7 @@ import { UserToDomainMapper } from "../mappers/user-to-domain.mapper.js";
 import { UserToPersistenceMapper } from "../mappers/user-to-persistence.mapper.js";
 
 export class UserRepository
-  extends PrismaRepository<User, PrismaUserWithRelations>
+  extends PrismaRepository<User, PrismaUserWithRelations, PrismaClient>
   implements IUserRepository
 {
   protected model = "user" as const;
@@ -944,7 +1006,7 @@ export class UserRepository
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const raw = await this.prisma.user.findUnique({
+    const raw = await this.context.user.findUnique({
       where: { email },
       include: this.includes,
     });
@@ -972,7 +1034,7 @@ import { PostToDomainMapper } from "../mappers/post-to-domain.mapper.js";
 import { PostToPersistenceMapper } from "../mappers/post-to-persistence.mapper.js";
 
 export class PostRepository
-  extends PrismaRepository<Post, PrismaPostWithRelations>
+  extends PrismaRepository<Post, PrismaPostWithRelations, PrismaClient>
   implements IPostRepository
 {
   protected model = "post" as const;
@@ -988,7 +1050,7 @@ export class PostRepository
   }
 
   async findByAuthorId(authorId: string): Promise<Post[]> {
-    const raw = await this.prisma.post.findMany({
+    const raw = await this.context.post.findMany({
       where: { authorId },
       include: this.includes,
     });
@@ -997,7 +1059,7 @@ export class PostRepository
   }
 
   async findPublished(): Promise<Post[]> {
-    const raw = await this.prisma.post.findMany({
+    const raw = await this.context.post.findMany({
       where: { published: true },
       include: this.includes,
     });
@@ -1022,406 +1084,182 @@ export * from "./post.repository.js";
       },
       // Jobs
       {
-        path: "src/infra/jobs/worker.ts",
-        content: `import "dotenv/config";
-import { Worker } from "bullmq";
-import { config } from "../../config/index.js";
+        path: "src/infra/queue/event-bus.ts",
+        content: `import { DomainEventBus } from "@woltz/rich-domain";
+import { UserCreatedEvent } from "../../domain/events/user/user-create.event";
 
-const connection = {
-  host: config.redis.host,
-  port: config.redis.port,
-};
+export const EVENT_BUS = DomainEventBus.getInstance();
 
-// Email worker example
-const emailWorker = new Worker(
-  "email",
+EVENT_BUS.subscribe({
+  event: UserCreatedEvent,
+  handler: (event: UserCreatedEvent) => {
+    console.log("User Created Event", event);
+  },
+});
+
+EVENT_BUS.subscribeAll((event) => {
+  console.log("Event received");
+  event;
+});
+`,
+      },
+      {
+        path: "src/infra/queue/event-queue.ts",
+        content: `import { Queue } from "bullmq";
+import { IDomainEvent } from "@woltz/rich-domain";
+import IORedis from "ioredis";
+
+export const connection = new IORedis({
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
+  maxRetriesPerRequest: null,
+});
+
+export const DomainEventQueue = new Queue<IDomainEvent>("domain-events", {
+  connection,
+});
+
+/**
+ * Publish a domain event to BullMQ queue
+ */
+export async function enqueueDomainEvent(event: IDomainEvent) {
+  await DomainEventQueue.add(event.eventName, event);
+}
+`,
+      },
+      {
+        path: "src/infra/queue/event-worker.ts",
+        content: `import { Worker } from "bullmq";
+import { IDomainEvent } from "@woltz/rich-domain";
+import { EVENT_BUS } from "./event-bus.js";
+import { connection } from "./event-queue.js";
+
+export const DomainEventWorker = new Worker<IDomainEvent>(
+  "domain-events",
   async (job) => {
-    console.log(\`Processing email job \${job.id}\`);
-    console.log("Data:", job.data);
-    
-    // TODO: Implement email sending
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    console.log(\`Email job \${job.id} completed\`);
+    await EVENT_BUS.publish(job.data);
+    return true;
   },
   { connection }
 );
 
-emailWorker.on("completed", (job) => {
-  console.log(\`Job \${job.id} completed\`);
+DomainEventWorker.on("completed", (job) => {});
+
+DomainEventWorker.on("failed", (job, err) => {});
+
+DomainEventWorker.on("ready", () => {
+  console.log("[Worker] Ready");
 });
-
-emailWorker.on("failed", (job, err) => {
-  console.error(\`Job \${job?.id} failed:\`, err);
-});
-
-console.log("🔄 Worker started");
-`,
-      },
-      {
-        path: "src/infra/jobs/queues.ts",
-        content: `import { Queue } from "bullmq";
-import { config } from "../../config/index.js";
-
-const connection = {
-  host: config.redis.host,
-  port: config.redis.port,
-};
-
-export const emailQueue = new Queue("email", { connection });
-
-// Helper to add jobs
-export async function sendWelcomeEmail(userId: string, email: string) {
-  await emailQueue.add("welcome", { userId, email });
-}
-
-export async function sendPasswordResetEmail(email: string, token: string) {
-  await emailQueue.add("password-reset", { email, token });
-}
-`,
-      },
-      {
-        path: "src/infra/jobs/index.ts",
-        content: `export * from "./queues.js";
 `,
       },
       // HTTP
       {
         path: "src/infra/http/controllers/user.controller.ts",
         content: `import { FastifyPluginAsync } from "fastify";
-import { z } from "zod";
-import { prisma } from "../database/prisma.js";
-import { createUnitOfWork } from "../database/unit-of-work.js"; 
-import { UserRepository } from "../repository/user.repository.js";
-import { User } from "../domain/entities/user.aggregate.js";
-import { Id, Criteria } from "@woltz/rich-domain";
+import {
+  CriteriaQuerySchema,
+  defineFilters,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
+import { listUserDto } from "../dto/user/list-user.dto";
+import { Criteria } from "@woltz/rich-domain";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
+import { UserService } from "@/application/services";
+import { UserRepository } from "@/infra/repository";
+import { prisma } from "@/infra/database/prisma";
+import { createUnitOfWork } from "@/infra/database/unit-of-work";
+import { createUserDto } from "../dto/user/create-user.dto";
 
-const createUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
-  password: z.string().min(8),
-});
+const filters = defineFilters((f) => ({
+  email: f.email(),
+  name: f.string(),
+}));
 
-const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
+const querySchema = CriteriaQuerySchema(filters, {
+  orderBy: ["email", "name"] as const,
+  pagination: {
+    defaultLimit: 20,
+    maxLimit: 100,
+  },
 });
 
 export const userRoutes: FastifyPluginAsync = async (fastify) => {
-  // List users
-  fastify.get("/", async (request, reply) => {
-    const { page = "1", limit = "10", search } = request.query as Record<string, string>;
-    
-    const uow = createUnitOfWork();
-    const userRepo = new UserRepository(prisma, uow);
-    
-    const criteria = Criteria.create<User>()
-      .paginate(parseInt(page), parseInt(limit));
-    
-    if (search) {
-      criteria.search(search);
-    }
-    
-    const result = await userRepo.find(criteria);
-    
-    return {
-      data: result.data.map((u) => ({
-        id: u.id.value,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        createdAt: u.createdAt,
-      })),
-      meta: result.meta,
-    };
-  });
+  const uow = createUnitOfWork();
+  const repo = new UserRepository(prisma, uow);
+  const userService = new UserService(repo);
 
-  // Get user by ID
-  fastify.get("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    
-    const uow = createUnitOfWork();
-    const userRepo = new UserRepository(prisma, uow);
-    
-    const user = await userRepo.findById(Id.from(id));
-    
-    if (!user) {
-      return reply.notFound("User not found");
-    }
-    
-    return {
-      id: user.id.value,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt,
-    };
+  // List users
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: "GET",
+    url: "/",
+    schema: {
+      querystring: querySchema,
+      response: {
+        200: PaginatedResponseSchema(listUserDto),
+      },
+    },
+    handler: async (request) => {
+      const criteria = Criteria.fromQueryParams(request.query);
+      const users = await userService.list(criteria);
+      return users.toJSON();
+    },
   });
 
   // Create user
-  fastify.post("/", async (request, reply) => {
-    const body = createUserSchema.parse(request.body);
-    
-    const uow = createUnitOfWork();
-    const userRepo = new UserRepository(prisma, uow);
-    
-    // Check if email exists
-    const existing = await userRepo.findByEmail(body.email);
-    if (existing) {
-      return reply.conflict("Email already in use");
-    }
-    
-    const user = User.create({
-      email: body.email,
-      name: body.name,
-      password: body.password, // TODO: Hash password
-    });
-    
-    await uow.transaction(async () => {
-      await userRepo.save(user);
-    });
-    
-    return reply.status(201).send({
-      id: user.id.value,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
-  });
-
-  // Update user
-  fastify.put("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const body = updateUserSchema.parse(request.body);
-    
-    const uow = createUnitOfWork();
-    const userRepo = new UserRepository(prisma, uow);
-    
-    const user = await userRepo.findById(Id.from(id));
-    
-    if (!user) {
-      return reply.notFound("User not found");
-    }
-    
-    if (body.name) {
-      user.updateName(body.name);
-    }
-    
-    await uow.transaction(async () => {
-      await userRepo.save(user);
-    });
-    
-    return {
-      id: user.id.value,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    };
-  });
-
-  // Delete user
-  fastify.delete("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    
-    const uow = createUnitOfWork();
-    const userRepo = new UserRepository(prisma, uow);
-    
-    const user = await userRepo.findById(Id.from(id));
-    
-    if (!user) {
-      return reply.notFound("User not found");
-    }
-    
-    await uow.transaction(async () => {
-      await userRepo.delete(user);
-    });
-    
-    return reply.status(204).send();
+  fastify.withTypeProvider<ZodTypeProvider>().route({
+    method: "POST",
+    url: "/",
+    schema: {
+      body: createUserDto,
+    },
+    handler: async (request) => {
+      return await userService.create(request.body);
+    },
   });
 };
 `,
       },
+      // DTO
       {
-        path: "src/infra/http/controllers/post.controller.ts",
-        content: `import { FastifyPluginAsync } from "fastify";
-import { z } from "zod";
-import { prisma } from "../database/prisma.js";
-import { createUnitOfWork } from "../database/unit-of-work.js";
-import { PostRepository } from "../repository/post.repository.js";
-import { UserRepository } from "../repository/user.repository.js";
-import { Post } from "../domain/entities/post.aggregate.js";
-import { Id, Criteria } from "@woltz/rich-domain";
+        path: "src/infra/http/dto/user/create-user.dto.ts",
+        content: `import { Role } from "@/domain/entities";
+import z from "zod";
 
-const createPostSchema = z.object({
-  title: z.string().min(1),
-  content: z.string(),
-  authorId: z.string().uuid(),
+export const createUserDto = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  password: z.string().min(8),
+  role: z.enum(Role),
 });
 
-const updatePostSchema = z.object({
-  title: z.string().min(1).optional(),
-  content: z.string().optional(),
-  published: z.boolean().optional(),
-});
-
-export const postRoutes: FastifyPluginAsync = async (fastify) => {
-  // List posts
-  fastify.get("/", async (request, reply) => {
-    const { page = "1", limit = "10", search, published } = request.query as Record<string, string>;
-    
-    const uow = createUnitOfWork();
-    const postRepo = new PostRepository(prisma, uow);
-    
-    const criteria = Criteria.create<Post>()
-      .paginate(parseInt(page), parseInt(limit));
-    
-    if (search) {
-      criteria.search(search);
-    }
-    
-    if (published === "true") {
-      criteria.where("published", "equals", true);
-    }
-    
-    const result = await postRepo.find(criteria);
-    
-    return {
-      data: result.data.map((p) => ({
-        id: p.id.value,
-        title: p.title,
-        content: p.content,
-        published: p.published,
-        authorId: p.authorId,
-        createdAt: p.createdAt,
-      })),
-      meta: result.meta,
-    };
-  });
-
-  // Get post by ID
-  fastify.get("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    
-    const uow = createUnitOfWork();
-    const postRepo = new PostRepository(prisma, uow);
-    
-    const post = await postRepo.findById(Id.from(id));
-    
-    if (!post) {
-      return reply.notFound("Post not found");
-    }
-    
-    return {
-      id: post.id.value,
-      title: post.title,
-      content: post.content,
-      published: post.published,
-      authorId: post.authorId,
-      author: post.author ? {
-        id: post.author.id.value,
-        name: post.author.name,
-      } : null,
-      createdAt: post.createdAt,
-    };
-  });
-
-  // Create post
-  fastify.post("/", async (request, reply) => {
-    const body = createPostSchema.parse(request.body);
-    
-    const uow = createUnitOfWork();
-    const postRepo = new PostRepository(prisma, uow);
-    const userRepo = new UserRepository(prisma, uow);
-    
-    // Check if author exists
-    const author = await userRepo.findById(Id.from(body.authorId));
-    if (!author) {
-      return reply.badRequest("Author not found");
-    }
-    
-    const post = Post.create({
-      title: body.title,
-      content: body.content,
-      authorId: body.authorId,
-    });
-    
-    await uow.transaction(async () => {
-      await postRepo.save(post);
-    });
-    
-    return reply.status(201).send({
-      id: post.id.value,
-      title: post.title,
-      content: post.content,
-      published: post.published,
-      authorId: post.authorId,
-    });
-  });
-
-  // Update post
-  fastify.put("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const body = updatePostSchema.parse(request.body);
-    
-    const uow = createUnitOfWork();
-    const postRepo = new PostRepository(prisma, uow);
-    
-    const post = await postRepo.findById(Id.from(id));
-    
-    if (!post) {
-      return reply.notFound("Post not found");
-    }
-    
-    if (body.title || body.content) {
-      post.updateContent(
-        body.title ?? post.title,
-        body.content ?? post.content
-      );
-    }
-    
-    if (body.published === true) {
-      post.publish();
-    } else if (body.published === false) {
-      post.unpublish();
-    }
-    
-    await uow.transaction(async () => {
-      await postRepo.save(post);
-    });
-    
-    return {
-      id: post.id.value,
-      title: post.title,
-      content: post.content,
-      published: post.published,
-    };
-  });
-
-  // Delete post
-  fastify.delete("/:id", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    
-    const uow = createUnitOfWork();
-    const postRepo = new PostRepository(prisma, uow);
-    
-    const post = await postRepo.findById(Id.from(id));
-    
-    if (!post) {
-      return reply.notFound("Post not found");
-    }
-    
-    await uow.transaction(async () => {
-      await postRepo.delete(post);
-    });
-    
-    return reply.status(204).send();
-  });
-};
+export type CreateUserDto = z.infer<typeof createUserDto>;
 `,
       },
       {
-        path: "src/application/controllers/index.ts",
-        content: `export * from "./user.controller.js";
-export * from "./post.controller.js";
+        path: "src/infra/http/dto/user/list-user.dto.ts",
+        content: `import { Role } from "@/domain/entities";
+import z from "zod";
+
+export const listUserDto = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: z.enum(Role),
+  createdAt: z.union([z.string(), z.date()]),
+  updatedAt: z.union([z.string(), z.date()]),
+  posts: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      content: z.string(),
+      published: z.boolean(),
+      createdAt: z.union([z.string(), z.date()]),
+      updatedAt: z.union([z.string(), z.date()]),
+    })
+  ),
+});
+
+export type ListUserDto = z.infer<typeof listUserDto>;
 `,
       },
     ];
@@ -1435,15 +1273,44 @@ export * from "./post.controller.js";
     return [
       {
         path: "src/application/services/user.service.ts",
-        content: `export class UserService {
+        content: `import { User } from "@/domain/entities";
+import { CreateUserDto } from "@/infra/http/dto/user/create-user.dto";
+import { UserRepository } from "@/infra/repository/user.repository.js";
+import { Criteria, EntityAlreadyExistsError } from "@woltz/rich-domain";
+
+export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
+
+  async list(criteria: Criteria) {
+    return await this.userRepository.find(criteria);
+  }
+
+  async create(dto: CreateUserDto) {
+    const exist = await this.userRepository.findByEmail(dto.email);
+    if (exist) {
+      throw new EntityAlreadyExistsError("User", dto.email);
+    }
+    const user = new User({
+      email: dto.email,
+      name: dto.name,
+      password: dto.password,
+      posts: [],
+      role: dto.role,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return await this.userRepository.save(user);
+  }
 }
 `,
       },
       {
         path: "src/application/services/post.service.ts",
-        content: `export class PostService {
+        content: `import { PostRepository } from "@/infra/repository/post.repository.js";
+
+export class PostService {
   constructor(private readonly postRepository: PostRepository) {}
+  // Add your methods here
 }
 `,
       },
