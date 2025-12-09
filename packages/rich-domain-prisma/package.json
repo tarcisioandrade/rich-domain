@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-prisma",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Prisma integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "type": "module",
