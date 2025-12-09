@@ -65,10 +65,13 @@ export const q = {
   string: (opts?: { operators?: readonly string[] }) =>
     ({ kind: "string", base: z.string(), operators: opts?.operators } as const),
 
-  email: (opts?: { operators?: readonly string[] }) =>
+  enum: <const T extends readonly [string, ...string[]]>(
+    values: T,
+    opts?: { operators?: readonly string[] }
+  ) =>
     ({
       kind: "string",
-      base: z.string().email(),
+      base: z.enum(values),
       operators: opts?.operators,
     } as const),
 
@@ -202,6 +205,16 @@ type QueryBuilderShape = (
   queryBuilder: QueryBuilder
 ) => Record<string, FieldDef>;
 
+type InferFieldDefType<T extends FieldDef> = T extends {
+  base: infer B extends z.ZodTypeAny;
+}
+  ? z.infer<B>
+  : never;
+
+type InferFilterFields<T extends Record<string, FieldDef>> = {
+  [K in keyof T]: InferFieldDefType<T[K]>;
+};
+
 function buildFilterSchema<T extends Record<string, FieldDef>>(fields: T) {
   const shape: Record<string, z.ZodTypeAny> = {};
 
@@ -229,40 +242,20 @@ function buildFilterSchema<T extends Record<string, FieldDef>>(fields: T) {
  * }));
  * ```
  */
-export function defineFilters<T extends QueryBuilderShape>(shape: T) {
-  return buildFilterSchema(shape(q));
+export function defineFilters<T extends QueryBuilderShape>(
+  shape: T
+): z.ZodObject<z.ZodRawShape> & {
+  _fieldDefs: ReturnType<T>;
+  _fields: InferFilterFields<ReturnType<T>>;
+} {
+  const fields = shape(q);
+  return buildFilterSchema(fields) as any;
 }
 
-/**
- * Build order enum values from field names
- */
 type OrderEnumValue<F extends string> = `${F}:asc` | `${F}:desc`;
-
-/**
- * Build array of order enum values from field names array
- */
 type OrderEnumValues<T extends readonly string[]> = OrderEnumValue<T[number]>;
-
-/**
- * Options for CriteriaQuerySchema
- */
 type CriteriaQueryOptions<O extends readonly string[]> = {
-  /**
-   * Whitelist of fields that can be used for ordering.
-   * If not provided, no ordering is allowed.
-   *
-   * @example
-   * ```ts
-   * CriteriaQuerySchema(filterSchema, {
-   *   orderBy: ["name", "createdAt", "email"] as const,
-   * })
-   * ```
-   */
   orderBy?: O;
-
-  /**
-   * Default pagination values
-   */
   pagination?: {
     defaultPage?: number;
     defaultLimit?: number;
@@ -294,14 +287,12 @@ function parseQueryInput(val: any) {
   return result;
 }
 
-/**
- * Result type for CriteriaQuerySchema with proper orderBy inference
- */
+
 type CriteriaQueryResult<
   F extends ZodObject<ZodRawShape>,
   O extends readonly string[]
 > = {
-  filters?: z.infer<F>;
+  filters?: F extends { _fields: infer Fields } ? Fields : z.infer<F>;
   orderBy?: O extends readonly []
     ? never
     : OrderEnumValues<O> | OrderEnumValues<O>[];
@@ -372,9 +363,6 @@ export function CriteriaQuerySchema<
   ) as z.ZodType<CriteriaQueryResult<F, O>>;
 }
 
-/**
- * Build order schema from field names array
- */
 function buildOrderSchema<const T extends readonly string[]>(fields: T) {
   if (fields.length === 0) {
     return z.never().optional();
