@@ -7,7 +7,7 @@ import { UserSchema } from "../schemas/user.schema";
 import { User } from "../../../domain/user/user.entity";
 
 export class PrismaUserRepository
-  extends PrismaRepository<User, UserSchema>
+  extends PrismaRepository<User, UserSchema, PrismaClient>
   implements UserRepository
 {
   protected get model() {
@@ -45,6 +45,6 @@ export class PrismaUserRepository
       include: this.includes,
     });
 
-    return user ? this.mapperToDomain.build(user) : null;
+    return user ? this.toDomainMapper.build(user) : null;
   }
 }

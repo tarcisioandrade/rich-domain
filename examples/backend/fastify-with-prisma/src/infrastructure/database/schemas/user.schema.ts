@@ -7,6 +7,5 @@ export type UserSchema = Prisma.UserGetPayload<{
         tags: true;
       };
     };
-    groups: true;
   };
 }>;

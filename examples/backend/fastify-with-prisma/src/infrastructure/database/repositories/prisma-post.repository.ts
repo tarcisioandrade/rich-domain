@@ -8,7 +8,7 @@ import { Post } from "../../../domain/post/post.entity";
 import { Criteria, PaginatedResult } from "@woltz/rich-domain";
 
 export class PrismaPostRepository
-  extends PrismaRepository<Post, PostSchema>
+  extends PrismaRepository<Post, PostSchema, PrismaClient>
   implements PostRepository
 {
   protected includes = {
