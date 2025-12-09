@@ -7,12 +7,7 @@ import {
   FilterOperator,
   CriteriaOptions,
 } from "@woltz/rich-domain";
-import {
-  PrismaClientLike,
-  PrismaTransactionClient,
-  PrismaUnitOfWork,
-  UOWStorage,
-} from "./unit-of-work";
+import { PrismaClientLike, PrismaUnitOfWork, UOWStorage } from "./unit-of-work";
 import { ModelNotFoundError, NoRecordsAffectedError } from "./errors";
 
 export interface PrismaRepositoryConfig {
@@ -27,12 +22,13 @@ export interface PrismaRepositoryConfig {
  */
 export abstract class PrismaRepository<
   TDomain extends Aggregate<any>,
-  TPersistence
+  TPersistence,
+  TContext = PrismaClientLike
 > extends Repository<TDomain> {
   constructor(
-    protected readonly mapperToPersistence: Mapper<TDomain, void>,
-    protected readonly mapperToDomain: Mapper<TPersistence, TDomain>,
-    private readonly prisma: PrismaClientLike,
+    protected readonly toPersistenceMapper: Mapper<TDomain, void>,
+    protected readonly toDomainMapper: Mapper<TPersistence, TDomain>,
+    private readonly prisma: TContext,
     public readonly uow: PrismaUnitOfWork
   ) {
     super();
@@ -78,7 +74,7 @@ export abstract class PrismaRepository<
   /**
    * Get current context (transaction or prisma client).
    */
-  protected get context(): PrismaClientLike | PrismaTransactionClient {
+  protected get context(): TContext {
     const ctx = UOWStorage.getStore()?.ctx;
     return ctx?.client ?? this.prisma;
   }
@@ -138,7 +134,7 @@ export abstract class PrismaRepository<
     ]);
 
     const toDomain = data.map((item: TPersistence) =>
-      this.mapperToDomain.build(item)
+      this.toDomainMapper.build(item)
     );
 
     return PaginatedResult.create(toDomain, criteria.getPagination(), total);
@@ -150,7 +146,7 @@ export abstract class PrismaRepository<
       include: this.includes,
     });
 
-    return data ? this.mapperToDomain.build(data) : null;
+    return data ? this.toDomainMapper.build(data) : null;
   }
 
   async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
@@ -161,7 +157,7 @@ export abstract class PrismaRepository<
       include: this.includes,
     });
 
-    return data ? this.mapperToDomain.build(data) : null;
+    return data ? this.toDomainMapper.build(data) : null;
   }
 
   async exists(id: string): Promise<boolean> {
@@ -209,7 +205,7 @@ export abstract class PrismaRepository<
    * Uses change tracking to determine what changed.
    */
   async save(entity: TDomain): Promise<void> {
-    await this.mapperToPersistence.build(entity);
+    await this.toPersistenceMapper.build(entity);
     entity.markAsClean();
   }
 
