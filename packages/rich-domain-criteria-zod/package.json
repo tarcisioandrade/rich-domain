@@ -47,7 +47,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "@woltz/rich-domain": "^1.2.4",
+    "@woltz/rich-domain": "^1.5.0",
     "typescript": ">=5.4.3",
     "zod": "^4.1.5"
   },
