@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.4.0...v0.2.0) (2025-12-09)
+
+
+### Features
+
+* enhance fullstack template with user and post management features ([0dbd87c](https://github.com/tarcisioandrade/rich-domain/commit/0dbd87c5dfed2e3b07258caa84f85a445f008faf))
+
 ### [0.1.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.5.0...v0.1.1) (2025-12-07)
 
 
