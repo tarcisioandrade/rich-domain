@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.7.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.5.0...v0.7.1) (2025-12-10)
+
+
+### Features
+
+* add enum support to zod criteria builder and enhance filter type inference ([8a69dbe](https://github.com/tarcisioandrade/rich-domain/commit/8a69dbeeb82cb4f9341883cd1948e3b2baa4b5f8))
+
 ## [0.7.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.4.0...v0.7.0) (2025-12-09)
 
 
