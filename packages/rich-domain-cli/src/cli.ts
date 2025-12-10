@@ -1,8 +1,10 @@
 import cac from "cac";
 import { createRequire } from "node:module";
 import { generateFromPrisma } from "./commands/generate/index.js";
-import type { GenerateCommandOptions } from "./commands/generate/index.js";
 import { initProject } from "./commands/init/index.js";
+import { addEntity } from "./commands/add/index.js";
+import type { GenerateCommandOptions } from "./commands/generate/index.js";
+import type { AddCommandOptions } from "./commands/add/index.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -16,7 +18,7 @@ export function createCli() {
   // Init command
   cli
     .command("init [directory]", "Initialize a new project from a template")
-    .option("-t, --template <name>", "Template to use (fullstack)", {
+    .option("-t, --template <n>", "Template to use (fullstack)", {
       default: undefined,
     })
     .option(
@@ -82,6 +84,53 @@ export function createCli() {
     .action(async (options: GenerateCommandOptions) => {
       await generateFromPrisma(options);
     });
+
+  // Add command
+  cli
+    .command(
+      "add <name> [...props]",
+      "Add a new entity, aggregate, or value object"
+    )
+    .option("-a, --aggregate", "Create an Aggregate (default)", {
+      default: false,
+    })
+    .option("-e, --entity", "Create an Entity", { default: false })
+    .option("-v, --value-object", "Create a Value Object", { default: false })
+    .option(
+      "--with-repo",
+      "Also generate repository interface and implementation",
+      { default: false }
+    )
+    .option(
+      "--with-mapper",
+      "Also generate ToDomain and ToPersistence mappers",
+      { default: false }
+    )
+    .option("--with-all", "Generate repository and mappers", { default: false })
+    .option(
+      "-o, --output <path>",
+      "Output directory (auto-detected if not specified)",
+      { default: undefined }
+    )
+    .option(
+      "-f, --force",
+      "Skip confirmation prompts and overwrite existing files",
+      { default: false }
+    )
+    .example("  $ rich-domain add User")
+    .example("  $ rich-domain add User name:string email:string")
+    .example(
+      "  $ rich-domain add User name:string role:(USER,ADMIN) age:number?"
+    )
+    .example("  $ rich-domain add Email -v value:string")
+    .example("  $ rich-domain add OrderItem -e quantity:number price:number")
+    .example("  $ rich-domain add Order --with-all")
+    .example("  $ rich-domain add Product name:string author:User tags:Tag[]")
+    .action(
+      async (name: string, props: string[], options: AddCommandOptions) => {
+        await addEntity(name, props, options);
+      }
+    );
 
   // Help improvements
   cli.help();
