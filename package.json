@@ -8,8 +8,10 @@
     "examples/**/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "postinstall": "npm run build",
+    "build": "npm run build:packages && npm run build:examples",
+    "build:packages": "npm run build --workspace=@woltz/rich-domain && npm run build --workspace=@woltz/rich-domain-prisma && npm run build --workspace=@woltz/rich-domain-criteria-zod && npm run build --workspace=@woltz/rich-domain-cli && npm run build --workspace=@woltz/react-rich-domain --if-present",
+    "build:examples": "npm run build --workspace=react-with-react-query --if-present && npm run build --workspace=fastify-with-prisma --if-present",
+    "postinstall": "npm run build:packages",
     "test": "npm run test --workspace=@woltz/rich-domain && npm run test --workspace=@woltz/react-rich-domain",
     "test:watch": "npm run test:watch --workspace=@woltz/rich-domain",
     "check": "npm run check --workspaces",
