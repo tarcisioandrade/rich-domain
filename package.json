@@ -8,7 +8,7 @@
     "examples/**/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@woltz/rich-domain && npm run build --workspace=@woltz/react-rich-domain && npm run build --workspaces",
+    "build": "npm run build --workspaces",
     "postinstall": "npm run build",
     "test": "npm run test --workspace=@woltz/rich-domain && npm run test --workspace=@woltz/react-rich-domain",
     "test:watch": "npm run test:watch --workspace=@woltz/rich-domain",
