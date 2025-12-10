@@ -59,12 +59,13 @@ export class FullstackTemplate extends BaseTemplate {
       "@fastify/helmet": "^13.0.0",
       "@fastify/sensible": "^6.0.1",
       "@prisma/client": "^6.1.0",
-      "@woltz/rich-domain": "^1.4.0",
-      "@woltz/rich-domain-criteria-zod": "^0.1.1",
-      "@woltz/rich-domain-prisma": "^0.6.0",
+      "@woltz/rich-domain": "^1.5.0",
+      "@woltz/rich-domain-criteria-zod": "^0.1.2",
+      "@woltz/rich-domain-prisma": "^0.7.1",
       bullmq: "^5.64.0",
       dotenv: "^16.4.7",
       fastify: "^5.1.0",
+      "fastify-plugin": "^5.1.0",
       "fastify-type-provider-zod": "^6.1.0",
       pino: "^9.5.0",
       "pino-pretty": "^13.0.0",
@@ -303,7 +304,7 @@ prisma/*.db-journal
       path: "README.md",
       content: `# ${options.projectName}
 
-A Domain-Driven Design API built with Fastify, Prisma, and rich-domain.
+A Domain-Driven Design API built with Fastify, Prisma, and @woltz/rich-domain enviroment.
 
 ## Getting Started
 
@@ -320,29 +321,11 @@ npm run docker:up
 # Push database schema
 npm run db:push
 
+# Start worker
+npm run worker:start
+
 # Start development server
 npm run dev
-\`\`\`
-
-## Project Structure
-
-\`\`\`
-src/
-├── main.ts                 # Application entry point
-├── config/                 # Configuration
-├── domain/                 # Domain layer (DDD)
-│   ├── entities/           # Aggregates and Entities
-│   └── repository/         # Repository interfaces
-├── infra/                  # Infrastructure layer
-│   ├── database/           # Database connection
-│   ├── mappers/            # Prisma mappers
-│   ├── repository/         # Repository implementations
-│   ├── schemas/            # Prisma type definitions
-│   └── jobs/               # BullMQ workers
-├── application/            # Application layer
-│   ├── controllers/        # HTTP controllers
-│   └── use-cases/          # Business use cases
-└── shared/                 # Shared utilities
 \`\`\`
 
 ## Available Scripts
@@ -364,18 +347,7 @@ src/
 
 ### Users
 - \`GET /users\` - List users
-- \`GET /users/:id\` - Get user by ID
-- \`POST /users\` - Create user
-- \`PUT /users/:id\` - Update user
-- \`DELETE /users/:id\` - Delete user
-
-### Posts
-- \`GET /posts\` - List posts
-- \`GET /posts/:id\` - Get post by ID
-- \`POST /posts\` - Create post
-- \`PUT /posts/:id\` - Update post
-- \`DELETE /posts/:id\` - Delete post
-`,
+- \`POST /users\` - Create user`,
     };
   }
 
@@ -516,6 +488,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import diPlugin from "./infra/di/fastify-plugin.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -531,6 +504,7 @@ export async function buildServer() {
   server.setSerializerCompiler(serializerCompiler);
 
   // Plugins
+  await server.register(diPlugin);
   await server.register(cors, { origin: true });
   await server.register(helmet);
   await server.register(sensible);
@@ -563,10 +537,16 @@ export async function buildServer() {
       // Entities
       {
         path: "src/domain/entities/user.aggregate.ts",
-        content: `import { Aggregate, Id, EntityValidation } from "@woltz/rich-domain";
+        content: `import {
+  Aggregate,
+  Id,
+  EntityValidation,
+  EntityHooks,
+} from "@woltz/rich-domain";
 import { z } from "zod";
 import { Role } from "./enums.js";
 import { Post } from "./post.aggregate.js";
+import { UserCreatedEvent } from "../events/user/user-created.event.js";
 
 /**
  * User Validation Schema (scalar fields only)
@@ -593,6 +573,12 @@ export type UserProps = z.infer<typeof userSchema>;
 export class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
+  };
+
+  protected static hooks: EntityHooks<UserProps, User> = {
+    onCreate: (entity) => {
+      entity.addDomainEvent(new UserCreatedEvent(entity.id));
+    },
   };
 
   get email(): string {
@@ -1055,7 +1041,7 @@ export class PostRepository
       include: this.includes,
     });
 
-    return raw.map((r) => this.toDomainMapper.build(r));
+    return await Promise.all(raw.map(this.toDomainMapper.build));
   }
 
   async findPublished(): Promise<Post[]> {
@@ -1064,7 +1050,7 @@ export class PostRepository
       include: this.includes,
     });
 
-    return raw.map((r) => this.toDomainMapper.build(r));
+    return await Promise.all(raw.map(this.toDomainMapper.build));
   }
 
   generateSearchQuery(search: string): Prisma.PostWhereInput[] {
@@ -1085,8 +1071,8 @@ export * from "./post.repository.js";
       // Jobs
       {
         path: "src/infra/queue/event-bus.ts",
-        content: `import { DomainEventBus } from "@woltz/rich-domain";
-import { UserCreatedEvent } from "../../domain/events/user/user-create.event";
+        content: `import { UserCreatedEvent } from "@/domain/events/user/user-created.event";
+import { DomainEventBus } from "@woltz/rich-domain";
 
 export const EVENT_BUS = DomainEventBus.getInstance();
 
@@ -1127,6 +1113,145 @@ export async function enqueueDomainEvent(event: IDomainEvent) {
 }
 `,
       },
+      // DI
+      {
+        path: "src/infra/di/container.ts",
+        content: `import { PrismaClient } from "@prisma/client";
+import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { prisma } from "../database/prisma.js";
+import { createUnitOfWork } from "../database/unit-of-work.js";
+import { UserRepository } from "../repository/user.repository.js";
+import { PostRepository } from "../repository/post.repository.js";
+import { UserService } from "@/application/services/user.service.js";
+import { PostService } from "@/application/services/post.service.js";
+
+export class Container {
+  private static instance: Container;
+  private services = new Map<string, any>();
+
+  private constructor() {
+    this.registerDependencies();
+  }
+
+  static getInstance(): Container {
+    if (!Container.instance) {
+      Container.instance = new Container();
+    }
+    return Container.instance;
+  }
+
+  private registerDependencies() {
+    // Infrastructure dependencies
+    this.register("prisma", () => prisma);
+    this.register("unitOfWork", () => createUnitOfWork());
+
+    // Repositories
+    this.register(
+      "userRepository",
+      () =>
+        new UserRepository(
+          this.resolve<PrismaClient>("prisma"),
+          this.resolve<PrismaUnitOfWork>("unitOfWork")
+        )
+    );
+
+    this.register(
+      "postRepository",
+      () =>
+        new PostRepository(
+          this.resolve<PrismaClient>("prisma"),
+          this.resolve<PrismaUnitOfWork>("unitOfWork")
+        )
+    );
+
+    // Services
+    this.register(
+      "userService",
+      () => new UserService(this.resolve<UserRepository>("userRepository"))
+    );
+
+    this.register(
+      "postService",
+      () => new PostService(this.resolve<PostRepository>("postRepository"))
+    );
+  }
+
+  private register<T>(name: string, factory: () => T): void {
+    this.services.set(name, { factory, instance: null });
+  }
+
+  resolve<T>(name: string): T {
+    const service = this.services.get(name);
+
+    if (!service) {
+      throw new Error(\`Service \${name} not found in container\`);
+    }
+
+    // Singleton pattern - create only once
+    if (!service.instance) {
+      service.instance = service.factory();
+    }
+
+    return service.instance;
+  }
+
+  // Type-safe getters for easy access
+  get userService(): UserService {
+    return this.resolve<UserService>("userService");
+  }
+
+  get postService(): PostService {
+    return this.resolve<PostService>("postService");
+  }
+
+  get userRepository(): UserRepository {
+    return this.resolve<UserRepository>("userRepository");
+  }
+
+  get postRepository(): PostRepository {
+    return this.resolve<PostRepository>("postRepository");
+  }
+
+  // Reset for testing
+  reset(): void {
+    this.services.forEach((service) => {
+      service.instance = null;
+    });
+  }
+}
+
+// Export singleton instance
+export const container = Container.getInstance();
+`,
+      },
+      {
+        path: "src/infra/di/fastify-plugin.ts",
+        content: `import { FastifyPluginAsync } from "fastify";
+import fp from "fastify-plugin";
+import { container, Container } from "./container.js";
+
+// Extend Fastify types
+declare module "fastify" {
+  interface FastifyInstance {
+    container: Container;
+  }
+}
+
+const diPlugin: FastifyPluginAsync = async (fastify) => {
+  fastify.decorate("container", container);
+};
+
+export default fp(diPlugin, {
+  name: "di-container",
+});
+`,
+      },
+      {
+        path: "src/infra/di/index.ts",
+        content: `export { container, Container } from "./container.js";
+export { default as diPlugin } from "./fastify-plugin.js";
+`,
+      },
       {
         path: "src/infra/queue/event-worker.ts",
         content: `import { Worker } from "bullmq";
@@ -1164,14 +1289,10 @@ import {
 import { listUserDto } from "../dto/user/list-user.dto";
 import { Criteria } from "@woltz/rich-domain";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
-import { UserService } from "@/application/services";
-import { UserRepository } from "@/infra/repository";
-import { prisma } from "@/infra/database/prisma";
-import { createUnitOfWork } from "@/infra/database/unit-of-work";
 import { createUserDto } from "../dto/user/create-user.dto";
 
 const filters = defineFilters((f) => ({
-  email: f.email(),
+  email: f.string(),
   name: f.string(),
 }));
 
@@ -1184,9 +1305,7 @@ const querySchema = CriteriaQuerySchema(filters, {
 });
 
 export const userRoutes: FastifyPluginAsync = async (fastify) => {
-  const uow = createUnitOfWork();
-  const repo = new UserRepository(prisma, uow);
-  const userService = new UserService(repo);
+  const { userService } = fastify.container;
 
   // List users
   fastify.withTypeProvider<ZodTypeProvider>().route({
@@ -1219,7 +1338,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 };
 `,
       },
-      // DTO
+      // HTTP/DTO
       {
         path: "src/infra/http/dto/user/create-user.dto.ts",
         content: `import { Role } from "@/domain/entities";
@@ -1275,7 +1394,8 @@ export type ListUserDto = z.infer<typeof listUserDto>;
         path: "src/application/services/user.service.ts",
         content: `import { User } from "@/domain/entities";
 import { CreateUserDto } from "@/infra/http/dto/user/create-user.dto";
-import { UserRepository } from "@/infra/repository/user.repository.js";
+import { EVENT_BUS } from "@/infra/queue/event-bus";
+import { UserRepository } from "@/infra/repository/user.repository";
 import { Criteria, EntityAlreadyExistsError } from "@woltz/rich-domain";
 
 export class UserService {
@@ -1299,7 +1419,9 @@ export class UserService {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    return await this.userRepository.save(user);
+
+    await this.userRepository.save(user);
+    await user.dispatchAll(EVENT_BUS);
   }
 }
 `,
