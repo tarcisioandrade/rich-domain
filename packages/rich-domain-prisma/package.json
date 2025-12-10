@@ -3,9 +3,16 @@
   "version": "0.7.0",
   "description": "Prisma integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
   "author": "Tarcisio Andrade",
   "license": "MIT",
   "publishConfig": {
@@ -25,13 +32,17 @@
     "**/package.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
     "test": "echo 'No tests yet'",
     "test:watch": "echo 'No tests yet'",
     "check": "tsc --noEmit",
     "coverage": "echo 'No coverage yet'",
     "lint": "echo 'No linting yet'",
-    "clean": "rm -rf dist coverage node_modules",
+    "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
