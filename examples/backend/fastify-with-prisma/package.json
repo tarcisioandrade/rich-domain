@@ -1,5 +1,5 @@
 {
-  "name": "fastify-ddd-project",
+  "name": "fastify-with-prisma",
   "version": "1.0.0",
   "description": "Fastify project with DDD, Prisma, and Zod",
   "main": "dist/server.js",
