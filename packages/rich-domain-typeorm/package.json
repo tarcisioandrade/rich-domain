@@ -1,0 +1,65 @@
+{
+  "name": "@woltz/rich-domain-typeorm",
+  "version": "0.1.0",
+  "description": "TypeORM integration for Rich Domain Library",
+  "homepage": "https://woltz.mintlify.app",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain-typeorm"
+  },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
+    "test": "echo 'No tests yet'",
+    "test:watch": "echo 'No tests yet'",
+    "check": "tsc --noEmit",
+    "coverage": "echo 'No coverage yet'",
+    "lint": "echo 'No linting yet'",
+    "clean": "rm -rf dist coverage node_modules",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "typeorm",
+    "orm",
+    "repository",
+    "unit-of-work",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.5.0",
+    "typeorm": ">=0.3.0",
+    "typescript": ">=4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
