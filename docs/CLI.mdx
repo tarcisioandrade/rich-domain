@@ -1,53 +1,230 @@
 ---
-title: "CLI"
-description: "Generate domain entities, repositories, and mappers from Prisma schemas"
+title: "cli"
+description: "Initialize projects and generate domain entities from Prisma schemas"
+sidebarTitle: "CLI"
 ---
 
 ## Overview
 
-`@woltz/rich-domain-cli` is a command-line tool that generates domain entities, aggregates, repositories, and mappers from your Prisma schema. It analyzes relationships to automatically classify models as Aggregates or Entities.
+`@woltz/rich-domain-cli` provides CLI tools for scaffolding DDD projects and generating domain entities from Prisma schemas.
 
 ```bash
 npm install -D @woltz/rich-domain-cli
 
 # Or run directly with npx
-npx @woltz/rich-domain-cli generate
+npx @woltz/rich-domain-cli <command>
 ```
 
 <CardGroup cols={2}>
 
+<Card title="Project Scaffolding" icon="rocket">
+  Initialize complete projects from templates
+</Card>
+
 <Card title="Prisma Introspection" icon="database">
-  Reads schema using @prisma/internals DMMF
+  Generate domain from existing schemas
 </Card>
 
 <Card title="Smart Classification" icon="brain">
-  Auto-detects Aggregates vs Entities from relationships
-</Card>
-
-<Card title="Dependency Resolution" icon="diagram-project">
-  Topological sort ensures correct generation order
+  Auto-detects Aggregates vs Entities
 </Card>
 
 <Card title="Full Stack Generation" icon="layer-group">
-  Schemas, entities, repositories, and mappers
+  Schemas, entities, repositories, mappers
 </Card>
 
 </CardGroup>
 
-## Quick Start
+---
+
+## Commands
+
+The CLI provides two main commands:
+
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize a new project from a template |
+| `generate` | Generate domain entities from Prisma schema |
+
+---
+
+## init
+
+Initialize a new DDD project from a template with all infrastructure pre-configured.
 
 ```bash
-# Generate from default prisma/schema.prisma
+npx rich-domain init [directory] [options]
+```
+
+### Options
+
+| Option | Alias | Default | Description |
+|--------|-------|---------|-------------|
+| `--template <n>` | `-t` | Prompt | Template to use |
+| `--package-manager <pm>` | `-p` | Prompt | `npm`, `pnpm`, `yarn`, or `bun` |
+| `--force` | `-f` | `false` | Skip prompts and overwrite existing |
+
+### Examples
+
+```bash
+# Interactive mode
+npx rich-domain init my-app
+
+# Specify template and package manager
+npx rich-domain init my-app --template fullstack -p pnpm
+
+# Initialize in current directory
+npx rich-domain init . --template fullstack
+
+# Skip all prompts
+npx rich-domain init my-app -t fullstack -p npm -f
+```
+
+### Available Templates
+
+#### fullstack
+
+Complete API setup with Fastify, Prisma, BullMQ, Zod, and Docker.
+
+**Tech Stack:**
+- **API:** Fastify 5 with Zod validation
+- **ORM:** Prisma 6 with PostgreSQL
+- **Queue:** BullMQ with Redis
+- **Validation:** Zod + `@woltz/rich-domain-criteria-zod`
+- **Infrastructure:** Docker Compose (PostgreSQL + Redis)
+
+**Generated Structure:**
+
+```
+my-app/
+├── docker-compose.yml          # PostgreSQL + Redis
+├── Dockerfile                  # Production build
+├── package.json
+├── tsconfig.json
+├── .env.example
+├── prisma/
+│   └── schema.prisma           # User + Post models
+└── src/
+    ├── main.ts                 # Entry point
+    ├── server.ts               # Fastify setup
+    ├── worker.ts               # BullMQ worker
+    ├── config/
+    │   └── index.ts
+    ├── domain/
+    │   ├── user/
+    │   │   ├── user.schema.ts
+    │   │   └── user.aggregate.ts
+    │   └── post/
+    │       ├── post.schema.ts
+    │       └── post.aggregate.ts
+    ├── infra/
+    │   ├── database/
+    │   │   └── prisma.ts
+    │   ├── di/
+    │   │   ├── container.ts    # DI container
+    │   │   └── fastify-plugin.ts
+    │   ├── http/
+    │   │   ├── controllers/
+    │   │   └── dto/
+    │   ├── queue/
+    │   │   ├── event-bus.ts
+    │   │   ├── event-queue.ts
+    │   │   └── event-worker.ts
+    │   └── repositories/
+    │       ├── user.repository.ts
+    │       └── post.repository.ts
+    └── application/
+        └── services/
+```
+
+**Dependencies Included:**
+
+```json
+{
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/helmet": "^13.0.0",
+    "@fastify/sensible": "^6.0.1",
+    "@prisma/client": "^6.1.0",
+    "@woltz/rich-domain": "^1.5.0",
+    "@woltz/rich-domain-criteria-zod": "^0.1.2",
+    "@woltz/rich-domain-prisma": "^0.7.1",
+    "bullmq": "^5.64.0",
+    "fastify": "^5.1.0",
+    "fastify-type-provider-zod": "^6.1.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2",
+    "prisma": "^6.1.0",
+    "vitest": "^2.1.8"
+  }
+}
+```
+
+**Available Scripts:**
+
+| Script | Description |
+|--------|-------------|
+| `dev` | Start development server with hot reload |
+| `build` | Build for production |
+| `start` | Start production server |
+| `test` | Run tests with Vitest |
+| `db:generate` | Generate Prisma client |
+| `db:migrate` | Run Prisma migrations |
+| `db:push` | Push schema to database |
+| `db:studio` | Open Prisma Studio |
+| `domain:generate` | Generate domain from Prisma |
+| `docker:up` | Start Docker services |
+| `docker:down` | Stop Docker services |
+| `worker:start` | Start BullMQ worker |
+
+### Post-Install Steps
+
+```bash
+cd my-app
+npm install
+cp .env.example .env
+npm run docker:up
+npm run db:push
+npm run dev
+
+# Your API will be running at http://localhost:3000
+```
+
+---
+
+## generate
+
+Generate domain entities, repositories, and mappers from your Prisma schema.
+
+```bash
+npx rich-domain generate [options]
+```
+
+### Options
+
+| Option | Alias | Default | Description |
+|--------|-------|---------|-------------|
+| `--schema <path>` | `-s` | Auto-detect | Path to Prisma schema file |
+| `--output <path>` | `-o` | `src` | Output directory |
+| `--validation <type>` | `-v` | Auto-detect | `zod`, `valibot`, `arktype`, or `none` |
+| `--models <names>` | `-m` | All models | Comma-separated list of models |
+| `--dry-run` | - | `false` | Preview without writing files |
+| `--force` | `-f` | `false` | Skip confirmation prompts |
+
+### Examples
+
+```bash
+# Basic usage (auto-detect schema and validation)
 npx rich-domain generate
 
 # Specify schema path
-npx rich-domain generate --schema prisma/schema.prisma
+npx rich-domain generate --schema ./prisma/schema.prisma
 
-# Generate to custom directory
-npx rich-domain generate --output src/domain
-
-# Use specific validation library
-npx rich-domain generate --validation zod
+# Generate to custom directory with Zod
+npx rich-domain generate --output ./src/domain --validation zod
 
 # Generate only specific models
 npx rich-domain generate --models User,Post,Comment
@@ -56,51 +233,9 @@ npx rich-domain generate --models User,Post,Comment
 npx rich-domain generate --dry-run
 ```
 
----
+### Package Detection
 
-## Command Reference
-
-### generate
-
-Generate domain files from Prisma schema.
-
-```bash
-npx rich-domain generate [options]
-```
-
-#### Options
-
-| Option | Alias | Default | Description |
-|--------|-------|---------|-------------|
-| `--schema <path>` | `-s` | Auto-detect | Path to Prisma schema file |
-| `--output <path>` | `-o` | `src/domain` | Output directory |
-| `--validation <type>` | `-v` | Auto-detect | Validation library: `zod`, `valibot`, `arktype` |
-| `--models <names>` | `-m` | All models | Comma-separated list of models to generate |
-| `--dry-run` | - | `false` | Preview without writing files |
-| `--force` | `-f` | `false` | Skip confirmation prompts |
-
-#### Examples
-
-```bash
-# Basic usage
-npx rich-domain generate
-
-# Full options
-npx rich-domain generate \
-  --schema ./prisma/schema.prisma \
-  --output ./src/domain \
-  --validation zod \
-  --models User,Post,Comment
-
-# Preview mode
-npx rich-domain generate --dry-run
-```
-
----
-
-## Package Detection
-
-The CLI automatically detects installed packages and adjusts generation:
+The CLI automatically detects installed packages and adjusts generation accordingly:
 
 ```bash
 🔍 Rich Domain Generator
@@ -124,34 +259,32 @@ Detected packages:
   Repository and mapper files are only generated when `@woltz/rich-domain-prisma` is installed.
 </Warning>
 
----
-
-## Generated Structure
+### Generated Structure
 
 For a Prisma schema with `User`, `Post`, and `Comment` models:
 
 ```
-src/domain/
+src/
 ├── shared/
 │   └── enums.ts                        # All Prisma enums
 ├── user/
 │   ├── index.ts                        # Barrel export
 │   ├── user.schema.ts                  # Zod schema
 │   ├── user.aggregate.ts               # Aggregate class
-│   ├── user.repository.ts              # Repository (if prisma adapter installed)
-│   ├── user-to-domain.mapper.ts        # Domain mapper
-│   └── user-to-persistence.mapper.ts   # Persistence mapper
+│   ├── user.repository.ts              # Repository*
+│   ├── user-to-domain.mapper.ts        # Domain mapper*
+│   └── user-to-persistence.mapper.ts   # Persistence mapper*
 ├── post/
 │   ├── index.ts
 │   ├── post.schema.ts
 │   ├── post.aggregate.ts               # Aggregate (has children)
-│   ├── post.repository.ts
-│   ├── post-to-domain.mapper.ts
-│   └── post-to-persistence.mapper.ts
+│   └── ...
 └── comment/
     ├── index.ts
     ├── comment.schema.ts
     └── comment.entity.ts               # Entity (owned by Post)
+
+* Only generated when @woltz/rich-domain-prisma is installed
 ```
 
 ---
@@ -216,7 +349,7 @@ model User {
   id        String     @id @default(uuid())
   email     String     @unique
   name      String
-  status    UserStatus @default(ACTIVE)
+  role      Role       @default(USER)
   posts     Post[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -232,34 +365,32 @@ model Post {
   createdAt DateTime @default(now())
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
+enum Role {
+  USER
+  ADMIN
 }
 ```
 
 ### Output: Zod Schema
 
 ```typescript
-// src/domain/user/user.schema.ts
+// src/user/user.schema.ts
 import { z } from "zod";
 import { Id } from "@woltz/rich-domain";
 import { Post } from "../post/post.aggregate.js";
 
-export const UserStatus = {
-  ACTIVE: "ACTIVE",
-  INACTIVE: "INACTIVE",
-  PENDING: "PENDING",
+export const Role = {
+  USER: "USER",
+  ADMIN: "ADMIN",
 } as const;
 
-export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+export type Role = (typeof Role)[keyof typeof Role];
 
 export const userSchema = z.object({
   id: z.custom<Id>((v) => v instanceof Id),
   email: z.string().email(),
   name: z.string(),
-  status: z.nativeEnum(UserStatus),
+  role: z.nativeEnum(Role),
   posts: z.array(z.custom<Post>((v) => v instanceof Post)),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -271,9 +402,9 @@ export type UserProps = z.infer<typeof userSchema>;
 ### Output: Aggregate Class
 
 ```typescript
-// src/domain/user/user.aggregate.ts
+// src/user/user.aggregate.ts
 import { Aggregate, Id, EntityValidation } from "@woltz/rich-domain";
-import { userSchema, UserProps, UserStatus } from "./user.schema.js";
+import { userSchema, UserProps, Role } from "./user.schema.js";
 import { Post } from "../post/post.aggregate.js";
 
 export class User extends Aggregate<UserProps> {
@@ -292,8 +423,8 @@ export class User extends Aggregate<UserProps> {
     this.props.name = value;
   }
 
-  get status() {
-    return this.props.status;
+  get role() {
+    return this.props.role;
   }
 
   get posts() {
@@ -308,7 +439,7 @@ export class User extends Aggregate<UserProps> {
     return this.props.updatedAt;
   }
 
-  // Generated collection methods
+  // Collection methods
   addPost(post: Post): void {
     this.props.posts.push(post);
   }
@@ -325,7 +456,7 @@ export class User extends Aggregate<UserProps> {
 ### Output: Entity Class
 
 ```typescript
-// src/domain/comment/comment.entity.ts
+// src/comment/comment.entity.ts
 import { Entity, Id, EntityValidation } from "@woltz/rich-domain";
 import { commentSchema, CommentProps } from "./comment.schema.js";
 
@@ -350,7 +481,7 @@ export class Comment extends Entity<CommentProps> {
 ### Output: Repository
 
 ```typescript
-// src/domain/user/user.repository.ts
+// src/user/user.repository.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 import { User } from "./user.aggregate.js";
@@ -384,7 +515,7 @@ export class UserRepository extends PrismaRepository<User> {
 ### Output: Domain Mapper
 
 ```typescript
-// src/domain/user/user-to-domain.mapper.ts
+// src/user/user-to-domain.mapper.ts
 import { Mapper, Id } from "@woltz/rich-domain";
 import { User } from "./user.aggregate.js";
 import { Post } from "../post/post.aggregate.js";
@@ -393,7 +524,7 @@ type PrismaUser = {
   id: string;
   email: string;
   name: string;
-  status: string;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -408,7 +539,7 @@ export class UserToDomainMapper extends Mapper<PrismaUserWithRelations, User> {
       id: Id.from(raw.id),
       email: raw.email,
       name: raw.name,
-      status: raw.status as UserStatus,
+      role: raw.role as Role,
       posts: raw.posts?.map((item) => this.mapPost(item)) ?? [],
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
@@ -430,7 +561,7 @@ export class UserToDomainMapper extends Mapper<PrismaUserWithRelations, User> {
 ### Output: Persistence Mapper
 
 ```typescript
-// src/domain/user/user-to-persistence.mapper.ts
+// src/user/user-to-persistence.mapper.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaToPersistence, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 import { User } from "./user.aggregate.js";
@@ -447,7 +578,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
       id: entity.id.value,
       email: entity.email,
       name: entity.name,
-      status: entity.status,
+      role: entity.role,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -456,7 +587,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
   protected toPrismaUpdate(entity: User) {
     return {
       name: entity.name,
-      status: entity.status,
+      role: entity.role,
       updatedAt: new Date(),
     };
   }
@@ -494,7 +625,6 @@ Generation Order:
 ### Zod (Default)
 
 ```typescript
-// user.schema.ts
 import { z } from "zod";
 
 export const userSchema = z.object({
@@ -510,7 +640,6 @@ export const userSchema = z.object({
 ### Valibot
 
 ```typescript
-// user.schema.ts
 import * as v from "valibot";
 
 export const userSchema = v.object({
@@ -526,7 +655,6 @@ export const userSchema = v.object({
 ### ArkType
 
 ```typescript
-// user.schema.ts
 import { type } from "arktype";
 
 export const userSchema = type({
@@ -542,7 +670,6 @@ export const userSchema = type({
 ### None (Interfaces Only)
 
 ```typescript
-// user.schema.ts
 import { Id } from "@woltz/rich-domain";
 
 export interface UserProps {
@@ -591,7 +718,7 @@ Some scenarios require manual adjustment:
 ## Requirements
 
 - Node.js >= 20
-- Prisma schema file
+- Prisma schema file (for `generate` command)
 - `@woltz/rich-domain` (required)
 - `@woltz/rich-domain-prisma` (optional, for repositories/mappers)
 - Validation library (optional, for runtime validation)

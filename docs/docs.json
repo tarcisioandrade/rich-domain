@@ -7,6 +7,10 @@
     "light": "#818cf8",
     "dark": "#4f46e5"
   },
+  "banner": {
+  "content": "🚀 CLI is now live! See our [documentation](/cli) for details.",
+  "dismissible": true 
+},
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
