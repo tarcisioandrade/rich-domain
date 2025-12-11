@@ -1,7 +1,6 @@
 ---
 title: "CLI"
 description: "Initialize projects and generate domain entities from Prisma schemas"
-sidebarTitle: "CLI"
 ---
 
 ## Overview
@@ -39,12 +38,13 @@ npx @woltz/rich-domain-cli <command>
 
 ## Commands
 
-The CLI provides two main commands:
+The CLI provides three main commands:
 
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize a new project from a template |
 | `generate` | Generate domain entities from Prisma schema |
+| `add` | Manually create entity, aggregate, or value object |
 
 ---
 
@@ -722,3 +722,221 @@ Some scenarios require manual adjustment:
 - `@woltz/rich-domain` (required)
 - `@woltz/rich-domain-prisma` (optional, for repositories/mappers)
 - Validation library (optional, for runtime validation)
+
+---
+
+## add
+
+Manually create an entity, aggregate, or value object without requiring a Prisma schema.
+
+```bash
+npx rich-domain add <name> [...props] [options]
+```
+
+### Options
+
+| Option | Alias | Default | Description |
+|--------|-------|---------|-------------|
+| `--aggregate` | `-a` | `true` | Create an Aggregate (default) |
+| `--entity` | `-e` | `false` | Create an Entity |
+| `--value-object` | `-v` | `false` | Create a Value Object |
+| `--with-repo` | - | `false` | Generate repository interface and implementation |
+| `--with-mapper` | - | `false` | Generate ToDomain and ToPersistence mappers |
+| `--with-all` | - | `false` | Generate repository and mappers |
+| `--output <path>` | `-o` | Auto-detect | Output directory |
+| `--force` | `-f` | `false` | Skip prompts and overwrite |
+
+### Examples
+
+```bash
+# Create a simple aggregate
+npx rich-domain add User
+
+# Create with properties
+npx rich-domain add User name:string email:string
+
+# Create with optional and enum properties
+npx rich-domain add User name:string role:(USER,ADMIN) age:number?
+
+# Create a Value Object
+npx rich-domain add Email -v value:string
+
+# Create an Entity
+npx rich-domain add OrderItem -e quantity:number price:number
+
+# Create with relations
+npx rich-domain add Product name:string author:User tags:Tag[]
+
+# Create with repository and mappers
+npx rich-domain add Order --with-all
+```
+
+### Props Syntax
+
+The props follow a `name:type` format with support for various modifiers:
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `name:string` | Required string | `email:string` |
+| `name:number` | Required number | `age:number` |
+| `name:boolean` | Required boolean | `isActive:boolean` |
+| `name:date` | Required date | `createdAt:date` |
+| `name:type?` | Optional (nullable) | `bio:string?` |
+| `name:type[]` | Array | `tags:string[]` |
+| `name:(A,B,C)` | Inline enum | `status:(ACTIVE,INACTIVE)` |
+| `name:Entity` | Relation (PascalCase) | `author:User` |
+| `name:Entity[]` | Array relation | `posts:Post[]` |
+
+### Props Examples
+
+```bash
+# Basic types
+npx rich-domain add User \
+  name:string \
+  email:string \
+  age:number \
+  isAdmin:boolean \
+  createdAt:date
+
+# Optional fields
+npx rich-domain add Profile \
+  bio:string? \
+  website:string? \
+  avatar:string?
+
+# Arrays
+npx rich-domain add Article \
+  title:string \
+  tags:string[] \
+  categories:string[]
+
+# Enums
+npx rich-domain add Order \
+  status:(PENDING,PROCESSING,SHIPPED,DELIVERED) \
+  priority:(LOW,MEDIUM,HIGH)
+
+# Relations
+npx rich-domain add Post \
+  title:string \
+  content:string \
+  author:User \
+  comments:Comment[]
+
+# Combined
+npx rich-domain add Product \
+  name:string \
+  price:number \
+  description:string? \
+  status:(DRAFT,PUBLISHED,ARCHIVED) \
+  tags:string[] \
+  category:Category \
+  reviews:Review[]
+```
+
+### Generated Output
+
+For `npx rich-domain add Product name:string price:number status:(DRAFT,PUBLISHED)`:
+
+```typescript
+// src/domain/entities/product.aggregate.ts
+import { Aggregate, Id, EntityValidation } from "@woltz/rich-domain";
+import { z } from "zod";
+
+export enum Status {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+}
+
+export const productSchema = z.object({
+  id: z.instanceof(Id),
+  name: z.string(),
+  price: z.number(),
+  status: z.nativeEnum(Status),
+});
+
+export type ProductProps = z.infer<typeof productSchema>;
+
+export class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+  };
+
+  get name(): string {
+    return this.props.name;
+  }
+
+  get price(): number {
+    return this.props.price;
+  }
+
+  get status(): Status {
+    return this.props.status;
+  }
+}
+```
+
+### Value Object Example
+
+For `npx rich-domain add Email -v value:string`:
+
+```typescript
+// src/domain/value-objects/email.value-object.ts
+import { ValueObject, VOValidation } from "@woltz/rich-domain";
+import { z } from "zod";
+
+export const emailSchema = z.object({
+  value: z.string(),
+});
+
+export type EmailProps = z.infer<typeof emailSchema>;
+
+export class Email extends ValueObject<EmailProps> {
+  protected static validation: VOValidation<EmailProps> = {
+    schema: emailSchema,
+  };
+
+  get value(): string {
+    return this.props.value;
+  }
+}
+```
+
+### Auto-Detection
+
+The `add` command automatically detects:
+
+1. **Validation Library**: Checks `package.json` for `zod`, `valibot`, or `arktype`
+2. **Prisma Adapter**: Detects `@woltz/rich-domain-prisma` for repository/mapper generation
+3. **Output Directory**: Looks for existing `src/domain` or `src` directories
+
+### With Repository and Mappers
+
+When using `--with-repo`, `--with-mapper`, or `--with-all`, additional files are generated:
+
+```bash
+npx rich-domain add Order \
+  total:number \
+  status:(PENDING,PAID,SHIPPED) \
+  --with-all
+```
+
+Generates:
+
+```
+src/
+├── domain/
+│   ├── entities/
+│   │   └── order.aggregate.ts
+│   └── repository/
+│       └── order.repository.ts      # Interface
+└── infra/
+    ├── mappers/
+    │   ├── order-to-domain.mapper.ts
+    │   └── order-to-persistence.mapper.ts
+    └── repository/
+        └── order.repository.ts       # Implementation
+```
+
+<Note>
+  If `@woltz/rich-domain-prisma` is not installed, generic implementations are generated that you'll need to customize for your database.
+</Note>
