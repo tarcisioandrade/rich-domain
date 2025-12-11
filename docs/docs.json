@@ -8,7 +8,7 @@
     "dark": "#4f46e5"
   },
   "banner": {
-  "content": "🚀 CLI is now live! See our [documentation](/cli) for details.",
+  "content": "🚀 CLI is now live! See our [documentation](/CLI) for details.",
   "dismissible": true 
 },
   "logo": {
