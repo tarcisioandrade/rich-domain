@@ -15,6 +15,9 @@ import {
 } from "fastify-type-provider-zod";
 import { userRoutes } from "./infrastructure/http/routes/user.routes";
 import { postRoutes } from "./infrastructure/http/routes/post.routes";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = fastify({
   logger: true,
@@ -65,7 +68,7 @@ const start = async () => {
       await enqueueDomainEvent(event);
     });
 
-    const port = Number(process.env.PORT) || 3001;
+    const port = Number(process.env.PORT) || 3000;
 
     await app.ready();
     await app.listen({ port, host: "0.0.0.0" });

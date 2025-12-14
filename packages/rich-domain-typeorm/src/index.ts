@@ -15,6 +15,7 @@ export {
 export {
   TypeORMQueryBuilder,
   type SearchableField,
+  type SearchableFieldConfig,
 } from "./criteria/query-builder";
 export { Transactional } from "./decorators/transactional";
 export {

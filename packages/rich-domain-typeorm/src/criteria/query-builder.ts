@@ -2,30 +2,57 @@ import { SelectQueryBuilder, Brackets, ObjectLiteral, WhereExpressionBuilder } f
 import { Criteria } from "@woltz/rich-domain";
 
 /**
- * Type helper for searchable fields.
- *
- * Supports both direct entity fields and nested relation fields.
- * Use this type to get autocomplete and type safety when defining searchable fields.
+ * Configuration for a searchable field.
  *
  * @example
  * ```typescript
- * // Without typing (not recommended):
- * protected getSearchableFields(): string[] {
- *   return ['name', 'email']; // No type checking
+ * {
+ *   field: 'email',
+ *   caseSensitive: true  // Default: false
+ * }
+ * ```
+ */
+export interface SearchableFieldConfig {
+  /**
+   * Field name (can be nested like 'author.name')
+   */
+  field: string;
+
+  /**
+   * Whether the search should be case-sensitive.
+   * Default: false (case-insensitive)
+   */
+  caseSensitive?: boolean;
+}
+
+/**
+ * Type helper for searchable fields.
+ *
+ * Supports both direct entity fields and nested relation fields.
+ * Can be a simple string (case-insensitive by default) or a config object.
+ *
+ * @example
+ * ```typescript
+ * // Simple strings (case-insensitive by default):
+ * protected getSearchableFields(): SearchableField<UserEntity>[] {
+ *   return ['name', 'email', 'posts.title'];
  * }
  *
- * // With typing (recommended):
+ * // With configuration:
  * protected getSearchableFields(): SearchableField<UserEntity>[] {
  *   return [
- *     'name',           // ✓ Type-safe: direct field
- *     'email',          // ✓ Type-safe: direct field
- *     'posts.title',    // ✓ Nested relation field
- *     'profile.bio'     // ✓ Nested relation field
+ *     'name',                                    // case-insensitive
+ *     { field: 'email', caseSensitive: false },  // case-insensitive
+ *     { field: 'code', caseSensitive: true },    // case-sensitive
+ *     'posts.title'                              // case-insensitive
  *   ];
  * }
  * ```
  */
-export type SearchableField<T> = Extract<keyof T, string> | `${string}.${string}`;
+export type SearchableField<T> =
+  | Extract<keyof T, string>
+  | `${string}.${string}`
+  | SearchableFieldConfig;
 
 /**
  * Converts rich-domain Criteria to TypeORM QueryBuilder.
@@ -62,25 +89,21 @@ export class TypeORMQueryBuilder {
     qb: SelectQueryBuilder<T>,
     criteria: Criteria<any>,
     alias: string = "entity",
-    searchableFields?: string[]
+    searchableFields?: Array<string | SearchableFieldConfig>
   ): SelectQueryBuilder<T> {
-    // Apply filters
     const filters = criteria.getFilters();
     this.applyFilters(qb, filters, alias);
 
-    // Apply search
     if (criteria.hasSearch() && searchableFields && searchableFields.length > 0) {
       const search = criteria.getSearch()!;
       this.applySearch(qb, search, searchableFields, alias);
     }
 
-    // Apply ordering
     const orders = criteria.getOrders();
     if (orders && orders.length > 0) {
       this.applyOrdering(qb, orders, alias);
     }
 
-    // Apply pagination
     const pagination = criteria.getPagination();
     if (pagination) {
       this.applyPagination(qb, pagination);
@@ -103,7 +126,6 @@ export class TypeORMQueryBuilder {
   ): void {
     if (filters.length === 0) return;
 
-    // First filter uses where(), rest use andWhere()
     filters.forEach((filter, index) => {
       const paramName = `param_${filter.field}_${index}`;
       const fieldPath = `${alias}.${filter.field}`;
@@ -129,40 +151,48 @@ export class TypeORMQueryBuilder {
    *
    * Supports both direct fields and nested relation fields.
    * Automatically creates LEFT JOINs for relation fields.
+   * Supports case-sensitive and case-insensitive search.
    *
    * Combines search conditions with existing filters using AND.
    *
    * @example
    * ```typescript
-   * // Direct fields only
-   * applySearch(qb, "john", ["name", "email", "username"], "user");
-   * // Generates: WHERE ... AND (user.name LIKE '%john%' OR user.email LIKE '%john%' OR user.username LIKE '%john%')
+   * // Case-insensitive by default (using LOWER)
+   * applySearch(qb, "john", ["name", "email"], "user");
+   * // Generates: WHERE ... AND (LOWER(user.name) LIKE LOWER('%john%') OR LOWER(user.email) LIKE LOWER('%john%'))
    *
-   * // With nested relation fields
-   * applySearch(qb, "tech", ["name", "posts.title", "profile.bio"], "user");
-   * // Generates:
-   * // LEFT JOIN user.posts posts
-   * // LEFT JOIN user.profile profile
-   * // WHERE ... AND (user.name LIKE '%tech%' OR posts.title LIKE '%tech%' OR profile.bio LIKE '%tech%')
+   * // Case-sensitive search
+   * applySearch(qb, "Code123", [{ field: "code", caseSensitive: true }], "product");
+   * // Generates: WHERE ... AND (product.code LIKE '%Code123%')
+   *
+   * // Mixed configuration
+   * applySearch(qb, "tech", [
+   *   "name",                                  // case-insensitive
+   *   { field: "code", caseSensitive: true }, // case-sensitive
+   *   "posts.title"                            // case-insensitive
+   * ], "product");
    * ```
    */
   private static applySearch<T extends ObjectLiteral>(
     qb: SelectQueryBuilder<T>,
     search: string,
-    searchableFields: string[],
+    searchableFields: Array<string | SearchableFieldConfig>,
     alias: string
   ): void {
     if (!search || searchableFields.length === 0) return;
 
-    // Track which relations we've already joined to avoid duplicates
     const joinedRelations = new Set<string>();
 
-    // First, add all necessary joins for nested fields
-    searchableFields.forEach((field) => {
-      if (field.includes('.')) {
-        const [relation] = field.split('.');
+    const normalizedFields = searchableFields.map((field) => {
+      if (typeof field === 'string') {
+        return { field, caseSensitive: false };
+      }
+      return { ...field, caseSensitive: field.caseSensitive ?? false };
+    });
 
-        // Only join if we haven't already joined this relation
+    normalizedFields.forEach((config) => {
+      if (config.field.includes('.')) {
+        const [relation] = config.field.split('.');
         if (!joinedRelations.has(relation)) {
           qb.leftJoin(`${alias}.${relation}`, relation);
           joinedRelations.add(relation);
@@ -170,18 +200,23 @@ export class TypeORMQueryBuilder {
       }
     });
 
-    // Then apply the search conditions
     qb.andWhere(
       new Brackets((subQb: WhereExpressionBuilder) => {
-        searchableFields.forEach((field, index) => {
-          const paramName = `search_${field.replace(/\./g, '_')}_${index}`;
+        normalizedFields.forEach((config, index) => {
+          const paramName = `search_${config.field.replace(/\./g, '_')}_${index}`;
+          const fieldPath = config.field.includes('.')
+            ? config.field
+            : `${alias}.${config.field}`;
+          let condition: string;
+          let params: Record<string, any>;
 
-          // For nested fields (e.g., "posts.title"), use the relation alias directly
-          // For direct fields (e.g., "name"), use the entity alias
-          const fieldPath = field.includes('.') ? field : `${alias}.${field}`;
-
-          const condition = `${fieldPath} LIKE :${paramName}`;
-          const params = { [paramName]: `%${search}%` };
+          if (config.caseSensitive) {
+            condition = `${fieldPath} LIKE :${paramName}`;
+            params = { [paramName]: `%${search}%` };
+          } else {
+            condition = `LOWER(${fieldPath}) LIKE LOWER(:${paramName})`;
+            params = { [paramName]: `%${search}%` };
+          }
 
           if (index === 0) {
             subQb.where(condition, params);
@@ -214,7 +249,7 @@ export class TypeORMQueryBuilder {
         return `${fieldPath} < :${paramName}`;
       case "lte":
         return `${fieldPath} <= :${paramName}`;
-            case "contains":
+      case "contains":
         return `${fieldPath} LIKE :${paramName}`;
       case "between":
         return `${fieldPath} BETWEEN :${paramName} AND :${paramName}1`;
@@ -239,17 +274,14 @@ export class TypeORMQueryBuilder {
     operator: string,
     value: any
   ): Record<string, any> {
-    // NULL checks don't need parameters
     if (operator === "isNull" || operator === "isNotNull") {
       return {};
     }
 
-        // LIKE operator needs % wildcards
     if (operator === "contains") {
       return { [paramName]: `%${value}%` };
     }
 
-    // BETWEEN operator needs two parameters
     if (operator === "between") {
       if (!Array.isArray(value) || value.length !== 2) {
         throw new Error("Between operator requires an array with exactly two values [min, max]");
@@ -260,7 +292,6 @@ export class TypeORMQueryBuilder {
       };
     }
 
-    // IN/NOT IN operators expect arrays
     if (operator === "in" || operator === "notIn") {
       return { [paramName]: Array.isArray(value) ? value : [value] };
     }

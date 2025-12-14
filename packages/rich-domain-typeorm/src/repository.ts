@@ -155,41 +155,53 @@ export abstract class TypeORMRepository<
    * Supports both direct entity fields and nested relation fields.
    * Nested fields automatically trigger LEFT JOINs.
    *
-   * @returns Array of field names to search in
+   * By default, searches are case-insensitive (using LOWER()).
+   * You can configure case sensitivity per field using SearchableFieldConfig.
+   *
+   * @returns Array of field names or field configurations to search in
    *
    * @example
    * ```typescript
    * import { SearchableField } from '@woltz/rich-domain-typeorm';
    *
+   * // Simple case-insensitive search (default)
    * class UserRepository extends TypeORMRepository<User, UserEntity> {
-   *   // Type-safe searchable fields (recommended)
    *   protected getSearchableFields(): SearchableField<UserEntity>[] {
    *     return [
-   *       'name',           // Direct field
-   *       'email',          // Direct field
-   *       'posts.title',    // Nested relation field (auto-joins posts)
-   *       'profile.bio'     // Nested relation field (auto-joins profile)
+   *       'name',           // Case-insensitive
+   *       'email',          // Case-insensitive
+   *       'posts.title',    // Nested relation (case-insensitive)
+   *     ];
+   *   }
+   * }
+   *
+   * // Mixed case sensitivity
+   * class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
+   *   protected getSearchableFields(): SearchableField<ProductEntity>[] {
+   *     return [
+   *       'name',                                      // Case-insensitive
+   *       { field: 'code', caseSensitive: true },      // Case-sensitive
+   *       { field: 'description', caseSensitive: false }, // Case-insensitive (explicit)
+   *       'category.name'                              // Case-insensitive
    *     ];
    *   }
    * }
    *
    * // Usage:
    * const criteria = Criteria.create<User>()
-   *   .search('john')  // Searches in all defined fields
+   *   .search('john')  // Searches in all defined fields (case-insensitive by default)
    *   .paginate(1, 10);
    *
    * const users = await userRepository.find(criteria);
    *
-   * // Generated SQL:
+   * // Generated SQL (case-insensitive):
    * // SELECT user.*
    * // FROM user
    * // LEFT JOIN posts ON user.id = posts.userId
-   * // LEFT JOIN profile ON user.id = profile.userId
    * // WHERE (
-   * //   user.name LIKE '%john%' OR
-   * //   user.email LIKE '%john%' OR
-   * //   posts.title LIKE '%john%' OR
-   * //   profile.bio LIKE '%john%'
+   * //   LOWER(user.name) LIKE LOWER('%john%') OR
+   * //   LOWER(user.email) LIKE LOWER('%john%') OR
+   * //   LOWER(posts.title) LIKE LOWER('%john%')
    * // )
    * // LIMIT 10
    * ```

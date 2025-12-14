@@ -1,4 +1,5 @@
 import {
+  SearchableField,
   TypeORMRepository,
   TypeORMUnitOfWork,
 } from "@woltz/rich-domain-typeorm";
@@ -20,5 +21,17 @@ export class TypeORMPostRepository
       toPersistenceMapper: new PostToPersistenceMapper(uow),
       uow,
     });
+  }
+
+  protected getSearchableFields(): SearchableField<PostEntity>[] {
+    return [
+      "title",
+      { field: "mainContent", caseSensitive: false },
+      "author.name",
+    ];
+  }
+
+  protected getDefaultRelations(): string[] {
+    return ["tags"];
   }
 }

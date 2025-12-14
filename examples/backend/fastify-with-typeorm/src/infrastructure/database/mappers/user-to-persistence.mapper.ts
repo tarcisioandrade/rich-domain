@@ -21,8 +21,8 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
           entity: "Tag",
           junction: {
             table: "_PostToTag",
-            sourceKey: "id",
-            targetKey: "id",
+            sourceKey: "A",
+            targetKey: "B",
           },
         },
       },
@@ -35,8 +35,8 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
       },
     });
 
-  protected readonly entityClasses = new Map([
-    ["User", UserEntity as any],
+  protected readonly entityClasses = new Map<string, new () => any>([
+    ["User", UserEntity],
     ["Post", PostEntity],
     ["Tag", TagEntity],
   ]);

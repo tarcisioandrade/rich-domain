@@ -68,10 +68,7 @@ export class TypeORMBatchExecutor {
    */
   async execute(changes: AggregateChanges): Promise<void> {
     if (changes.isEmpty()) return;
-
     const batch = changes.toBatchOperations();
-
-    // Execute in correct order: deletes → creates → updates
     await this.executeDeletes(batch.deletes);
     await this.executeCreates(batch.creates);
     await this.executeUpdates(batch.updates);
@@ -92,19 +89,14 @@ export class TypeORMBatchExecutor {
       parentEntity?: string;
     }>
   ): Promise<void> {
-    // Sort by depth DESC (leaf → root)
     const sorted = [...deletes].sort((a, b) => b.depth - a.depth);
-
     for (const del of sorted) {
-      // If has relationField, it's a collection of a parent
       if (del.relationField && del.parentEntity && del.parentId) {
         const isReference = this.config.registry.isReferenceCollection(
           del.parentEntity,
           del.relationField
         );
-
         if (isReference) {
-          // N:N - unlink only
           await this.disconnectFromParent(
             del.parentEntity,
             del.parentId,
@@ -112,11 +104,9 @@ export class TypeORMBatchExecutor {
             del.ids
           );
         } else {
-          // 1:N owned - delete entities
           await this.deleteEntities(del.entity, del.ids);
         }
       } else {
-        // Direct delete (aggregate root)
         await this.deleteEntities(del.entity, del.ids);
       }
     }
@@ -130,10 +120,8 @@ export class TypeORMBatchExecutor {
     ids: string[]
   ): Promise<void> {
     if (ids.length === 0) return;
-
     const EntityClass = this.getEntityClass(entityName);
     const em = this.config.entityManager;
-
     try {
       await em.delete(EntityClass, ids);
     } catch (error: any) {
@@ -157,17 +145,13 @@ export class TypeORMBatchExecutor {
     idsToRemove: string[]
   ): Promise<void> {
     if (idsToRemove.length === 0) return;
-
     const junctionConfig = this.config.registry.getJunctionConfig(
       parentEntityName,
       relationField
     );
-
     if (junctionConfig) {
-      // Direct junction table deletion (more efficient)
       await this.deleteFromJunctionTable(junctionConfig, parentId, idsToRemove);
     } else {
-      // Fallback: load parent and manipulate array
       await this.disconnectViaArray(
         parentEntityName,
         parentId,
@@ -188,12 +172,11 @@ export class TypeORMBatchExecutor {
     targetIds: string[]
   ): Promise<void> {
     const em = this.config.entityManager;
-
     try {
       await em.query(
-        `DELETE FROM ${junction.table} 
-         WHERE ${junction.sourceKey} = $1 
-         AND ${junction.targetKey} = ANY($2)`,
+        `DELETE FROM "${junction.table}"
+         WHERE "${junction.sourceKey}" = $1
+         AND "${junction.targetKey}" = ANY($2)`,
         [parentId, targetIds]
       );
     } catch (error: any) {
@@ -217,25 +200,20 @@ export class TypeORMBatchExecutor {
   ): Promise<void> {
     const em = this.config.entityManager;
     const ParentClass = this.getEntityClass(parentEntityName);
-
     try {
       const parent = await em.findOne(ParentClass, {
         where: { id: parentId } as any,
         relations: { [relationField]: true } as any,
       });
-
       if (!parent) {
         console.warn(
           `[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for disconnect`
         );
         return;
       }
-
-      // Filter out items to remove
       parent[relationField] = parent[relationField].filter(
         (item: any) => !idsToRemove.includes(this.extractId(item) ?? "")
       );
-
       await em.save(parent);
     } catch (error: any) {
       throw new BatchOperationError(
@@ -264,13 +242,9 @@ export class TypeORMBatchExecutor {
       }>;
     }>
   ): Promise<void> {
-    // Sort by depth ASC (root → leaf)
     const sorted = [...creates].sort((a, b) => a.depth - b.depth);
-
     for (const create of sorted) {
       const firstItem = create.items[0];
-
-      // Check if it's a reference collection
       if (
         firstItem?.relationField &&
         firstItem.parentEntity &&
@@ -279,14 +253,12 @@ export class TypeORMBatchExecutor {
           firstItem.relationField
         )
       ) {
-        // N:N - connect existing entities
         await this.connectToParent(
           firstItem.parentEntity,
           firstItem.relationField,
           create.items
         );
       } else {
-        // Owned or root - create entities
         await this.createEntities(create.entity, create.items);
       }
     }
@@ -300,22 +272,16 @@ export class TypeORMBatchExecutor {
     items: Array<{ data: any; parentId?: string }>
   ): Promise<void> {
     if (items.length === 0) return;
-
     const em = this.config.entityManager;
     const EntityClass = this.getEntityClass(entityName);
-
     try {
       const instances = items.map((item) => {
         const entity = new EntityClass();
-
-        // Map fields using registry
         const mappedData = this.config.registry.mapEntity(
           entityName,
           item.data
         );
         Object.assign(entity, mappedData);
-
-        // Add parent FK if exists
         if (item.parentId) {
           const parentFk = this.config.registry.getParentFk(
             entityName,
@@ -325,11 +291,8 @@ export class TypeORMBatchExecutor {
             Object.assign(entity, parentFk);
           }
         }
-
         return entity;
       });
-
-      // TypeORM save in batch
       await em.save(instances);
     } catch (error: any) {
       throw new BatchOperationError(
@@ -355,33 +318,24 @@ export class TypeORMBatchExecutor {
     }>
   ): Promise<void> {
     if (items.length === 0) return;
-
     const junctionConfig = this.config.registry.getJunctionConfig(
       parentEntityName,
       relationField
     );
-
-    // Group by parentId
     const grouped = new Map<string, string[]>();
-
     for (const item of items) {
       const parentId = item.parentId;
       if (!parentId) continue;
-
       const entityId = this.extractId(item.data);
       if (!entityId) continue;
-
       if (!grouped.has(parentId)) {
         grouped.set(parentId, []);
       }
       grouped.get(parentId)!.push(entityId);
     }
-
     if (junctionConfig) {
-      // Direct junction table insert (more efficient)
       await this.insertIntoJunctionTable(junctionConfig, grouped);
     } else {
-      // Fallback: load parent and add to array
       for (const [parentId, entityIds] of grouped) {
         await this.connectViaArray(
           parentEntityName,
@@ -403,27 +357,20 @@ export class TypeORMBatchExecutor {
     grouped: Map<string, string[]>
   ): Promise<void> {
     const em = this.config.entityManager;
-
     const values: Array<[string, string]> = [];
-
     for (const [parentId, targetIds] of grouped) {
       for (const targetId of targetIds) {
         values.push([parentId, targetId]);
       }
     }
-
     if (values.length === 0) return;
-
     try {
-      // Build placeholders for VALUES clause
       const placeholders = values
         .map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`)
         .join(", ");
-
       const flatValues = values.flat();
-
       await em.query(
-        `INSERT INTO ${junction.table} (${junction.sourceKey}, ${junction.targetKey}) 
+        `INSERT INTO "${junction.table}" ("${junction.sourceKey}", "${junction.targetKey}")
          VALUES ${placeholders}
          ON CONFLICT DO NOTHING`,
         flatValues
@@ -453,7 +400,6 @@ export class TypeORMBatchExecutor {
       parentEntityName,
       relationField
     );
-
     if (!collectionConfig?.entity) {
       throw new BatchOperationError(
         "connect",
@@ -461,32 +407,23 @@ export class TypeORMBatchExecutor {
         `No target entity configured for ${parentEntityName}.${relationField}`
       );
     }
-
     const TargetClass = this.getEntityClass(collectionConfig.entity);
-
     try {
       const parent = await em.findOne(ParentClass, {
         where: { id: parentId } as any,
         relations: { [relationField]: true } as any,
       });
-
       if (!parent) {
         console.warn(
           `[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for connect`
         );
         return;
       }
-
-      // Load target entities
       const targets = await em.findByIds(TargetClass, entityIds);
-
-      // Add to array (TypeORM detects change)
       if (!parent[relationField]) {
         parent[relationField] = [];
       }
-
       parent[relationField].push(...targets);
-
       await em.save(parent);
     } catch (error: any) {
       throw new BatchOperationError(
@@ -510,14 +447,11 @@ export class TypeORMBatchExecutor {
     for (const upd of updates) {
       const EntityClass = this.getEntityClass(upd.entity);
       const em = this.config.entityManager;
-
       for (const item of upd.items) {
-        // Map fields using registry
         const mappedFields = this.config.registry.mapFields(
           upd.entity,
           item.changedFields
         );
-
         if (Object.keys(mappedFields).length > 0) {
           try {
             await em.update(EntityClass, item.id, mappedFields);
