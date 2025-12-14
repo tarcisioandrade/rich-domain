@@ -214,8 +214,10 @@ export class TypeORMQueryBuilder {
         return `${fieldPath} < :${paramName}`;
       case "lte":
         return `${fieldPath} <= :${paramName}`;
-      case "contains":
+            case "contains":
         return `${fieldPath} LIKE :${paramName}`;
+      case "between":
+        return `${fieldPath} BETWEEN :${paramName} AND :${paramName}1`;
       case "in":
         return `${fieldPath} IN (:...${paramName})`;
       case "notIn":
@@ -242,9 +244,20 @@ export class TypeORMQueryBuilder {
       return {};
     }
 
-    // LIKE operator needs % wildcards
+        // LIKE operator needs % wildcards
     if (operator === "contains") {
       return { [paramName]: `%${value}%` };
+    }
+
+    // BETWEEN operator needs two parameters
+    if (operator === "between") {
+      if (!Array.isArray(value) || value.length !== 2) {
+        throw new Error("Between operator requires an array with exactly two values [min, max]");
+      }
+      return {
+        [paramName]: value[0],
+        [`${paramName}1`]: value[1]
+      };
     }
 
     // IN/NOT IN operators expect arrays

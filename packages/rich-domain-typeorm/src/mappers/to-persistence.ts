@@ -1,7 +1,10 @@
 import { EntityManager } from "typeorm";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
 import { TypeORMUnitOfWork } from "../unit-of-work";
-import { TypeORMBatchExecutor, TypeORMBatchExecutorConfig } from "../batch-executor";
+import {
+  TypeORMBatchExecutor,
+  TypeORMBatchExecutorConfig,
+} from "../batch-executor";
 
 /**
  * Base class for mapping domain aggregates to TypeORM persistence.
@@ -74,15 +77,18 @@ export abstract class TypeORMToPersistence<TDomain> {
   async save(aggregate: TDomain): Promise<void> {
     const em = this.uow.getCurrentEntityManager();
 
-    // Check if aggregate has change tracking
+    if (this.isNewAggregate(aggregate)) {
+      await this.onCreate(aggregate, em);
+      return;
+    }
+
     if (this.hasChangeTracking(aggregate)) {
       const changes = (aggregate as any).getChanges() as AggregateChanges;
 
       if (changes.isEmpty()) {
-        return; // No changes to persist
+        return;
       }
 
-      // Use BatchExecutor for updates
       const executor = new TypeORMBatchExecutor({
         registry: this.registry,
         entityManager: em,
@@ -91,7 +97,6 @@ export abstract class TypeORMToPersistence<TDomain> {
 
       await executor.execute(changes);
     } else {
-      // Initial creation (no change tracking yet)
       await this.onCreate(aggregate, em);
     }
   }
@@ -135,6 +140,16 @@ export abstract class TypeORMToPersistence<TDomain> {
   }
 
   /**
+   * Check if aggregate is new (not yet persisted).
+   */
+  private isNewAggregate(aggregate: TDomain): boolean {
+    return (
+      typeof (aggregate as any).isNew === "function" &&
+      (aggregate as any).isNew() === true
+    );
+  }
+
+  /**
    * Check if aggregate has change tracking.
    */
   private hasChangeTracking(aggregate: TDomain): boolean {
@@ -156,7 +171,10 @@ export abstract class TypeORMToPersistence<TDomain> {
    *
    * Useful for subclasses that need to customize executor behavior.
    */
-  protected getExecutorConfig(): Omit<TypeORMBatchExecutorConfig, "entityManager"> {
+  protected getExecutorConfig(): Omit<
+    TypeORMBatchExecutorConfig,
+    "entityManager"
+  > {
     return {
       registry: this.registry,
       entityClasses: this.entityClasses,

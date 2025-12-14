@@ -1,13 +1,27 @@
-import { Repository as TypeORMRepositoryBase, ObjectLiteral, FindOptionsWhere } from "typeorm";
-import { Criteria } from "@woltz/rich-domain";
+import {
+  Repository as TypeORMRepositoryBase,
+  ObjectLiteral,
+  FindOptionsWhere,
+} from "typeorm";
+import {
+  Aggregate,
+  Criteria,
+  Repository,
+  Mapper,
+  PaginatedResult,
+} from "@woltz/rich-domain";
 import { TypeORMQueryBuilder, SearchableField } from "./criteria/query-builder";
 import { TypeORMRepositoryError } from "./errors";
 import { TypeORMUnitOfWork } from "./unit-of-work";
+import { TypeORMToPersistence } from "./mappers/to-persistence";
 
 /**
  * Configuration for TypeORM Repository.
  */
-export interface TypeORMRepositoryConfig<TDomain, TEntity extends ObjectLiteral> {
+export interface TypeORMRepositoryConfig<
+  TDomain,
+  TEntity extends ObjectLiteral
+> {
   /**
    * TypeORM repository instance.
    */
@@ -16,12 +30,12 @@ export interface TypeORMRepositoryConfig<TDomain, TEntity extends ObjectLiteral>
   /**
    * Mapper from TypeORM entity to domain entity.
    */
-  toDomainMapper: (entity: TEntity) => TDomain;
+  toDomainMapper: Mapper<TEntity, TDomain>;
 
   /**
-   * Mapper from domain entity to TypeORM entity.
+   * Mapper from domain entity to TypeORM entity for persistence operations.
    */
-  toPersistenceMapper: (domain: TDomain) => TEntity;
+  toPersistenceMapper: TypeORMToPersistence<TDomain>;
 
   /**
    * Unit of Work instance for transaction management.
@@ -64,21 +78,72 @@ export interface TypeORMRepositoryConfig<TDomain, TEntity extends ObjectLiteral>
  * ```
  */
 export abstract class TypeORMRepository<
-  TDomain,
+  TDomain extends Aggregate<any>,
   TEntity extends ObjectLiteral
-> {
+> extends Repository<TDomain> {
   protected readonly typeormRepo: TypeORMRepositoryBase<TEntity>;
-  protected readonly toDomainMapper: (entity: TEntity) => TDomain;
-  protected readonly toPersistenceMapper: (domain: TDomain) => TEntity;
+  protected readonly toDomainMapper: Mapper<TEntity, TDomain>;
+  private readonly _toPersistenceMapper: TypeORMToPersistence<TDomain>;
   protected readonly uow: TypeORMUnitOfWork;
   protected readonly alias: string;
 
   constructor(config: TypeORMRepositoryConfig<TDomain, TEntity>) {
+    super();
     this.typeormRepo = config.typeormRepository;
     this.toDomainMapper = config.toDomainMapper;
-    this.toPersistenceMapper = config.toPersistenceMapper;
+    this._toPersistenceMapper = config.toPersistenceMapper;
     this.uow = config.uow;
     this.alias = config.alias ?? "entity";
+  }
+
+  /**
+   * Get the underlying TypeORM entity model/target.
+   */
+  protected get model(): any {
+    return this.typeormRepo.target;
+  }
+
+  /**
+   * Mapper from domain to persistence (required by base Repository).
+   * Note: For save operations, use the TypeORMToPersistence directly.
+   */
+  protected get toPersistenceMapper(): Mapper<TDomain, TEntity> {
+    // This is a wrapper to satisfy the Repository base class contract
+    // The actual persistence logic uses TypeORMToPersistence
+    return {
+      build: () => {
+        throw new TypeORMRepositoryError(
+          "Direct persistence mapping is not supported. Use save() method instead."
+        );
+      },
+    } as Mapper<TDomain, TEntity>;
+  }
+
+  /**
+   * Define which relations to load by default.
+   *
+   * Override in subclass to specify default relations to include.
+   * Similar to Prisma's `include` option.
+   *
+   * @returns Array of relation names to load
+   *
+   * @example
+   * ```typescript
+   * class UserRepository extends TypeORMRepository<User, UserEntity> {
+   *   protected getDefaultRelations(): string[] {
+   *     return ['posts', 'posts.tags', 'profile'];
+   *   }
+   * }
+   *
+   * // Now all queries will automatically include posts, tags, and profile
+   * const user = await userRepository.findById('123');
+   * // user.posts will be loaded
+   * // user.posts[0].tags will be loaded
+   * // user.profile will be loaded
+   * ```
+   */
+  protected getDefaultRelations(): string[] {
+    return [];
   }
 
   /**
@@ -134,6 +199,40 @@ export abstract class TypeORMRepository<
   }
 
   /**
+   * Apply relations to QueryBuilder using leftJoinAndSelect.
+   *
+   * @param qb - QueryBuilder instance
+   * @param alias - Base alias
+   */
+  private applyRelationsToQueryBuilder(qb: any, alias: string): void {
+    const relations = this.getDefaultRelations();
+
+    relations.forEach((relation) => {
+      // Handle nested relations (e.g., 'posts.tags')
+      const parts = relation.split('.');
+      let currentAlias = alias;
+
+      parts.forEach((part, index) => {
+        const joinAlias = parts.slice(0, index + 1).join('_');
+
+        // Only add if not already joined
+        const existingJoin = qb.expressionMap.joinAttributes.find(
+          (j: any) => j.alias.name === joinAlias
+        );
+
+        if (!existingJoin) {
+          qb.leftJoinAndSelect(
+            index === 0 ? `${currentAlias}.${part}` : `${currentAlias}.${part}`,
+            joinAlias
+          );
+        }
+
+        currentAlias = joinAlias;
+      });
+    });
+  }
+
+  /**
    * Find entity by ID.
    *
    * @param id - Entity ID
@@ -144,11 +243,16 @@ export abstract class TypeORMRepository<
       const em = this.uow.getCurrentEntityManager();
       const repo = em.getRepository(this.typeormRepo.target);
 
+      const relations = this.getDefaultRelations();
       const entity = await repo.findOne({
         where: { id } as unknown as FindOptionsWhere<TEntity>,
+        relations: relations.length > 0 ? relations : undefined,
       });
 
-      return entity ? this.toDomainMapper(entity as TEntity) : null;
+      if (!entity) return null;
+
+      const result = this.toDomainMapper.build(entity as TEntity);
+      return result instanceof Promise ? await result : result;
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find ${this.alias} by ID: ${error.message}`,
@@ -160,29 +264,46 @@ export abstract class TypeORMRepository<
   /**
    * Find all entities matching criteria.
    *
-   * @param criteria - Query criteria
-   * @returns Array of domain entities
+   * @param criteria - Query criteria (optional)
+   * @returns Paginated result with domain entities
    */
-  async find(criteria: Criteria<TDomain>): Promise<TDomain[]> {
+  async find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>> {
     try {
       const em = this.uow.getCurrentEntityManager();
       const repo = em.getRepository(this.typeormRepo.target);
 
       const qb = repo.createQueryBuilder(this.alias);
 
-      // Apply criteria to query builder
-      TypeORMQueryBuilder.apply(
-        qb,
-        criteria,
-        this.alias,
-        this.getSearchableFields()
+      // Apply default relations
+      this.applyRelationsToQueryBuilder(qb, this.alias);
+
+      // Apply criteria to query builder if provided
+      if (criteria) {
+        TypeORMQueryBuilder.apply(
+          qb,
+          criteria,
+          this.alias,
+          this.getSearchableFields()
+        );
+      }
+
+      const [entities, total] = await qb.getManyAndCount();
+
+      const items = await Promise.all(
+        entities.map(async (entity) => {
+          const result = this.toDomainMapper.build(entity as TEntity);
+          return result instanceof Promise ? await result : result;
+        })
       );
 
-      const entities = await qb.getMany();
+      // Extract pagination info from criteria
+      const pagination = criteria?.getPagination() ?? {
+        page: 1,
+        limit: total || 10,
+        offset: 0,
+      };
 
-      return entities.map((entity) =>
-        this.toDomainMapper(entity as TEntity)
-      );
+      return PaginatedResult.create(items, pagination, total);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find ${this.alias}: ${error.message}`,
@@ -204,6 +325,9 @@ export abstract class TypeORMRepository<
 
       const qb = repo.createQueryBuilder(this.alias);
 
+      // Apply default relations
+      this.applyRelationsToQueryBuilder(qb, this.alias);
+
       // Apply criteria to query builder
       TypeORMQueryBuilder.apply(
         qb,
@@ -214,7 +338,10 @@ export abstract class TypeORMRepository<
 
       const entity = await qb.getOne();
 
-      return entity ? this.toDomainMapper(entity as TEntity) : null;
+      if (!entity) return null;
+
+      const result = this.toDomainMapper.build(entity as TEntity);
+      return result instanceof Promise ? await result : result;
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find one ${this.alias}: ${error.message}`,
@@ -247,7 +374,7 @@ export abstract class TypeORMRepository<
       if (filters.length > 0 || search) {
         const filterOnlyCriteria = Criteria.fromObject<TDomain>({
           filters: filters as any,
-          search
+          search,
         });
         TypeORMQueryBuilder.apply(
           qb,
@@ -293,19 +420,14 @@ export abstract class TypeORMRepository<
   /**
    * Save entity (create or update).
    *
-   * Uses the toPersistenceMapper to handle domain → persistence conversion.
+   * Uses the TypeORMToPersistence to handle domain → persistence conversion.
    * Delegates actual save logic to the mapper (which may use BatchExecutor).
    *
    * @param aggregate - Domain entity to save
    */
   async save(aggregate: TDomain): Promise<void> {
     try {
-      const entity = this.toPersistenceMapper(aggregate);
-
-      const em = this.uow.getCurrentEntityManager();
-      const repo = em.getRepository(this.typeormRepo.target);
-
-      await repo.save(entity as any);
+      await this._toPersistenceMapper.save(aggregate);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to save ${this.alias}: ${error.message}`,
@@ -321,12 +443,8 @@ export abstract class TypeORMRepository<
    */
   async delete(aggregate: TDomain): Promise<void> {
     try {
-      const entity = this.toPersistenceMapper(aggregate);
-
-      const em = this.uow.getCurrentEntityManager();
-      const repo = em.getRepository(this.typeormRepo.target);
-
-      await repo.remove(entity as any);
+      const id = this.extractId(aggregate);
+      await this.deleteById(id);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to delete ${this.alias}: ${error.message}`,
@@ -366,10 +484,16 @@ export abstract class TypeORMRepository<
       const em = this.uow.getCurrentEntityManager();
       const repo = em.getRepository(this.typeormRepo.target);
 
-      const entities = await repo.find();
+      const relations = this.getDefaultRelations();
+      const entities = await repo.find({
+        relations: relations.length > 0 ? relations : undefined,
+      });
 
-      return entities.map((entity) =>
-        this.toDomainMapper(entity as TEntity)
+      return await Promise.all(
+        entities.map(async (entity) => {
+          const result = this.toDomainMapper.build(entity as TEntity);
+          return result instanceof Promise ? await result : result;
+        })
       );
     } catch (error: any) {
       throw new TypeORMRepositoryError(
@@ -377,6 +501,32 @@ export abstract class TypeORMRepository<
         error
       );
     }
+  }
+
+  /**
+   * Extract ID from domain entity.
+   */
+  private extractId(aggregate: TDomain): string {
+    // Try common patterns for getting ID
+    const entity = aggregate as any;
+
+    if (entity.id?.value) {
+      return entity.id.value; // Id value object pattern
+    }
+
+    if (typeof entity.id === "string") {
+      return entity.id; // Simple string ID
+    }
+
+    if (entity.getId) {
+      const id = entity.getId();
+      return id?.value ?? id; // Getter method
+    }
+
+    throw new TypeORMRepositoryError(
+      `Cannot extract ID from ${this.alias}. ` +
+        `Entity must have 'id.value', 'id' (string), or 'getId()' method.`
+    );
   }
 
   /**
