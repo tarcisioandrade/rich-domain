@@ -45,8 +45,7 @@ const criteria = Criteria.fromQueryParams<User>({
 | Multiple orders | `orderBy=field1:dir,field2:dir` | `orderBy=featured:desc,price:asc` |
 | Page            | `page=number`                   | `page=2`                          |
 | Limit           | `limit=number`                  | `limit=20`                        |
-| Search          | `search=query`                  | `search=laptop`                   |
-| Search fields   | `searchFields=field1,field2`    | `searchFields=name,description`   |
+| Search          | `search=query`                  | `search=laptop`                 
 
 ### Complete URL Example
 
@@ -56,7 +55,6 @@ GET /products?
   price:lessThanOrEqual=100&
   category:in=electronics,accessories&
   search=wireless&
-  searchFields=name,description,sku&
   orderBy=featured:desc,price:asc&
   page=1&
   limit=24
@@ -68,7 +66,6 @@ const criteria = Criteria.fromQueryParams<Product>({
   "price:lessThanOrEqual": "100",
   "category:in": "electronics,accessories",
   search: "wireless",
-  searchFields: "name,description,sku",
   orderBy: "featured:desc,price:asc",
   page: "1",
   limit: "24",
@@ -254,7 +251,7 @@ const criteria = Criteria.create<User>()
   .whereEquals("status", "active")
   .where("age", "greaterThan", 18)
   .orderByDesc("createdAt")
-  .search(["name", "email"], "john")
+  .search("john")
   .paginate(2, 20);
 
 const json = criteria.toJSON();
@@ -274,10 +271,7 @@ Result:
     "limit": 20,
     "offset": 20
   },
-  "search": {
-    "fields": ["name", "email"],
-    "value": "john"
-  }
+  "search": 'john'
 }
 ```
 
@@ -293,7 +287,7 @@ const criteria = Criteria.fromObject<User>({
   ],
   orders: [{ field: "createdAt", direction: "desc" }],
   pagination: { page: 2, limit: 20, offset: 20 },
-  search: { fields: ["name", "email"], value: "john" },
+  search: "john",
 });
 ```
 
@@ -342,7 +336,7 @@ const recentUsers = baseCriteria
 
 const searchResults = baseCriteria
   .clone()
-  .search(["name", "email"], searchQuery)
+  .search(searchQuery)
   .limit(20);
 
 // Original is unchanged
@@ -472,7 +466,6 @@ function useCriteriaQueryString<T>(criteria: Criteria<T>): string {
   // Add search
   if (json.search) {
     params.set("search", json.search.value);
-    params.set("searchFields", json.search.fields.join(","));
   }
 
   return params.toString();

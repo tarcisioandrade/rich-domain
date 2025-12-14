@@ -100,10 +100,7 @@ const criteria = Criteria.create<User>().limit(10);
 ### Search
 
 ```typescript
-const criteria = Criteria.create<User>().search(
-  ["name", "email", "bio"],
-  "john"
-);
+const criteria = Criteria.create<User>().search("john");
 ```
 
 ## Type Safety
@@ -266,7 +263,7 @@ const pagination = criteria.getPagination();
 
 // Get search
 const search = criteria.getSearch();
-// undefined or { fields: [...], value: "..." }
+// undefined or string
 ```
 
 ## Integration with Repository
@@ -288,7 +285,7 @@ class UserRepository extends Repository<User> {
 
   async search(query: string): Promise<PaginatedResult<User>> {
     const criteria = Criteria.create<User>()
-      .search(["name", "email", "bio"], query)
+      .search(query)
       .limit(50);
 
     return this.find(criteria);

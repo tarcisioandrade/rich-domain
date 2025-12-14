@@ -69,6 +69,7 @@
             "group": "Integrations",
             "pages": [
               "integrations/prisma",
+              "integrations/typeorm",
               "integrations/zod",
               "integrations/react",
               "integrations/drizzle"
