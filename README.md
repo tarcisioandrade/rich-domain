@@ -29,8 +29,8 @@ A comprehensive monorepo containing Domain-Driven Design (DDD) libraries, tools,
 - **[@woltz/rich-domain-prisma](./packages/rich-domain-prisma)** - Prisma ORM integration with ready-to-use repository implementations and Unit of Work pattern
 - **[@woltz/rich-domain-criteria-zod](./packages/rich-domain-criteria-zod)** - Zod schemas for validating Criteria queries from external sources (APIs, GraphQL)
 - **[@woltz/react-rich-domain](./packages/react-rich-domain)** (Shadcn Registry) - React components and hooks for working with Rich Domain entities (Data Tables, Filters, Forms)
-- **@woltz/rich-domain-drizzle** - Planned
-- **@woltz/rich-domain-typeorm** - Planned
+- **[@woltz/rich-domain-typeorm](./packages/rich-domain-typeorm)** - TypeORM Plug and Play implementation
+- **@woltz/rich-domain-drizzle** - Coming Soon
 
 ### Tooling
 
