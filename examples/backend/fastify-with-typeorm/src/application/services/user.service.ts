@@ -2,7 +2,7 @@ import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
 import { Criteria, Id } from "@woltz/rich-domain";
 import { EVENT_BUS } from "../../infrastructure/queue/event-bus";
-import { Transactional, TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
+import { TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
 
 interface CreateUserInput {
   email: string;
@@ -15,7 +15,6 @@ export class UserService {
     private readonly uow: TypeORMUnitOfWork
   ) {}
 
-  @Transactional()
   async create(input: CreateUserInput): Promise<User> {
     const existingUser = await this.userRepository.findByEmail(input.email);
 
