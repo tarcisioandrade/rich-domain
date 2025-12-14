@@ -18,23 +18,18 @@ npm install @woltz/rich-domain zod
 ```
 
 <CardGroup cols={2}>
-
-<Card title="Type-Safe Filters" icon="filter">
-  Define filterable fields with their types and operators
-</Card>
-
-<Card title="Orderable Fields Whitelist" icon="arrow-up-down">
-  Control which fields can be used for ordering
-</Card>
-
-<Card title="Pagination Defaults" icon="book-open">
-  Configure default and max pagination values
-</Card>
-
-<Card title="Framework Agnostic" icon="plug">
-  Works with Fastify, Express, Hono, tRPC, and more
-</Card>
-
+  <Card title="Type-Safe Filters" icon="filter">
+    Define filterable fields with their types and operators
+  </Card>
+  <Card title="Orderable Fields Whitelist" icon="arrow-up-down">
+    Control which fields can be used for ordering
+  </Card>
+  <Card title="Pagination Defaults" icon="book-open">
+    Configure default and max pagination values
+  </Card>
+  <Card title="Framework Agnostic" icon="plug">
+    Works with Fastify, Express, Hono, tRPC, and more
+  </Card>
 </CardGroup>
 
 ## Quick Start
@@ -50,7 +45,7 @@ import { z } from "zod";
 // 1. Define filterable fields
 const filters = defineFilters((f) => ({
   name: f.string(),
-  email: f.email(),
+  email: f.string(),
   age: f.number(),
   isActive: f.boolean(),
   createdAt: f.date(),
@@ -88,7 +83,7 @@ import { defineFilters } from "@woltz/rich-domain-criteria-zod";
 const filters = defineFilters((f) => ({
   // Basic types
   name: f.string(),
-  email: f.email(),
+  email: f.string(),
   age: f.number(),
   isActive: f.boolean(),
   createdAt: f.date(),
@@ -109,14 +104,14 @@ const filters = defineFilters((f) => ({
 
 ### Field Types and Operators
 
-| Method | Default Operators |
-|--------|-------------------|
-| `f.string()` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `f.email()` | Same as string (with email validation) |
-| `f.number()` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
-| `f.date()` | Same as number |
-| `f.boolean()` | equals, notEquals, isNull, isNotNull |
-| `f.array.*` | in, notIn, isNull, isNotNull |
+| Method        | Default Operators                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `f.string()`  | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `f.number()`  | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
+| `f.date()`    | Same as number                                                                                                       |
+| `f.boolean()` | equals, notEquals, isNull, isNotNull                                                                                 |
+| `f.array.*`   | in, notIn, isNull, isNotNull                                                                                         |
+| `f.enum()`    | Set yours custom string value                                                                                        |
 
 ### Restricting Operators
 
@@ -124,6 +119,7 @@ You can limit which operators are available for a field:
 
 ```typescript
 const filters = defineFilters((f) => ({
+  role: f.enum(["ADMIN", "COMMON"]),
   // Only allow exact match and list
   status: f.string({ operators: ["equals", "in"] }),
   
@@ -336,8 +332,7 @@ import { Criteria } from "@woltz/rich-domain";
 const userFilters = defineFilters((f) => ({
   // Basic fields
   name: f.string(),
-  email: f.email(),
-  status: f.string({ operators: ["equals", "in"] }),
+  email: f.string(),
   
   // Numeric
   age: f.number(),
@@ -357,6 +352,9 @@ const userFilters = defineFilters((f) => ({
   // Nested
   ["profile.country"]: f.string(),
   ["company.name"]: f.string(),
+
+  // Enum
+  status: f.enum(["active", "inactive", "pending"],{ operators: ["equals", "in"] }),
 }));
 
 const userQuerySchema = CriteriaQuerySchema(userFilters, {
@@ -487,16 +485,16 @@ function PaginatedResponseSchema<T extends ZodObject<any>>(
 
 ### QueryBuilder Methods
 
-| Method | Description | Operators |
-|--------|-------------|-----------|
-| `f.string()` | String field | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `f.email()` | Email field (validated) | Same as string |
-| `f.number()` | Number field | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
-| `f.date()` | Date field | Same as number |
-| `f.boolean()` | Boolean field | equals, notEquals, isNull, isNotNull |
-| `f.array.string()` | String array | in, notIn, isNull, isNotNull |
-| `f.array.number()` | Number array | in, notIn, isNull, isNotNull |
-| `f.array.boolean()` | Boolean array | in, notIn, isNull, isNotNull |
-| `f.array.date()` | Date array | in, notIn, isNull, isNotNull |
-| `f.array.enum(values)` | Enum array | in, notIn, isNull, isNotNull |
-| `f.array.of(schema)` | Custom schema array | in, notIn, isNull, isNotNull |
+| Method                 | Description         | Operators                                                                                                            |
+| ---------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `f.string()`           | String field        | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `f.number()`           | Number field        | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, in, notIn, between, isNull, isNotNull |
+| `f.date()`             | Date field          | Same as number                                                                                                       |
+| `f.boolean()`          | Boolean field       | equals, notEquals, isNull, isNotNull                                                                                 |
+| `f.enum()`             | Enum values         | Array with string values                                                                                             |
+| `f.array.string()`     | String array        | in, notIn, isNull, isNotNull                                                                                         |
+| `f.array.number()`     | Number array        | in, notIn, isNull, isNotNull                                                                                         |
+| `f.array.boolean()`    | Boolean array       | in, notIn, isNull, isNotNull                                                                                         |
+| `f.array.date()`       | Date array          | in, notIn, isNull, isNotNull                                                                                         |
+| `f.array.enum(values)` | Enum array          | in, notIn, isNull, isNotNull                                                                                         |
+| `f.array.of(schema)`   | Custom schema array | in, notIn, isNull, isNotNull                                                                                         |

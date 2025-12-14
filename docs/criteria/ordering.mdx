@@ -140,7 +140,7 @@ Search across multiple fields with a single query:
 
 ```typescript
 const criteria = Criteria.create<User>()
-  .search(["name", "email", "bio"], "john");
+  .search("john");
 
 // Matches users where:
 // name contains "john" OR email contains "john" OR bio contains "john"
@@ -154,31 +154,21 @@ Combine search with regular filters:
 const criteria = Criteria.create<Product>()
   .whereEquals("status", "active")
   .whereEquals("categoryId", "electronics")
-  .search(["name", "description", "sku"], "laptop")
+  .search("laptop")
   .orderByDesc("relevance")
   .paginate(1, 20);
-```
-
-### Search on Nested Fields
-
-```typescript
-const criteria = Criteria.create<Order>()
-  .search(
-    ["customer.name", "customer.email", "items.productName"],
-    "macbook"
-  );
 ```
 
 ### Checking Search State
 
 ```typescript
 const criteria = Criteria.create<User>()
-  .search(["name", "email"], "john");
+  .search("john");
 
 criteria.hasSearch();  // true
 
 const search = criteria.getSearch();
-// { fields: ["name", "email"], value: "john" }
+// "john"
 ```
 
 ### Search Behavior
@@ -194,7 +184,7 @@ When search is applied with `PaginatedResult.fromArray()`, it:
 ```typescript
 // 1000 users in database
 const criteria = Criteria.create<User>()
-  .search(["name"], "john")
+  .search("john")
   .paginate(1, 10);
 
 const result = PaginatedResult.fromArray(users, criteria);
@@ -215,7 +205,7 @@ const criteria = Criteria.create<Product>()
   .whereNotNull("stock")
   
   // Search
-  .search(["name", "description"], searchQuery)
+  .search(searchQuery)
   
   // Ordering
   .orderByDesc("featured")
@@ -251,7 +241,7 @@ function buildProductQuery(filters: ProductFilters): Criteria<Product> {
 
   // Search
   if (filters.query) {
-    criteria = criteria.search(["name", "description", "sku"], filters.query);
+    criteria = criteria.search(filters.query);
   }
 
   // Ordering
@@ -339,24 +329,22 @@ criteria.getPagination();
 ### Search via Query Params
 
 ```typescript
-// URL: /products?search=laptop&searchFields=name,description
+// URL: /products?search=laptop
 
 const criteria = Criteria.fromQueryParams<Product>({
   search: "laptop",
-  searchFields: "name,description",
 });
 ```
 
 ### Complete URL Example
 
 ```typescript
-// URL: /products?status:equals=active&price:lessThan=100&search=laptop&searchFields=name,description&orderBy=price:asc&page=1&limit=20
+// URL: /products?status:equals=active&price:lessThan=100&search=laptop&orderBy=price:asc&page=1&limit=20
 
 const criteria = Criteria.fromQueryParams<Product>({
   "status:equals": "active",
   "price:lessThan": "100",
   "search": "laptop",
-  "searchFields": "name,description",
   "orderBy": "price:asc",
   "page": "1",
   "limit": "20",
