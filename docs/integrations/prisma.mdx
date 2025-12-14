@@ -31,6 +31,10 @@ npm install @woltz/rich-domain @woltz/rich-domain-prisma
 
 </CardGroup>
 
+<Note>
+  For a complete working example, see the [fastify-with-prisma example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-prisma) in the repository.
+</Note>
+
 ## Quick Start
 
 ### 1. Setup
@@ -855,6 +859,19 @@ try {
   }
 }
 ```
+
+---
+
+## Complete Example
+
+See the [fastify-with-prisma example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-prisma) for a complete working application demonstrating:
+
+- User aggregate with Posts (1:N owned)
+- Post with Tags (N:N reference via junction table)
+- Case-insensitive search
+- Transaction management
+- CRUD operations
+- Domain events with BullMQ
 
 ---
 
