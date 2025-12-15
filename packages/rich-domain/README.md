@@ -1,750 +1,593 @@
-# Rich Domain
+# @woltz/rich-domain
 
-Uma biblioteca TypeScript para Domain-Driven Design (DDD) com suporte a validação via Standard Schema, rastreamento automático de mudanças, sistema de eventos, e repositories enterprise-ready.
+A TypeScript library for Domain-Driven Design with Standard Schema validation, automatic change tracking, and enterprise-ready repositories.
 
-## Características
+[![npm version](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- 🏗️ **Entities & Aggregates** - Classes base com identidade e ciclo de vida
-- 💎 **Value Objects** - Objetos imutáveis comparados por valor
-- ✅ **Standard Schema Validation** - Integração com Zod, ArkType, Valibot e outras libs
-- 📜 **Change Tracking** - Histórico automático de todas as mudanças
-- 🔔 **Subscriptions** - Sistema de eventos para observar mudanças
-- 🎯 **Hooks** - Interceptação de criação e atualização de entidades
-- 🆔 **Smart IDs** - Identificadores que sabem se a entidade é nova ou existente
-- 🔍 **Criteria Pattern** - Query builder type-safe com filtros, ordenação e paginação
-- 📦 **Repository Pattern** - Abstrações para persistência com suporte a Prisma, TypeORM, etc.
-- 🔄 **Unit of Work** - Gerenciamento de transações cross-repository
-- 📊 **Paginated Results** - Resultados paginados com serialização profunda
+## Features
 
-## Instalação
+- 🎯 **Type-Safe DDD Building Blocks** - Entities, Aggregates, Value Objects with full TypeScript support
+- ✅ **Validation Agnostic** - Works with Zod, Valibot, ArkType, or any Standard Schema compatible library
+- 🔄 **Automatic Change Tracking** - Track changes across nested entities and collections without boilerplate
+- 🗄️ **ORM Independent** - Use with Prisma, TypeORM, Drizzle, or any persistence layer
+- 🔍 **Rich Query API** - Type-safe Criteria pattern with fluent API for complex queries
+- 📦 **Repository Pattern** - Abstract your persistence layer with built-in pagination and filtering
+- 🎭 **Domain Events** - Built-in event system for cross-aggregate communication
+- 🔐 **Lifecycle Hooks** - onCreate, onBeforeUpdate, and business rule validation
+- 🪝 **React Integration** - Ready-to-use hooks and components via [@woltz/react-rich-domain](https://www.npmjs.com/package/@woltz/react-rich-domain)
+
+## Installation
 
 ```bash
-npm install rich-domain
+npm install @woltz/rich-domain
+
+# With your preferred validation library
+npm install zod # or valibot, arktype
 ```
 
 ## Quick Start
 
-### 1. Definindo um Aggregate com Validação
+### 1. Define Your Domain Entities
 
 ```typescript
+import { Aggregate, Entity, Id } from "@woltz/rich-domain";
 import { z } from "zod";
-import {
-  Id,
-  Aggregate,
-  EntityValidation,
-  EntityHooks,
-  BaseProps,
-  throwValidationError,
-} from "rich-domain";
 
-// Define as propriedades
-interface UserProps extends BaseProps {
-  name: string;
-  email: string;
-  age: number;
-  status: "active" | "inactive";
+// Value Object
+class Email extends ValueObject<{ value: string }> {
+  protected static validation = {
+    schema: z.object({
+      value: z.string().email("Invalid email format"),
+    }),
+  };
+
+  get value() {
+    return this.props.value;
+  }
 }
 
-// Define o schema de validação (Zod, ArkType, Valibot, etc.)
-const userSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  age: z.number().min(0).max(150),
-  status: z.enum(["active", "inactive"]),
+// Entity (child of Aggregate)
+const PostSchema = z.object({
+  id: z.custom<Id>(),
+  title: z.string().min(3),
+  content: z.string(),
+  published: z.boolean(),
+  createdAt: z.date(),
 });
 
-// Cria o Aggregate
-class User extends Aggregate<UserProps> {
-  // Configuração de validação
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: true,
-    },
-  };
+class Post extends Entity<z.infer<typeof PostSchema>> {
+  protected static validation = { schema: PostSchema };
 
-  // Hooks de ciclo de vida
-  protected static hooks: EntityHooks<UserProps, User> = {
-    onCreate: (entity) => {
-      console.log(`Usuário criado: ${entity.name}`);
-    },
-
-    onBeforeUpdate: (entity, snapshot) => {
-      // Bloquear mudança de email
-      if (snapshot.email !== entity.email) {
-        return false;
-      }
-      return true;
-    },
-
-    rules: (entity) => {
-      if (entity.name.toLowerCase() === "admin") {
-        throwValidationError("name", 'Nome não pode ser "admin"');
-      }
-    },
-  };
-
-  get name() {
-    return this.props.name;
+  publish(): void {
+    this.props.published = true;
   }
-  set name(value: string) {
-    this.props.name = value;
+
+  get title() {
+    return this.props.title;
+  }
+}
+
+// Aggregate Root
+const UserSchema = z.object({
+  id: z.custom<Id>(),
+  email: z.custom<Email>(),
+  name: z.string(),
+  posts: z.array(z.instanceof(Post)),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+class User extends Aggregate<z.infer<typeof UserSchema>> {
+  protected static validation = { schema: UserSchema };
+
+  addPost(title: string, content: string): void {
+    const post = new Post({
+      title,
+      content,
+      published: false,
+      createdAt: new Date(),
+    });
+    this.props.posts.push(post);
   }
 
   get email() {
-    return this.props.email;
-  }
-  get age() {
-    return this.props.age;
-  }
-  get status() {
-    return this.props.status;
+    return this.props.email.value;
   }
 
-  activate() {
-    this.props.status = "active";
-  }
-  deactivate() {
-    this.props.status = "inactive";
+  get posts() {
+    return this.props.posts;
   }
 }
 ```
 
-### 2. Repository Pattern
+### 2. Automatic Change Tracking
 
-#### In-Memory (Para Testes)
+Changes are tracked automatically - no manual tracking needed:
 
 ```typescript
-import { InMemoryRepository, Criteria } from "rich-domain";
-
-const userRepo = new InMemoryRepository<User>();
-
-// Salvar
+// Load existing user
 const user = new User({
-  name: "João Silva",
-  email: "joao@example.com",
-  age: 30,
-  status: "active",
+  id: Id.from("user-123"),
+  email: new Email({ value: "john@example.com" }),
+  name: "John Doe",
+  posts: [
+    new Post({
+      id: Id.from("post-1"),
+      title: "First Post",
+      content: "Content here",
+      published: false,
+      createdAt: new Date(),
+    }),
+  ],
+  createdAt: new Date(),
+  updatedAt: new Date(),
 });
-await userRepo.save(user);
 
-// Buscar por ID
-const found = await userRepo.findById(user.id);
+// Make changes
+user.addPost("Second Post", "More content"); // Create
+user.posts[0].publish(); // Update
+user.posts.splice(0, 1); // Delete
 
-// Buscar com Criteria (type-safe!)
-const result = await userRepo.find(
-  Criteria.create<User>()
-    .whereEquals("status", "active")
-    .where("age", "greaterThan", 18)
-    .orderByDesc("age")
-    .paginate(1, 10)
-);
+// Get all changes automatically organized
+const changes = user.getChanges();
 
-console.log(result.data); // Array de User
-console.log(result.meta); // { page, limit, total, totalPages, hasNext, hasPrevious }
+console.log(changes.hasCreates()); // true
+console.log(changes.hasUpdates()); // true
+console.log(changes.hasDeletes()); // true
 
-// Serializar para API
-const json = result.toJSON(); // Deep serialization de todos os agregados
-res.json(json);
+// Changes are organized by depth for proper FK handling
+const batch = changes.toBatchOperations();
+// {
+//   deletes: [{ entity: "Post", depth: 1, ids: ["post-1"] }],
+//   creates: [{ entity: "Post", depth: 1, items: [...] }],
+//   updates: [{ entity: "Post", depth: 1, items: [...] }]
+// }
 ```
 
-#### Production (Prisma, TypeORM, etc)
+### 3. Type-Safe Queries with Criteria
+
+Build complex queries with full type safety:
 
 ```typescript
-import { BaseRepository, BaseMapper } from "rich-domain";
+import { Criteria } from "@woltz/rich-domain";
 
-// Mapper: Domain ↔ Persistence
-class UserMapper extends BaseMapper<User, PrismaUser> {
-  toDomain(persistence: PrismaUser): User {
-    return new User({
-      id: Id.from(persistence.id),
-      name: persistence.name,
-      email: persistence.email,
-      age: persistence.age,
-      status: persistence.status as "active" | "inactive",
+// Simple query
+const activePosts = Criteria.create<Post>()
+  .where("published", "equals", true)
+  .orderBy("createdAt", "desc")
+  .limit(10);
+
+// Complex query with multiple filters
+const criteria = Criteria.create<User>()
+  .where("name", "contains", "John")
+  .where("email", "startsWith", "john")
+  .where("createdAt", "greaterThan", new Date("2024-01-01"))
+  .orderBy("name", "asc")
+  .paginate(1, 20);
+
+// Use with repository
+const result = await userRepository.find(criteria);
+// result: PaginatedResult<User>
+
+console.log(result.data); // User[]
+console.log(result.meta); // { page: 1, pageSize: 20, total: 100, totalPages: 5 }
+```
+
+### 4. Repository Pattern
+
+Abstract your persistence layer:
+
+```typescript
+import { IRepository, Criteria } from "@woltz/rich-domain";
+
+interface IUserRepository extends IRepository<User> {
+  findByEmail(email: string): Promise<User | null>;
+  findActiveUsers(): Promise<User[]>;
+}
+
+class UserRepository implements IUserRepository {
+  async save(user: User): Promise<void> {
+    // Your persistence logic
+    const changes = user.getChanges();
+    
+    // Handle deletes (deepest first)
+    for (const deletion of changes.toBatchOperations().deletes) {
+      // Delete by entity and IDs
+    }
+    
+    // Handle creates (root first)
+    for (const creation of changes.toBatchOperations().creates) {
+      // Create new entities
+    }
+    
+    // Handle updates
+    for (const update of changes.toBatchOperations().updates) {
+      // Update only changed fields
+    }
+  }
+
+  async findById(id: string): Promise<User | null> {
+    // Your query logic
+  }
+
+  async find(criteria: Criteria<User>): Promise<PaginatedResult<User>> {
+    // Transform criteria to your ORM query
+    const filters = criteria.getFilters();
+    const ordering = criteria.getOrdering();
+    const pagination = criteria.getPagination();
+    
+    // Execute query and return paginated result
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const criteria = Criteria.create<User>()
+      .where("email", "equals", email);
+    
+    const result = await this.find(criteria);
+    return result.data[0] ?? null;
+  }
+}
+```
+
+## Advanced Features
+
+### Lifecycle Hooks
+
+Add validation and side effects at key points:
+
+```typescript
+class Product extends Aggregate<ProductProps> {
+  protected static validation = {
+    schema: ProductSchema,
+    hooks: {
+      onCreate: (props) => {
+        console.log(`Product created: ${props.name}`);
+      },
+      onBeforeUpdate: (current, updates) => {
+        // Prevent price changes on inactive products
+        if (current.status === "inactive" && "price" in updates) {
+          delete updates.price;
+        }
+      },
+    },
+    rules: (props) => {
+      if (props.price > 1000 && props.stock === 0) {
+        throw new ValidationError(
+          "Product",
+          "stock",
+          "Premium products must have stock available"
+        );
+      }
+    },
+  };
+}
+```
+
+### Domain Events
+
+Communicate across aggregate boundaries:
+
+```typescript
+import { DomainEvent } from "@woltz/rich-domain";
+
+class OrderConfirmedEvent extends DomainEvent {
+  constructor(
+    aggregateId: Id,
+    public readonly customerId: string,
+    public readonly total: number
+  ) {
+    super(aggregateId);
+  }
+
+  protected getPayload() {
+    return { customerId: this.customerId, total: this.total };
+  }
+}
+
+class Order extends Aggregate<OrderProps> {
+  confirm(): void {
+    if (this.props.items.length === 0) {
+      throw new DomainError("Cannot confirm empty order");
+    }
+
+    this.props.status = "confirmed";
+    
+    // Emit event
+    this.addDomainEvent(
+      new OrderConfirmedEvent(this.id, this.customerId, this.total)
+    );
+  }
+}
+
+// After saving
+await orderRepository.save(order);
+await order.dispatchAll(eventBus);
+order.clearEvents();
+```
+
+### Value Objects
+
+Immutable objects compared by value:
+
+```typescript
+import { ValueObject } from "@woltz/rich-domain";
+
+class Money extends ValueObject<{ amount: number; currency: string }> {
+  protected static validation = {
+    schema: z.object({
+      amount: z.number().positive(),
+      currency: z.enum(["USD", "EUR", "BRL"]),
+    }),
+  };
+
+  add(other: Money): Money {
+    if (this.props.currency !== other.props.currency) {
+      throw new DomainError("Cannot add different currencies");
+    }
+    
+    return this.clone({ 
+      amount: this.props.amount + other.props.amount 
     });
   }
 
-  toPersistence(domain: User): PrismaUser {
-    return {
-      id: domain.id.value,
-      name: domain.name,
-      email: domain.email,
-      age: domain.age,
-      status: domain.status,
-    };
+  get amount() {
+    return this.props.amount;
+  }
+
+  get currency() {
+    return this.props.currency;
   }
 }
 
-// Repository
-class UserRepository extends BaseRepository<User, PrismaUser> {
-  constructor(private prisma: PrismaClient) {
-    super(new UserMapper());
-  }
+const price1 = new Money({ amount: 100, currency: "USD" });
+const price2 = new Money({ amount: 50, currency: "USD" });
+const total = price1.add(price2);
 
-  protected async insertOne(data: PrismaUser) {
-    return this.prisma.user.create({ data });
-  }
-
-  protected async updateOne(id: string, data: PrismaUser) {
-    return this.prisma.user.update({ where: { id }, data });
-  }
-
-  protected async deleteOne(id: string) {
-    await this.prisma.user.delete({ where: { id } });
-  }
-
-  protected async findOneById(id: string) {
-    const persistence = await this.prisma.user.findUnique({ where: { id } });
-    return persistence ? this.mapper.toDomain(persistence) : null;
-  }
-
-  protected async findMany() {
-    const persistence = await this.prisma.user.findMany();
-    return this.mapper.toDomainList!(persistence);
-  }
-
-  protected async applyCriteria(criteria: Criteria<User>) {
-    const where = this.buildWhereClause(criteria);
-    const orderBy = this.buildOrderBy(criteria);
-    const pagination = criteria.getPagination();
-
-    const [data, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        orderBy,
-        skip: pagination.offset,
-        take: pagination.limit,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-
-    return [data, total];
-  }
-
-  protected async countByCriteria(criteria?: Criteria<User>) {
-    const where = criteria ? this.buildWhereClause(criteria) : {};
-    return this.prisma.user.count({ where });
-  }
-
-  protected async existsById(id: string) {
-    const count = await this.prisma.user.count({ where: { id } });
-    return count > 0;
-  }
-
-  // Helpers para converter Criteria → Prisma
-  private buildWhereClause(criteria: Criteria<User>) {
-    // Ver src/repository/examples/prisma-repository.example.ts
-  }
-
-  private buildOrderBy(criteria: Criteria<User>) {
-    // Ver src/repository/examples/prisma-repository.example.ts
-  }
-}
-
-// Uso
-const prisma = new PrismaClient();
-const userRepo = new UserRepository(prisma);
-
-const result = await userRepo.find(
-  Criteria.create<User>()
-    .whereEquals("status", "active")
-    .orderByDesc("createdAt")
-    .paginate(1, 10)
-);
+console.log(total.amount); // 150
 ```
 
-### 3. Criteria Pattern (Type-Safe Queries)
+## Integration with ORMs
 
-```typescript
-import { Criteria } from "rich-domain";
+Rich Domain provides official adapters for popular ORMs:
 
-// Criar criteria
-const criteria = Criteria.create<User>()
-  // Filtros
-  .whereEquals("status", "active")
-  .where("age", "greaterThan", 18)
-  .where("age", "lessThan", 65)
-  .whereContains("name", "silva")
-  .whereIn("status", ["active", "pending"])
-  .whereBetween("age", 18, 65)
-  .whereNull("deletedAt")
-  .whereNotNull("email")
+### Prisma
 
-  // Ordenação
-  .orderBy("name", "asc")
-  .orderByDesc("createdAt")
-
-  // Paginação
-  .paginate(1, 10)
-  .limit(20);
-
-// Busca em múltiplos campos
-criteria.search(["name", "email"], "joão");
-
-// Serialização
-const json = criteria.toJSON();
-
-// Clone
-const cloned = criteria.clone();
-
-// From query params (para APIs)
-const criteriaFromUrl = Criteria.fromQueryParams<User>({
-  "status:equals": "active",
-  "age:greaterThan": "18",
-  orderBy: "name:asc,createdAt:desc",
-  page: "1",
-  limit: "10",
-  search: "joão",
-  searchFields: "name,email",
-});
+```bash
+npm install @woltz/rich-domain-prisma
 ```
 
-### 4. Unit of Work (Transações)
-
 ```typescript
-import { UnitOfWork } from "rich-domain";
+import { PrismaRepository, PrismaToPersistence } from "@woltz/rich-domain-prisma";
 
-// Executar múltiplas operações em transação
-await uow.transaction(async (ctx) => {
-  const userRepo = uow.getRepository(UserRepository);
-  const orderRepo = uow.getRepository(OrderRepository);
+class UserToPersistence extends PrismaToPersistence<User> {
+  protected readonly registry = schemaRegistry;
 
-  await userRepo.save(user);
-  await orderRepo.save(order);
+  protected async onCreate(user: User): Promise<void> {
+    await this.context.user.create({
+      data: {
+        id: user.id.value,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  }
 
-  // Auto-commit on success
-  // Auto-rollback on error
-});
-
-// Controle manual
-const ctx = await uow.begin();
-try {
-  await userRepo.save(user);
-  await orderRepo.save(order);
-  await ctx.commit();
-} catch (error) {
-  await ctx.rollback();
-  throw error;
+  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+    // Automatic batch operations handling
+  }
 }
 ```
 
-### 5. Paginated Results com Deep Serialization
+### TypeORM
 
-```typescript
-// Com Entities/Aggregates
-const users = await userRepo.find(criteria);
-// users: PaginatedResult<User>
-
-// Serialização profunda (Ids, nested entities, value objects)
-const json = users.toJSON();
-// {
-//   data: [
-//     { id: "123", name: "João", ... }, // IDs serializados para string
-//     { id: "456", name: "Maria", ... }
-//   ],
-//   meta: {
-//     page: 1,
-//     limit: 10,
-//     total: 100,
-//     totalPages: 10,
-//     hasNext: true,
-//     hasPrevious: false
-//   }
-// }
-
-// Utilitários
-users.isEmpty; // boolean
-users.hasMore; // boolean
-users.map((user) => user.name); // Transforma cada item
+```bash
+npm install @woltz/rich-domain-typeorm
 ```
 
-## Value Objects
-
 ```typescript
-import { ValueObject } from "rich-domain";
+import { TypeORMRepository } from "@woltz/rich-domain-typeorm";
 
-interface AddressProps {
-  street: string;
-  city: string;
-  zipCode: string;
-}
-
-class Address extends ValueObject<AddressProps> {
-  get street() {
-    return this.props.street;
-  }
-  get city() {
-    return this.props.city;
-  }
-
-  changeCity(newCity: string): Address {
-    return this.clone({ city: newCity });
-  }
-}
-
-const addr1 = new Address({
-  street: "Av. Paulista",
-  city: "São Paulo",
-  zipCode: "01310-100",
-});
-
-const addr2 = new Address({
-  street: "Av. Paulista",
-  city: "São Paulo",
-  zipCode: "01310-100",
-});
-
-addr1.equals(addr2); // true (comparação por valor)
-
-const addr3 = addr1.changeCity("Rio de Janeiro");
-addr1.city; // São Paulo (imutável)
-addr3.city; // Rio de Janeiro
-```
-
-## Sistema de IDs
-
-```typescript
-import { Id } from "rich-domain";
-
-// Nova entidade - gera UUID
-const newId = new Id();
-console.log(newuser.isNew()); // true
-
-// Entidade existente
-const existingId = new Id("user-123");
-console.log(existinguser.isNew()); // false
-
-// Comparação
-newId.equals(existingId); // false
-existingId.equals("user-123"); // true
-
-// Static methods
-const id1 = Id.create(); // Novo
-const id2 = Id.from("abc-123"); // Existente
-```
-
-## Change Tracking & Subscriptions
-
-```typescript
-const user = new User({
-  name: "João",
-  email: "joao@example.com",
-});
-
-// Subscribe
-user.subscribe({
-  name: {
-    onChange: ({ previous, current }) => {
-      console.log(`Nome: ${previous} → ${current}`);
-    },
-  },
-});
-
-user.name = "Maria"; // Trigger onChange
-
-// History
-const history = user.getHistory();
-// [{ path: 'name', previousValue: 'João', currentValue: 'Maria', timestamp: ... }]
-
-user.clearHistory();
-```
-
-## Domain Events
-
-```typescript
-import { DomainEvent, DomainEventBus } from "rich-domain";
-
-// Definir evento
-class UserCreatedEvent extends DomainEvent {
-  constructor(public readonly userId: Id, public readonly userName: string) {
-    super("UserCreated", userId);
-  }
-}
-
-// Criar aggregate
-class User extends Aggregate<UserProps> {
-  static create(props: Omit<UserProps, "id">) {
-    const user = new User({ ...props, id: new Id() });
-
-    // Adicionar evento
-    user.addDomainEvent(new UserCreatedEvent(user.id, user.name));
-
-    return user;
-  }
-}
-
-// Handler
-class SendWelcomeEmailHandler {
-  async handle(event: UserCreatedEvent) {
-    await sendEmail(event.userName);
-  }
-}
-
-// Registrar handler
-const bus = DomainEventBus.getInstance();
-bus.subscribe(UserCreatedEvent, new SendWelcomeEmailHandler());
-
-// Publicar eventos
-const user = User.create({ name: "João", email: "joao@example.com" });
-await user.dispatchAll(bus);
-```
-
-## Validation
-
-### Com Throw
-
-```typescript
-const user = new User({
-  name: "J", // Muito curto
-  email: "invalid",
-});
-// throws ValidationError
-```
-
-### Sem Throw
-
-```typescript
-class UserSafe extends Aggregate<UserProps> {
-  protected static validation = {
-    schema: userSchema,
-    config: { throwOnError: false },
-  };
-}
-
-const user = new UserSafe({
-  name: "J",
-  email: "invalid",
-});
-
-if (user.hasValidationErrors) {
-  console.log(user.validationErrors!.getMessages());
-  // ['Nome deve ter pelo menos 2 caracteres', 'Email inválido']
+class UserRepository extends TypeORMRepository<User, UserEntity> {
+  // Automatic change tracking and batch operations
 }
 ```
 
-## Compatibilidade Standard Schema
+## CLI Tool
 
-### Zod
+Bootstrap projects and generate domain code:
 
-```typescript
-import { z } from "zod";
-const schema = z.object({ ... });
+```bash
+npm install -g @woltz/rich-domain-cli
+
+# Initialize new project
+rich-domain init my-app --template fullstack
+
+# Generate domain from Prisma schema
+rich-domain generate --schema prisma/schema.prisma
+
+# Add entity manually
+rich-domain add User name:string email:string --with-repo
 ```
-
-### Valibot
-
-```typescript
-import * as v from "valibot";
-const schema = v.object({ ... });
-```
-
-### ArkType
-
-```typescript
-import { type } from "arktype";
-const schema = type({ ... });
-```
-
-## Estrutura de Arquivos
-
-Para exemplos completos, veja:
-
-- `src/repository/examples/prisma-repository.example.ts` - Implementação Prisma completa
-- `src/repository/examples/README.md` - Documentação detalhada
-- `tests/` - Testes completos de todos os recursos
 
 ## API Reference
 
-### Repository
+### Core Classes
+
+#### `Id`
+
+Unique identifier for entities:
 
 ```typescript
-interface IRepository<TDomain> {
-  findById(id: Id): Promise<TDomain | null>;
-  find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
-  findAll(criteria?: Criteria<TDomain>): Promise<TDomain[]>;
-  findOne(criteria: Criteria<TDomain>): Promise<TDomain | null>;
-  save(aggregate: TDomain): Promise<void>;
-  saveMany(aggregates: TDomain[]): Promise<void>;
-  delete(aggregate: TDomain): Promise<void>;
-  deleteById(id: Id): Promise<void>;
-  exists(id: Id): Promise<boolean>;
-  count(criteria?: Criteria<TDomain>): Promise<number>;
-}
+const id = Id.create(); // Generate new UUID
+const existingId = Id.from("uuid-string"); // From existing value
+
+console.log(id.value); // string
+console.log(id.isNew); // boolean
+console.log(id.equals(otherId)); // boolean
 ```
 
-### Criteria
+#### `Entity<T>`
+
+Base class for entities:
 
 ```typescript
-class Criteria<T> {
-  static create<T>(): Criteria<T>;
-
-  // Filters
-  where(field, operator, value?): this;
-  whereEquals(field, value): this;
-  whereContains(field, value): this;
-  whereIn(field, values): this;
-  whereBetween(field, min, max): this;
-  whereNull(field): this;
-  whereNotNull(field): this;
-
-  // Ordering
-  orderBy(field, direction?): this;
-  orderByAsc(field): this;
-  orderByDesc(field): this;
-
-  // Pagination
-  paginate(page, limit): this;
-  limit(limit): this;
-
-  // Search
-  search(fields, value): this;
-
-  // Utils
-  clone(): Criteria<T>;
-  toJSON(): object;
-
-  static fromObject<T>(obj): Criteria<T>;
-  static fromQueryParams<T>(query): Criteria<T>;
-}
-```
-
-### PaginatedResult
-
-```typescript
-class PaginatedResult<T> {
-  readonly data: T[];
-  readonly meta: PaginationMeta;
-
-  static create<T>(data, pagination, total): PaginatedResult<T>;
-  static createMeta(pagination, total): PaginationMeta;
-  static fromArray<T>(items, criteria): PaginatedResult<T>;
-
-  toJSON(): PaginatedJsonResult<T>; // Deep serialization
-  map<U>(fn): PaginatedResult<U>;
-
-  get isEmpty(): boolean;
-  get hasMore(): boolean;
-}
-```
-
-### Id
-
-```typescript
-class Id {
-  constructor(value?: string);
-
-  get value(): string;
-  get isNew(): boolean;
-
-  toString(): string;
-  toJSON(): string;
-  equals(other: Id | string): boolean;
-
-  static create(): Id;
-  static from(value: string): Id;
-}
-```
-
-### BaseEntity
-
-```typescript
-abstract class BaseEntity<T extends BaseProps> {
+abstract class Entity<T extends { id: Id }> {
   get id(): Id;
   get isNew(): boolean;
-  get hasValidationErrors(): boolean;
-  get validationErrors(): ValidationError | undefined;
+  equals(other: Entity<T>): boolean;
+  toJSON(): object;
+}
+```
 
-  subscribe(config: SubscriptionConfig<T>): void;
-  getHistory(): HistoryEntry[];
-  clearHistory(): void;
-  toJson(): DeepJsonResult<T>;
+#### `Aggregate<T>`
 
+Root entity with change tracking:
+
+```typescript
+abstract class Aggregate<T extends { id: Id }> extends Entity<T> {
+  getChanges(): AggregateChanges;
+  
   // Domain Events
   protected addDomainEvent(event: IDomainEvent): void;
   getUncommittedEvents(): IDomainEvent[];
   clearEvents(): void;
-  async dispatchAll(bus: DomainEventBus): Promise<void>;
+  dispatchAll(bus: DomainEventBus): Promise<void>;
 }
 ```
 
-### ValueObject
+#### `ValueObject<T>`
+
+Immutable object compared by value:
 
 ```typescript
 abstract class ValueObject<T> {
   protected readonly props: T;
-
+  
   equals(other: ValueObject<T>): boolean;
-  toJson(): T;
+  toJSON(): T;
   protected clone(updates: Partial<T>): this;
 }
 ```
 
-## Testing
+### Criteria API
 
 ```typescript
-import { InMemoryRepository } from "rich-domain";
-
-describe("UserService", () => {
-  const userRepo = new InMemoryRepository<User>();
-  const service = new UserService(userRepo);
-
-  beforeEach(() => userRepo.clear());
-
-  it("should create user", async () => {
-    const user = await service.createUser({
-      name: "João",
-      email: "joao@example.com",
-    });
-
-    expect(user.user.isNew()).toBe(false);
-    expect(await userRepo.exists(user.id)).toBe(true);
-  });
-});
+class Criteria<T> {
+  static create<T>(): Criteria<T>;
+  
+  // Filters
+  where<K extends FieldPath<T>>(
+    field: K,
+    operator: FilterOperator,
+    value: any
+  ): this;
+  
+  // Ordering
+  orderBy<K extends FieldPath<T>>(
+    field: K,
+    direction: "asc" | "desc"
+  ): this;
+  
+  // Pagination
+  limit(limit: number): this;
+  offset(offset: number): this;
+  paginate(page: number, pageSize: number): this;
+  
+  // Search
+  search(term: string): this;
+  
+  // Getters
+  getFilters(): Filter<T>[];
+  getOrdering(): Order<T> | null;
+  getPagination(): Pagination | null;
+  getSearch(): string | null;
+}
 ```
 
-## Roadmap
+### Exception Handling
 
-- [ ] TypeORM repository example
-- [ ] MongoDB repository example
-- [ ] Drizzle ORM repository example
-- [ ] GraphQL integration utilities
-- [ ] Advanced caching strategies
+Rich Domain provides comprehensive exception types:
 
-## Contribuindo
+```typescript
+import { 
+  ValidationError,
+  DomainError,
+  EntityNotFoundError,
+  DuplicateEntityError,
+  ConcurrencyError,
+  RepositoryError
+} from "@woltz/rich-domain";
 
-Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes.
+try {
+  const user = new User({ /* invalid props */ });
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log(error.entity); // "User"
+    console.log(error.field); // "email"
+    console.log(error.message); // "Invalid email format"
+  }
+}
+```
 
-## Licença
-
-MIT
-
-## Links
-
-- [Documentação Completa](https://github.com/yourusername/rich-domain)
-- [Exemplos](./src/repository/examples)
-- [Issues](https://github.com/yourusername/rich-domain/issues)
-
-## Package Formats
+## Package Format
 
 This library is published as a **dual package** supporting both CommonJS and ES Modules:
 
-### CommonJS (Node.js)
 ```javascript
+// CommonJS
 const { Id, Entity, Aggregate } = require('@woltz/rich-domain');
-```
 
-### ES Modules (Modern bundlers & Node.js with ESM)
-```javascript
+// ES Modules
 import { Id, Entity, Aggregate } from '@woltz/rich-domain';
 ```
 
-### Benefits
-- ✅ **Universal compatibility**: Works in any Node.js environment
-- ✅ **Tree-shaking**: Modern bundlers (Vite, Rollup, Webpack 5+) can eliminate unused code
-- ✅ **TypeScript support**: Full type definitions included
-- ✅ **Zero configuration**: Automatically uses the correct format for your environment
+Benefits:
+- ✅ Universal compatibility (Node.js, Vite, Webpack, etc.)
+- ✅ Tree-shaking support for modern bundlers
+- ✅ Full TypeScript support with type definitions
+- ✅ Zero configuration - automatically uses the correct format
 
+## Documentation
+
+- 📚 [Full Documentation](https://woltz.mintlify.app)
+- 🚀 [Quick Start Guide](https://woltz.mintlify.app/quickstart)
+- 📖 [Core Concepts](https://woltz.mintlify.app/core/entities-and-aggregates)
+- 🔌 [Integrations](https://woltz.mintlify.app/integrations/prisma)
+- ⚛️ [React Components](https://woltz.mintlify.app/integrations/react)
+
+## Examples
+
+Check out the [examples directory](./examples) for complete implementations:
+
+- Basic CRUD operations
+- Complex aggregate relationships
+- Custom validation rules
+- Domain events
+- Repository implementations for different ORMs
+
+## Ecosystem
+
+| Package | Description | Version |
+|---------|-------------|---------|
+| [@woltz/rich-domain](https://www.npmjs.com/package/@woltz/rich-domain) | Core library | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain) |
+| [@woltz/rich-domain-prisma](https://www.npmjs.com/package/@woltz/rich-domain-prisma) | Prisma adapter | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg)](https://www.npmjs.com/package/@woltz/rich-domain-prisma) |
+| [@woltz/rich-domain-typeorm](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) | TypeORM adapter | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) |
+| [@woltz/rich-domain-criteria-zod](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod criteria builder | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) |
+| [@woltz/rich-domain-cli](https://www.npmjs.com/package/@woltz/rich-domain-cli) | CLI tool | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli) |
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) for details.
+
+## License
+
+MIT © [Tarcisio Andrade](https://github.com/tarcisioandrade)
+
+## Links
+
+- [Documentation](https://woltz.mintlify.app)
+- [GitHub Repository](https://github.com/tarcisioandrade/rich-domain)
+- [npm Package](https://www.npmjs.com/package/@woltz/rich-domain)
+- [Issues](https://github.com/tarcisioandrade/rich-domain/issues)
+- [Changelog](./CHANGELOG.md)
