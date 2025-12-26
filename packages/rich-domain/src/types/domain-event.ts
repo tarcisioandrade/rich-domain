@@ -1,7 +1,7 @@
 /**
  * Interface for all domain events
  */
-export interface IDomainEvent {
+export interface IDomainEvent<P = unknown> {
   /**
    * Unique identifier for this event occurrence
    */
@@ -18,21 +18,12 @@ export interface IDomainEvent {
   readonly eventName: string;
 
   /**
-   * ID of the aggregate that raised this event
+   * Queue name for the event (optional)
    */
-  readonly aggregateId: string;
-}
+  readonly queueName?: string;
 
-/**
- * Event handler function type
- */
-export type DomainEventHandler<T extends IDomainEvent = IDomainEvent> = (
-  event: T
-) => void | Promise<void>;
-
-/**
- * Event handler class type
- */
-export interface IDomainEventHandler<T extends IDomainEvent = IDomainEvent> {
-  handle(event: T): void | Promise<void>;
+  /**
+   * Payload of the event
+   */
+  readonly payload: P;
 }
