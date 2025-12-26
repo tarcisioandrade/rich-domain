@@ -1,7 +1,6 @@
 import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
-import { Criteria, Id } from "@woltz/rich-domain";
-import { EVENT_BUS } from "../../infrastructure/queue/event-bus";
+import { Criteria, Id, IDomainEventBus } from "@woltz/rich-domain";
 import { Transactional } from "@woltz/rich-domain-prisma";
 import { uow } from "../../infrastructure/database/prisma";
 
@@ -11,7 +10,10 @@ interface CreateUserInput {
 }
 
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly eventBus: IDomainEventBus
+  ) {}
 
   @Transactional(uow)
   async create(input: CreateUserInput): Promise<User> {
@@ -31,7 +33,7 @@ export class UserService {
     });
 
     await this.userRepository.save(user);
-    await user.dispatchAll(EVENT_BUS);
+    await user.dispatchAll(this.eventBus);
 
     return user;
   }

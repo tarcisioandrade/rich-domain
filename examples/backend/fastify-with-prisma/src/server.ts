@@ -4,14 +4,13 @@ import fastify from "fastify";
 import { userRoutes } from "./infrastructure/http/routes/user.routes";
 import { postRoutes } from "./infrastructure/http/routes/post.routes";
 import { prisma } from "./infrastructure/database/prisma";
-import { enqueueDomainEvent } from "./infrastructure/queue/event-queue";
-import { EVENT_BUS } from "./infrastructure/queue/event-bus";
 import {
   serializerCompiler,
   validatorCompiler,
   jsonSchemaTransform,
   jsonSchemaTransformObject,
 } from "fastify-type-provider-zod";
+import { diPlugin } from "./infrastructure/di";
 
 const app = fastify({
   logger: true,
@@ -37,6 +36,7 @@ app.register(fastifySwaggerUI, {
   routePrefix: "/doc",
 });
 
+await app.register(diPlugin);
 await app.register(userRoutes);
 await app.register(postRoutes);
 
@@ -59,10 +59,6 @@ const start = async () => {
     await prisma.$connect();
 
     console.log("Database connected successfully");
-
-    EVENT_BUS.subscribeAll(async (event) => {
-      await enqueueDomainEvent(event);
-    });
 
     const port = Number(process.env.PORT) || 3000;
     await app.ready();
