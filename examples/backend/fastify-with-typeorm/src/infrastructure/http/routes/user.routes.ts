@@ -1,16 +1,12 @@
-import { FastifyInstance } from "fastify";
+import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { TypeORMUserRepository } from "../../database/repositories/typeorm-user.repository";
 import { Criteria } from "@woltz/rich-domain";
-import { getUoW, getDataSource } from "../../database/data-source";
-import { UserService } from "../../../application/services/user.service";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   CriteriaQuerySchema,
   PaginatedResponseSchema,
   defineFilters,
 } from "@woltz/rich-domain-criteria-zod";
-import { UserEntity } from "../../database/models";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -34,15 +30,8 @@ const UserResponseSchema = z.object({
   posts: z.array(z.object({ title: z.string(), content: z.string() })),
 });
 
-export async function userRoutes(app: FastifyInstance) {
-  const appDataSource = getDataSource();
-  const uow = getUoW();
-
-  const userRepository = new TypeORMUserRepository(
-    appDataSource.getRepository(UserEntity),
-    uow
-  );
-  const userService = new UserService(userRepository, uow);
+export const userRoutes: FastifyPluginAsync = async (app) => {
+  const { userService } = app.container;
 
   app.post("/users", async (request, reply) => {
     try {
@@ -128,4 +117,4 @@ export async function userRoutes(app: FastifyInstance) {
       });
     }
   });
-}
+};

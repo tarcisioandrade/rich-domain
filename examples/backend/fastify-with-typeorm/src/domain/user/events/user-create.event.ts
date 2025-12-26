@@ -1,3 +1,7 @@
 import { DomainEvent } from "@woltz/rich-domain";
 
-export class UserCreatedEvent extends DomainEvent {}
+export type UserCreatedEventPayload = {
+  email: string;
+};
+
+export class UserCreatedEvent extends DomainEvent<UserCreatedEventPayload> {}
