@@ -1,7 +1,7 @@
 {
   "name": "@woltz/rich-domain-cli",
-  "version": "0.4.0",
-  "description": "CLI tools for @woltz/rich-domain - Generate domain entities from Prisma schema",
+  "version": "0.5.0",
+  "description": "CLI tools for @woltz/rich-domain - Generate domain entities and interactive studio",
   "type": "module",
   "bin": {
     "rich-domain": "dist/index.js"
@@ -29,15 +29,21 @@
     "generator",
     "entity",
     "aggregate",
-    "rich-domain"
+    "rich-domain",
+    "studio",
+    "playground"
   ],
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:cli && npm run build:studio",
+    "build:cli": "tsc",
+    "build:studio": "npm run build:studio:server && npm run build:studio:web",
+    "build:studio:server": "tsc --project src/studio/server/tsconfig.json",
+    "build:studio:web": "cd src/studio/web && npm install && npm run build && copyfiles -u 1 \"dist/**/*\" ../../../dist/studio/web/dist",
     "dev": "tsc --watch",
-    "start": "node dist/index.js",
+    "dev:studio": "node dist/index.js studio",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "check": "tsc --noEmit",
@@ -50,15 +56,23 @@
     "release:patch": "standard-version --release-as patch"
   },
   "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.1",
+    "@prisma/internals": "^6.1.0",
     "cac": "^6.7.14",
-    "picocolors": "^1.1.1",
+    "chokidar": "^4.0.3",
+    "fastify": "^5.2.0",
+    "open": "^10.1.0",
     "ora": "^8.1.1",
+    "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
-    "@prisma/internals": "^6.1.0"
+    "vm2": "^3.9.19"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
     "@types/prompts": "^2.4.9",
+    "copyfiles": "^2.4.1",
+    "esbuild": "^0.27.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },

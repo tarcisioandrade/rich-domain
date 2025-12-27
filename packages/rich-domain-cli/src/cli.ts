@@ -5,6 +5,7 @@ import { initProject } from "./commands/init/index.js";
 import { addEntity } from "./commands/add/index.js";
 import type { GenerateCommandOptions } from "./commands/generate/index.js";
 import type { AddCommandOptions } from "./commands/add/index.js";
+import { startStudio, StudioCommandOptions } from "./commands/studio/index.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -142,6 +143,21 @@ export function createCli() {
     console.log("Run 'rich-domain --help' for available commands");
     process.exit(1);
   });
+
+  // Studio command
+  cli
+    .command("studio", "Open Rich Domain Studio - Interactive playground")
+    .option("-p, --port <port>", "Server port", { default: 6699 })
+    .option("--no-open", "Don't open browser automatically")
+    .example("  $ rich-domain studio")
+    .example("  $ rich-domain studio --port 4000")
+    .example("  $ rich-domain studio --no-open")
+    .action(async (options: StudioCommandOptions) => {
+      await startStudio(options);
+    });
+
+  cli.help();
+  cli.version(version);
 
   return cli;
 }
