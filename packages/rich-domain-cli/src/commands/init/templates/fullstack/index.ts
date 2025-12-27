@@ -59,7 +59,7 @@ export class FullstackTemplate extends BaseTemplate {
       "@fastify/helmet": "^13.0.0",
       "@fastify/sensible": "^6.0.1",
       "@prisma/client": "^6.1.0",
-      "@woltz/rich-domain": "^1.5.0",
+      "@woltz/rich-domain": "^1.6.0",
       "@woltz/rich-domain-criteria-zod": "^0.1.2",
       "@woltz/rich-domain-prisma": "^0.7.1",
       bullmq: "^5.64.0",
@@ -407,6 +407,8 @@ enum Role {
       this.generateConfig(),
       this.generateServer(),
       this.generateWorker(),
+      this.generateConstants(),
+      this.generateEnv(),
     ];
   }
 
@@ -415,10 +417,8 @@ enum Role {
       path: "src/main.ts",
       content: `import "dotenv/config";
 import { buildServer } from "./server.js";
-import { config } from "./config/index.js";
 import { prisma } from "./infra/database/prisma.js";
-import { EVENT_BUS } from "./infra/queue/event-bus.js";
-import { enqueueDomainEvent } from "./infra/queue/event-queue.js";
+import { env } from "./env.js";
 
 async function main() {
   const server = await buildServer();
@@ -427,12 +427,8 @@ async function main() {
     await prisma.$connect();
     console.log("📦 Database connected");
 
-    EVENT_BUS.subscribeAll(async (event) => {
-      await enqueueDomainEvent(event);
-    });
-
     await server.ready();
-    await server.listen({ port: config.port, host: "0.0.0.0" });
+    await server.listen({ port: env.port, host: "0.0.0.0" });
 
     console.log("🚀 Server running");
   } catch (error) {
@@ -482,7 +478,7 @@ main();
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
-import { config } from "./config/index.js";
+import { env } from "./env.js";
 import { userRoutes } from "./infra/http/controllers/user.controller.js";
 import {
   serializerCompiler,
@@ -493,8 +489,8 @@ import diPlugin from "./infra/di/fastify-plugin.js";
 export async function buildServer() {
   const server = Fastify({
     logger: {
-      level: config.log.level,
-      transport: config.isDev
+      level: env.log.level,
+      transport: env.isDev
         ? { target: "pino-pretty", options: { colorize: true } }
         : undefined,
     },
@@ -524,7 +520,55 @@ export async function buildServer() {
   private generateWorker(): TemplateFile {
     return {
       path: "src/worker.ts",
-      content: `import "./infra/queue/event-worker";`,
+      content: `import "dotenv/config";
+import { registerNotificationEventHandlers } from "./application/events/notifications";
+import { registerUserEventHandlers } from "./application/events/user";
+import { BullMQDomainEventWorker, connection, QueuePublisher } from "./infra/queue";
+
+export const worker = new BullMQDomainEventWorker(connection);
+export const queuePublisher = new QueuePublisher(connection);
+
+registerUserEventHandlers(worker);
+registerNotificationEventHandlers(worker);
+
+async function main() {
+  try {
+    console.log("🔄 Starting domain event worker...");
+    await worker.start();
+    console.log("✅ Domain event worker started successfully");
+  } catch (error) {
+    console.error("❌ Failed to start domain event worker:", error);
+    await worker.stop();
+    process.exit(1);
+  }
+}
+
+process.on("SIGINT", async () => {
+  console.log("👋 Shutting down worker...");
+  await worker.stop();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("👋 Shutting down worker...");
+  await worker.stop();
+  process.exit(0);
+});
+
+main();
+`,
+    };
+  }
+
+  private generateConstants(): TemplateFile {
+    return {
+      path: "src/constants.ts",
+      content: `export const QUEUES = {
+  MAIN: "main-queue",
+  WORKFLOW_EVENTS: "workflow-events",
+  NOTIFICATION_EVENTS: "notification-events",
+} as const;
+`,
     };
   }
 
@@ -754,7 +798,26 @@ export * from "./post.repository.js";
         path: "src/domain/events/user/user-created.event.ts",
         content: `import { DomainEvent } from "@woltz/rich-domain";
 
-export class UserCreatedEvent extends DomainEvent {}
+export type UserCreatedEventPayload = {
+  email: string;
+};
+export class UserCreatedEvent extends DomainEvent<UserCreatedEventPayload> {}
+`,
+      },
+      {
+        path: "src/domain/events/user/send-email-notification.event.ts",
+        content: `import { QUEUES } from "@/constants";
+import { DomainEvent } from "@woltz/rich-domain";
+
+export type SendEmailJob = {
+  to: string;
+  subject: string;
+  body: string;
+};
+
+export class SendEmailNotification extends DomainEvent<SendEmailJob> {
+  static readonly queueName = QUEUES.NOTIFICATION_EVENTS;
+}
 `,
       },
     ];
@@ -1071,46 +1134,261 @@ export * from "./post.repository.js";
       // Jobs
       {
         path: "src/infra/queue/event-bus.ts",
-        content: `import { UserCreatedEvent } from "@/domain/events/user/user-created.event";
-import { DomainEventBus } from "@woltz/rich-domain";
+        content: `import { JobsOptions, Queue } from "bullmq";
+import IORedis from "ioredis";
+import { IDomainEvent, IDomainEventBus } from "@woltz/rich-domain";
+import { QUEUES } from "@/constants";
 
-export const EVENT_BUS = DomainEventBus.getInstance();
+export class BullMQEventBus implements IDomainEventBus {
+  private queues: Map<string, Queue<IDomainEvent>> = new Map();
+  private connection: IORedis;
+  private defaultQueueName = QUEUES.MAIN;
 
-EVENT_BUS.subscribe({
-  event: UserCreatedEvent,
-  handler: (event: UserCreatedEvent) => {
-    console.log("User Created Event", event);
-  },
-});
+  constructor(connection: IORedis) {
+    this.connection = connection;
+  }
 
-EVENT_BUS.subscribeAll((event) => {
-  console.log("Event received");
-  event;
+  private getQueue(queueName: string): Queue<IDomainEvent> {
+    if (!this.queues.has(queueName)) {
+      this.queues.set(
+        queueName,
+        new Queue<IDomainEvent>(queueName, { connection: this.connection })
+      );
+    }
+    return this.queues.get(queueName)!;
+  }
+
+  private getQueueNameForEvent(event: IDomainEvent): string {
+    const eventClass = event.constructor as any;
+    return eventClass.queueName || this.defaultQueueName;
+  }
+
+  async publish(event: IDomainEvent, options?: JobsOptions): Promise<void> {
+    const queueName = this.getQueueNameForEvent(event);
+    const queue = this.getQueue(queueName);
+
+    await queue.add(event.eventName, event, {
+      removeOnComplete: true,
+      removeOnFail: false,
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      ...options,
+    });
+  }
+
+  async publishAll(
+    events: IDomainEvent[],
+    options?: JobsOptions
+  ): Promise<void> {
+    const eventsByQueue = events.reduce((acc, event) => {
+      const queueName = this.getQueueNameForEvent(event);
+      if (!acc[queueName]) {
+        acc[queueName] = [];
+      }
+      acc[queueName].push(event);
+      return acc;
+    }, {} as Record<string, IDomainEvent[]>);
+
+    await Promise.all(
+      Object.entries(eventsByQueue).map(([queueName, queueEvents]) => {
+        const queue = this.getQueue(queueName);
+        return queue.addBulk(
+          queueEvents.map((event) => ({
+            name: event.eventName,
+            data: event,
+            removeOnComplete: true,
+            removeOnFail: false,
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 2000,
+            },
+            ...options,
+          }))
+        );
+      })
+    );
+  }
+
+  async close(): Promise<void> {
+    await Promise.all(
+      Array.from(this.queues.values()).map((queue) => queue.close())
+    );
+  }
+}
+`,
+      },
+      {
+        path: "src/infra/queue/connection.ts",
+        content: `import { env } from "@/env";
+import IORedis from "ioredis";
+
+export const connection = new IORedis({
+  host: env.redis.host,
+  port: env.redis.port,
+  password: env.redis.password,
+  maxRetriesPerRequest: null, // Required for BullMQ blocking operations
 });
 `,
       },
       {
-        path: "src/infra/queue/event-queue.ts",
-        content: `import { Queue } from "bullmq";
-import { IDomainEvent } from "@woltz/rich-domain";
+        path: "src/infra/queue/event-worker.ts",
+        content: `import { ConfigurationError, DomainEvent } from "@woltz/rich-domain";
+import { Job, Worker, WorkerOptions } from "bullmq";
+import IORedis from "ioredis";
+import { randomUUID } from "crypto";
+import { QUEUES } from "@/constants";
+import { QueueName } from "./queue-publisher";
+
+type QueueWorkerHandler = {
+  handler: (event: DomainEvent<any>) => Promise<any>;
+};
+
+export class BullMQDomainEventWorker {
+  private workers: Record<
+    string,
+    {
+      handlers: Map<string, QueueWorkerHandler>;
+      settings?: WorkerOptions;
+    }
+  > = {
+    [QUEUES.MAIN]: {
+      handlers: new Map<string, QueueWorkerHandler>(),
+      settings: {
+        concurrency: 50,
+      } as WorkerOptions,
+    },
+    [QUEUES.NOTIFICATION_EVENTS]: {
+      handlers: new Map<string, QueueWorkerHandler>(),
+      settings: {
+        concurrency: 10,
+      } as WorkerOptions,
+    },
+    [QUEUES.WORKFLOW_EVENTS]: {
+      handlers: new Map<string, QueueWorkerHandler>(),
+      settings: {
+        concurrency: 5,
+      } as WorkerOptions,
+    },
+  };
+
+  private _connection: IORedis;
+
+  constructor(connection: IORedis) {
+    this._connection = connection;
+  }
+
+  public on<T extends Record<string, any> = Record<string, any>>(props: {
+    queue: QueueName;
+    event: new (...args: any[]) => DomainEvent<T>;
+    handler: (event: DomainEvent<T>) => Promise<void>;
+  }) {
+    const { queue, event, handler } = props;
+    const eventName = event.name;
+
+    if (!this.workers[queue]) {
+      throw new ConfigurationError(
+        \`Queue "\${queue}" not configured in DomainEventWorker\`
+      );
+    }
+
+    this.workers[queue].handlers.set(eventName, { handler });
+  }
+
+  public async start() {
+    for (const [workerName, worker] of Object.entries(this.workers)) {
+      const onJobHandler = async (job: Job<DomainEvent<any>>) => {
+        const workerProps = worker.handlers.get(job.data.eventName);
+        const token = randomUUID();
+
+        if (!workerProps) {
+          const error = new ConfigurationError(
+            \`Handler not found for event: \${job.data.eventName}\`
+          );
+          await job.moveToFailed(error, token);
+          return;
+        }
+
+        return await workerProps.handler(job.data);
+      };
+
+      // Creating the Worker automatically starts it in BullMQ v5
+      const bullWorker = new Worker(workerName, onJobHandler, {
+        ...worker?.settings,
+        connection: this._connection,
+      });
+    }
+  }
+
+  async stop() {
+    await this._connection.quit();
+  }
+}
+`,
+      },
+      {
+        path: "src/infra/queue/queue-publisher.ts",
+        content: `import { QUEUES } from "@/constants";
+import { DomainEvent } from "@woltz/rich-domain";
+import { Queue, JobsOptions } from "bullmq";
 import IORedis from "ioredis";
 
-export const connection = new IORedis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-  maxRetriesPerRequest: null,
-});
-
-export const DomainEventQueue = new Queue<IDomainEvent>("domain-events", {
-  connection,
-});
+export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
 
 /**
- * Publish a domain event to BullMQ queue
+ * QueuePublisher - Publish jobs to specific queues
+ * Use this when you need to publish to queues other than the default domain-events queue
  */
-export async function enqueueDomainEvent(event: IDomainEvent) {
-  await DomainEventQueue.add(event.eventName, event);
+export class QueuePublisher {
+  private queues: Map<QueueName, Queue> = new Map();
+
+  constructor(private connection: IORedis) {}
+
+  async publish<T extends DomainEvent<any>>(
+    queueName: QueueName,
+    event: T,
+    options?: JobsOptions
+  ): Promise<void> {
+    const queue = this.getOrCreateQueue(queueName);
+    await queue.add(event.eventName, event, {
+      removeOnComplete: true,
+      removeOnFail: false,
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      ...options,
+    });
+  }
+
+  private getOrCreateQueue(queueName: QueueName): Queue {
+    if (!this.queues.has(queueName)) {
+      this.queues.set(
+        queueName,
+        new Queue(queueName, { connection: this.connection })
+      );
+    }
+    return this.queues.get(queueName)!;
+  }
+
+  async close(): Promise<void> {
+    await Promise.all(
+      Array.from(this.queues.values()).map((queue) => queue.close())
+    );
+  }
 }
+`,
+      },
+      {
+        path: "src/infra/queue/index.ts",
+        content: `export * from "./connection";
+export * from "./event-bus";
+export * from "./event-worker";
+export * from "./queue-publisher";
 `,
       },
       // DI
@@ -1124,6 +1402,9 @@ import { UserRepository } from "../repository/user.repository.js";
 import { PostRepository } from "../repository/post.repository.js";
 import { UserService } from "@/application/services/user.service.js";
 import { PostService } from "@/application/services/post.service.js";
+import { BullMQEventBus } from "../queue/event-bus.js";
+import { IDomainEventBus } from "@woltz/rich-domain";
+import { connection } from "../queue/connection.js";
 
 export class Container {
   private static instance: Container;
@@ -1144,6 +1425,7 @@ export class Container {
     // Infrastructure dependencies
     this.register("prisma", () => prisma);
     this.register("unitOfWork", () => createUnitOfWork());
+    this.register("eventBus", () => new BullMQEventBus(connection));
 
     // Repositories
     this.register(
@@ -1167,7 +1449,11 @@ export class Container {
     // Services
     this.register(
       "userService",
-      () => new UserService(this.resolve<UserRepository>("userRepository"))
+      () =>
+        new UserService(
+          this.resolve<UserRepository>("userRepository"),
+          this.resolve<IDomainEventBus>("eventBus")
+        )
     );
 
     this.register(
@@ -1250,31 +1536,6 @@ export default fp(diPlugin, {
         path: "src/infra/di/index.ts",
         content: `export { container, Container } from "./container.js";
 export { default as diPlugin } from "./fastify-plugin.js";
-`,
-      },
-      {
-        path: "src/infra/queue/event-worker.ts",
-        content: `import { Worker } from "bullmq";
-import { IDomainEvent } from "@woltz/rich-domain";
-import { EVENT_BUS } from "./event-bus.js";
-import { connection } from "./event-queue.js";
-
-export const DomainEventWorker = new Worker<IDomainEvent>(
-  "domain-events",
-  async (job) => {
-    await EVENT_BUS.publish(job.data);
-    return true;
-  },
-  { connection }
-);
-
-DomainEventWorker.on("completed", (job) => {});
-
-DomainEventWorker.on("failed", (job, err) => {});
-
-DomainEventWorker.on("ready", () => {
-  console.log("[Worker] Ready");
-});
 `,
       },
       // HTTP
@@ -1381,6 +1642,43 @@ export const listUserDto = z.object({
 export type ListUserDto = z.infer<typeof listUserDto>;
 `,
       },
+      // EVENTS
+      {
+        path: "src/application/events/user/index.ts",
+        content: `import { UserCreatedEvent } from "@/domain/events/user/user-created.event.js";
+import { BullMQDomainEventWorker } from "@/infra/queue/event-worker";
+import { QUEUES } from "@/constants";
+
+export function registerUserEventHandlers(worker: BullMQDomainEventWorker) {
+  worker.on({
+    queue: QUEUES.MAIN,
+    event: UserCreatedEvent,
+    handler: async (event) => {
+      console.log("   Email:", event.payload.email);
+    },
+  });
+}
+`,
+      },
+      {
+        path: "src/application/events/notifications/index.ts",
+        content: `import { SendEmailNotification } from "@/domain/events/user/send-email-notification.event";
+import { BullMQDomainEventWorker } from "@/infra/queue/event-worker";
+import { QUEUES } from "@/constants";
+
+export function registerNotificationEventHandlers(
+  worker: BullMQDomainEventWorker
+) {
+  worker.on({
+    queue: QUEUES.NOTIFICATION_EVENTS,
+    event: SendEmailNotification,
+    handler: async (event) => {
+      console.log("   To:", event.payload.to);
+    },
+  });
+}
+`,
+      },
     ];
   }
 
@@ -1394,12 +1692,14 @@ export type ListUserDto = z.infer<typeof listUserDto>;
         path: "src/application/services/user.service.ts",
         content: `import { User } from "@/domain/entities";
 import { CreateUserDto } from "@/infra/http/dto/user/create-user.dto";
-import { EVENT_BUS } from "@/infra/queue/event-bus";
 import { UserRepository } from "@/infra/repository/user.repository";
-import { Criteria, EntityAlreadyExistsError } from "@woltz/rich-domain";
+import { Criteria, EntityAlreadyExistsError, IDomainEventBus } from "@woltz/rich-domain";
 
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+  private readonly userRepository: UserRepository,
+  private readonly eventBus: IDomainEventBus
+  ) {}
 
   async list(criteria: Criteria) {
     return await this.userRepository.find(criteria);
@@ -1421,7 +1721,7 @@ export class UserService {
     });
 
     await this.userRepository.save(user);
-    await user.dispatchAll(EVENT_BUS);
+    await user.dispatchAll(this.eventBus);
   }
 }
 `,
@@ -1443,5 +1743,45 @@ export * from "./post.service.js";
 `,
       },
     ];
+  }
+
+  private generateEnv(): TemplateFile {
+    return {
+      path: "src/env.ts",
+      content: `import z from "zod";
+
+const configSchema = z.object({
+  port: z.number().int().positive(),
+  nodeEnv: z.enum(["development", "production"]),
+  isDev: z.boolean(),
+  redis: z.object({
+    host: z.string(),
+    port: z.number().int().positive(),
+    password: z.string(),
+  }),
+  log: z.object({
+    level: z.enum(["debug", "info", "warn", "error"]),
+  }),
+});
+
+const rawConfig = {
+  port: parseInt(process.env.PORT || "3000", 10),
+  nodeEnv: process.env.NODE_ENV || "development",
+  isDev: process.env.NODE_ENV !== "production",
+
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: parseInt(process.env.REDIS_PORT || "6379", 10),
+    password: process.env.REDIS_PASSWORD || "",
+  },
+
+  log: {
+    level: process.env.LOG_LEVEL || "info",
+  },
+} as const;
+
+export const env = configSchema.parse(rawConfig);
+`,
+    };
   }
 }

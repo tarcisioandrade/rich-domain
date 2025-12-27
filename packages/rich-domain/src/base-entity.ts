@@ -9,8 +9,8 @@ import {
   ValidationConfig,
   StandardSchema,
   EntityValidation,
+  IDomainEventBus,
 } from "./types/index.js";
-import { DomainEventBus } from "./domain-event-bus.js";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants.js";
 import { DomainError } from "./exceptions.js";
 import { ChangeTracker } from "./change-tracker.js";
@@ -361,7 +361,7 @@ export abstract class BaseEntity<T extends BaseProps> {
   /**
    * Dispatch all events through the event bus
    */
-  public async dispatchAll(bus: DomainEventBus): Promise<void> {
+  public async dispatchAll(bus: IDomainEventBus): Promise<void> {
     await bus.publishAll(this.getUncommittedEvents());
     this.clearEvents();
   }

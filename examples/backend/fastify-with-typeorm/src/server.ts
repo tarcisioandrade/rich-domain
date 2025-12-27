@@ -5,8 +5,6 @@ import {
   AppDataSource,
   initializeDatabase,
 } from "./infrastructure/database/data-source";
-import { enqueueDomainEvent } from "./infrastructure/queue/event-queue";
-import { EVENT_BUS } from "./infrastructure/queue/event-bus";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -63,10 +61,6 @@ const start = async () => {
 
     await app.register(userRoutes);
     await app.register(postRoutes);
-
-    EVENT_BUS.subscribeAll(async (event) => {
-      await enqueueDomainEvent(event);
-    });
 
     const port = Number(process.env.PORT) || 3000;
 

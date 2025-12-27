@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { TypeORMPostRepository } from "../../database/repositories/typeorm-post.repository";
 import { TypeORMUserRepository } from "../../database/repositories/typeorm-user.repository";
@@ -23,19 +23,8 @@ const getPostParamsSchema = z.object({
   id: z.string(),
 });
 
-export async function postRoutes(app: FastifyInstance) {
-  const appDataSource = getDataSource();
-  const uow = getUoW();
-
-  const userRepository = new TypeORMUserRepository(
-    appDataSource.getRepository(UserEntity),
-    uow
-  );
-  const postRepository = new TypeORMPostRepository(
-    appDataSource.getRepository(PostEntity),
-    uow
-  );
-  const postService = new PostService(postRepository, userRepository);
+export const postRoutes: FastifyPluginAsync = async (app) => {
+  const { postService } = app.container;
 
   app.post("/posts", async (request, reply) => {
     try {

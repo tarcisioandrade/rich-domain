@@ -1,10 +1,6 @@
-import { FastifyInstance } from "fastify";
+import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { PrismaUserRepository } from "../../database/repositories/prisma-user.repository";
 import { Criteria } from "@woltz/rich-domain";
-import { prisma } from "../../database/prisma";
-import { UserService } from "../../../application/services/user.service";
-import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   CriteriaQuerySchema,
@@ -34,10 +30,8 @@ const UserResponseSchema = z.object({
   posts: z.array(z.object({ title: z.string(), content: z.string() })),
 });
 
-export async function userRoutes(app: FastifyInstance) {
-  const uow = new PrismaUnitOfWork(prisma);
-  const userRepository = new PrismaUserRepository(prisma, uow);
-  const userService = new UserService(userRepository);
+export const userRoutes: FastifyPluginAsync = async (app) => {
+  const { userService } = app.container;
 
   app.post("/users", async (request, reply) => {
     try {
@@ -122,4 +116,4 @@ export async function userRoutes(app: FastifyInstance) {
       });
     }
   });
-}
+};

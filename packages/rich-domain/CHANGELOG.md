@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.2...v1.6.0) (2025-12-27)
+
+
+### Features
+
+* add 'add' command to CLI for generating entities, repositories, and mappers ([0bbf235](https://github.com/tarcisioandrade/rich-domain/commit/0bbf235bb542faccfccf2cf9c39f8d781a2a3bce))
+* add useCriteriaQuery hook for paginated data fetching with criteria management ([1643b0c](https://github.com/tarcisioandrade/rich-domain/commit/1643b0c95c0a953f2f3594d4220170ca66075c05))
+* fastify with typeorm example ([92ad1ee](https://github.com/tarcisioandrade/rich-domain/commit/92ad1eeb1c69debd805cb9d8501025fad4bfe4d1))
+* implement dependency injection and event handling with BullMQ integration ([cb676c5](https://github.com/tarcisioandrade/rich-domain/commit/cb676c5219c425951ddde332df6ea4a71e4c19b3))
+* implement dependency injection and event handling with BullMQ integration ([1fc9096](https://github.com/tarcisioandrade/rich-domain/commit/1fc90968b185f3c6f28addb39c73b045cb32ad78))
+* rich-domain-typeorm-adapter ([0ab89f1](https://github.com/tarcisioandrade/rich-domain/commit/0ab89f1c52a96737d40fd8893f7fff4d3ece3c45))
+* update dependencies and enhance event handling with BullMQ integration ([dd97cfa](https://github.com/tarcisioandrade/rich-domain/commit/dd97cfafd072622208e907978795adc2f300f4cb))
+
+
+### Bug Fixes
+
+* query builder incorrect filters ([b05cb79](https://github.com/tarcisioandrade/rich-domain/commit/b05cb79d2bb338e02e0ad2023e9e3fb268e2df71))
+* search query with insensitive case and error in disconect N:N relations ([eca2206](https://github.com/tarcisioandrade/rich-domain/commit/eca2206c10e5f7d0fa173abdb810dfb8a264979d))
+
+
+### Chores
+
+* **release:** 0.1.1 ([7e3bb71](https://github.com/tarcisioandrade/rich-domain/commit/7e3bb717bacd8c1e21d1e79471e2e0f54518deac))
+* **release:** 0.3.0 ([ae937ae](https://github.com/tarcisioandrade/rich-domain/commit/ae937aecc8cbe2f078f3df2213089a84932399fd))
+* rename project to 'fastify-with-prisma' in package.json ([437495e](https://github.com/tarcisioandrade/rich-domain/commit/437495ecab1b4024895afa9bea957aac553b0498))
+* update dependencies and enhance user service with event dispatching ([33352f0](https://github.com/tarcisioandrade/rich-domain/commit/33352f0468fec75f827d45395e82a7dca068bbe9))
+* update package-lock.json ([5d40914](https://github.com/tarcisioandrade/rich-domain/commit/5d40914e29e2c1b8a6e64196de36be17ce8cc7a5))
+* update package-lock.json and package.json to include new dependencies ([25278b8](https://github.com/tarcisioandrade/rich-domain/commit/25278b8487daf7446e66ae213b3b969a5f3b28d8))
+* update package-lock.json to add fastify-with-typeorm example and new dependencies ([8ab46f5](https://github.com/tarcisioandrade/rich-domain/commit/8ab46f539d7b9e9427f2788c81d75b6548acb1c9))
+
+
+### Refactoring
+
+* add transactional support and tag management in Post persistence mapping ([ebdb58d](https://github.com/tarcisioandrade/rich-domain/commit/ebdb58d1426087fed7e2edee4f85c1d6bbc691d1))
+* remove unnecessary transactional decorator and enhance user persistence mapping ([4c4c3a0](https://github.com/tarcisioandrade/rich-domain/commit/4c4c3a0fc40194ae18fe2dada4a5be8d0c2519bf))
+* replace DomainEventBus with IDomainEventBus interface and update related classes ([b1c268b](https://github.com/tarcisioandrade/rich-domain/commit/b1c268b0dc55206d733e7819a577ea69ffea3164))
+
 ## [1.5.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.7.0...v1.5.0) (2025-12-09)
 
 ## [1.4.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.3.2...v1.4.0) (2025-12-08)

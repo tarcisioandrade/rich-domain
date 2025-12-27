@@ -1,8 +1,6 @@
 import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
-import { Criteria, Id } from "@woltz/rich-domain";
-import { EVENT_BUS } from "../../infrastructure/queue/event-bus";
-import { TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
+import { Criteria, Id, IDomainEventBus } from "@woltz/rich-domain";
 
 interface CreateUserInput {
   email: string;
@@ -12,7 +10,7 @@ interface CreateUserInput {
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly uow: TypeORMUnitOfWork
+    private readonly eventBus: IDomainEventBus
   ) {}
 
   async create(input: CreateUserInput): Promise<User> {
@@ -32,7 +30,7 @@ export class UserService {
     });
 
     await this.userRepository.save(user);
-    await user.dispatchAll(EVENT_BUS);
+    await user.dispatchAll(this.eventBus);
 
     return user;
   }

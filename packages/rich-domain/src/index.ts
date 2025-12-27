@@ -1,6 +1,5 @@
 export * from "./validation-error.js";
 export * from "./domain-event.js";
-export * from "./domain-event-bus.js";
 export * from "./exceptions.js";
 export * from "./criteria.js";
 export * from "./paginated-result.js";
@@ -12,7 +11,6 @@ export { Mapper } from "./mapper.js";
 export { EntitySchemaRegistry } from "./entity-schema-registry.js";
 export { AggregateChanges } from "./aggregate-changes.js";
 export type {
-  DomainEventHandler,
   EntityHooks,
   Filter,
   EntityValidation,
@@ -27,7 +25,6 @@ export type {
   OrderDirection,
   Order,
   IUnitOfWork,
-  IDomainEventHandler,
   FieldPath,
   FilterOperator,
   Search,
@@ -41,6 +38,7 @@ export type {
   ArrayOperators,
   CriteriaOptions,
   DeepJsonResult,
+  IDomainEventBus,
 } from "./types/index.js";
 export {
   ARRAY_OPERATORS,
