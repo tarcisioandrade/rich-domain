@@ -149,7 +149,7 @@ function EntityItem({
       </div>
       {entity.methods.length > 0 && (
         <div className="mt-1 text-xs text-gray-500">
-          {entity.methods.slice(0, 3).join(", ")}
+          {entity.methods.slice(0, 3).map(m => m.name).join(", ")}
           {entity.methods.length > 3 && `, +${entity.methods.length - 3} more`}
         </div>
       )}

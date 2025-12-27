@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
 import Header from "./components/Header";
 import { DomainEntity, DomainStructure, EnumInfo } from "./interfaces";
+
+type ConsolePosition = "bottom" | "right";
 
 const DEFAULT_CODE = `// Welcome to Rich Domain Studio! 🎨
 // Click on an entity in the sidebar to generate example code
@@ -16,12 +18,43 @@ console.log("Generated ID:", id.value)
 console.log("Is new:", id.isNew)
 `;
 
+const STORAGE_KEY = "rich-domain-studio-code";
+
 export default function App() {
   const { domain, output, loading, fetchDomain, executeCode } =
     useStudioStore();
   const [code, setCode] = useState(DEFAULT_CODE);
   const [isExecuting, setIsExecuting] = useState(false);
   const [monacoInstance, setMonacoInstance] = useState<any>(null);
+  const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
+  const [savedCode, setSavedCode] = useState<Record<string, string>>({});
+  const [consolePosition, setConsolePosition] = useState<ConsolePosition>("bottom");
+  const [consoleSize, setConsoleSize] = useState(30); // percentage
+  const isResizing = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load saved code from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setSavedCode(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error("Failed to load saved code:", e);
+    }
+  }, []);
+
+  // Save code to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(savedCode).length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedCode));
+      } catch (e) {
+        console.error("Failed to save code:", e);
+      }
+    }
+  }, [savedCode]);
 
   // Fetch domain structure on mount
   useEffect(() => {
@@ -34,18 +67,87 @@ export default function App() {
     }
   }, [domain, monacoInstance]);
 
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     setIsExecuting(true);
     try {
       await executeCode(code);
     } finally {
       setIsExecuting(false);
     }
+  }, [code, executeCode]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+
+    if (consolePosition === "bottom") {
+      // Calculate from top of container
+      const mousePositionFromTop = e.clientY - rect.top;
+      const editorSize = (mousePositionFromTop / rect.height) * 100;
+      const newConsoleSize = 100 - editorSize;
+      setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
+    } else {
+      // Calculate from left of container
+      const mousePositionFromLeft = e.clientX - rect.left;
+      const editorSize = (mousePositionFromLeft / rect.width) * 100;
+      const newConsoleSize = 100 - editorSize;
+      setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
+    }
+  }, [consolePosition]);
+
+  const handleMouseUp = useCallback(() => {
+    isResizing.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  }, [handleMouseMove]);
+
+  const handleMouseDown = () => {
+    isResizing.current = true;
+    document.body.style.cursor = consolePosition === "bottom" ? "row-resize" : "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
   };
 
   const handleEntityClick = (entity: DomainEntity) => {
-    const exampleCode = generateExampleCode(entity, domain?.enums || []);
+    // Save current code for the current entity before switching
+    if (selectedEntity) {
+      setSavedCode((prev) => ({
+        ...prev,
+        [selectedEntity]: code,
+      }));
+    }
+
+    // Check if we have saved code for this entity
+    const hasSavedCode = savedCode[entity.name];
+    const exampleCode = hasSavedCode || generateExampleCode(entity, domain?.enums || []);
+
+    setSelectedEntity(entity.name);
     setCode(exampleCode);
+  };
+
+  const handleReset = () => {
+    if (selectedEntity && domain) {
+      const entity = domain.entities.find((e) => e.name === selectedEntity);
+      if (entity) {
+        const exampleCode = generateExampleCode(entity, domain.enums || []);
+        setCode(exampleCode);
+        // Remove saved code for this entity
+        setSavedCode((prev) => {
+          const newSaved = { ...prev };
+          delete newSaved[selectedEntity];
+          return newSaved;
+        });
+      }
+    } else {
+      // Reset to default code
+      setCode(DEFAULT_CODE);
+      setSelectedEntity(null);
+    }
   };
 
   const handleEditorMount = (editor: any, monaco: any) => {
@@ -59,6 +161,18 @@ export default function App() {
       roundedSelection: false,
       scrollBeyondLastLine: false,
       automaticLayout: true,
+    });
+
+    // Register Ctrl+Enter command to run code
+    editor.addAction({
+      id: 'run-code',
+      label: 'Run Code',
+      keybindings: [
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter
+      ],
+      run: () => {
+        handleRun();
+      }
     });
 
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
@@ -107,6 +221,31 @@ export default function App() {
     }
   };
 
+  const editorPanel = (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
+        <span className="text-sm text-gray-400">Playground</span>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <Editor
+          height="100%"
+          defaultLanguage="typescript"
+          theme="vs-dark"
+          value={code}
+          onChange={(value) => setCode(value || "")}
+          onMount={handleEditorMount}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            tabSize: 2,
+            wordWrap: "on",
+            scrollBeyondLastLine: false,
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100">
       {/* Sidebar */}
@@ -119,33 +258,61 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <Header onRun={handleRun} isExecuting={isExecuting} />
+        <Header
+          onRun={handleRun}
+          onReset={handleReset}
+          isExecuting={isExecuting}
+          consolePosition={consolePosition}
+          onConsolePositionChange={setConsolePosition}
+        />
 
-        {/* Editor Area */}
-        <div className="flex-1 flex flex-col border-b border-gray-700">
-          <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
-            <span className="text-sm text-gray-400">Playground</span>
+        {/* Editor and Console */}
+        <div
+          ref={containerRef}
+          className={`flex-1 overflow-hidden flex ${
+            consolePosition === "bottom" ? "flex-col" : "flex-row"
+          }`}
+        >
+          {/* Editor Panel */}
+          <div
+            className="overflow-hidden"
+            style={{
+              [consolePosition === "bottom" ? "height" : "width"]: `${100 - consoleSize}%`,
+            }}
+          >
+            {editorPanel}
           </div>
-          <div className="flex-1">
-            <Editor
-              height="100%"
-              defaultLanguage="typescript"
-              theme="vs-dark"
-              value={code}
-              onChange={(value) => setCode(value || "")}
-              onMount={handleEditorMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                tabSize: 2,
-                wordWrap: "on",
-              }}
+
+          {/* Resize Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            className={`
+              bg-gray-800 hover:bg-gray-600 transition-colors
+              flex items-center justify-center group
+              ${consolePosition === "bottom"
+                ? "h-1 cursor-row-resize w-full"
+                : "w-1 cursor-col-resize h-full"
+              }
+            `}
+          >
+            <div
+              className={`
+                bg-gray-700 rounded-full group-hover:bg-gray-500 transition-colors
+                ${consolePosition === "bottom" ? "w-8 h-0.5" : "h-8 w-0.5"}
+              `}
             />
           </div>
-        </div>
 
-        {/* Console Output */}
-        <Console output={output} />
+          {/* Console Panel */}
+          <div
+            className="overflow-hidden"
+            style={{
+              [consolePosition === "bottom" ? "height" : "width"]: `${consoleSize}%`,
+            }}
+          >
+            <Console output={output} />
+          </div>
+        </div>
       </div>
     </div>
   );

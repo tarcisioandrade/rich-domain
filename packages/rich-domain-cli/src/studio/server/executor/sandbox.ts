@@ -34,6 +34,8 @@ export async function executeCode(
 
   const logs: string[] = [];
   const errors: ExecutionResult["errors"] = [];
+  // Wrapper adds 2 lines before user code: empty line + "(async () => {"
+  const WRAPPER_OFFSET = 2;
 
   try {
     // Import scanner to get domain entities
@@ -205,18 +207,58 @@ export * from "@woltz/rich-domain";
         // Provide console for logging
         console: {
           log: (...args: any[]) => {
-            logs.push(args.map((a) => String(a)).join(" "));
+            const formatted = args.map((a) => {
+              if (typeof a === 'object' && a !== null) {
+                try {
+                  return JSON.stringify(a, null, 2);
+                } catch (e) {
+                  return String(a);
+                }
+              }
+              return String(a);
+            }).join(" ");
+            logs.push(formatted);
           },
           error: (...args: any[]) => {
+            const formatted = args.map((a) => {
+              if (typeof a === 'object' && a !== null) {
+                try {
+                  return JSON.stringify(a, null, 2);
+                } catch (e) {
+                  return String(a);
+                }
+              }
+              return String(a);
+            }).join(" ");
             errors.push({
-              message: args.map((a) => String(a)).join(" "),
+              message: formatted,
             });
           },
           warn: (...args: any[]) => {
-            logs.push(`[WARN] ${args.map((a) => String(a)).join(" ")}`);
+            const formatted = args.map((a) => {
+              if (typeof a === 'object' && a !== null) {
+                try {
+                  return JSON.stringify(a, null, 2);
+                } catch (e) {
+                  return String(a);
+                }
+              }
+              return String(a);
+            }).join(" ");
+            logs.push(`[WARN] ${formatted}`);
           },
           info: (...args: any[]) => {
-            logs.push(`[INFO] ${args.map((a) => String(a)).join(" ")}`);
+            const formatted = args.map((a) => {
+              if (typeof a === 'object' && a !== null) {
+                try {
+                  return JSON.stringify(a, null, 2);
+                } catch (e) {
+                  return String(a);
+                }
+              }
+              return String(a);
+            }).join(" ");
+            logs.push(`[INFO] ${formatted}`);
           },
         },
         // Add Rich Domain classes globally
@@ -308,13 +350,56 @@ export * from "@woltz/rich-domain";
     const errorMessage = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
 
+    console.log("[EXECUTOR] ========== ERROR DETAILS ==========");
+    console.log("[EXECUTOR] Error message:", errorMessage);
+    console.log("[EXECUTOR] Stack:", stack);
+
+    // Split code into lines once
+    const codeLines = code.split('\n');
+
+    console.log("[EXECUTOR] ========== USER CODE ==========");
+    codeLines.forEach((line, index) => {
+      console.log(`${(index + 1).toString().padStart(3, ' ')}: ${line}`);
+    });
+    console.log("[EXECUTOR] ========== END USER CODE ==========");
+
     // Try to extract line number from stack
     let line: number | undefined;
     if (stack) {
-      const lineMatch = stack.match(/:(\d+):\d+/);
+      // Look for "vm.js:LINE" which is the virtual file used by vm2
+      const lineMatch = stack.match(/vm\.js:(\d+)/);
       if (lineMatch) {
-        line = parseInt(lineMatch[1], 10);
+        const wrappedLine = parseInt(lineMatch[1], 10);
+        console.log("[EXECUTOR] Raw line from stack:", wrappedLine);
+        console.log("[EXECUTOR] Wrapper offset:", WRAPPER_OFFSET);
+        // Adjust line number to account for wrapper offset
+        line = wrappedLine > WRAPPER_OFFSET ? wrappedLine - WRAPPER_OFFSET : wrappedLine;
+        console.log("[EXECUTOR] Adjusted line:", line);
       }
+    }
+
+    // Extract the problematic line from user code for better error display
+    let codeSnippet: string | undefined;
+    console.log("[EXECUTOR] Total code lines:", codeLines.length);
+
+    if (line) {
+      // Show 3 lines of context: 1 before, the error line, and 1 after
+      const startLine = Math.max(0, line - 2);
+      const endLine = Math.min(codeLines.length, line + 1);
+      const contextLines: string[] = [];
+
+      for (let i = startLine; i < endLine; i++) {
+        const lineNum = i + 1;
+        const prefix = lineNum === line ? '→ ' : '  ';
+        const codeLine = codeLines[i] || '';
+        contextLines.push(`${prefix}${lineNum}: ${codeLine}`);
+      }
+
+      if (contextLines.length > 0) {
+        codeSnippet = contextLines.join('\n');
+      }
+
+      console.log("[EXECUTOR] Code snippet:", codeSnippet);
     }
 
     return {
@@ -322,7 +407,9 @@ export * from "@woltz/rich-domain";
       logs,
       errors: [
         {
-          message: errorMessage,
+          message: codeSnippet
+            ? `${errorMessage}\n\n${codeSnippet}`
+            : errorMessage,
           stack,
           line,
         },

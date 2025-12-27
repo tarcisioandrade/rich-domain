@@ -1,9 +1,20 @@
+type ConsolePosition = "bottom" | "right";
+
 interface HeaderProps {
   onRun: () => void;
+  onReset: () => void;
   isExecuting: boolean;
+  consolePosition: ConsolePosition;
+  onConsolePositionChange: (position: ConsolePosition) => void;
 }
 
-export default function Header({ onRun, isExecuting }: HeaderProps) {
+export default function Header({
+  onRun,
+  onReset,
+  isExecuting,
+  consolePosition,
+  onConsolePositionChange,
+}: HeaderProps) {
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -62,13 +73,47 @@ export default function Header({ onRun, isExecuting }: HeaderProps) {
         </button>
 
         <button
-          className="text-gray-400 hover:text-gray-300 transition-colors"
-          title="Keyboard shortcut: Ctrl/Cmd + Enter"
+          onClick={onReset}
+          className="px-4 py-2 rounded font-medium transition-all flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300"
+          title="Reset to generated code"
         >
-          <kbd className="text-xs bg-gray-700 px-2 py-1 rounded">
-            {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} + Enter
-          </kbd>
+          <span>↺</span>
+          Reset
         </button>
+
+        <div className="text-gray-500 text-xs" title="Keyboard shortcut">
+          <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-500 font-mono">
+            {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Enter
+          </kbd>
+        </div>
+
+        <div className="h-6 w-px bg-gray-600 mx-2" />
+
+        {/* Console Position Controls */}
+        <div className="flex items-center gap-1 bg-gray-700 rounded p-1">
+          <button
+            onClick={() => onConsolePositionChange("bottom")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              consolePosition === "bottom"
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+            title="Console at bottom"
+          >
+            ⬇
+          </button>
+          <button
+            onClick={() => onConsolePositionChange("right")}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              consolePosition === "right"
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+            title="Console on right"
+          >
+            ➡
+          </button>
+        </div>
       </div>
     </div>
   );
