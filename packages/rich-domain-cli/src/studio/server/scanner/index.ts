@@ -262,14 +262,23 @@ function extractMethods(content: string, className: string): MethodInfo[] {
 }
 
 /**
- * Extract property info from schema definitions
+ * Extract property info from schema definitions or TypeScript interfaces
+ * Supports: Zod, Valibot, ArkType, and plain TypeScript
  */
 function extractProperties(content: string): PropertyInfo[] {
   const properties: PropertyInfo[] = [];
 
-  // Look for Zod schema definitions like z.object({ ... })
+  // Try Zod: z.object({ ... })
   const zodSchemaRegex = /z\.object\(\s*\{([\s\S]*?)\}\s*\)/;
   const zodMatch = content.match(zodSchemaRegex);
+
+  // Try Valibot: v.object({ ... })
+  const valibotSchemaRegex = /v\.object\(\s*\{([\s\S]*?)\}\s*\)/;
+  const valibotMatch = content.match(valibotSchemaRegex);
+
+  // Try ArkType: type({ ... })
+  const arkTypeSchemaRegex = /type\(\s*\{([\s\S]*?)\}\s*\)/;
+  const arkTypeMatch = content.match(arkTypeSchemaRegex);
 
   if (zodMatch) {
     const schemaBody = zodMatch[1];
@@ -351,6 +360,84 @@ function extractProperties(content: string): PropertyInfo[] {
       }
 
       properties.push({ name: propName, type: tsType, optional });
+    }
+  } else if (valibotMatch) {
+    // Valibot schema extraction
+    const schemaBody = valibotMatch[1];
+    const lines = schemaBody.split(/,\s*\n/).map((line) => line.trim());
+
+    for (const line of lines) {
+      if (!line || line.startsWith("//")) continue;
+
+      const propMatch = line.match(/(\w+)\s*:\s*(.+)/);
+      if (!propMatch) continue;
+
+      const [, propName, valibotType] = propMatch;
+      const optional = valibotType.includes("v.optional(");
+
+      let tsType = "any";
+      if (valibotType.includes("v.string(")) tsType = "string";
+      else if (valibotType.includes("v.number(")) tsType = "number";
+      else if (valibotType.includes("v.boolean(")) tsType = "boolean";
+      else if (valibotType.includes("v.date(")) tsType = "Date";
+      else if (valibotType.includes("v.array(")) tsType = "any[]";
+      else if (valibotType.includes("v.enum(")) {
+        const enumMatch = valibotType.match(/v\.enum\(\[([^\]]+)\]\)/);
+        if (enumMatch) {
+          tsType = enumMatch[1].split(',').map(v => v.trim()).join(" | ");
+        } else {
+          tsType = "string";
+        }
+      }
+
+      properties.push({ name: propName, type: tsType, optional });
+    }
+  } else if (arkTypeMatch) {
+    // ArkType schema extraction
+    const schemaBody = arkTypeMatch[1];
+    const lines = schemaBody.split(/,\s*\n/).map((line) => line.trim());
+
+    for (const line of lines) {
+      if (!line || line.startsWith("//")) continue;
+
+      const propMatch = line.match(/(\w+)\s*:\s*(.+)/);
+      if (!propMatch) continue;
+
+      const [, propName, arkType] = propMatch;
+      const optional = arkType.includes("?");
+
+      let tsType = arkType.replace(/['"`]/g, '').replace('?', '').trim();
+      if (tsType === "string") tsType = "string";
+      else if (tsType === "number") tsType = "number";
+      else if (tsType === "boolean") tsType = "boolean";
+      else if (tsType.includes("[]")) tsType = tsType;
+
+      properties.push({ name: propName, type: tsType, optional });
+    }
+  } else {
+    // Fallback: Try to extract from TypeScript interface/type in Props
+    const propsInterfaceRegex = /interface\s+\w+Props\s+(?:extends\s+\w+\s+)?\{([\s\S]*?)\}/;
+    const propsMatch = content.match(propsInterfaceRegex);
+
+    if (propsMatch) {
+      const interfaceBody = propsMatch[1];
+      const lines = interfaceBody.split(/\n/).map((line) => line.trim());
+
+      for (const line of lines) {
+        if (!line || line.startsWith("//") || line.startsWith("/*")) continue;
+
+        const propMatch = line.match(/(\w+)\??\s*:\s*([^;]+)/);
+        if (!propMatch) continue;
+
+        const [, propName, tsType] = propMatch;
+        const optional = line.includes("?:");
+
+        properties.push({
+          name: propName,
+          type: tsType.trim().replace(/;$/, ''),
+          optional
+        });
+      }
     }
   }
 
