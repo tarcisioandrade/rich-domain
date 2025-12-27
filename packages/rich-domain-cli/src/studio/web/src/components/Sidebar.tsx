@@ -3,6 +3,7 @@ import { DomainEntity, DomainStructure } from "../interfaces";
 interface SidebarProps {
   domain: DomainStructure | null;
   loading: boolean;
+  selectedEntity: string | null;
   onEntityClick: (entity: DomainEntity) => void;
 }
 
@@ -15,6 +16,7 @@ const typeColors = {
 export default function Sidebar({
   domain,
   loading,
+  selectedEntity,
   onEntityClick,
 }: SidebarProps) {
   if (loading) {
@@ -82,6 +84,7 @@ export default function Sidebar({
                 <EntityItem
                   key={entity.name}
                   entity={entity}
+                  isSelected={entity.name === selectedEntity}
                   onEntityClick={onEntityClick}
                 />
               ))}
@@ -100,6 +103,7 @@ export default function Sidebar({
                 <EntityItem
                   key={entity.name}
                   entity={entity}
+                  isSelected={entity.name === selectedEntity}
                   onEntityClick={onEntityClick}
                 />
               ))}
@@ -118,6 +122,7 @@ export default function Sidebar({
                 <EntityItem
                   key={entity.name}
                   entity={entity}
+                  isSelected={entity.name === selectedEntity}
                   onEntityClick={onEntityClick}
                 />
               ))}
@@ -131,15 +136,21 @@ export default function Sidebar({
 
 function EntityItem({
   entity,
+  isSelected,
   onEntityClick,
 }: {
   entity: DomainEntity;
+  isSelected: boolean;
   onEntityClick: (entity: DomainEntity) => void;
 }) {
   return (
     <div
       role="button"
-      className="group hover:bg-gray-700 rounded p-2 cursor-pointer transition-colors"
+      className={`group rounded p-2 cursor-pointer transition-colors ${
+        isSelected
+          ? "bg-blue-600 hover:bg-blue-700"
+          : "hover:bg-gray-700"
+      }`}
       onClick={() => onEntityClick(entity)}
     >
       <div className="flex items-center gap-2">

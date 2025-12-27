@@ -19,6 +19,7 @@ console.log("Is new:", id.isNew)
 `;
 
 const STORAGE_KEY = "rich-domain-studio-code";
+const SELECTED_ENTITY_KEY = "rich-domain-studio-selected-entity";
 
 export default function App() {
   const { domain, output, loading, fetchDomain, executeCode } =
@@ -56,10 +57,45 @@ export default function App() {
     }
   }, [savedCode]);
 
+  // Auto-save current code when editing (debounced)
+  useEffect(() => {
+    if (!selectedEntity) return;
+
+    const timeoutId = setTimeout(() => {
+      setSavedCode((prev) => ({
+        ...prev,
+        [selectedEntity]: code,
+      }));
+    }, 1000); // Save after 1 second of inactivity
+
+    return () => clearTimeout(timeoutId);
+  }, [code, selectedEntity]);
+
   // Fetch domain structure on mount
   useEffect(() => {
     fetchDomain();
   }, [fetchDomain]);
+
+  // Restore selected entity after domain loads
+  useEffect(() => {
+    if (domain && !selectedEntity) {
+      try {
+        const savedEntityName = localStorage.getItem(SELECTED_ENTITY_KEY);
+        if (savedEntityName) {
+          const entity = domain.entities.find(e => e.name === savedEntityName);
+          if (entity) {
+            // Restore the entity
+            const hasSavedCode = savedCode[entity.name];
+            const exampleCode = hasSavedCode || generateExampleCode(entity, domain.enums || []);
+            setSelectedEntity(entity.name);
+            setCode(exampleCode);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to restore selected entity:", e);
+      }
+    }
+  }, [domain, selectedEntity, savedCode]);
 
   useEffect(() => {
     if (domain && monacoInstance) {
@@ -128,6 +164,13 @@ export default function App() {
 
     setSelectedEntity(entity.name);
     setCode(exampleCode);
+
+    // Save selected entity to localStorage
+    try {
+      localStorage.setItem(SELECTED_ENTITY_KEY, entity.name);
+    } catch (e) {
+      console.error("Failed to save selected entity:", e);
+    }
   };
 
   const handleReset = () => {
@@ -252,6 +295,7 @@ export default function App() {
       <Sidebar
         domain={domain}
         loading={loading}
+        selectedEntity={selectedEntity}
         onEntityClick={handleEntityClick}
       />
 
