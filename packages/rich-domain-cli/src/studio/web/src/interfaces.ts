@@ -9,6 +9,11 @@ export interface MethodInfo {
   signature: string;
 }
 
+export interface EnumInfo {
+  name: string;
+  values: string[];
+}
+
 export interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
@@ -16,10 +21,12 @@ export interface DomainEntity {
   methods: MethodInfo[];
   properties: PropertyInfo[];
   hasSchema: boolean;
+  enums: EnumInfo[];
 }
 
 export interface DomainStructure {
   entities: DomainEntity[];
+  enums: EnumInfo[];
   totalFiles: number;
   scannedAt: string;
 }

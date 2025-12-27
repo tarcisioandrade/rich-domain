@@ -11,6 +11,11 @@ interface MethodInfo {
   signature: string;
 }
 
+interface EnumInfo {
+  name: string;
+  values: string[];
+}
+
 interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
@@ -18,10 +23,12 @@ interface DomainEntity {
   methods: MethodInfo[];
   properties: PropertyInfo[];
   hasSchema: boolean;
+  enums: EnumInfo[];
 }
 
 interface DomainStructure {
   entities: DomainEntity[];
+  enums: EnumInfo[];
   totalFiles: number;
   scannedAt: string;
 }

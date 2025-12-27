@@ -4,7 +4,7 @@ import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
 import Header from "./components/Header";
-import { DomainEntity, DomainStructure } from "./interfaces";
+import { DomainEntity, DomainStructure, EnumInfo } from "./interfaces";
 
 const DEFAULT_CODE = `// Welcome to Rich Domain Studio! 🎨
 // Click on an entity in the sidebar to generate example code
@@ -44,7 +44,7 @@ export default function App() {
   };
 
   const handleEntityClick = (entity: DomainEntity) => {
-    const exampleCode = generateExampleCode(entity);
+    const exampleCode = generateExampleCode(entity, domain?.enums || []);
     setCode(exampleCode);
   };
 
@@ -151,13 +151,50 @@ export default function App() {
   );
 }
 
-function generateExampleCode(entity: DomainEntity): string {
-  const { name, type, methods, properties } = entity;
+function generateExampleCode(entity: DomainEntity, globalEnums: EnumInfo[]): string {
+  const { name, type, methods, properties, enums } = entity;
   const varName = name.charAt(0).toLowerCase() + name.slice(1);
+
+  // Create a map of enum names to their first value for quick lookup
+  // Merge entity enums and global enums
+  const enumValuesMap = new Map<string, string>();
+
+  [...enums, ...globalEnums].forEach((enumInfo) => {
+    if (enumInfo.values.length > 0 && !enumValuesMap.has(enumInfo.name)) {
+      enumValuesMap.set(enumInfo.name, enumInfo.values[0]);
+    }
+  });
 
   // Generate example values based on property types
   const generateExampleValue = (propType: string): string => {
-    if (propType.includes("string")) return `"Example ${propType}"`;
+    // Check for enum union types like "active" | "inactive"
+    if (propType.includes('" | "')) {
+      // Extract first enum value
+      const firstValue = propType.match(/"(\w+)"/)?.[1];
+      if (firstValue) {
+        return `"${firstValue}"`;
+      }
+    }
+
+    // Check for TypeScript enum reference
+    if (propType.match(/^[A-Z]\w+$/) && !["Date", "Id"].includes(propType)) {
+      // Check if we have this enum's values
+      const firstValue = enumValuesMap.get(propType);
+      if (firstValue) {
+        // Check if it's a string enum value or numeric
+        if (firstValue.match(/^[A-Z_]+$/)) {
+          // It's an enum key (like ADMIN, USER), use enum syntax
+          return `${propType}.${firstValue}`;
+        } else {
+          // It's a string value, use it directly
+          return `"${firstValue}"`;
+        }
+      }
+      // Enum not found, comment it out
+      return `"" as any as ${propType} // TODO: Select ${propType} value`;
+    }
+
+    if (propType.includes("string")) return `"Example string"`;
     if (propType.includes("number")) return "42";
     if (propType.includes("boolean")) return "true";
     if (propType.includes("Date")) return "new Date()";
@@ -169,7 +206,14 @@ function generateExampleCode(entity: DomainEntity): string {
   if (type === "value-object") {
     // Generate properties for value object
     const propLines = properties
-      .map((p) => `    ${p.name}: ${generateExampleValue(p.type)},`)
+      .map((p) => {
+        const value = generateExampleValue(p.type);
+        // If it's an enum or custom type that needs manual input, comment it
+        if (value.includes("TODO") || value.includes("as any")) {
+          return `    // ${p.name}: ${p.type}, // TODO: Provide ${p.type} value`;
+        }
+        return `    ${p.name}: ${value},`;
+      })
       .join("\n");
 
     return `// ${name} - Value Object
@@ -192,7 +236,14 @@ ${propLines || "    // No properties defined"}
   // Generate property examples
   const propLines = properties
     .filter((p) => p.name !== "id") // id is added separately
-    .map((p) => `    ${p.name}: ${generateExampleValue(p.type)},`)
+    .map((p) => {
+      const value = generateExampleValue(p.type);
+      // If it's an enum or custom type that needs manual input, comment it
+      if (value.includes("TODO") || value.includes("as any")) {
+        return `    // ${p.name}: ${p.type}, // TODO: Provide ${p.type} value`;
+      }
+      return `    ${p.name}: ${value},`;
+    })
     .join("\n");
 
   // Extract just method calls without TypeScript types for examples
@@ -240,6 +291,10 @@ ${hasMethodExamples ? "\n  // Available methods:\n" + methodExamples : ""}
 
 function updateMonacoTypes(monaco: any, domain: DomainStructure) {
   console.log("Updating Monaco types for", domain.entities.length, "entities");
+  console.log("Total enums found:", domain.enums?.length || 0);
+  if (domain.enums) {
+    domain.enums.forEach(e => console.log(`  - ${e.name}:`, e.values));
+  }
 
   // Build all type declarations as global declarations (no modules)
   let allDeclarations = `
@@ -299,6 +354,31 @@ declare type BaseProps = RichDomain.BaseProps;
 declare type ChangeTracker = RichDomain.ChangeTracker;
 
 `;
+
+  // Declare enum types with their actual values
+  if (domain.enums && domain.enums.length > 0) {
+    allDeclarations += `\n// Enum types from your domain\n`;
+    domain.enums.forEach((enumInfo) => {
+      allDeclarations += `declare enum ${enumInfo.name} {\n`;
+      enumInfo.values.forEach((value, index) => {
+        // If value looks like an uppercase constant (e.g., ADMIN), use it as key
+        // Otherwise, create a PascalCase key from the value
+        const key = value.match(/^[A-Z_]+$/) ? value :
+                    value.charAt(0).toUpperCase() + value.slice(1).replace(/[^a-zA-Z0-9]/g, '');
+        const isLast = index === enumInfo.values.length - 1;
+
+        // Check if it's a string value that needs quotes
+        if (value.match(/^[A-Z_]+$/)) {
+          // Numeric or auto-incremented enum
+          allDeclarations += `  ${value}${isLast ? '' : ','}\n`;
+        } else {
+          // String enum
+          allDeclarations += `  ${key} = "${value}"${isLast ? '' : ','}\n`;
+        }
+      });
+      allDeclarations += `}\n\n`;
+    });
+  }
 
   // Add entity declarations as global types
   domain.entities.forEach((entity) => {

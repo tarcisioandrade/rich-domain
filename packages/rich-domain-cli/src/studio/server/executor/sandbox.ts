@@ -66,13 +66,31 @@ export async function executeCode(
         })
         .join("\n");
 
+      // Build export statements for all enums from domain.enums
+      const enumExports: string[] = [];
+
+      for (const enumInfo of domain.enums) {
+        if (enumInfo.filePath) {
+          const enumPath = resolve(projectPath, enumInfo.filePath.replace(/^\//, ""));
+          enumExports.push(`export { ${enumInfo.name} } from "${enumPath.replace(/\\/g, "/")}";`);
+          console.log(`[EXECUTOR] Will export enum ${enumInfo.name} from ${enumPath}`);
+        } else {
+          console.log(`[EXECUTOR] Warning: Enum ${enumInfo.name} has no file path, skipping export`);
+        }
+      }
+
       const wrapperContent = `
 // Re-export all entities
 ${entityExports}
 
+// Re-export all enums
+${enumExports.join("\n")}
+
 // Re-export all rich-domain classes
 export * from "@woltz/rich-domain";
 `;
+
+      console.log("[EXECUTOR] Wrapper will export enums:", domain.enums.map(e => e.name));
 
       writeFileSync(wrapperFilePath, wrapperContent, "utf-8");
       console.log("[EXECUTOR] Created unified wrapper:", wrapperFilePath);
@@ -115,6 +133,22 @@ export * from "@woltz/rich-domain";
             console.log("[EXECUTOR] Loaded:", entity.name, "=", typeof userClasses[entity.name]);
           } else {
             console.log("[EXECUTOR] Warning: Entity", entity.name, "not found in bundle");
+          }
+        }
+
+        // Also extract enums and other exports from the module
+        // Look for any capitalized exports that aren't already loaded
+        const loadedNames = new Set([
+          ...Object.keys(userClasses),
+          'Id', 'Entity', 'Aggregate', 'ValueObject', 'DomainEvent', 'DomainError',
+          'Result', 'default'
+        ]);
+
+        for (const exportName of Object.keys(module)) {
+          if (!loadedNames.has(exportName) && exportName.match(/^[A-Z]/)) {
+            // Likely an enum or other type - add to userClasses
+            userClasses[exportName] = module[exportName];
+            console.log("[EXECUTOR] Loaded additional export:", exportName, "=", typeof module[exportName]);
           }
         }
 

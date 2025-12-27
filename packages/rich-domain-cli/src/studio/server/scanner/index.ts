@@ -12,6 +12,12 @@ export interface MethodInfo {
   signature: string;
 }
 
+export interface EnumInfo {
+  name: string;
+  values: string[];
+  filePath?: string;
+}
+
 export interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
@@ -19,10 +25,12 @@ export interface DomainEntity {
   methods: MethodInfo[];
   properties: PropertyInfo[];
   hasSchema: boolean;
+  enums: EnumInfo[];
 }
 
 export interface DomainStructure {
   entities: DomainEntity[];
+  enums: EnumInfo[];
   totalFiles: number;
   scannedAt: string;
 }
@@ -36,6 +44,7 @@ export async function scanDomain(
 ): Promise<DomainStructure> {
   const entities: DomainEntity[] = [];
   const scannedFiles = new Set<string>();
+  const allEnumsMap = new Map<string, EnumInfo>();
 
   // Common domain directories
   const searchPaths = [
@@ -47,7 +56,7 @@ export async function scanDomain(
 
   for (const searchPath of searchPaths) {
     try {
-      scanDirectory(searchPath, entities, scannedFiles);
+      scanDirectory(searchPath, entities, scannedFiles, allEnumsMap);
     } catch (error) {
       // Directory doesn't exist, skip
       continue;
@@ -58,8 +67,28 @@ export async function scanDomain(
     new Map(entities.map((e) => [e.name, e])).values()
   );
 
+  // Collect all unique enums from entities
+  const enumsMap = new Map<string, EnumInfo>();
+  for (const entity of uniqueEntities) {
+    for (const enumInfo of entity.enums) {
+      if (!enumsMap.has(enumInfo.name)) {
+        enumsMap.set(enumInfo.name, enumInfo);
+      }
+    }
+  }
+
+  // Merge with enums found in other files
+  for (const [name, enumInfo] of allEnumsMap) {
+    if (!enumsMap.has(name)) {
+      enumsMap.set(name, enumInfo);
+    }
+  }
+
+  console.log("[SCANNER] Total enums found:", enumsMap.size);
+
   return {
     entities: uniqueEntities,
+    enums: Array.from(enumsMap.values()),
     totalFiles: scannedFiles.size,
     scannedAt: new Date().toISOString(),
   };
@@ -72,6 +101,7 @@ function scanDirectory(
   dirPath: string,
   entities: DomainEntity[],
   scannedFiles: Set<string>,
+  allEnumsMap: Map<string, EnumInfo>,
   depth: number = 0
 ): void {
   // Limit recursion depth
@@ -97,11 +127,11 @@ function scanDirectory(
       const stat = statSync(fullPath);
 
       if (stat.isDirectory()) {
-        scanDirectory(fullPath, entities, scannedFiles, depth + 1);
+        scanDirectory(fullPath, entities, scannedFiles, allEnumsMap, depth + 1);
       } else if (stat.isFile()) {
         const ext = extname(fullPath);
         if (ext === ".ts" || ext === ".js") {
-          analyzeFile(fullPath, entities, scannedFiles);
+          analyzeFile(fullPath, entities, scannedFiles, allEnumsMap);
         }
       }
     }
@@ -117,11 +147,29 @@ function scanDirectory(
 function analyzeFile(
   filePath: string,
   entities: DomainEntity[],
-  scannedFiles: Set<string>
+  scannedFiles: Set<string>,
+  allEnumsMap: Map<string, EnumInfo>
 ): void {
   try {
     const content = readFileSync(filePath, "utf-8");
     scannedFiles.add(filePath);
+
+    // Extract enums from ALL files, not just entity files
+    const fileEnums = extractEnums(content);
+    for (const enumInfo of fileEnums) {
+      if (!allEnumsMap.has(enumInfo.name)) {
+        // Normalize path: remove cwd and convert backslashes to forward slashes
+        const relativePath = filePath
+          .replace(process.cwd(), "")
+          .replace(/\\/g, "/");
+
+        allEnumsMap.set(enumInfo.name, {
+          ...enumInfo,
+          filePath: relativePath
+        });
+        console.log(`[SCANNER] Found enum ${enumInfo.name} in ${relativePath}`);
+      }
+    }
 
     // Look for class declarations extending Rich Domain base classes
     const classRegex =
@@ -147,6 +195,13 @@ function analyzeFile(
       // Extract properties from schema
       const properties = extractProperties(content);
 
+      // Extract enums from the file
+      const enums = extractEnums(content);
+
+      if (enums.length > 0) {
+        console.log(`[SCANNER] Found ${enums.length} enums in ${className}:`, enums.map(e => e.name));
+      }
+
       // Check if has schema
       const hasSchema =
         content.includes("constructor") &&
@@ -164,6 +219,7 @@ function analyzeFile(
         methods,
         properties,
         hasSchema,
+        enums,
       });
     }
   } catch (error) {
@@ -235,7 +291,36 @@ function extractProperties(content: string): PropertyInfo[] {
       // Infer TypeScript type from Zod type
       let tsType = "any";
 
-      if (zodType.includes("z.string")) {
+      if (zodType.includes("z.nativeEnum")) {
+        // Extract native enum type like z.nativeEnum(Status)
+        const nativeEnumMatch = zodType.match(/z\.nativeEnum\((\w+)\)/);
+        if (nativeEnumMatch) {
+          tsType = nativeEnumMatch[1];
+        } else {
+          tsType = "enum";
+        }
+      } else if (zodType.includes("z.enum")) {
+        // Extract enum values like z.enum(['active', 'inactive'])
+        const enumMatch = zodType.match(/z\.enum\(\s*\[\s*(['"][\w-]+['"]\s*,?\s*)+\]\s*\)/);
+        if (enumMatch) {
+          // Extract the enum values
+          const valuesMatch = zodType.match(/\[\s*(['"]\w+['"]\s*,?\s*)+\]/);
+          if (valuesMatch) {
+            const values = valuesMatch[0]
+              .match(/['"](\w+)['"]/g)
+              ?.map(v => v.replace(/['"]/g, ''));
+            if (values) {
+              tsType = values.map(v => `"${v}"`).join(" | ");
+            } else {
+              tsType = "string";
+            }
+          } else {
+            tsType = "string";
+          }
+        } else {
+          tsType = "string";
+        }
+      } else if (zodType.includes("z.string")) {
         tsType = "string";
       } else if (zodType.includes("z.number")) {
         tsType = "number";
@@ -281,4 +366,37 @@ function extractProperties(content: string): PropertyInfo[] {
   }
 
   return properties.slice(0, 20); // Limit to first 20 properties
+}
+
+/**
+ * Extract enum definitions from file content
+ */
+function extractEnums(content: string): EnumInfo[] {
+  const enums: EnumInfo[] = [];
+
+  // Match TypeScript enum declarations: enum Name { VALUE1 = 'value1', VALUE2 = 'value2' }
+  const enumRegex = /enum\s+(\w+)\s*\{([^}]+)\}/g;
+  const enumMatches = [...content.matchAll(enumRegex)];
+
+  for (const match of enumMatches) {
+    const [, enumName, enumBody] = match;
+    const values: string[] = [];
+
+    // Extract enum values
+    // Match: KEY = 'value' or KEY = "value" or KEY (for numeric enums)
+    const valueRegex = /(\w+)\s*(?:=\s*['"]([^'"]+)['"]|=\s*(\d+)|(?=[,\s}]))/g;
+    const valueMatches = [...enumBody.matchAll(valueRegex)];
+
+    for (const valueMatch of valueMatches) {
+      const [, key, stringValue] = valueMatch;
+      // For string enums, use the string value; for numeric or auto, use the key
+      values.push(stringValue || key);
+    }
+
+    if (values.length > 0) {
+      enums.push({ name: enumName, values });
+    }
+  }
+
+  return enums;
 }
