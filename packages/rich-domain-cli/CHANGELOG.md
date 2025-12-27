@@ -1,8 +1,8 @@
 # Changelog
 
-### Features
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-- add 'add' command to CLI for generating entities, repositories, and mappers ([0bbf235](https://github.com/tarcisioandrade/rich-domain/commit/0bbf235bb542faccfccf2cf9c39f8d781a2a3bce))
+## [0.4.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.6.0...v0.4.0) (2025-12-27)
 
 ## [0.3.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.2...v0.3.0) (2025-12-11)
 

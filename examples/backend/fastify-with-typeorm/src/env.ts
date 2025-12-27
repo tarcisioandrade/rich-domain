@@ -9,8 +9,8 @@ const configSchema = z.object({
 
 const rawConfig = {
   DATABASE_URL: process.env.DATABASE_URL,
-  PORT: process.env.PORT,
-  REDIS_PORT: process.env.REDIS_PORT,
+  PORT: Number(process.env.PORT),
+  REDIS_PORT: Number(process.env.REDIS_PORT),
   REDIS_HOST: process.env.REDIS_HOST,
 } as const;
 
