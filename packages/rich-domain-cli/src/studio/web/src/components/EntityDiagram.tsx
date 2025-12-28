@@ -220,9 +220,6 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
         // Determine if cross-context
         const isCrossContext = entity.context !== targetEntity.context;
 
-        // Debug relationship type
-        console.log(`[Edge ${edgeId}] type: "${rel.relationshipType}", isCrossContext: ${isCrossContext}`);
-
         // Style based on relationship type
         let strokeColor = '#64748b'; // default slate-500
         let strokeDasharray = undefined;
@@ -272,24 +269,16 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
       });
     });
 
-    console.log('[EntityDiagram] Created edges:', edges.length, edges);
     return edges;
   }, [filteredEntities, entities]);
 
   // Apply auto-layout
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
-    console.log('[EntityDiagram] Before layout - nodes:', initialNodes.length, 'edges:', initialEdges.length);
-    console.log('[EntityDiagram] Initial edges BEFORE dagre:', initialEdges);
-
     const result = getLayoutedElements(initialNodes, initialEdges);
 
-    console.log('[EntityDiagram] After layout - nodes:', result.nodes.length, 'edges:', result.edges.length);
-    console.log('[EntityDiagram] Edges AFTER dagre:', result.edges);
-
-    // BYPASS DAGRE TEST - return initial edges unchanged
     return {
       nodes: result.nodes,
-      edges: initialEdges, // USE ORIGINAL EDGES, NOT DAGRE PROCESSED
+      edges: initialEdges,
     };
   }, [initialNodes, initialEdges]);
 
@@ -323,23 +312,6 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedContext, nodes.length, fitView]);
-
-  // Debug logs
-  useEffect(() => {
-    console.log('[EntityDiagram] Rendering with nodes:', nodes.length, 'edges:', edges.length);
-    console.log('[EntityDiagram] Node IDs:', nodes.map(n => n.id));
-    if (edges.length > 0) {
-      console.log('[EntityDiagram] Edge details:', edges);
-      console.log('[EntityDiagram] Full edge object:', JSON.stringify(edges[0], null, 2));
-    }
-
-    // Check if source and target nodes exist
-    edges.forEach(edge => {
-      const sourceExists = nodes.find(n => n.id === edge.source);
-      const targetExists = nodes.find(n => n.id === edge.target);
-      console.log(`[EntityDiagram] Edge ${edge.id}: source=${edge.source} (${sourceExists ? 'EXISTS' : 'MISSING'}), target=${edge.target} (${targetExists ? 'EXISTS' : 'MISSING'})`);
-    });
-  }, [nodes, edges]);
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {

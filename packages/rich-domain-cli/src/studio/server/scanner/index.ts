@@ -114,8 +114,6 @@ export async function scanDomain(
     }
   }
 
-  console.log("[SCANNER] Total enums found:", enumsMap.size);
-
   // Detect relationships between entities
   const allEntityNames = new Set(uniqueEntities.map(e => e.name));
   const allValueObjectNames = new Set(
@@ -130,8 +128,6 @@ export async function scanDomain(
     );
   }
 
-  console.log("[SCANNER] Relationships detected");
-
   // Collect unique bounded contexts
   const contextsSet = new Set<string>();
   for (const entity of uniqueEntities) {
@@ -140,8 +136,6 @@ export async function scanDomain(
     }
   }
   const contexts = Array.from(contextsSet).sort();
-
-  console.log("[SCANNER] Detected bounded contexts:", contexts);
 
   // Populate event publishers and handlers using hybrid approach
   for (const [eventName, eventInfo] of eventsMap) {
@@ -221,8 +215,6 @@ export async function scanDomain(
       }
     }
   }
-
-  console.log("[SCANNER] Total events found:", eventsMap.size);
 
   return {
     entities: uniqueEntities,
@@ -314,7 +306,6 @@ function analyzeFile(
           ...enumInfo,
           filePath: relativePath
         });
-        console.log(`[SCANNER] Found enum ${enumInfo.name} in ${relativePath}`);
       }
     }
 
@@ -326,7 +317,6 @@ function analyzeFile(
           ...eventInfo,
           filePath: relativePath
         });
-        console.log(`[SCANNER] Found event ${eventInfo.name} in ${relativePath}`);
       }
     }
 
@@ -356,10 +346,6 @@ function analyzeFile(
 
       // Extract enums from the file
       const enums = extractEnums(content);
-
-      if (enums.length > 0) {
-        console.log(`[SCANNER] Found ${enums.length} enums in ${className}:`, enums.map(e => e.name));
-      }
 
       // Check if has schema
       const hasSchema =

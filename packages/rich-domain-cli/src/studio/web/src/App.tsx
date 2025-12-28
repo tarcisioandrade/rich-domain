@@ -657,11 +657,6 @@ ${hasMethodExamples ? "\n  // Available methods:\n" + methodExamples : ""}
 }
 
 function updateMonacoTypes(monaco: any, domain: DomainStructure) {
-  console.log("Updating Monaco types for", domain.entities.length, "entities");
-  console.log("Total enums found:", domain.enums?.length || 0);
-  if (domain.enums) {
-    domain.enums.forEach((e) => console.log(`  - ${e.name}:`, e.values));
-  }
 
   // Build all type declarations as global declarations (no modules)
   let allDeclarations = `
@@ -751,8 +746,6 @@ declare type ChangeTracker = RichDomain.ChangeTracker;
 
   // Add entity declarations as global types
   domain.entities.forEach((entity) => {
-    console.log(`Declaring global class: ${entity.name}`);
-
     const baseClass =
       entity.type === "value-object"
         ? "ValueObject"
