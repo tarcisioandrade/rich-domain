@@ -30,3 +30,12 @@ export interface DomainStructure {
   totalFiles: number;
   scannedAt: string;
 }
+
+export interface TabState {
+  id: string;
+  entityName: string | null;
+  code: string;
+  label: string;
+}
+
+export type ConsolePosition = "bottom" | "right";

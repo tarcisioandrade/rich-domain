@@ -4,9 +4,8 @@ import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
 import Header from "./components/Header";
-import { DomainEntity, DomainStructure, EnumInfo } from "./interfaces";
-
-type ConsolePosition = "bottom" | "right";
+import Tabs from "./components/Tabs";
+import { DomainEntity, DomainStructure, EnumInfo, TabState, ConsolePosition } from "./interfaces";
 
 const DEFAULT_CODE = `// Welcome to Rich Domain Studio! 🎨
 // Click on an entity in the sidebar to generate example code
@@ -18,84 +17,77 @@ console.log("Generated ID:", id.value)
 console.log("Is new:", id.isNew)
 `;
 
-const STORAGE_KEY = "rich-domain-studio-code";
-const SELECTED_ENTITY_KEY = "rich-domain-studio-selected-entity";
+const TABS_STORAGE_KEY = "rich-domain-studio-tabs";
+const ACTIVE_TAB_STORAGE_KEY = "rich-domain-studio-active-tab";
+
+// Helper function to generate unique tab IDs
+function generateTabId(): string {
+  return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Helper function to create a new tab
+function createNewTab(entityName: string | null = null, code: string = DEFAULT_CODE): TabState {
+  return {
+    id: generateTabId(),
+    entityName,
+    code,
+    label: entityName || "Playground",
+  };
+}
 
 export default function App() {
   const { domain, output, loading, fetchDomain, executeCode } =
     useStudioStore();
-  const [code, setCode] = useState(DEFAULT_CODE);
+  const [tabs, setTabs] = useState<TabState[]>([createNewTab()]);
+  const [activeTabId, setActiveTabId] = useState<string>(tabs[0].id);
   const [isExecuting, setIsExecuting] = useState(false);
   const [monacoInstance, setMonacoInstance] = useState<any>(null);
-  const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
-  const [savedCode, setSavedCode] = useState<Record<string, string>>({});
   const [consolePosition, setConsolePosition] = useState<ConsolePosition>("bottom");
   const [consoleSize, setConsoleSize] = useState(30); // percentage
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load saved code from localStorage on mount
+  // Get current active tab
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+
+  // Load saved tabs from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setSavedCode(JSON.parse(stored));
+      const storedTabs = localStorage.getItem(TABS_STORAGE_KEY);
+      const storedActiveTabId = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+
+      if (storedTabs) {
+        const parsedTabs = JSON.parse(storedTabs) as TabState[];
+        if (parsedTabs.length > 0) {
+          setTabs(parsedTabs);
+
+          // Restore active tab if it exists in the loaded tabs
+          if (storedActiveTabId && parsedTabs.some(t => t.id === storedActiveTabId)) {
+            setActiveTabId(storedActiveTabId);
+          } else {
+            setActiveTabId(parsedTabs[0].id);
+          }
+        }
       }
     } catch (e) {
-      console.error("Failed to load saved code:", e);
+      console.error("Failed to load saved tabs:", e);
     }
   }, []);
 
-  // Save code to localStorage whenever it changes
+  // Save tabs to localStorage whenever they change
   useEffect(() => {
-    if (Object.keys(savedCode).length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedCode));
-      } catch (e) {
-        console.error("Failed to save code:", e);
-      }
+    try {
+      localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
+      localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTabId);
+    } catch (e) {
+      console.error("Failed to save tabs:", e);
     }
-  }, [savedCode]);
-
-  // Auto-save current code when editing (debounced)
-  useEffect(() => {
-    if (!selectedEntity) return;
-
-    const timeoutId = setTimeout(() => {
-      setSavedCode((prev) => ({
-        ...prev,
-        [selectedEntity]: code,
-      }));
-    }, 1000); // Save after 1 second of inactivity
-
-    return () => clearTimeout(timeoutId);
-  }, [code, selectedEntity]);
+  }, [tabs, activeTabId]);
 
   // Fetch domain structure on mount
   useEffect(() => {
     fetchDomain();
   }, [fetchDomain]);
-
-  // Restore selected entity after domain loads
-  useEffect(() => {
-    if (domain && !selectedEntity) {
-      try {
-        const savedEntityName = localStorage.getItem(SELECTED_ENTITY_KEY);
-        if (savedEntityName) {
-          const entity = domain.entities.find(e => e.name === savedEntityName);
-          if (entity) {
-            // Restore the entity
-            const hasSavedCode = savedCode[entity.name];
-            const exampleCode = hasSavedCode || generateExampleCode(entity, domain.enums || []);
-            setSelectedEntity(entity.name);
-            setCode(exampleCode);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to restore selected entity:", e);
-      }
-    }
-  }, [domain, selectedEntity, savedCode]);
 
   useEffect(() => {
     if (domain && monacoInstance) {
@@ -106,11 +98,11 @@ export default function App() {
   const handleRun = useCallback(async () => {
     setIsExecuting(true);
     try {
-      await executeCode(code);
+      await executeCode(activeTab.code);
     } finally {
       setIsExecuting(false);
     }
-  }, [code, executeCode]);
+  }, [activeTab.code, executeCode]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current || !containerRef.current) return;
@@ -150,47 +142,79 @@ export default function App() {
   };
 
   const handleEntityClick = (entity: DomainEntity) => {
-    // Save current code for the current entity before switching
-    if (selectedEntity) {
-      setSavedCode((prev) => ({
-        ...prev,
-        [selectedEntity]: code,
-      }));
-    }
+    // Check if a tab with this entity already exists
+    const existingTab = tabs.find((tab) => tab.entityName === entity.name);
 
-    // Check if we have saved code for this entity
-    const hasSavedCode = savedCode[entity.name];
-    const exampleCode = hasSavedCode || generateExampleCode(entity, domain?.enums || []);
-
-    setSelectedEntity(entity.name);
-    setCode(exampleCode);
-
-    // Save selected entity to localStorage
-    try {
-      localStorage.setItem(SELECTED_ENTITY_KEY, entity.name);
-    } catch (e) {
-      console.error("Failed to save selected entity:", e);
+    if (existingTab) {
+      // Switch to existing tab
+      setActiveTabId(existingTab.id);
+    } else {
+      // Create a new tab for this entity
+      const exampleCode = generateExampleCode(entity, domain?.enums || []);
+      const newTab = createNewTab(entity.name, exampleCode);
+      setTabs((prev) => [...prev, newTab]);
+      setActiveTabId(newTab.id);
     }
   };
 
   const handleReset = () => {
-    if (selectedEntity && domain) {
-      const entity = domain.entities.find((e) => e.name === selectedEntity);
+    const currentTab = activeTab;
+
+    if (currentTab.entityName && domain) {
+      // Reset to entity example code
+      const entity = domain.entities.find((e) => e.name === currentTab.entityName);
       if (entity) {
         const exampleCode = generateExampleCode(entity, domain.enums || []);
-        setCode(exampleCode);
-        // Remove saved code for this entity
-        setSavedCode((prev) => {
-          const newSaved = { ...prev };
-          delete newSaved[selectedEntity];
-          return newSaved;
-        });
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.id === activeTabId ? { ...tab, code: exampleCode } : tab
+          )
+        );
       }
     } else {
       // Reset to default code
-      setCode(DEFAULT_CODE);
-      setSelectedEntity(null);
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.id === activeTabId ? { ...tab, code: DEFAULT_CODE } : tab
+        )
+      );
     }
+  };
+
+  const handleNewTab = () => {
+    const newTab = createNewTab();
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTabId(tabId);
+  };
+
+  const handleTabClose = (tabId: string) => {
+    // Don't close if it's the last tab
+    if (tabs.length === 1) return;
+
+    const tabIndex = tabs.findIndex((tab) => tab.id === tabId);
+
+    setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
+
+    // If closing the active tab, switch to another tab
+    if (tabId === activeTabId) {
+      // Switch to the previous tab if available, otherwise next tab
+      const newActiveIndex = tabIndex > 0 ? tabIndex - 1 : 0;
+      const newActiveTab = tabs[newActiveIndex === tabIndex ? newActiveIndex + 1 : newActiveIndex];
+      if (newActiveTab) {
+        setActiveTabId(newActiveTab.id);
+      }
+    }
+  };
+
+  const handleCodeChange = (value: string | undefined) => {
+    const newCode = value || "";
+    setTabs((prev) =>
+      prev.map((tab) => (tab.id === activeTabId ? { ...tab, code: newCode } : tab))
+    );
   };
 
   const handleEditorMount = (editor: any, monaco: any) => {
@@ -215,6 +239,18 @@ export default function App() {
       ],
       run: () => {
         handleRun();
+      }
+    });
+
+    // Register Ctrl+T command to create new tab
+    editor.addAction({
+      id: 'new-tab',
+      label: 'New Tab',
+      keybindings: [
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyT
+      ],
+      run: () => {
+        handleNewTab();
       }
     });
 
@@ -266,16 +302,23 @@ export default function App() {
 
   const editorPanel = (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
-        <span className="text-sm text-gray-400">Playground</span>
-      </div>
+      {/* Tabs */}
+      <Tabs
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabClick={handleTabClick}
+        onTabClose={handleTabClose}
+        onNewTab={handleNewTab}
+      />
+
+      {/* Editor */}
       <div className="flex-1 overflow-auto">
         <Editor
           height="100%"
           defaultLanguage="typescript"
           theme="vs-dark"
-          value={code}
-          onChange={(value) => setCode(value || "")}
+          value={activeTab.code}
+          onChange={handleCodeChange}
           onMount={handleEditorMount}
           options={{
             minimap: { enabled: false },
@@ -295,7 +338,7 @@ export default function App() {
       <Sidebar
         domain={domain}
         loading={loading}
-        selectedEntity={selectedEntity}
+        selectedEntity={activeTab.entityName}
         onEntityClick={handleEntityClick}
       />
 

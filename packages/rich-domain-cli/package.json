@@ -48,7 +48,7 @@
     "test:watch": "vitest --watch",
     "check": "tsc --noEmit",
     "lint": "echo 'No linting rules defined'",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules src/studio/web/node_modules",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
