@@ -114,18 +114,39 @@ async function createServer() {
 }
 
 /**
- * Start the server
+ * Start the server with automatic port fallback
  */
 async function start() {
-  const port = parseInt(process.env.PORT || "6699", 10);
+  const startPort = parseInt(process.env.PORT || "6699", 10);
+  const maxAttempts = 10;
   const server = await createServer();
 
-  try {
-    await server.listen({ port, host: "0.0.0.0" });
-    console.log(`Studio running at http://localhost:${port}`);
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const port = startPort + attempt;
+
+    try {
+      await server.listen({ port, host: "0.0.0.0" });
+
+      if (attempt > 0) {
+        console.log(`Port ${startPort} was in use, started on port ${port} instead`);
+      }
+      console.log(`Studio running at http://localhost:${port}`);
+      return;
+    } catch (error: any) {
+      // If port is in use, try next port
+      if (error.code === 'EADDRINUSE') {
+        if (attempt === maxAttempts - 1) {
+          console.error(`Failed to start server: ports ${startPort}-${port} are all in use`);
+          process.exit(1);
+        }
+        // Try next port
+        continue;
+      }
+
+      // Other errors
+      console.error("Failed to start server:", error);
+      process.exit(1);
+    }
   }
 }
 
