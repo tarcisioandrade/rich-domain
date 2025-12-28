@@ -34,6 +34,7 @@ export interface DomainStructure {
 export interface TabState {
   id: string;
   entityName: string | null;
+  entityType: EntityType | null;
   code: string;
   label: string;
 }

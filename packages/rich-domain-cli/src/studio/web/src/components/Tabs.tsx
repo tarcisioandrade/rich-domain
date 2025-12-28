@@ -1,6 +1,6 @@
 import { cn } from "../lib/utils";
 import { EntityType, TabState } from "../interfaces";
-import { Box, Layers, Gem, X } from "lucide-react";
+import { Box, Layers, Gem, X, Code } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface TabsProps {
@@ -24,9 +24,10 @@ export default function Tabs({
 }: TabsProps) {
   return (
     <div className="flex h-10 items-center gap-0 border-b border-border bg-muted/30 overflow-x-auto">
-      {/* Tab List */}
       {tabs.map((tab) => {
-        const config = entityTypeConfig.aggregate;
+        const config = tab.entityType
+          ? entityTypeConfig[tab.entityType]
+          : { icon: Code, color: "text-muted-foreground" };
         const Icon = config.icon;
         const isActive = tab.id === activeTabId;
 

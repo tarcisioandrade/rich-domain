@@ -10,6 +10,7 @@ import {
   EnumInfo,
   TabState,
   ConsolePosition,
+  EntityType,
 } from "./interfaces";
 import Header from "./components/Header";
 
@@ -34,11 +35,13 @@ function generateTabId(): string {
 // Helper function to create a new tab
 function createNewTab(
   entityName: string | null = null,
+  entityType: EntityType | null = null,
   code: string = DEFAULT_CODE
 ): TabState {
   return {
     id: generateTabId(),
     entityName,
+    entityType,
     code,
     label: entityName || "Playground",
   };
@@ -168,7 +171,7 @@ export default function App() {
     } else {
       // Create a new tab for this entity
       const exampleCode = generateExampleCode(entity, domain?.enums || []);
-      const newTab = createNewTab(entity.name, exampleCode);
+      const newTab = createNewTab(entity.name, entity.type, exampleCode);
       setTabs((prev) => [...prev, newTab]);
       setActiveTabId(newTab.id);
     }

@@ -17,8 +17,12 @@ const entityTypeConfig: Record<
   { icon: any; label: string; color: string }
 > = {
   aggregate: { icon: Box, label: "Aggregate", color: "text-primary" },
-  entity: { icon: Layers, label: "Entity", color: "text-accent" },
-  "value-object": { icon: Gem, label: "Value Object", color: "text-success" },
+  entity: { icon: Layers, label: "Entity", color: "text-blue-400" },
+  "value-object": {
+    icon: Gem,
+    label: "Value Object",
+    color: "text-emerald-400",
+  },
 };
 
 export default function Sidebar({
@@ -30,6 +34,7 @@ export default function Sidebar({
   const [filterType, setFilterType] = useState<
     "all" | "aggregate" | "entity" | "value-object"
   >("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   if (loading) {
     return (
@@ -57,8 +62,21 @@ export default function Sidebar({
     );
   }
 
-  // Group entities by type
-  const grouped = domain.entities.reduce(
+  // Filter entities based on search term and type filter
+  const filteredEntities = domain.entities.filter((entity) => {
+    // Filter by type
+    const matchesType = filterType === "all" || entity.type === filterType;
+
+    // Filter by search term (case insensitive)
+    const matchesSearch =
+      searchTerm.trim() === "" ||
+      entity.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesType && matchesSearch;
+  });
+
+  // Group filtered entities by type
+  const grouped = filteredEntities.reduce(
     (acc, entity) => {
       acc[entity.type].push(entity);
       return acc;
@@ -70,6 +88,9 @@ export default function Sidebar({
     }
   );
 
+  // Check if there are any filtered results
+  const hasResults = filteredEntities.length > 0;
+
   return (
     <aside className="flex w-64 flex-col border-r border-border bg-sidebar">
       <header className="flex flex-col gap-3 border-b border-sidebar-border p-4">
@@ -78,6 +99,8 @@ export default function Sidebar({
           <Input
             placeholder="Search entities..."
             className="pl-9 bg-sidebar-accent border-sidebar-border"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
@@ -118,46 +141,59 @@ export default function Sidebar({
       </header>
       {/* Entity List */}
       <div className="flex-1 overflow-y-auto space-y-1 px-2 py-3">
-        {/* Aggregates */}
-        {grouped.aggregate.length > 0 && (
-          <div className="space-y-1">
-            {grouped.aggregate.map((entity) => (
-              <EntityItem
-                key={entity.name}
-                entity={entity}
-                isSelected={entity.name === selectedEntity}
-                onEntityClick={onEntityClick}
-              />
-            ))}
+        {!hasResults ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <p className="text-sm text-muted-foreground mb-1">
+              No entities found
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              Try adjusting your search or filters
+            </p>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Aggregates */}
+            {grouped.aggregate.length > 0 && (
+              <div className="space-y-1">
+                {grouped.aggregate.map((entity) => (
+                  <EntityItem
+                    key={entity.name}
+                    entity={entity}
+                    isSelected={entity.name === selectedEntity}
+                    onEntityClick={onEntityClick}
+                  />
+                ))}
+              </div>
+            )}
 
-        {/* Entities */}
-        {grouped.entity.length > 0 && (
-          <div className="space-y-1">
-            {grouped.entity.map((entity) => (
-              <EntityItem
-                key={entity.name}
-                entity={entity}
-                isSelected={entity.name === selectedEntity}
-                onEntityClick={onEntityClick}
-              />
-            ))}
-          </div>
-        )}
+            {/* Entities */}
+            {grouped.entity.length > 0 && (
+              <div className="space-y-1">
+                {grouped.entity.map((entity) => (
+                  <EntityItem
+                    key={entity.name}
+                    entity={entity}
+                    isSelected={entity.name === selectedEntity}
+                    onEntityClick={onEntityClick}
+                  />
+                ))}
+              </div>
+            )}
 
-        {/* Value Objects */}
-        {grouped["value-object"].length > 0 && (
-          <div className="space-y-1">
-            {grouped["value-object"].map((entity) => (
-              <EntityItem
-                key={entity.name}
-                entity={entity}
-                isSelected={entity.name === selectedEntity}
-                onEntityClick={onEntityClick}
-              />
-            ))}
-          </div>
+            {/* Value Objects */}
+            {grouped["value-object"].length > 0 && (
+              <div className="space-y-1">
+                {grouped["value-object"].map((entity) => (
+                  <EntityItem
+                    key={entity.name}
+                    entity={entity}
+                    isSelected={entity.name === selectedEntity}
+                    onEntityClick={onEntityClick}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </aside>
