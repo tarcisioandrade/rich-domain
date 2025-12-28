@@ -1,9 +1,10 @@
 import { cn } from "../lib/utils";
-import { Code2 } from "lucide-react";
+import { Code2, Zap, Network } from "lucide-react";
 // @ts-ignore
 import Logo from "../../assets/dark.svg";
 
 type ConsolePosition = "bottom" | "right";
+type ViewMode = "entities" | "events" | "diagram";
 
 interface HeaderProps {
   onRun: () => void;
@@ -11,6 +12,8 @@ interface HeaderProps {
   isExecuting: boolean;
   consolePosition: ConsolePosition;
   onConsolePositionChange: (position: ConsolePosition) => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 }
 
 export default function Header({
@@ -19,6 +22,8 @@ export default function Header({
   isExecuting,
   consolePosition,
   onConsolePositionChange,
+  viewMode,
+  onViewModeChange,
 }: HeaderProps) {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
@@ -27,9 +32,48 @@ export default function Header({
           <img src={Logo} alt="Rich Domain Studio" className="size-full" />
         </div>
         <div className="h-5 w-px bg-border" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Code2 className="size-3.5" />
-          <span className="font-mono">Interactive Playground</span>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 bg-secondary rounded p-1">
+          <button
+            onClick={() => onViewModeChange("entities")}
+            className={cn(
+              "px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
+              viewMode === "entities"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Entities View"
+          >
+            <Code2 className="size-3.5" />
+            Entities
+          </button>
+          <button
+            onClick={() => onViewModeChange("events")}
+            className={cn(
+              "px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
+              viewMode === "events"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Events View"
+          >
+            <Zap className="size-3.5" />
+            Events
+          </button>
+          <button
+            onClick={() => onViewModeChange("diagram")}
+            className={cn(
+              "px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5",
+              viewMode === "diagram"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Diagram View"
+          >
+            <Network className="size-3.5" />
+            Diagram
+          </button>
         </div>
       </div>
 

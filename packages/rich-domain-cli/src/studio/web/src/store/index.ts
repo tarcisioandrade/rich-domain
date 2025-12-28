@@ -16,6 +16,22 @@ interface EnumInfo {
   values: string[];
 }
 
+interface EventHandlerInfo {
+  name: string;
+  eventType: string;
+  filePath: string;
+  signature: string;
+}
+
+interface DomainEventInfo {
+  name: string;
+  filePath: string;
+  payloadType: string;
+  properties: PropertyInfo[];
+  publishers: string[];
+  handlers: EventHandlerInfo[];
+}
+
 interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
@@ -29,6 +45,7 @@ interface DomainEntity {
 interface DomainStructure {
   entities: DomainEntity[];
   enums: EnumInfo[];
+  events: DomainEventInfo[];
   totalFiles: number;
   scannedAt: string;
 }

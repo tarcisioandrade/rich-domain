@@ -14,6 +14,22 @@ export interface EnumInfo {
   values: string[];
 }
 
+export interface EventHandlerInfo {
+  name: string;
+  eventType: string;
+  filePath: string;
+  signature: string;
+}
+
+export interface DomainEventInfo {
+  name: string;
+  filePath: string;
+  payloadType: string;
+  properties: PropertyInfo[];
+  publishers: string[];
+  handlers: EventHandlerInfo[];
+}
+
 export interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
@@ -27,6 +43,7 @@ export interface DomainEntity {
 export interface DomainStructure {
   entities: DomainEntity[];
   enums: EnumInfo[];
+  events: DomainEventInfo[];
   totalFiles: number;
   scannedAt: string;
 }

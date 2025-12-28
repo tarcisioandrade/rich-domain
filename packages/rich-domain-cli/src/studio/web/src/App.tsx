@@ -4,15 +4,20 @@ import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
 import Tabs from "./components/Tabs";
+import EventsPanel from "./components/EventsPanel";
+import EventDetails from "./components/EventDetails";
 import {
   DomainEntity,
   DomainStructure,
+  DomainEventInfo,
   EnumInfo,
   TabState,
   ConsolePosition,
   EntityType,
 } from "./interfaces";
 import Header from "./components/Header";
+
+type ViewMode = "entities" | "events" | "diagram";
 
 const DEFAULT_CODE = `// Welcome to Rich Domain Studio! 🎨
 // Click on an entity in the sidebar to generate example code
@@ -58,6 +63,8 @@ export default function App() {
   const [consolePosition, setConsolePosition] =
     useState<ConsolePosition>("right");
   const [consoleSize, setConsoleSize] = useState(30); // percentage
+  const [viewMode, setViewMode] = useState<ViewMode>("entities");
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -243,6 +250,14 @@ export default function App() {
     }
   };
 
+  const handleEventClick = (event: DomainEventInfo) => {
+    setSelectedEvent(event.name);
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+  };
+
   const handleCodeChange = (value: string | undefined) => {
     const newCode = value || "";
     setTabs((prev) =>
@@ -352,6 +367,12 @@ export default function App() {
     </div>
   );
 
+  // Get selected event data
+  const selectedEventData =
+    selectedEvent && domain
+      ? domain.events.find((e) => e.name === selectedEvent) || null
+      : null;
+
   return (
     <main className="h-screen bg-background flex flex-col overflow-hidden">
       <Header
@@ -360,68 +381,98 @@ export default function App() {
         isExecuting={isExecuting}
         consolePosition={consolePosition}
         onConsolePositionChange={setConsolePosition}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
       />
       <div className="flex flex-1 text-muted-foreground overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          domain={domain}
-          loading={loading}
-          selectedEntity={activeTab.entityName}
-          onEntityClick={handleEntityClick}
-        />
-
-        {/* Editor and Console */}
-        <div
-          ref={containerRef}
-          className={`flex-1 overflow-hidden flex ${
-            consolePosition === "bottom" ? "flex-col" : "flex-row"
-          }`}
-        >
-          {/* Editor Panel */}
-          <div
-            className="overflow-hidden flex-shrink-0"
-            style={{
-              [consolePosition === "bottom" ? "height" : "width"]: `${
-                100 - consoleSize
-              }%`,
-            }}
-          >
-            {editorPanel}
-          </div>
-
-          {/* Resize Handle */}
-          <div
-            onMouseDown={handleMouseDown}
-            className={`
-              bg-secondary hover:bg-secondary/80 transition-colors
-              flex items-center justify-center group
-              ${
-                consolePosition === "bottom"
-                  ? "h-1 cursor-row-resize w-full"
-                  : "w-1 cursor-col-resize h-full"
-              }
-            `}
-          >
-            <div
-              className={`
-                bg-gray-700 rounded-full group-hover:bg-gray-500 transition-colors
-                ${consolePosition === "bottom" ? "w-8 h-0.5" : "h-8 w-0.5"}
-              `}
+        {/* Entities View */}
+        {viewMode === "entities" && (
+          <>
+            {/* Sidebar */}
+            <Sidebar
+              domain={domain}
+              loading={loading}
+              selectedEntity={activeTab.entityName}
+              onEntityClick={handleEntityClick}
             />
-          </div>
 
-          {/* Console Panel */}
-          <div
-            className="overflow-hidden flex-shrink-0"
-            style={{
-              [consolePosition === "bottom"
-                ? "height"
-                : "width"]: `${consoleSize}%`,
-            }}
-          >
-            <Console output={output} />
+            {/* Editor and Console */}
+            <div
+              ref={containerRef}
+              className={`flex-1 overflow-hidden flex ${
+                consolePosition === "bottom" ? "flex-col" : "flex-row"
+              }`}
+            >
+              {/* Editor Panel */}
+              <div
+                className="overflow-hidden flex-shrink-0"
+                style={{
+                  [consolePosition === "bottom" ? "height" : "width"]: `${
+                    100 - consoleSize
+                  }%`,
+                }}
+              >
+                {editorPanel}
+              </div>
+
+              {/* Resize Handle */}
+              <div
+                onMouseDown={handleMouseDown}
+                className={`
+                  bg-secondary hover:bg-secondary/80 transition-colors
+                  flex items-center justify-center group
+                  ${
+                    consolePosition === "bottom"
+                      ? "h-1 cursor-row-resize w-full"
+                      : "w-1 cursor-col-resize h-full"
+                  }
+                `}
+              >
+                <div
+                  className={`
+                    bg-gray-700 rounded-full group-hover:bg-gray-500 transition-colors
+                    ${consolePosition === "bottom" ? "w-8 h-0.5" : "h-8 w-0.5"}
+                  `}
+                />
+              </div>
+
+              {/* Console Panel */}
+              <div
+                className="overflow-hidden flex-shrink-0"
+                style={{
+                  [consolePosition === "bottom"
+                    ? "height"
+                    : "width"]: `${consoleSize}%`,
+                }}
+              >
+                <Console output={output} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Events View */}
+        {viewMode === "events" && (
+          <>
+            <EventsPanel
+              domain={domain}
+              loading={loading}
+              selectedEvent={selectedEvent}
+              onEventClick={handleEventClick}
+            />
+            <EventDetails event={selectedEventData} />
+          </>
+        )}
+
+        {/* Diagram View - Placeholder */}
+        {viewMode === "diagram" && (
+          <div className="flex-1 flex items-center justify-center bg-background">
+            <div className="text-center text-muted-foreground">
+              <p className="text-lg mb-2">Diagram View</p>
+              <p className="text-sm">Coming soon...</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
