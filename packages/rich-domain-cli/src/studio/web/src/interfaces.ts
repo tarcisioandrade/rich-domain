@@ -39,3 +39,4 @@ export interface TabState {
 }
 
 export type ConsolePosition = "bottom" | "right";
+export type EntityType = "aggregate" | "entity" | "value-object";

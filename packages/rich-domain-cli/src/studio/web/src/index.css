@@ -2,54 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1a1a1a;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  :root {
+    --background: 0 0% 3.9216%;
+    --foreground: 0 0% 96.0784%;
+    --card: 0 0% 7.0588%;
+    --card-foreground: 0 0% 96.0784%;
+    --popover: 0 0% 7.0588%;
+    --popover-foreground: 0 0% 96.0784%;
+    --primary: 238.7324 83.5294% 66.6667%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 10.1961%;
+    --secondary-foreground: 0 0% 96.0784%;
+    --muted: 0 0% 10.1961%;
+    --muted-foreground: 0 0% 62.7451%;
+    --accent: 137.1429 11.4754% 23.9216%;
+    --accent-foreground: 0 0% 96.0784%;
+    --destructive: 0 84.2365% 60.1961%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 16.4706%;
+    --input: 0 0% 7.0588%;
+    --ring: 138 8.2645% 52.5490%;
+    --chart-1: 138 8.2645% 52.5490%;
+    --chart-2: 77.6471 16.6667% 60%;
+    --chart-3: 101.5385 11.7117% 56.4706%;
+    --chart-4: 220 8.9362% 46.0784%;
+    --chart-5: 134.1176 8.6294% 38.6275%;
+    --sidebar: 0 0% 5.8824%;
+    --sidebar-foreground: 0 0% 96.0784%;
+    --sidebar-primary: 138 8.2645% 52.5490%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 10.1961%;
+    --sidebar-accent-foreground: 0 0% 96.0784%;
+    --sidebar-border: 0 0% 16.4706%;
+    --sidebar-ring: 138 8.2645% 52.5490%;
+    --font-sans: Antic, ui-sans-serif, sans-serif, system-ui;
+    --font-serif: Signifier, Georgia, serif;
+    --font-mono: JetBrains Mono, Courier New, monospace;
+    --radius: 0.35rem;
+    --shadow-x: 0px;
+    --shadow-y: 1px;
+    --shadow-blur: 2px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.04;
+    --shadow-color: #000000;
+    --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.02);
+    --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.02);
+    --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.04), 0px 1px 2px -1px hsl(0 0% 0% / 0.04);
+    --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.04), 0px 1px 2px -1px hsl(0 0% 0% / 0.04);
+    --shadow-md: 0px 1px 2px 0px hsl(0 0% 0% / 0.04), 0px 2px 4px -1px hsl(0 0% 0% / 0.04);
+    --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.04), 0px 4px 6px -1px hsl(0 0% 0% / 0.04);
+    --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.04), 0px 8px 10px -1px hsl(0 0% 0% / 0.04);
+    --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.10);
+  }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-#root {
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Custom scrollbar */
+/* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: oklch(0.12 0 0);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: oklch(0.3 0 0);
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: oklch(0.4 0 0);
 }

@@ -3,9 +3,15 @@ import Editor from "@monaco-editor/react";
 import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
-import Header from "./components/Header";
 import Tabs from "./components/Tabs";
-import { DomainEntity, DomainStructure, EnumInfo, TabState, ConsolePosition } from "./interfaces";
+import {
+  DomainEntity,
+  DomainStructure,
+  EnumInfo,
+  TabState,
+  ConsolePosition,
+} from "./interfaces";
+import Header from "./components/Header";
 
 const DEFAULT_CODE = `// Welcome to Rich Domain Studio! 🎨
 // Click on an entity in the sidebar to generate example code
@@ -26,7 +32,10 @@ function generateTabId(): string {
 }
 
 // Helper function to create a new tab
-function createNewTab(entityName: string | null = null, code: string = DEFAULT_CODE): TabState {
+function createNewTab(
+  entityName: string | null = null,
+  code: string = DEFAULT_CODE
+): TabState {
   return {
     id: generateTabId(),
     entityName,
@@ -42,7 +51,8 @@ export default function App() {
   const [activeTabId, setActiveTabId] = useState<string>(tabs[0].id);
   const [isExecuting, setIsExecuting] = useState(false);
   const [monacoInstance, setMonacoInstance] = useState<any>(null);
-  const [consolePosition, setConsolePosition] = useState<ConsolePosition>("bottom");
+  const [consolePosition, setConsolePosition] =
+    useState<ConsolePosition>("bottom");
   const [consoleSize, setConsoleSize] = useState(30); // percentage
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +72,10 @@ export default function App() {
           setTabs(parsedTabs);
 
           // Restore active tab if it exists in the loaded tabs
-          if (storedActiveTabId && parsedTabs.some(t => t.id === storedActiveTabId)) {
+          if (
+            storedActiveTabId &&
+            parsedTabs.some((t) => t.id === storedActiveTabId)
+          ) {
             setActiveTabId(storedActiveTabId);
           } else {
             setActiveTabId(parsedTabs[0].id);
@@ -104,26 +117,29 @@ export default function App() {
     }
   }, [activeTab.code, executeCode]);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing.current || !containerRef.current) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing.current || !containerRef.current) return;
 
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
+      const container = containerRef.current;
+      const rect = container.getBoundingClientRect();
 
-    if (consolePosition === "bottom") {
-      // Calculate from top of container
-      const mousePositionFromTop = e.clientY - rect.top;
-      const editorSize = (mousePositionFromTop / rect.height) * 100;
-      const newConsoleSize = 100 - editorSize;
-      setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
-    } else {
-      // Calculate from left of container
-      const mousePositionFromLeft = e.clientX - rect.left;
-      const editorSize = (mousePositionFromLeft / rect.width) * 100;
-      const newConsoleSize = 100 - editorSize;
-      setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
-    }
-  }, [consolePosition]);
+      if (consolePosition === "bottom") {
+        // Calculate from top of container
+        const mousePositionFromTop = e.clientY - rect.top;
+        const editorSize = (mousePositionFromTop / rect.height) * 100;
+        const newConsoleSize = 100 - editorSize;
+        setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
+      } else {
+        // Calculate from left of container
+        const mousePositionFromLeft = e.clientX - rect.left;
+        const editorSize = (mousePositionFromLeft / rect.width) * 100;
+        const newConsoleSize = 100 - editorSize;
+        setConsoleSize(Math.max(15, Math.min(70, newConsoleSize)));
+      }
+    },
+    [consolePosition]
+  );
 
   const handleMouseUp = useCallback(() => {
     isResizing.current = false;
@@ -135,7 +151,8 @@ export default function App() {
 
   const handleMouseDown = () => {
     isResizing.current = true;
-    document.body.style.cursor = consolePosition === "bottom" ? "row-resize" : "col-resize";
+    document.body.style.cursor =
+      consolePosition === "bottom" ? "row-resize" : "col-resize";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
@@ -162,7 +179,9 @@ export default function App() {
 
     if (currentTab.entityName && domain) {
       // Reset to entity example code
-      const entity = domain.entities.find((e) => e.name === currentTab.entityName);
+      const entity = domain.entities.find(
+        (e) => e.name === currentTab.entityName
+      );
       if (entity) {
         const exampleCode = generateExampleCode(entity, domain.enums || []);
         setTabs((prev) =>
@@ -203,7 +222,8 @@ export default function App() {
     if (tabId === activeTabId) {
       // Switch to the previous tab if available, otherwise next tab
       const newActiveIndex = tabIndex > 0 ? tabIndex - 1 : 0;
-      const newActiveTab = tabs[newActiveIndex === tabIndex ? newActiveIndex + 1 : newActiveIndex];
+      const newActiveTab =
+        tabs[newActiveIndex === tabIndex ? newActiveIndex + 1 : newActiveIndex];
       if (newActiveTab) {
         setActiveTabId(newActiveTab.id);
       }
@@ -213,7 +233,9 @@ export default function App() {
   const handleCodeChange = (value: string | undefined) => {
     const newCode = value || "";
     setTabs((prev) =>
-      prev.map((tab) => (tab.id === activeTabId ? { ...tab, code: newCode } : tab))
+      prev.map((tab) =>
+        tab.id === activeTabId ? { ...tab, code: newCode } : tab
+      )
     );
   };
 
@@ -232,26 +254,22 @@ export default function App() {
 
     // Register Ctrl+Enter command to run code
     editor.addAction({
-      id: 'run-code',
-      label: 'Run Code',
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter
-      ],
+      id: "run-code",
+      label: "Run Code",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
       run: () => {
         handleRun();
-      }
+      },
     });
 
     // Register Ctrl+T command to create new tab
     editor.addAction({
-      id: 'new-tab',
-      label: 'New Tab',
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyT
-      ],
+      id: "new-tab",
+      label: "New Tab",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyT],
       run: () => {
         handleNewTab();
-      }
+      },
     });
 
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
@@ -277,8 +295,8 @@ export default function App() {
       lib: ["es2020", "dom"],
       baseUrl: ".",
       paths: {
-        "*": ["*", "src/*"]
-      }
+        "*": ["*", "src/*"],
+      },
     });
 
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
@@ -291,8 +309,8 @@ export default function App() {
       esModuleInterop: true,
       baseUrl: ".",
       paths: {
-        "*": ["*", "src/*"]
-      }
+        "*": ["*", "src/*"],
+      },
     });
 
     if (domain) {
@@ -333,24 +351,21 @@ export default function App() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-100">
-      {/* Sidebar */}
-      <Sidebar
-        domain={domain}
-        loading={loading}
-        selectedEntity={activeTab.entityName}
-        onEntityClick={handleEntityClick}
+    <main className="h-screen bg-background">
+      <Header
+        onRun={handleRun}
+        onReset={handleReset}
+        isExecuting={isExecuting}
+        consolePosition={consolePosition}
+        onConsolePositionChange={setConsolePosition}
       />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <Header
-          onRun={handleRun}
-          onReset={handleReset}
-          isExecuting={isExecuting}
-          consolePosition={consolePosition}
-          onConsolePositionChange={setConsolePosition}
+      <div className="flex text-muted-foreground">
+        {/* Sidebar */}
+        <Sidebar
+          domain={domain}
+          loading={loading}
+          selectedEntity={activeTab.entityName}
+          onEntityClick={handleEntityClick}
         />
 
         {/* Editor and Console */}
@@ -364,7 +379,9 @@ export default function App() {
           <div
             className="overflow-hidden"
             style={{
-              [consolePosition === "bottom" ? "height" : "width"]: `${100 - consoleSize}%`,
+              [consolePosition === "bottom" ? "height" : "width"]: `${
+                100 - consoleSize
+              }%`,
             }}
           >
             {editorPanel}
@@ -374,11 +391,12 @@ export default function App() {
           <div
             onMouseDown={handleMouseDown}
             className={`
-              bg-gray-800 hover:bg-gray-600 transition-colors
+              bg-secondary hover:bg-secondary/80 transition-colors
               flex items-center justify-center group
-              ${consolePosition === "bottom"
-                ? "h-1 cursor-row-resize w-full"
-                : "w-1 cursor-col-resize h-full"
+              ${
+                consolePosition === "bottom"
+                  ? "h-1 cursor-row-resize w-full"
+                  : "w-1 cursor-col-resize h-full"
               }
             `}
           >
@@ -394,18 +412,23 @@ export default function App() {
           <div
             className="overflow-hidden"
             style={{
-              [consolePosition === "bottom" ? "height" : "width"]: `${consoleSize}%`,
+              [consolePosition === "bottom"
+                ? "height"
+                : "width"]: `${consoleSize}%`,
             }}
           >
             <Console output={output} />
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
-function generateExampleCode(entity: DomainEntity, globalEnums: EnumInfo[]): string {
+function generateExampleCode(
+  entity: DomainEntity,
+  globalEnums: EnumInfo[]
+): string {
   const { name, type, methods, properties, enums } = entity;
   const varName = name.charAt(0).toLowerCase() + name.slice(1);
 
@@ -547,7 +570,7 @@ function updateMonacoTypes(monaco: any, domain: DomainStructure) {
   console.log("Updating Monaco types for", domain.entities.length, "entities");
   console.log("Total enums found:", domain.enums?.length || 0);
   if (domain.enums) {
-    domain.enums.forEach(e => console.log(`  - ${e.name}:`, e.values));
+    domain.enums.forEach((e) => console.log(`  - ${e.name}:`, e.values));
   }
 
   // Build all type declarations as global declarations (no modules)
@@ -617,17 +640,19 @@ declare type ChangeTracker = RichDomain.ChangeTracker;
       enumInfo.values.forEach((value, index) => {
         // If value looks like an uppercase constant (e.g., ADMIN), use it as key
         // Otherwise, create a PascalCase key from the value
-        const key = value.match(/^[A-Z_]+$/) ? value :
-                    value.charAt(0).toUpperCase() + value.slice(1).replace(/[^a-zA-Z0-9]/g, '');
+        const key = value.match(/^[A-Z_]+$/)
+          ? value
+          : value.charAt(0).toUpperCase() +
+            value.slice(1).replace(/[^a-zA-Z0-9]/g, "");
         const isLast = index === enumInfo.values.length - 1;
 
         // Check if it's a string value that needs quotes
         if (value.match(/^[A-Z_]+$/)) {
           // Numeric or auto-incremented enum
-          allDeclarations += `  ${value}${isLast ? '' : ','}\n`;
+          allDeclarations += `  ${value}${isLast ? "" : ","}\n`;
         } else {
           // String enum
-          allDeclarations += `  ${key} = "${value}"${isLast ? '' : ','}\n`;
+          allDeclarations += `  ${key} = "${value}"${isLast ? "" : ","}\n`;
         }
       });
       allDeclarations += `}\n\n`;
@@ -639,15 +664,25 @@ declare type ChangeTracker = RichDomain.ChangeTracker;
     console.log(`Declaring global class: ${entity.name}`);
 
     const baseClass =
-      entity.type === "value-object" ? "ValueObject" :
-      entity.type === "aggregate" ? "Aggregate" :
-      "Entity";
+      entity.type === "value-object"
+        ? "ValueObject"
+        : entity.type === "aggregate"
+        ? "Aggregate"
+        : "Entity";
 
     const propsInterfaceName = `${entity.name}Props`;
 
     // Filter out common inherited methods
     const customMethods = entity.methods.filter(
-      (m) => !["constructor", "toJSON", "clone", "equals", "getChanges", "subscribe"].includes(m.name)
+      (m) =>
+        ![
+          "constructor",
+          "toJSON",
+          "clone",
+          "equals",
+          "getChanges",
+          "subscribe",
+        ].includes(m.name)
     );
 
     const methodDeclarations = customMethods

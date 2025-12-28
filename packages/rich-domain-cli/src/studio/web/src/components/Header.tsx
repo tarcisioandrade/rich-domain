@@ -1,3 +1,8 @@
+import { cn } from "@/lib/utils";
+import { Code2 } from "lucide-react";
+// @ts-ignore
+import Logo from "../../assets/dark.svg";
+
 type ConsolePosition = "bottom" | "right";
 
 interface HeaderProps {
@@ -16,29 +21,28 @@ export default function Header({
   onConsolePositionChange,
 }: HeaderProps) {
   return (
-    <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold text-gray-100">
-          🎨 Rich Domain Studio
-        </h1>
-        <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
-          Interactive Playground
-        </span>
+        <div className="w-44">
+          <img src={Logo} alt="Rich Domain Studio" className="size-full" />
+        </div>
+        <div className="h-5 w-px bg-border" />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Code2 className="size-3.5" />
+          <span className="font-mono">Interactive Playground</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
         <button
           onClick={onRun}
           disabled={isExecuting}
-          className={`
-            px-4 py-2 rounded font-medium transition-all
-            flex items-center gap-2
-            ${
-              isExecuting
-                ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-blue-500/50"
-            }
-          `}
+          className={cn(
+            "px-4 py-2 rounded font-medium transition-colors flex items-center gap-2",
+            isExecuting
+              ? "bg-accent text-accent-foreground cursor-not-allowed"
+              : "bg-primary hover:bg-primary/90 text-white"
+          )}
         >
           {isExecuting ? (
             <>
@@ -74,7 +78,7 @@ export default function Header({
 
         <button
           onClick={onReset}
-          className="px-4 py-2 rounded font-medium transition-all flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300"
+          className="px-4 py-2 rounded font-medium transition-all flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
           title="Reset to generated code"
         >
           <span>↺</span>
@@ -90,13 +94,13 @@ export default function Header({
         <div className="h-6 w-px bg-gray-600 mx-2" />
 
         {/* Console Position Controls */}
-        <div className="flex items-center gap-1 bg-gray-700 rounded p-1">
+        <div className="flex items-center gap-1 bg-secondary rounded p-1">
           <button
             onClick={() => onConsolePositionChange("bottom")}
             className={`px-2 py-1 rounded text-xs transition-colors ${
               consolePosition === "bottom"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-gray-300"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:text-muted-foreground/80"
             }`}
             title="Console at bottom"
           >
@@ -106,8 +110,8 @@ export default function Header({
             onClick={() => onConsolePositionChange("right")}
             className={`px-2 py-1 rounded text-xs transition-colors ${
               consolePosition === "right"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-gray-300"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:text-muted-foreground/80"
             }`}
             title="Console on right"
           >
@@ -115,6 +119,6 @@ export default function Header({
           </button>
         </div>
       </div>
-    </div>
+    </header>
   );
 }

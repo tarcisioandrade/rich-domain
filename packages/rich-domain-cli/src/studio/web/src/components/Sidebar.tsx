@@ -1,4 +1,9 @@
-import { DomainEntity, DomainStructure } from "../interfaces";
+import { DomainEntity, DomainStructure, EntityType } from "../interfaces";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { Box, Gem, Layers, Search } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   domain: DomainStructure | null;
@@ -7,10 +12,13 @@ interface SidebarProps {
   onEntityClick: (entity: DomainEntity) => void;
 }
 
-const typeColors = {
-  entity: "text-blue-400",
-  aggregate: "text-purple-400",
-  "value-object": "text-green-400",
+const entityTypeConfig: Record<
+  EntityType,
+  { icon: any; label: string; color: string }
+> = {
+  aggregate: { icon: Box, label: "Aggregate", color: "text-primary" },
+  entity: { icon: Layers, label: "Entity", color: "text-accent" },
+  "value-object": { icon: Gem, label: "Value Object", color: "text-success" },
 };
 
 export default function Sidebar({
@@ -19,6 +27,10 @@ export default function Sidebar({
   selectedEntity,
   onEntityClick,
 }: SidebarProps) {
+  const [filterType, setFilterType] = useState<
+    "all" | "aggregate" | "entity" | "value-object"
+  >("all");
+
   if (loading) {
     return (
       <div className="w-64 bg-gray-800 border-r border-gray-700 p-4">
@@ -35,9 +47,6 @@ export default function Sidebar({
   if (!domain || domain.entities.length === 0) {
     return (
       <div className="w-64 bg-gray-800 border-r border-gray-700 p-4">
-        <h2 className="text-lg font-semibold mb-4 text-gray-300">
-          Domain Explorer
-        </h2>
         <div className="text-sm text-gray-500">
           <p>No entities found.</p>
           <p className="mt-2">
@@ -62,75 +71,96 @@ export default function Sidebar({
   );
 
   return (
-    <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-300">Domain Explorer</h2>
-        <p className="text-xs text-gray-500 mt-1">
-          {domain.entities.length} entities • {domain.totalFiles} files
-        </p>
-      </div>
+    <aside className="flex w-64 flex-col border-r border-border bg-sidebar">
+      <header className="flex flex-col gap-3 border-b border-sidebar-border p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search entities..."
+            className="pl-9 bg-sidebar-accent border-sidebar-border"
+          />
+        </div>
 
+        <div className="flex gap-1.5">
+          <Button
+            variant={filterType === "all" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("all")}
+            className="flex-1 text-xs"
+          >
+            All
+          </Button>
+          <Button
+            variant={filterType === "entity" ? "secondary" : "ghost"}
+            onClick={() => setFilterType("entity")}
+            size="sm"
+            className="flex-1 text-xs"
+          >
+            Ent
+          </Button>
+          <Button
+            variant={filterType === "aggregate" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("aggregate")}
+            className="flex-1 text-xs"
+          >
+            Agg
+          </Button>
+          <Button
+            variant={filterType === "value-object" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("value-object")}
+            className="flex-1 text-xs"
+          >
+            VO
+          </Button>
+        </div>
+      </header>
       {/* Entity List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto space-y-1 px-2 py-3">
         {/* Aggregates */}
         {grouped.aggregate.length > 0 && (
-          <div>
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">
-              🎯 Aggregates
-            </h3>
-            <div className="space-y-1">
-              {grouped.aggregate.map((entity) => (
-                <EntityItem
-                  key={entity.name}
-                  entity={entity}
-                  isSelected={entity.name === selectedEntity}
-                  onEntityClick={onEntityClick}
-                />
-              ))}
-            </div>
+          <div className="space-y-1">
+            {grouped.aggregate.map((entity) => (
+              <EntityItem
+                key={entity.name}
+                entity={entity}
+                isSelected={entity.name === selectedEntity}
+                onEntityClick={onEntityClick}
+              />
+            ))}
           </div>
         )}
 
         {/* Entities */}
         {grouped.entity.length > 0 && (
-          <div>
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">
-              📦 Entities
-            </h3>
-            <div className="space-y-1">
-              {grouped.entity.map((entity) => (
-                <EntityItem
-                  key={entity.name}
-                  entity={entity}
-                  isSelected={entity.name === selectedEntity}
-                  onEntityClick={onEntityClick}
-                />
-              ))}
-            </div>
+          <div className="space-y-1">
+            {grouped.entity.map((entity) => (
+              <EntityItem
+                key={entity.name}
+                entity={entity}
+                isSelected={entity.name === selectedEntity}
+                onEntityClick={onEntityClick}
+              />
+            ))}
           </div>
         )}
 
         {/* Value Objects */}
         {grouped["value-object"].length > 0 && (
-          <div>
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-2">
-              💎 Value Objects
-            </h3>
-            <div className="space-y-1">
-              {grouped["value-object"].map((entity) => (
-                <EntityItem
-                  key={entity.name}
-                  entity={entity}
-                  isSelected={entity.name === selectedEntity}
-                  onEntityClick={onEntityClick}
-                />
-              ))}
-            </div>
+          <div className="space-y-1">
+            {grouped["value-object"].map((entity) => (
+              <EntityItem
+                key={entity.name}
+                entity={entity}
+                isSelected={entity.name === selectedEntity}
+                onEntityClick={onEntityClick}
+              />
+            ))}
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 }
 
@@ -143,27 +173,23 @@ function EntityItem({
   isSelected: boolean;
   onEntityClick: (entity: DomainEntity) => void;
 }) {
+  const config = entityTypeConfig[entity.type];
+  const Icon = config.icon;
+
   return (
-    <div
-      role="button"
-      className={`group rounded p-2 cursor-pointer transition-colors ${
-        isSelected
-          ? "bg-blue-600 hover:bg-blue-700"
-          : "hover:bg-gray-700"
-      }`}
+    <button
       onClick={() => onEntityClick(entity)}
-    >
-      <div className="flex items-center gap-2">
-        <span className={`text-sm font-medium ${typeColors[entity.type]}`}>
-          {entity.name}
-        </span>
-      </div>
-      {entity.methods.length > 0 && (
-        <div className="mt-1 text-xs text-gray-500">
-          {entity.methods.slice(0, 3).map(m => m.name).join(", ")}
-          {entity.methods.length > 3 && `, +${entity.methods.length - 3} more`}
-        </div>
+      className={cn(
+        "w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
+        isSelected
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
       )}
-    </div>
+    >
+      <Icon className={cn("size-4 flex-shrink-0", config.color)} />
+      <span className="flex-1 truncate font-medium font-mono">
+        {entity.name}
+      </span>
+    </button>
   );
 }

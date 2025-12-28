@@ -1,4 +1,7 @@
-import { TabState } from "../interfaces";
+import { cn } from "@/lib/utils";
+import { EntityType, TabState } from "../interfaces";
+import { Box, Layers, Gem, X } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface TabsProps {
   tabs: TabState[];
@@ -8,6 +11,12 @@ interface TabsProps {
   onNewTab: () => void;
 }
 
+const entityTypeConfig: Record<EntityType, { icon: any; color: string }> = {
+  aggregate: { icon: Box, color: "text-primary" },
+  entity: { icon: Layers, color: "text-blue-400" },
+  "value-object": { icon: Gem, color: "text-emerald-400" },
+};
+
 export default function Tabs({
   tabs,
   activeTabId,
@@ -16,72 +25,60 @@ export default function Tabs({
   onNewTab,
 }: TabsProps) {
   return (
-    <div className="bg-gray-800 border-b border-gray-700 flex items-center overflow-x-auto">
+    <div className="flex h-10 items-center gap-0 border-b border-border bg-muted/30 overflow-x-auto">
       {/* Tab List */}
-      <div className="flex items-center flex-1 min-w-0">
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeTabId;
-          return (
-            <div
-              key={tab.id}
-              className={`
-                group flex items-center gap-2 px-4 py-2 border-r border-gray-700
-                min-w-[120px] max-w-[200px] cursor-pointer transition-colors
-                ${
-                  isActive
-                    ? "bg-gray-900 text-gray-100"
-                    : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-300"
-                }
-              `}
-              onClick={() => onTabClick(tab.id)}
-            >
-              {/* Tab Label */}
-              <span className="flex-1 truncate text-sm">{tab.label}</span>
+      {tabs.map((tab) => {
+        const config = entityTypeConfig.aggregate;
+        const Icon = config.icon;
+        const isActive = tab.id === activeTabId;
 
-              {/* Close Button */}
-              {tabs.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(tab.id);
-                  }}
-                  className={`
-                    flex-shrink-0 w-4 h-4 flex items-center justify-center
-                    rounded hover:bg-gray-600 transition-colors
-                    ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
-                  `}
-                  title="Close tab"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="w-3 h-3"
-                  >
-                    <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                  </svg>
-                </button>
+        return (
+          <div
+            key={tab.id}
+            className={cn(
+              "group relative flex h-9 min-w-[120px] max-w-[200px] cursor-pointer items-center gap-2 border-r border-border px-3 transition-colors",
+              isActive
+                ? "bg-background border-b-2 border-b-primary"
+                : "hover:bg-muted/50"
+            )}
+            onClick={() => onTabClick(tab.id)}
+          >
+            <Icon className={cn("size-3.5 shrink-0", config.color)} />
+            <span
+              className={cn(
+                "truncate text-sm font-mono",
+                isActive ? "text-foreground" : "text-muted-foreground"
               )}
-            </div>
-          );
-        })}
-      </div>
+            >
+              {tab.label}
+            </span>
 
-      {/* New Tab Button */}
-      <button
-        onClick={onNewTab}
-        className="flex-shrink-0 px-3 py-2 text-gray-400 hover:text-gray-100 hover:bg-gray-700 transition-colors"
-        title="New tab (Ctrl+T)"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className="w-4 h-4"
-        >
-          <path d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z" />
-        </svg>
-      </button>
+            {/* Close button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "ml-auto size-5 shrink-0 rounded-sm opacity-0 transition-opacity hover:bg-muted",
+                "group-hover:opacity-100",
+                isActive && "opacity-60"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTabClose(tab.id);
+              }}
+            >
+              <X className="size-3" />
+            </Button>
+
+            {/* Active indicator */}
+            {isActive && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </div>
+        );
+      })}
+
+      <div className="flex-1" />
     </div>
   );
 }

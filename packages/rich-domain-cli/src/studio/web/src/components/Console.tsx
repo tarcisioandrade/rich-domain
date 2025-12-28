@@ -22,11 +22,11 @@ interface ConsoleProps {
 export default function Console({ output }: ConsoleProps) {
   if (!output) {
     return (
-      <div className="h-full bg-gray-850 flex flex-col">
-        <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
-          <span className="text-sm text-gray-400">Console</span>
+      <div className="h-full bg-background flex flex-col">
+        <div className="bg-muted/30 px-4 py-2 border-b border">
+          <span className="text-sm text-muted-foreground">Console</span>
         </div>
-        <div className="p-4 text-sm text-gray-500">
+        <div className="p-4 text-sm text-muted-foreground">
           <p>Press the Run button to execute your code</p>
         </div>
       </div>
@@ -34,9 +34,9 @@ export default function Console({ output }: ConsoleProps) {
   }
 
   return (
-    <div className="h-full bg-gray-850 flex flex-col">
-      <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
-        <span className="text-sm text-gray-400">Console</span>
+    <div className="h-full bg-background flex flex-col">
+      <div className="bg-muted/30 px-4 py-2 border-b border-border flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Console</span>
         {output.success ? (
           <span className="text-xs text-green-400 flex items-center gap-1">
             <span>✓</span> Success
@@ -54,11 +54,15 @@ export default function Console({ output }: ConsoleProps) {
           <div className="space-y-2">
             {output.logs.map((log, index) => {
               // Check if log looks like JSON
-              const isJSON = log.trim().startsWith('{') || log.trim().startsWith('[');
+              const isJSON =
+                log.trim().startsWith("{") || log.trim().startsWith("[");
 
               if (isJSON) {
                 return (
-                  <pre key={index} className="text-gray-300 text-sm font-mono bg-gray-800 rounded p-2 overflow-x-auto">
+                  <pre
+                    key={index}
+                    className="text-gray-300 text-sm font-mono bg-gray-800 rounded p-2 overflow-x-auto"
+                  >
                     <code className="language-json">{log}</code>
                   </pre>
                 );
