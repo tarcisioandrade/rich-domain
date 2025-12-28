@@ -234,6 +234,13 @@ function analyzeFile(
 function extractMethods(content: string, className: string): MethodInfo[] {
   const methods: MethodInfo[] = [];
 
+  // Keywords to exclude (control flow and other non-method keywords)
+  const excludedKeywords = new Set([
+    "if", "else", "while", "for", "switch", "catch", "with",
+    "return", "throw", "try", "await", "yield", "import", "export",
+    "function", "class", "interface", "type", "enum", "namespace"
+  ]);
+
   // Regex to capture full method signature including parameters and return type
   // Matches: methodName(params): returnType { or methodName(params) {
   const methodRegex =
@@ -245,12 +252,13 @@ function extractMethods(content: string, className: string): MethodInfo[] {
     const params = match[2]?.trim() || "";
     const returnType = match[3]?.trim() || "void";
 
-    // Skip constructor, getters, and private methods
+    // Skip constructor, getters, private methods, and control flow keywords
     if (
       methodName !== "constructor" &&
       methodName !== className &&
       !methodName.startsWith("_") &&
-      !methodName.startsWith("get")
+      !methodName.startsWith("get") &&
+      !excludedKeywords.has(methodName)
     ) {
       // Build full signature
       const signature = `${methodName}(${params}): ${returnType}`;
