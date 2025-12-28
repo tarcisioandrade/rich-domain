@@ -665,44 +665,79 @@ declare namespace RichDomain {
   export class Id {
     constructor(value?: string);
     static from(value: string): Id;
+    static create(): Id;
     readonly value: string;
-    readonly isNew: boolean;
-    equals(id: Id): boolean;
+    isNew(): boolean;
+    equals(other: Id | string): boolean;
+    toString(): string;
+    toJSON(): string;
   }
 
   export interface BaseProps {
     id: Id;
   }
 
+  export interface HistoryEntry {
+    path: string;
+    oldValue: any;
+    newValue: any;
+    timestamp: Date;
+  }
+
+  export interface IDomainEvent {
+    readonly occurredOn: Date;
+    readonly eventName: string;
+  }
+
+  export interface IDomainEventBus {
+    publishAll(events: IDomainEvent[]): Promise<void>;
+  }
+
+  export interface AggregateChanges<TEntityMap = Record<string, any>> {
+    hasCreates(): boolean;
+    hasUpdates(): boolean;
+    hasDeletes(): boolean;
+    toBatchOperations(): any;
+  }
+
   export class Entity<Props extends BaseProps = any> {
-    constructor(props: Props);
+    constructor(props: Omit<Props, 'id'> & { id?: Id });
     readonly id: Id;
     readonly props: Props;
-    getChanges(): ChangeTracker;
+    isNew(): boolean;
+    equals(other: Entity<Props> | Id | string): boolean;
+    readonly hasValidationErrors: boolean;
+    readonly validationErrors: ValidationError | undefined;
+    getChanges<TEntityMap = Record<string, any>>(): AggregateChanges<TEntityMap>;
+    getHistory(): HistoryEntry[];
+    markAsClean(): void;
+    dispatchAll(bus: IDomainEventBus): Promise<void>;
+    getUncommittedEvents(): IDomainEvent[];
+    clearEvents(): void;
+    hasUncommittedEvents(): boolean;
     toJSON(): any;
-    subscribe(subscriptions: any): void;
   }
 
   export class Aggregate<Props extends BaseProps = any> extends Entity<Props> {
-    constructor(props: Props);
+    constructor(props: Omit<Props, 'id'> & { id?: Id });
   }
 
   export class ValueObject<Props = any> {
     constructor(props: Props);
     readonly props: Props;
-    clone(props: Partial<Props>): this;
-    equals(vo: ValueObject<Props>): boolean;
+    equals(other: ValueObject<Props>): boolean;
+    getIdentityKey(): string | null;
+    hasIdentityKey(): boolean;
+    getUncommittedEvents(): IDomainEvent[];
+    clearEvents(): void;
+    hasUncommittedEvents(): boolean;
+    readonly hasValidationErrors: boolean;
+    readonly validationErrors: ValidationError | undefined;
+    toJSON(): Props;
   }
 
   export class ValidationError extends Error {
     readonly issues: Array<{ path: string[]; message: string }>;
-  }
-
-  export interface ChangeTracker {
-    hasCreates(): boolean;
-    hasUpdates(): boolean;
-    hasDeletes(): boolean;
-    toBatchOperations(): any;
   }
 }
 
@@ -713,7 +748,10 @@ declare const Aggregate: typeof RichDomain.Aggregate;
 declare const ValueObject: typeof RichDomain.ValueObject;
 declare const ValidationError: typeof RichDomain.ValidationError;
 declare type BaseProps = RichDomain.BaseProps;
-declare type ChangeTracker = RichDomain.ChangeTracker;
+declare type HistoryEntry = RichDomain.HistoryEntry;
+declare type IDomainEvent = RichDomain.IDomainEvent;
+declare type IDomainEventBus = RichDomain.IDomainEventBus;
+declare type AggregateChanges<TEntityMap = Record<string, any>> = RichDomain.AggregateChanges<TEntityMap>;
 
 `;
 
