@@ -200,12 +200,6 @@ export default function App() {
     }
   };
 
-  const handleNewTab = () => {
-    const newTab = createNewTab();
-    setTabs((prev) => [...prev, newTab]);
-    setActiveTabId(newTab.id);
-  };
-
   const handleTabClick = (tabId: string) => {
     setActiveTabId(tabId);
   };
@@ -259,16 +253,6 @@ export default function App() {
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
       run: () => {
         handleRun();
-      },
-    });
-
-    // Register Ctrl+T command to create new tab
-    editor.addAction({
-      id: "new-tab",
-      label: "New Tab",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyT],
-      run: () => {
-        handleNewTab();
       },
     });
 
@@ -326,7 +310,6 @@ export default function App() {
         activeTabId={activeTabId}
         onTabClick={handleTabClick}
         onTabClose={handleTabClose}
-        onNewTab={handleNewTab}
       />
 
       {/* Editor */}

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 import { Code2 } from "lucide-react";
 // @ts-ignore
 import Logo from "../../assets/dark.svg";

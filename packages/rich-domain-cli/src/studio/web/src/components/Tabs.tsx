@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 import { EntityType, TabState } from "../interfaces";
 import { Box, Layers, Gem, X } from "lucide-react";
 import { Button } from "./ui/button";
@@ -8,7 +8,6 @@ interface TabsProps {
   activeTabId: string;
   onTabClick: (tabId: string) => void;
   onTabClose: (tabId: string) => void;
-  onNewTab: () => void;
 }
 
 const entityTypeConfig: Record<EntityType, { icon: any; color: string }> = {
@@ -22,7 +21,6 @@ export default function Tabs({
   activeTabId,
   onTabClick,
   onTabClose,
-  onNewTab,
 }: TabsProps) {
   return (
     <div className="flex h-10 items-center gap-0 border-b border-border bg-muted/30 overflow-x-auto">
