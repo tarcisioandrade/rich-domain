@@ -26,6 +26,7 @@ console.log("Is new:", id.isNew)
 
 const TABS_STORAGE_KEY = "rich-domain-studio-tabs";
 const ACTIVE_TAB_STORAGE_KEY = "rich-domain-studio-active-tab";
+const CONSOLE_POSITION_STORAGE_KEY = "rich-domain-studio-console-position";
 
 // Helper function to generate unique tab IDs
 function generateTabId(): string {
@@ -55,7 +56,7 @@ export default function App() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [monacoInstance, setMonacoInstance] = useState<any>(null);
   const [consolePosition, setConsolePosition] =
-    useState<ConsolePosition>("bottom");
+    useState<ConsolePosition>("right");
   const [consoleSize, setConsoleSize] = useState(30); // percentage
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,11 +64,12 @@ export default function App() {
   // Get current active tab
   const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
 
-  // Load saved tabs from localStorage on mount
+  // Load saved tabs and console position from localStorage on mount
   useEffect(() => {
     try {
       const storedTabs = localStorage.getItem(TABS_STORAGE_KEY);
       const storedActiveTabId = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+      const storedConsolePosition = localStorage.getItem(CONSOLE_POSITION_STORAGE_KEY);
 
       if (storedTabs) {
         const parsedTabs = JSON.parse(storedTabs) as TabState[];
@@ -85,8 +87,13 @@ export default function App() {
           }
         }
       }
+
+      // Restore console position
+      if (storedConsolePosition === "bottom" || storedConsolePosition === "right") {
+        setConsolePosition(storedConsolePosition as ConsolePosition);
+      }
     } catch (e) {
-      console.error("Failed to load saved tabs:", e);
+      console.error("Failed to load saved state:", e);
     }
   }, []);
 
@@ -99,6 +106,15 @@ export default function App() {
       console.error("Failed to save tabs:", e);
     }
   }, [tabs, activeTabId]);
+
+  // Save console position to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONSOLE_POSITION_STORAGE_KEY, consolePosition);
+    } catch (e) {
+      console.error("Failed to save console position:", e);
+    }
+  }, [consolePosition]);
 
   // Fetch domain structure on mount
   useEffect(() => {
@@ -337,7 +353,7 @@ export default function App() {
   );
 
   return (
-    <main className="h-screen bg-background">
+    <main className="h-screen bg-background flex flex-col overflow-hidden">
       <Header
         onRun={handleRun}
         onReset={handleReset}
@@ -345,7 +361,7 @@ export default function App() {
         consolePosition={consolePosition}
         onConsolePositionChange={setConsolePosition}
       />
-      <div className="flex text-muted-foreground">
+      <div className="flex flex-1 text-muted-foreground overflow-hidden">
         {/* Sidebar */}
         <Sidebar
           domain={domain}
@@ -363,7 +379,7 @@ export default function App() {
         >
           {/* Editor Panel */}
           <div
-            className="overflow-hidden"
+            className="overflow-hidden flex-shrink-0"
             style={{
               [consolePosition === "bottom" ? "height" : "width"]: `${
                 100 - consoleSize
@@ -396,7 +412,7 @@ export default function App() {
 
           {/* Console Panel */}
           <div
-            className="overflow-hidden"
+            className="overflow-hidden flex-shrink-0"
             style={{
               [consolePosition === "bottom"
                 ? "height"

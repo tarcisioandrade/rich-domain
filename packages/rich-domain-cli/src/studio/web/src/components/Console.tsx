@@ -22,11 +22,11 @@ interface ConsoleProps {
 export default function Console({ output }: ConsoleProps) {
   if (!output) {
     return (
-      <div className="h-full bg-background flex flex-col">
-        <div className="bg-muted/30 px-4 py-2 border-b border">
+      <div className="h-full w-full bg-background flex flex-col overflow-hidden">
+        <div className="bg-muted/30 px-4 py-2 border-b border flex-shrink-0">
           <span className="text-sm text-muted-foreground">Console</span>
         </div>
-        <div className="p-4 text-sm text-muted-foreground">
+        <div className="flex-1 p-4 text-sm text-muted-foreground overflow-auto">
           <p>Press the Run button to execute your code</p>
         </div>
       </div>
@@ -34,8 +34,8 @@ export default function Console({ output }: ConsoleProps) {
   }
 
   return (
-    <div className="h-full bg-background flex flex-col">
-      <div className="bg-muted/30 px-4 py-2 border-b border-border flex items-center justify-between">
+    <div className="h-full w-full bg-background flex flex-col overflow-hidden">
+      <div className="bg-muted/30 px-4 py-2 border-b border-border flex items-center justify-between flex-shrink-0">
         <span className="text-sm text-muted-foreground">Console</span>
         {output.success ? (
           <span className="text-xs text-green-400 flex items-center gap-1">
@@ -48,7 +48,7 @@ export default function Console({ output }: ConsoleProps) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 font-mono text-sm space-y-2">
         {/* Logs */}
         {output.logs && output.logs.length > 0 && (
           <div className="space-y-2">
