@@ -32,20 +32,31 @@ interface DomainEventInfo {
   handlers: EventHandlerInfo[];
 }
 
+interface EntityRelationship {
+  fromEntity: string;
+  toEntity: string;
+  relationshipType: 'composition' | 'reference' | 'aggregation';
+  propertyName: string;
+  cardinality: '1' | 'many';
+}
+
 interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
   filePath: string;
+  context: string;
   methods: MethodInfo[];
   properties: PropertyInfo[];
   hasSchema: boolean;
   enums: EnumInfo[];
+  relationships: EntityRelationship[];
 }
 
 interface DomainStructure {
   entities: DomainEntity[];
   enums: EnumInfo[];
   events: DomainEventInfo[];
+  contexts: string[];
   totalFiles: number;
   scannedAt: string;
 }

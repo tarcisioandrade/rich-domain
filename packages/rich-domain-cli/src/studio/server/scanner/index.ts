@@ -34,20 +34,31 @@ export interface DomainEventInfo {
   handlers: EventHandlerInfo[];
 }
 
+export interface EntityRelationship {
+  fromEntity: string;
+  toEntity: string;
+  relationshipType: 'composition' | 'reference' | 'aggregation';
+  propertyName: string;
+  cardinality: '1' | 'many';
+}
+
 export interface DomainEntity {
   name: string;
   type: "entity" | "aggregate" | "value-object";
   filePath: string;
+  context: string;
   methods: MethodInfo[];
   properties: PropertyInfo[];
   hasSchema: boolean;
   enums: EnumInfo[];
+  relationships: EntityRelationship[];
 }
 
 export interface DomainStructure {
   entities: DomainEntity[];
   enums: EnumInfo[];
   events: DomainEventInfo[];
+  contexts: string[];
   totalFiles: number;
   scannedAt: string;
 }
@@ -104,6 +115,33 @@ export async function scanDomain(
   }
 
   console.log("[SCANNER] Total enums found:", enumsMap.size);
+
+  // Detect relationships between entities
+  const allEntityNames = new Set(uniqueEntities.map(e => e.name));
+  const allValueObjectNames = new Set(
+    uniqueEntities.filter(e => e.type === 'value-object').map(e => e.name)
+  );
+
+  for (const entity of uniqueEntities) {
+    entity.relationships = detectEntityRelationships(
+      entity,
+      allEntityNames,
+      allValueObjectNames
+    );
+  }
+
+  console.log("[SCANNER] Relationships detected");
+
+  // Collect unique bounded contexts
+  const contextsSet = new Set<string>();
+  for (const entity of uniqueEntities) {
+    if (entity.context) {
+      contextsSet.add(entity.context);
+    }
+  }
+  const contexts = Array.from(contextsSet).sort();
+
+  console.log("[SCANNER] Detected bounded contexts:", contexts);
 
   // Populate event publishers and handlers using hybrid approach
   for (const [eventName, eventInfo] of eventsMap) {
@@ -190,6 +228,7 @@ export async function scanDomain(
     entities: uniqueEntities,
     enums: Array.from(enumsMap.values()),
     events: Array.from(eventsMap.values()),
+    contexts,
     totalFiles: scannedFiles.size,
     scannedAt: new Date().toISOString(),
   };
@@ -331,10 +370,12 @@ function analyzeFile(
         name: className,
         type,
         filePath: relativePath,
+        context: extractBoundedContext(relativePath),
         methods,
         properties,
         hasSchema,
         enums,
+        relationships: [], // Will be populated later
       });
     }
   } catch (error) {
@@ -912,4 +953,90 @@ function detectEventHandlers(
   }
 
   return handlers;
+}
+
+/**
+ * Detect relationships between entities based on properties
+ */
+function detectEntityRelationships(
+  entity: DomainEntity,
+  allEntityNames: Set<string>,
+  allValueObjectNames: Set<string>
+): EntityRelationship[] {
+  const relationships: EntityRelationship[] = [];
+
+  for (const property of entity.properties) {
+    let targetEntity: string | null = null;
+    let cardinality: '1' | 'many' = '1';
+    let relationshipType: 'composition' | 'reference' | 'aggregation' = 'aggregation';
+
+    // Extract base type from arrays
+    const typeClean = property.type.replace(/\[\]$/, '').trim();
+    cardinality = property.type.includes('[]') ? 'many' : '1';
+
+    // Check if property type is another entity or value object
+    // IMPORTANT: Check value objects FIRST to avoid them being detected as aggregation
+    if (allValueObjectNames.has(typeClean)) {
+      targetEntity = typeClean;
+      // Value objects are composition (part of the entity)
+      relationshipType = 'composition';
+    } else if (allEntityNames.has(typeClean)) {
+      targetEntity = typeClean;
+      // If it's an entity, it's likely aggregation (reference to another entity)
+      relationshipType = 'aggregation';
+    } else if (typeClean.endsWith('Id') && typeClean.length > 2) {
+      // Property like "userId: UserId" - this is a reference by ID
+      const possibleEntity = typeClean.slice(0, -2); // Remove "Id" suffix
+      if (allEntityNames.has(possibleEntity)) {
+        targetEntity = possibleEntity;
+        relationshipType = 'reference';
+      }
+    }
+
+    if (targetEntity) {
+      relationships.push({
+        fromEntity: entity.name,
+        toEntity: targetEntity,
+        relationshipType,
+        propertyName: property.name,
+        cardinality,
+      });
+    }
+  }
+
+  return relationships;
+}
+
+/**
+ * Extract bounded context from file path
+ * Pattern: src/[CONTEXT]/domain/...
+ * Example: "src/crm/domain/user.entity.ts" → "crm"
+ */
+function extractBoundedContext(filePath: string): string {
+  // Normalize path separators
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Try pattern: src/[CONTEXT]/domain/
+  const contextMatch = normalizedPath.match(/src\/([^\/]+)\/domain\//);
+
+  if (contextMatch) {
+    return contextMatch[1];
+  }
+
+  // Fallback patterns
+  // Pattern: [CONTEXT]/domain/
+  const fallbackMatch = normalizedPath.match(/^([^\/]+)\/domain\//);
+  if (fallbackMatch) {
+    return fallbackMatch[1];
+  }
+
+  // If no pattern matches, use "shared" or extract from closest parent
+  const pathParts = normalizedPath.split('/');
+  const domainIndex = pathParts.indexOf('domain');
+
+  if (domainIndex > 0) {
+    return pathParts[domainIndex - 1];
+  }
+
+  return 'shared'; // Default fallback
 }

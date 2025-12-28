@@ -6,6 +6,7 @@ import Console from "./components/Console";
 import Tabs from "./components/Tabs";
 import EventsPanel from "./components/EventsPanel";
 import EventDetails from "./components/EventDetails";
+import EntityDiagram from "./components/EntityDiagram";
 import {
   DomainEntity,
   DomainStructure,
@@ -32,6 +33,20 @@ console.log("Is new:", id.isNew)
 const TABS_STORAGE_KEY = "rich-domain-studio-tabs";
 const ACTIVE_TAB_STORAGE_KEY = "rich-domain-studio-active-tab";
 const CONSOLE_POSITION_STORAGE_KEY = "rich-domain-studio-console-position";
+
+// Helper to get view mode from URL hash
+function getViewModeFromHash(): ViewMode {
+  const hash = window.location.hash.slice(1); // Remove #
+  if (hash === "diagram" || hash === "events" || hash === "entities") {
+    return hash as ViewMode;
+  }
+  return "entities";
+}
+
+// Helper to update URL hash
+function updateHashForViewMode(mode: ViewMode) {
+  window.location.hash = mode;
+}
 
 // Helper function to generate unique tab IDs
 function generateTabId(): string {
@@ -63,7 +78,9 @@ export default function App() {
   const [consolePosition, setConsolePosition] =
     useState<ConsolePosition>("right");
   const [consoleSize, setConsoleSize] = useState(30); // percentage
-  const [viewMode, setViewMode] = useState<ViewMode>("entities");
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    getViewModeFromHash()
+  );
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -76,7 +93,9 @@ export default function App() {
     try {
       const storedTabs = localStorage.getItem(TABS_STORAGE_KEY);
       const storedActiveTabId = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
-      const storedConsolePosition = localStorage.getItem(CONSOLE_POSITION_STORAGE_KEY);
+      const storedConsolePosition = localStorage.getItem(
+        CONSOLE_POSITION_STORAGE_KEY
+      );
 
       if (storedTabs) {
         const parsedTabs = JSON.parse(storedTabs) as TabState[];
@@ -96,7 +115,10 @@ export default function App() {
       }
 
       // Restore console position
-      if (storedConsolePosition === "bottom" || storedConsolePosition === "right") {
+      if (
+        storedConsolePosition === "bottom" ||
+        storedConsolePosition === "right"
+      ) {
         setConsolePosition(storedConsolePosition as ConsolePosition);
       }
     } catch (e) {
@@ -127,6 +149,17 @@ export default function App() {
   useEffect(() => {
     fetchDomain();
   }, [fetchDomain]);
+
+  // Sync viewMode with URL hash
+  useEffect(() => {
+    const handleHashChange = () => {
+      const newMode = getViewModeFromHash();
+      setViewMode(newMode);
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   useEffect(() => {
     if (domain && monacoInstance) {
@@ -256,6 +289,7 @@ export default function App() {
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
+    updateHashForViewMode(mode);
   };
 
   const handleCodeChange = (value: string | undefined) => {
@@ -464,14 +498,17 @@ export default function App() {
           </>
         )}
 
-        {/* Diagram View - Placeholder */}
-        {viewMode === "diagram" && (
-          <div className="flex-1 flex items-center justify-center bg-background">
-            <div className="text-center text-muted-foreground">
-              <p className="text-lg mb-2">Diagram View</p>
-              <p className="text-sm">Coming soon...</p>
-            </div>
-          </div>
+        {/* Diagram View */}
+        {viewMode === "diagram" && domain && (
+          <EntityDiagram
+            entities={domain.entities}
+            contexts={domain.contexts}
+            onEntityClick={(entity) => {
+              // Switch to entities view and open the clicked entity
+              setViewMode("entities");
+              handleEntityClick(entity);
+            }}
+          />
         )}
       </div>
     </main>
