@@ -84,9 +84,17 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<any>(null);
+  const modelsRef = useRef<Map<string, any>>(new Map());
+  const activeTabIdRef = useRef<string>(activeTabId);
 
   // Get current active tab
   const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+
+  // Keep activeTabIdRef in sync
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId;
+  }, [activeTabId]);
 
   // Load saved tabs and console position from localStorage on mount
   useEffect(() => {
@@ -167,6 +175,30 @@ export default function App() {
     }
   }, [domain, monacoInstance]);
 
+  // Effect to manage Monaco models for each tab
+  useEffect(() => {
+    if (!monacoInstance || !editorRef.current) return;
+
+    const editor = editorRef.current;
+    const models = modelsRef.current;
+
+    // Create or get model for active tab
+    let model = models.get(activeTabId);
+
+    if (!model) {
+      // Create new model for this tab
+      model = monacoInstance.editor.createModel(
+        activeTab.code,
+        "typescript",
+        monacoInstance.Uri.file(`${activeTabId}.ts`)
+      );
+      models.set(activeTabId, model);
+    }
+
+    // Switch to this tab's model
+    editor.setModel(model);
+  }, [activeTabId, monacoInstance, activeTab.code]);
+
   const handleRun = useCallback(async () => {
     setIsExecuting(true);
     try {
@@ -235,6 +267,7 @@ export default function App() {
 
   const handleReset = () => {
     const currentTab = activeTab;
+    let newCode = DEFAULT_CODE;
 
     if (currentTab.entityName && domain) {
       // Reset to entity example code
@@ -242,20 +275,21 @@ export default function App() {
         (e) => e.name === currentTab.entityName
       );
       if (entity) {
-        const exampleCode = generateExampleCode(entity, domain.enums || []);
-        setTabs((prev) =>
-          prev.map((tab) =>
-            tab.id === activeTabId ? { ...tab, code: exampleCode } : tab
-          )
-        );
+        newCode = generateExampleCode(entity, domain.enums || []);
       }
-    } else {
-      // Reset to default code
-      setTabs((prev) =>
-        prev.map((tab) =>
-          tab.id === activeTabId ? { ...tab, code: DEFAULT_CODE } : tab
-        )
-      );
+    }
+
+    // Update tab state
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.id === activeTabId ? { ...tab, code: newCode } : tab
+      )
+    );
+
+    // Update Monaco model
+    const model = modelsRef.current.get(activeTabId);
+    if (model) {
+      model.setValue(newCode);
     }
   };
 
@@ -268,6 +302,13 @@ export default function App() {
     if (tabs.length === 1) return;
 
     const tabIndex = tabs.findIndex((tab) => tab.id === tabId);
+
+    // Dispose Monaco model for this tab
+    const model = modelsRef.current.get(tabId);
+    if (model) {
+      model.dispose();
+      modelsRef.current.delete(tabId);
+    }
 
     setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
 
@@ -292,16 +333,8 @@ export default function App() {
     updateHashForViewMode(mode);
   };
 
-  const handleCodeChange = (value: string | undefined) => {
-    const newCode = value || "";
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === activeTabId ? { ...tab, code: newCode } : tab
-      )
-    );
-  };
-
   const handleEditorMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
     setMonacoInstance(monaco);
 
     // Configure editor
@@ -312,6 +345,17 @@ export default function App() {
       roundedSelection: false,
       scrollBeyondLastLine: false,
       automaticLayout: true,
+    });
+
+    // Listen to content changes and sync with tab state
+    editor.onDidChangeModelContent(() => {
+      const currentCode = editor.getValue();
+      const currentTabId = activeTabIdRef.current;
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.id === currentTabId ? { ...tab, code: currentCode } : tab
+        )
+      );
     });
 
     // Register Ctrl+Enter command to run code
@@ -393,8 +437,6 @@ export default function App() {
           height="100%"
           defaultLanguage="typescript"
           theme="vs-dark"
-          value={activeTab.code}
-          onChange={handleCodeChange}
           onMount={handleEditorMount}
           options={{
             minimap: { enabled: false },
