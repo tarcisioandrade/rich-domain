@@ -71,23 +71,17 @@ async function createServer() {
       },
     },
     async (request, reply) => {
-      console.log("[API] /api/execute called");
       try {
         const { code } = request.body;
-        console.log("[API] Code to execute:", code.substring(0, 100) + "...");
         const projectPath = process.cwd();
-        console.log("[API] Project path:", projectPath);
 
         const result = await executeCode(code, projectPath);
-
-        console.log("[API] Execution result:", JSON.stringify(result, null, 2));
 
         return {
           success: true,
           data: result,
         };
       } catch (error) {
-        console.error("[API] Execution error:", error);
         reply.code(500);
         return {
           success: false,
@@ -130,7 +124,6 @@ async function start() {
       if (attempt > 0) {
         console.log(`Port ${startPort} was in use, started on port ${port} instead`);
       }
-      console.log(`Studio running at http://localhost:${port}`);
       return;
     } catch (error: any) {
       // If port is in use, try next port

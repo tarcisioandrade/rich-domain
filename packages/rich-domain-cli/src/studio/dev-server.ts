@@ -11,12 +11,12 @@ import { executeCode } from "./server/executor/sandbox.js";
 async function createDevServer() {
   const fastify = Fastify({
     logger: {
-      level: 'info',
+      level: "info",
       transport: {
-        target: 'pino-pretty',
+        target: "pino-pretty",
         options: {
-          translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname',
+          translateTime: "HH:MM:ss",
+          ignore: "pid,hostname",
         },
       },
     },
@@ -42,6 +42,7 @@ async function createDevServer() {
       const projectPath = process.cwd();
       const domain = await scanDomain(projectPath);
 
+      console.log("domain", domain);
       return {
         success: true,
         data: domain,
@@ -75,23 +76,17 @@ async function createDevServer() {
       },
     },
     async (request, reply) => {
-      console.log("[API] /api/execute called");
       try {
         const { code } = request.body;
-        console.log("[API] Code to execute:", code.substring(0, 100) + "...");
         const projectPath = process.cwd();
-        console.log("[API] Project path:", projectPath);
 
         const result = await executeCode(code, projectPath);
-
-        console.log("[API] Execution result:", JSON.stringify(result, null, 2));
 
         return {
           success: true,
           data: result,
         };
       } catch (error) {
-        console.error("[API] Execution error:", error);
         reply.code(500);
         return {
           success: false,
@@ -116,7 +111,9 @@ async function start() {
     console.log("\n🚀 Development Server Started!");
     console.log(`   API: http://localhost:${port}`);
     console.log(`   Frontend: http://localhost:5173 (Vite dev server)`);
-    console.log("\n📝 Make changes to the web UI and see them reload instantly!\n");
+    console.log(
+      "\n📝 Make changes to the web UI and see them reload instantly!\n"
+    );
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

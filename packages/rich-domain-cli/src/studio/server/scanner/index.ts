@@ -253,6 +253,7 @@ function scanDirectory(
         entry === "dist" ||
         entry === "build" ||
         entry === ".git" ||
+        entry.includes('test') ||
         entry.startsWith(".")
       ) {
         continue;
