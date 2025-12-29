@@ -34,6 +34,18 @@ async function createDevServer() {
   });
 
   /**
+   * GET /api/package-status
+   * Check if @woltz/rich-domain is installed
+   */
+  fastify.get("/api/package-status", async () => {
+    return {
+      success: true,
+      installed: true, // For development purposes, we assume it's installed
+      packageName: "@woltz/rich-domain",
+    };
+  });
+
+  /**
    * GET /api/domain
    * Scan and return domain structure
    */
@@ -42,7 +54,6 @@ async function createDevServer() {
       const projectPath = process.cwd();
       const domain = await scanDomain(projectPath);
 
-      console.log("domain", domain);
       return {
         success: true,
         data: domain,

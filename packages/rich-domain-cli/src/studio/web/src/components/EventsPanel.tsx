@@ -21,12 +21,12 @@ export default function EventsPanel({
 
   if (loading) {
     return (
-      <div className="w-64 bg-gray-800 border-r border-gray-700 p-4">
+      <div className="w-64 border-r border-border p-4">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-700 rounded mb-4"></div>
-          <div className="h-4 bg-gray-700 rounded mb-2"></div>
-          <div className="h-4 bg-gray-700 rounded mb-2"></div>
-          <div className="h-4 bg-gray-700 rounded"></div>
+          <div className="h-4 bg-secondary rounded mb-4"></div>
+          <div className="h-4 bg-secondary rounded mb-2"></div>
+          <div className="h-4 bg-secondary rounded mb-2"></div>
+          <div className="h-4 bg-secondary rounded"></div>
         </div>
       </div>
     );
@@ -34,8 +34,8 @@ export default function EventsPanel({
 
   if (!domain || domain.events.length === 0) {
     return (
-      <div className="w-64 bg-gray-800 border-r border-gray-700 p-4">
-        <div className="text-sm text-gray-500">
+      <div className="w-64 border-r border-border p-4">
+        <div className="text-sm text-muted-foreground">
           <p>No domain events found.</p>
           <p className="mt-2">
             Domain events extend DomainEvent&lt;PayloadType&gt;
@@ -136,11 +136,13 @@ function EventItem({
 
       <div className="flex items-center gap-2 ml-5 text-xs text-muted-foreground">
         <span>
-          {event.publishers.length} publisher{event.publishers.length !== 1 ? "s" : ""}
+          {event.publishers.length} publisher
+          {event.publishers.length !== 1 ? "s" : ""}
         </span>
         <span>•</span>
         <span>
-          {event.handlers.length} handler{event.handlers.length !== 1 ? "s" : ""}
+          {event.handlers.length} handler
+          {event.handlers.length !== 1 ? "s" : ""}
         </span>
       </div>
     </button>

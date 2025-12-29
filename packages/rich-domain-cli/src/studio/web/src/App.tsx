@@ -319,8 +319,15 @@ export default function App() {
       id: "run-code",
       label: "Run Code",
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: () => {
-        handleRun();
+      run: async () => {
+        // Get current code from editor instead of closure
+        const currentCode = editor.getValue();
+        setIsExecuting(true);
+        try {
+          await executeCode(currentCode);
+        } finally {
+          setIsExecuting(false);
+        }
       },
     });
 

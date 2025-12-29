@@ -131,7 +131,7 @@ export default function Header({
           </button>
 
           <div className="text-gray-500 text-xs" title="Keyboard shortcut">
-            <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-500 font-mono">
+            <kbd className="bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground font-mono">
               {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Enter
             </kbd>
           </div>

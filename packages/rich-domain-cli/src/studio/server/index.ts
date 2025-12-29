@@ -1,13 +1,34 @@
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyCors from "@fastify/cors";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanDomain } from "./scanner/index.js";
 import { executeCode } from "./executor/sandbox.js";
+import { existsSync } from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+/**
+ * Check if @woltz/rich-domain package is installed in the user's project
+ */
+function isRichDomainInstalled(projectPath: string): boolean {
+  try {
+    // Check if package exists in node_modules
+    const packagePath = join(
+      projectPath,
+      "node_modules",
+      "@woltz",
+      "rich-domain"
+    );
+    const packageJsonPath = join(packagePath, "package.json");
+
+    return existsSync(packageJsonPath);
+  } catch (error) {
+    return false;
+  }
+}
 
 /**
  * Create and configure Fastify server for Rich Domain Studio
@@ -15,7 +36,7 @@ const __dirname = dirname(__filename);
 async function createServer() {
   const fastify = Fastify({
     logger: {
-      level: 'info'
+      level: "info",
     },
   });
 
@@ -27,6 +48,21 @@ async function createServer() {
   // API Routes
   fastify.get("/api/health", async () => {
     return { status: "ok", timestamp: new Date().toISOString() };
+  });
+
+  /**
+   * GET /api/package-status
+   * Check if @woltz/rich-domain is installed
+   */
+  fastify.get("/api/package-status", async () => {
+    const projectPath = process.cwd();
+    const installed = isRichDomainInstalled(projectPath);
+
+    return {
+      success: true,
+      installed,
+      packageName: "@woltz/rich-domain",
+    };
   });
 
   /**
@@ -122,14 +158,21 @@ async function start() {
       await server.listen({ port, host: "0.0.0.0" });
 
       if (attempt > 0) {
-        console.log(`Port ${startPort} was in use, started on port ${port} instead`);
+        console.log(
+          `Port ${startPort} was in use, started on port ${port} instead`
+        );
       }
+
+      // Print success message that the CLI is waiting for
+      console.log(`Studio running at http://localhost:${port}`);
       return;
     } catch (error: any) {
       // If port is in use, try next port
-      if (error.code === 'EADDRINUSE') {
+      if (error.code === "EADDRINUSE") {
         if (attempt === maxAttempts - 1) {
-          console.error(`Failed to start server: ports ${startPort}-${port} are all in use`);
+          console.error(
+            `Failed to start server: ports ${startPort}-${port} are all in use`
+          );
           process.exit(1);
         }
         // Try next port

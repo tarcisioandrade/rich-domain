@@ -91,13 +91,17 @@ export default function Sidebar({
   // Check if there are any filtered results
   const hasResults = filteredEntities.length > 0;
 
+  const aggregatesCount = grouped.aggregate.length;
+  const entitiesCount = grouped.entity.length;
+  const voCount = grouped["value-object"].length;
+
   return (
     <aside className="flex w-64 flex-col border-r border-border bg-sidebar">
       <header className="flex flex-col gap-3 border-b border-sidebar-border p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search entities..."
+            placeholder="Search"
             className="pl-9 bg-sidebar-accent border-sidebar-border"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -195,6 +199,29 @@ export default function Sidebar({
             )}
           </>
         )}
+      </div>
+
+      <div className="border-t border-sidebar-border p-4">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground">Aggregates</span>
+            <span className="font-semibold text-white font-mono">
+              {aggregatesCount}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground">Entities</span>
+            <span className="font-semibold text-white font-mono">
+              {entitiesCount}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground">VOs</span>
+            <span className="font-semibold text-white font-mono">
+              {voCount}
+            </span>
+          </div>
+        </div>
       </div>
     </aside>
   );

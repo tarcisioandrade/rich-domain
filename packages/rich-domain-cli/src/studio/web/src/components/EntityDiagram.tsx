@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -12,14 +12,14 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   useReactFlow,
-} from 'reactflow';
-import dagre from 'dagre';
-import 'reactflow/dist/style.css';
-import { DomainEntity } from '../interfaces';
-import { Box, Gem, Layers, Info } from 'lucide-react';
-import ContextSidebar from './ContextSidebar';
-import EntityDetailDrawer from './EntityDetailDrawer';
-import { Tooltip } from './Tooltip';
+} from "reactflow";
+import dagre from "dagre";
+import "reactflow/dist/style.css";
+import { DomainEntity } from "../interfaces";
+import { Box, Gem, Layers, Info } from "lucide-react";
+import ContextSidebar from "./ContextSidebar";
+import EntityDetailDrawer from "./EntityDetailDrawer";
+import { Tooltip } from "./Tooltip";
 
 interface EntityDiagramProps {
   entities: DomainEntity[];
@@ -36,10 +36,10 @@ function EntityNode({ data }: { data: any }) {
     <div
       className={`px-4 py-3 rounded-lg border-2 bg-card min-w-[180px] cursor-pointer transition-all hover:shadow-lg ${
         data.isAggregate
-          ? 'border-primary'
+          ? "border-primary"
           : data.isValueObject
-          ? 'border-emerald-500'
-          : 'border-blue-500'
+          ? "border-emerald-500"
+          : "border-blue-500"
       }`}
       onClick={data.onClick}
     >
@@ -56,11 +56,13 @@ function EntityNode({ data }: { data: any }) {
         <div className="font-semibold font-mono text-sm">{data.label}</div>
       </div>
       <div className="text-xs text-muted-foreground">
-        {data.propertyCount} {data.propertyCount === 1 ? 'property' : 'properties'}
+        {data.propertyCount}{" "}
+        {data.propertyCount === 1 ? "property" : "properties"}
       </div>
       {data.relationshipCount > 0 && (
         <div className="text-xs text-muted-foreground">
-          {data.relationshipCount} {data.relationshipCount === 1 ? 'relationship' : 'relationships'}
+          {data.relationshipCount}{" "}
+          {data.relationshipCount === 1 ? "relationship" : "relationships"}
         </div>
       )}
 
@@ -83,7 +85,7 @@ const nodeTypes = {
 function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],
-  direction: 'TB' | 'LR' = 'TB'
+  direction: "TB" | "LR" = "TB"
 ): { nodes: Node[]; edges: Edge[] } {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -112,8 +114,8 @@ function getLayoutedElements(
         x: nodeWithPosition.x - nodeWidth / 2,
         y: nodeWithPosition.y - nodeHeight / 2,
       },
-      targetPosition: direction === 'TB' ? Position.Top : Position.Left,
-      sourcePosition: direction === 'TB' ? Position.Bottom : Position.Right,
+      targetPosition: direction === "TB" ? Position.Top : Position.Left,
+      sourcePosition: direction === "TB" ? Position.Bottom : Position.Right,
     };
   });
 
@@ -126,7 +128,9 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
   const [selectedContext, setSelectedContext] = useState<string | null>(
     contexts.length > 0 ? contexts[0] : null
   );
-  const [selectedEntity, setSelectedEntity] = useState<DomainEntity | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<DomainEntity | null>(
+    null
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Update selected context when contexts change
@@ -139,7 +143,7 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
   // Filter entities by selected context
   const filteredEntities = useMemo(() => {
     if (!selectedContext) return entities;
-    return entities.filter(e => e.context === selectedContext);
+    return entities.filter((e) => e.context === selectedContext);
   }, [entities, selectedContext]);
 
   // Build nodes from filtered entities + cross-context referenced entities
@@ -150,19 +154,19 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
     // Helper to create node
     const createNode = (entity: DomainEntity, isGhost: boolean = false) => {
       let icon = Layers;
-      let iconColor = 'text-blue-400';
+      let iconColor = "text-blue-400";
 
-      if (entity.type === 'aggregate') {
+      if (entity.type === "aggregate") {
         icon = Box;
-        iconColor = 'text-primary';
-      } else if (entity.type === 'value-object') {
+        iconColor = "text-primary";
+      } else if (entity.type === "value-object") {
         icon = Gem;
-        iconColor = 'text-emerald-400';
+        iconColor = "text-emerald-400";
       }
 
       return {
         id: entity.name,
-        type: 'entity',
+        type: "entity",
         position: { x: 0, y: 0 }, // Will be set by layout
         data: {
           label: entity.name,
@@ -170,17 +174,19 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
           iconColor,
           propertyCount: entity.properties.length,
           relationshipCount: entity.relationships.length,
-          isAggregate: entity.type === 'aggregate',
-          isValueObject: entity.type === 'value-object',
+          isAggregate: entity.type === "aggregate",
+          isValueObject: entity.type === "value-object",
           onClick: () => {
             setSelectedEntity(entity);
             setDrawerOpen(true);
           },
         },
-        style: isGhost ? {
-          opacity: 0.5,
-          border: '2px dashed #666',
-        } : undefined,
+        style: isGhost
+          ? {
+              opacity: 0.5,
+              border: "2px dashed #666",
+            }
+          : undefined,
       };
     };
 
@@ -193,8 +199,12 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
     // Add cross-context referenced entities as ghost nodes
     filteredEntities.forEach((entity) => {
       entity.relationships.forEach((rel) => {
-        const targetEntity = entities.find(e => e.name === rel.toEntity);
-        if (targetEntity && targetEntity.context !== entity.context && !addedNodes.has(targetEntity.name)) {
+        const targetEntity = entities.find((e) => e.name === rel.toEntity);
+        if (
+          targetEntity &&
+          targetEntity.context !== entity.context &&
+          !addedNodes.has(targetEntity.name)
+        ) {
           nodes.push(createNode(targetEntity, true));
           addedNodes.add(targetEntity.name);
         }
@@ -210,7 +220,7 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
 
     filteredEntities.forEach((entity) => {
       entity.relationships.forEach((rel) => {
-        const targetEntity = entities.find(e => e.name === rel.toEntity);
+        const targetEntity = entities.find((e) => e.name === rel.toEntity);
 
         // Skip if target entity doesn't exist
         if (!targetEntity) return;
@@ -221,20 +231,20 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
         const isCrossContext = entity.context !== targetEntity.context;
 
         // Style based on relationship type
-        let strokeColor = '#64748b'; // default slate-500
+        let strokeColor = "#64748b"; // default slate-500
         let strokeDasharray = undefined;
 
         if (isCrossContext) {
           // Cross-context relationships
-          strokeColor = '#ef4444'; // red-500
-        } else if (rel.relationshipType === 'composition') {
-          strokeColor = '#10b981'; // emerald-500
-        } else if (rel.relationshipType === 'reference') {
-          strokeColor = '#3b82f6'; // blue-500
-          strokeDasharray = '5,5';
-        } else if (rel.relationshipType === 'aggregation') {
-          strokeColor = '#a855f7'; // purple-500
-          strokeDasharray = '2,2';
+          strokeColor = "#ef4444"; // red-500
+        } else if (rel.relationshipType === "composition") {
+          strokeColor = "#10b981"; // emerald-500
+        } else if (rel.relationshipType === "reference") {
+          strokeColor = "#3b82f6"; // blue-500
+          strokeDasharray = "5,5";
+        } else if (rel.relationshipType === "aggregation") {
+          strokeColor = "#a855f7"; // purple-500
+          strokeDasharray = "2,2";
         }
 
         // Create edge with styling
@@ -242,7 +252,7 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
           id: edgeId,
           source: rel.fromEntity,
           target: rel.toEntity,
-          type: 'smoothstep',
+          type: "smoothstep",
           animated: false,
           label: rel.propertyName,
           labelStyle: {
@@ -251,7 +261,7 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
             fontWeight: 500,
           },
           labelBgStyle: {
-            fill: 'hsl(var(--background))',
+            fill: "hsl(var(--background))",
             fillOpacity: 0.8,
           },
           style: {
@@ -287,11 +297,16 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(layoutedEdges);
 
   // Filter edge changes to prevent deletion
-  const onEdgesChange = useCallback((changes: any[]) => {
-    // Filter out 'remove' changes to prevent edge deletion
-    const filteredChanges = changes.filter(change => change.type !== 'remove');
-    onEdgesChangeInternal(filteredChanges);
-  }, [onEdgesChangeInternal]);
+  const onEdgesChange = useCallback(
+    (changes: any[]) => {
+      // Filter out 'remove' changes to prevent edge deletion
+      const filteredChanges = changes.filter(
+        (change) => change.type !== "remove"
+      );
+      onEdgesChangeInternal(filteredChanges);
+    },
+    [onEdgesChangeInternal]
+  );
 
   // Update nodes and edges when layout changes
   useEffect(() => {
@@ -351,7 +366,7 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
         onContextSelect={setSelectedContext}
       />
 
-      <div style={{ width: '100%', height: '100%' }}>
+      <div style={{ width: "100%", height: "100%" }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -360,7 +375,6 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-          attributionPosition="bottom-left"
           minZoom={0.1}
           maxZoom={4}
           edgesUpdatable={false}
@@ -370,45 +384,51 @@ function EntityDiagramFlow({ entities, contexts }: EntityDiagramProps) {
           elementsSelectable={true}
           proOptions={{ hideAttribution: true }}
         >
-          <Controls />
+          <Controls position="top-right" />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
       </div>
 
-    {/* Legend */}
-    <div className="absolute bottom-4 right-4 bg-card border border-border rounded-lg p-4 text-sm">
-      <div className="font-semibold mb-2">Relationships</div>
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-0.5 bg-emerald-500"></div>
-          <span className="text-xs">Composition</span>
-          <Tooltip content="A strong ownership relationship where the child entity is part of the parent. If the parent is deleted, the child is also deleted. Example: Order has OrderItems.">
-            <Info className="size-3 text-muted-foreground ml-1" />
-          </Tooltip>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-0.5 bg-blue-500" style={{ strokeDasharray: '5,5' }}></div>
-          <span className="text-xs">Reference (ID)</span>
-          <Tooltip content="A weak relationship where an entity references another by ID only. The referenced entity has an independent lifecycle. Example: Order references Customer by customerId.">
-            <Info className="size-3 text-muted-foreground ml-1" />
-          </Tooltip>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-0.5 bg-purple-500" style={{ strokeDasharray: '2,2' }}></div>
-          <span className="text-xs">Aggregation</span>
-          <Tooltip content="An entity has another entity, but with independent lifecycle. Stronger than reference, weaker than composition. Example: Customer has Addresses.">
-            <Info className="size-3 text-muted-foreground ml-1" />
-          </Tooltip>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-0.5 bg-red-500"></div>
-          <span className="text-xs font-semibold">Cross-Context</span>
-          <Tooltip content="A relationship between entities from different bounded contexts. This indicates coupling between contexts and should be carefully considered. Example: Order (Sales) references Product (Catalog).">
-            <Info className="size-3 text-muted-foreground ml-1" />
-          </Tooltip>
+      {/* Legend */}
+      <div className="absolute bottom-4 right-4 bg-card border border-border rounded-lg p-4 text-sm">
+        <div className="font-semibold mb-2">Relationships</div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-emerald-500"></div>
+            <span className="text-xs">Composition</span>
+            <Tooltip content="A strong ownership relationship where the child entity is part of the parent. If the parent is deleted, the child is also deleted. Example: Order has OrderItems.">
+              <Info className="size-3 text-muted-foreground ml-1" />
+            </Tooltip>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-0.5 bg-blue-500"
+              style={{ strokeDasharray: "5,5" }}
+            ></div>
+            <span className="text-xs">Reference (ID)</span>
+            <Tooltip content="A weak relationship where an entity references another by ID only. The referenced entity has an independent lifecycle. Example: Order references Customer by customerId.">
+              <Info className="size-3 text-muted-foreground ml-1" />
+            </Tooltip>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-0.5 bg-purple-500"
+              style={{ strokeDasharray: "2,2" }}
+            ></div>
+            <span className="text-xs">Aggregation</span>
+            <Tooltip content="An entity has another entity, but with independent lifecycle. Stronger than reference, weaker than composition. Example: Customer has Addresses.">
+              <Info className="size-3 text-muted-foreground ml-1" />
+            </Tooltip>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-red-500"></div>
+            <span className="text-xs font-semibold">Cross-Context</span>
+            <Tooltip content="A relationship between entities from different bounded contexts. This indicates coupling between contexts and should be carefully considered. Example: Order (Sales) references Product (Catalog).">
+              <Info className="size-3 text-muted-foreground ml-1" />
+            </Tooltip>
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Entity Detail Drawer */}
       <EntityDetailDrawer
