@@ -1,0 +1,47 @@
+{
+  "name": "@woltz/rich-domain-events-tracker",
+  "version": "0.1.0",
+  "description": "Event tracking system with pluggable adapters for monitoring domain events",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "domain-driven-design",
+    "ddd",
+    "event-tracking",
+    "event-monitoring",
+    "domain-events",
+    "event-sourcing",
+    "observability"
+  ],
+  "author": "Tarcisio",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.11.19",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  },
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.6.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
