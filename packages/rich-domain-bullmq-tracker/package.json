@@ -1,0 +1,51 @@
+{
+  "name": "@woltz/rich-domain-bullmq-tracker",
+  "version": "0.1.0",
+  "description": "BullMQ adapter for @woltz/rich-domain-events-tracker",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "bullmq",
+    "event-tracking",
+    "domain-events",
+    "ddd",
+    "adapter",
+    "rich-domain"
+  ],
+  "author": "Tarcisio",
+  "license": "MIT",
+  "dependencies": {
+    "@woltz/rich-domain": "^1.6.0",
+    "@woltz/rich-domain-events-tracker": "*",
+    "bullmq": "^5.34.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "ioredis": "^5.4.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  },
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.6.0",
+    "@woltz/rich-domain-events-tracker": "^0.1.0",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
