@@ -1,12 +1,12 @@
-import Database from 'better-sqlite3';
-import type { IEventStorage } from '../interfaces';
+import Database from "better-sqlite3";
+import type { IEventStorage } from "../interfaces";
 import type {
   TrackedEvent,
   EventState,
   EventMetadata,
   EventFilters,
   EventStatistics,
-} from '../types';
+} from "../types";
 
 /**
  * Implementação de storage usando SQLite
@@ -32,23 +32,20 @@ export class SQLiteEventStorage implements IEventStorage {
   private db: Database.Database | null = null;
 
   /**
-   * @param dbPath - Caminho para o arquivo SQLite (default: './events.db')
+   * @param dbPath - Caminho para o arquivo SQLite
    * @param options - Opções do better-sqlite3
    */
-  constructor(
-    private dbPath: string = './events.db',
-    private options?: Database.Options
-  ) {}
+  constructor(private dbPath: string, private options?: Database.Options) {}
 
   async initialize(): Promise<void> {
     this.db = new Database(this.dbPath, {
       ...this.options,
       // WAL mode para melhor concorrência
-      verbose: process.env.NODE_ENV === 'development' ? console.log : undefined,
+      verbose: process.env.NODE_ENV === "development" ? console.log : undefined,
     });
 
     // Ativa WAL mode para melhor concorrência
-    this.db.pragma('journal_mode = WAL');
+    this.db.pragma("journal_mode = WAL");
 
     // Cria tabela de eventos
     this.db.exec(`
@@ -63,7 +60,8 @@ export class SQLiteEventStorage implements IEventStorage {
         state TEXT NOT NULL,
         metadata TEXT,
         created_at TEXT NOT NULL,
-        updated_at TEXT
+        updated_at TEXT,
+        retry_count INTEGER DEFAULT 0
       );
 
       CREATE INDEX IF NOT EXISTS idx_event_id ON tracked_events(event_id);
@@ -72,6 +70,7 @@ export class SQLiteEventStorage implements IEventStorage {
       CREATE INDEX IF NOT EXISTS idx_queue_name ON tracked_events(queue_name);
       CREATE INDEX IF NOT EXISTS idx_created_at ON tracked_events(created_at);
       CREATE INDEX IF NOT EXISTS idx_occurred_on ON tracked_events(occurred_on);
+      CREATE INDEX IF NOT EXISTS idx_retry_count ON tracked_events(retry_count);
     `);
   }
 
@@ -81,8 +80,8 @@ export class SQLiteEventStorage implements IEventStorage {
     const stmt = this.db!.prepare(`
       INSERT INTO tracked_events (
         event_id, event_name, payload, occurred_on, job_id, queue_name,
-        state, metadata, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        state, metadata, created_at, updated_at, retry_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -95,7 +94,8 @@ export class SQLiteEventStorage implements IEventStorage {
       event.state,
       event.metadata ? JSON.stringify(event.metadata) : null,
       this.toISOString(event.createdAt),
-      event.updatedAt ? this.toISOString(event.updatedAt) : null
+      event.updatedAt ? this.toISOString(event.updatedAt) : null,
+      event.retryCount ?? 0
     );
   }
 
@@ -146,46 +146,46 @@ export class SQLiteEventStorage implements IEventStorage {
   async queryEvents(filters: EventFilters): Promise<TrackedEvent[]> {
     this.ensureInitialized();
 
-    let query = 'SELECT * FROM tracked_events WHERE 1=1';
+    let query = "SELECT * FROM tracked_events WHERE 1=1";
     const params: any[] = [];
 
     if (filters.eventName) {
-      query += ' AND event_name = ?';
+      query += " AND event_name = ?";
       params.push(filters.eventName);
     }
 
     if (filters.state) {
       if (Array.isArray(filters.state)) {
-        query += ` AND state IN (${filters.state.map(() => '?').join(',')})`;
+        query += ` AND state IN (${filters.state.map(() => "?").join(",")})`;
         params.push(...filters.state);
       } else {
-        query += ' AND state = ?';
+        query += " AND state = ?";
         params.push(filters.state);
       }
     }
 
     if (filters.queueName) {
-      query += ' AND queue_name = ?';
+      query += " AND queue_name = ?";
       params.push(filters.queueName);
     }
 
     if (filters.dateRange) {
-      query += ' AND occurred_on BETWEEN ? AND ?';
+      query += " AND occurred_on BETWEEN ? AND ?";
       params.push(
         filters.dateRange.from.toISOString(),
         filters.dateRange.to.toISOString()
       );
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += " ORDER BY created_at DESC";
 
     if (filters.limit) {
-      query += ' LIMIT ?';
+      query += " LIMIT ?";
       params.push(filters.limit);
     }
 
     if (filters.offset) {
-      query += ' OFFSET ?';
+      query += " OFFSET ?";
       params.push(filters.offset);
     }
 
@@ -196,27 +196,27 @@ export class SQLiteEventStorage implements IEventStorage {
   }
 
   async getPendingEvents(): Promise<TrackedEvent[]> {
-    return this.queryEvents({ state: 'pending' });
+    return this.queryEvents({ state: "pending" });
   }
 
   async getStatistics(filters?: EventFilters): Promise<EventStatistics> {
     this.ensureInitialized();
 
-    let whereClause = '1=1';
+    let whereClause = "1=1";
     const params: any[] = [];
 
     if (filters?.eventName) {
-      whereClause += ' AND event_name = ?';
+      whereClause += " AND event_name = ?";
       params.push(filters.eventName);
     }
 
     if (filters?.queueName) {
-      whereClause += ' AND queue_name = ?';
+      whereClause += " AND queue_name = ?";
       params.push(filters.queueName);
     }
 
     if (filters?.dateRange) {
-      whereClause += ' AND occurred_on BETWEEN ? AND ?';
+      whereClause += " AND occurred_on BETWEEN ? AND ?";
       params.push(
         filters.dateRange.from.toISOString(),
         filters.dateRange.to.toISOString()
@@ -304,8 +304,7 @@ export class SQLiteEventStorage implements IEventStorage {
       processedCount > 0 ? totalProcessingTime / processedCount : undefined;
 
     // Failure rate
-    const failureRate =
-      total > 0 ? (byState.failed / total) * 100 : undefined;
+    const failureRate = total > 0 ? (byState.failed / total) * 100 : undefined;
 
     return {
       total,
@@ -329,6 +328,41 @@ export class SQLiteEventStorage implements IEventStorage {
     return result.changes;
   }
 
+  async deleteEvent(eventId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    const stmt = this.db!.prepare(`
+      DELETE FROM tracked_events WHERE event_id = ?
+    `);
+
+    const result = stmt.run(eventId);
+    return result.changes > 0;
+  }
+
+  async deleteEventsByState(state: EventState): Promise<number> {
+    this.ensureInitialized();
+
+    const stmt = this.db!.prepare(`
+      DELETE FROM tracked_events WHERE state = ?
+    `);
+
+    const result = stmt.run(state);
+    return result.changes;
+  }
+
+  async incrementRetryCount(eventId: string): Promise<void> {
+    this.ensureInitialized();
+
+    const stmt = this.db!.prepare(`
+      UPDATE tracked_events
+      SET retry_count = COALESCE(retry_count, 0) + 1,
+          updated_at = ?
+      WHERE event_id = ?
+    `);
+
+    stmt.run(new Date().toISOString(), eventId);
+  }
+
   async close(): Promise<void> {
     if (this.db) {
       this.db.close();
@@ -342,7 +376,7 @@ export class SQLiteEventStorage implements IEventStorage {
 
   private ensureInitialized(): void {
     if (!this.db) {
-      throw new Error('Storage not initialized. Call initialize() first.');
+      throw new Error("Storage not initialized. Call initialize() first.");
     }
   }
 
@@ -359,10 +393,11 @@ export class SQLiteEventStorage implements IEventStorage {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       createdAt: new Date(row.created_at),
       updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+      retryCount: row.retry_count ?? 0,
     };
   }
 
   private toISOString(date: Date | string): string {
-    return typeof date === 'string' ? date : date.toISOString();
+    return typeof date === "string" ? date : date.toISOString();
   }
 }

@@ -1,7 +1,10 @@
-import type { IDomainEvent } from '@woltz/rich-domain';
-import type { ITrackerAdapter, IEventStorage } from './interfaces';
-import type { EventFilters, EventStatistics, TrackedEvent } from './types';
-import { SQLiteEventStorage } from './storage';
+import type { IDomainEvent } from "@woltz/rich-domain";
+import type { ITrackerAdapter, IEventStorage } from "./interfaces";
+import type { EventFilters, EventStatistics, TrackedEvent } from "./types";
+import { SQLiteEventStorage } from "./storage";
+import { join } from "path";
+import { existsSync, mkdirSync } from "fs";
+// import { existsSync, mkdirSync } from "fs";
 
 /**
  * Configuração do EventTracker
@@ -45,7 +48,6 @@ export interface EventTrackerConfig {
  * await tracker.initialize();
  *
  * // Features avançadas
- * await tracker.replayEvent('event-123');
  * const stats = await tracker.getStatistics();
  * ```
  */
@@ -56,9 +58,10 @@ export class EventTracker {
 
   constructor(config: EventTrackerConfig) {
     this.adapter = config.adapter;
+    const dbPath = join(process.cwd(), config.dbPath || ".rich-domain");
+    this.ensureDirectoryExists(dbPath);
     this.storage =
-      config.storage ||
-      new SQLiteEventStorage(config.dbPath || './events.db');
+      config.storage || new SQLiteEventStorage(join(dbPath, "events.db"));
   }
 
   /**
@@ -72,12 +75,18 @@ export class EventTracker {
     await this.startMonitoring();
   }
 
+  private async ensureDirectoryExists(dirPath: string): Promise<void> {
+    if (!existsSync(dirPath)) {
+      mkdirSync(dirPath, { recursive: true });
+    }
+  }
+
   /**
    * Inicia o monitoramento de mudanças de estado via adapter
    */
   async startMonitoring(): Promise<void> {
     if (this.isMonitoring) {
-      console.warn('EventTracker: Monitoring already started');
+      console.warn("EventTracker: Monitoring already started");
       return;
     }
 
@@ -85,6 +94,11 @@ export class EventTracker {
       onStateChange: async (eventId, state, metadata) => {
         try {
           await this.storage.updateEventState(eventId, state, metadata);
+
+          // Incrementa contador de retries se sinalizado
+          if (metadata?.incrementRetryCount) {
+            await this.storage.incrementRetryCount(eventId);
+          }
         } catch (error) {
           console.error(
             `EventTracker: Error updating state for ${eventId}:`,
@@ -127,42 +141,8 @@ export class EventTracker {
       occurredOn: event.occurredOn,
       jobId,
       queueName,
-      state: 'pending',
+      state: "pending",
       createdAt: new Date(),
-    });
-  }
-
-  /**
-   * Replay de um evento (re-enfileira)
-   *
-   * @param eventId - ID do evento a ser repetido
-   * @throws Se evento não for encontrado
-   */
-  async replayEvent(eventId: string): Promise<void> {
-    const event = await this.storage.getEvent(eventId);
-    if (!event) {
-      throw new Error(`Event ${eventId} not found`);
-    }
-
-    // Reconstrói o IDomainEvent a partir do TrackedEvent
-    const domainEvent: IDomainEvent = {
-      eventId: event.eventId,
-      eventName: event.eventName,
-      payload: event.payload,
-      occurredOn:
-        typeof event.occurredOn === 'string'
-          ? new Date(event.occurredOn)
-          : event.occurredOn,
-    };
-
-    // Adapter faz replay no sistema de mensageria
-    await this.adapter.replayEvent(domainEvent);
-
-    // Atualiza storage
-    await this.storage.updateEventState(eventId, 'pending', {
-      ...event.metadata,
-      replayedAt: new Date(),
-      replayCount: ((event.metadata?.replayCount as number) || 0) + 1,
     });
   }
 

@@ -50,6 +50,7 @@ export interface TrackedEvent {
   metadata?: EventMetadata;
   createdAt: Date | string;
   updatedAt?: Date | string;
+  retryCount?: number;  // Número de retries (tentativas após a primeira)
 }
 
 /**

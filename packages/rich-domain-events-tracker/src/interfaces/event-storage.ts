@@ -87,6 +87,29 @@ export interface IEventStorage {
   cleanupOldEvents(olderThan: Date): Promise<number>;
 
   /**
+   * Deleta um evento pelo ID
+   *
+   * @param eventId - ID do evento a ser deletado
+   * @returns True se o evento foi deletado, false se não foi encontrado
+   */
+  deleteEvent(eventId: string): Promise<boolean>;
+
+  /**
+   * Deleta todos os eventos de um estado específico
+   *
+   * @param state - Estado dos eventos a serem deletados
+   * @returns Número de eventos deletados
+   */
+  deleteEventsByState(state: EventState): Promise<number>;
+
+  /**
+   * Incrementa o contador de retries de um evento
+   *
+   * @param eventId - ID do evento
+   */
+  incrementRetryCount(eventId: string): Promise<void>;
+
+  /**
    * Fecha conexões e limpa recursos
    */
   close(): Promise<void>;

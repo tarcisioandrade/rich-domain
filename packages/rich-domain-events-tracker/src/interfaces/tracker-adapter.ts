@@ -67,11 +67,4 @@ export interface ITrackerAdapter {
    * @returns Detalhes do job ou null se não encontrado
    */
   getJobDetails(jobId: string): Promise<JobDetails | null>;
-
-  /**
-   * Replay de um evento (re-enfileira)
-   *
-   * @param event - O evento a ser repetido
-   */
-  replayEvent(event: IDomainEvent): Promise<void>;
 }
