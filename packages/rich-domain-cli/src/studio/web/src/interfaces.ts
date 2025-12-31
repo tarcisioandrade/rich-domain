@@ -69,3 +69,37 @@ export interface TabState {
 
 export type ConsolePosition = "bottom" | "right";
 export type EntityType = "aggregate" | "entity" | "value-object";
+
+export interface TrackedEvent {
+  id?: number;
+  eventId: string;
+  eventName: string;
+  payload: any;
+  occurredOn: string | Date;
+  jobId?: string;
+  queueName?: string;
+  state: EventState;
+  metadata?: EventMetadata;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+  retryCount?: number;
+}
+
+export interface EventMetadata {
+  payload?: any;
+  error?: string;
+  stacktrace?: string;
+  attempts?: number;
+  processedAt?: Date;
+  finishedAt?: Date;
+  result?: any;
+}
+
+export type EventState =
+  | "pending"
+  | "active"
+  | "succeeded"
+  | "failed"
+  | "delayed"
+  | "retrying"
+  | "unknown";

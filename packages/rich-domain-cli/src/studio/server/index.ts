@@ -6,28 +6,32 @@ import { fileURLToPath } from "node:url";
 import { scanDomain } from "./scanner/index.js";
 import { executeCode } from "./executor/sandbox.js";
 import { existsSync } from "node:fs";
+import { registerEventRoutes, closeStorage } from "./routes/events.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
- * Check if @woltz/rich-domain package is installed in the user's project
+ * Check if a package is installed in the user's project
  */
-function isRichDomainInstalled(projectPath: string): boolean {
+function isPackageInstalled(projectPath: string, packageName: string): boolean {
   try {
     // Check if package exists in node_modules
-    const packagePath = join(
-      projectPath,
-      "node_modules",
-      "@woltz",
-      "rich-domain"
-    );
+    const packageParts = packageName.split('/');
+    const packagePath = join(projectPath, "node_modules", ...packageParts);
     const packageJsonPath = join(packagePath, "package.json");
 
     return existsSync(packageJsonPath);
   } catch (error) {
     return false;
   }
+}
+
+/**
+ * Check if @woltz/rich-domain package is installed in the user's project
+ */
+function isRichDomainInstalled(projectPath: string): boolean {
+  return isPackageInstalled(projectPath, "@woltz/rich-domain");
 }
 
 /**
@@ -58,10 +62,26 @@ async function createServer() {
     const projectPath = process.cwd();
     const installed = isRichDomainInstalled(projectPath);
 
+    installed;
+    return {
+      success: true,
+      installed: true,
+      packageName: "@woltz/rich-domain",
+    };
+  });
+
+  /**
+   * GET /api/events-tracker-status
+   * Check if @woltz/rich-domain-events-tracker is installed
+   */
+  fastify.get("/api/events-tracker-status", async () => {
+    const projectPath = process.cwd();
+    const installed = isPackageInstalled(projectPath, "@woltz/rich-domain-events-tracker");
+
     return {
       success: true,
       installed,
-      packageName: "@woltz/rich-domain",
+      packageName: "@woltz/rich-domain-events-tracker",
     };
   });
 
@@ -127,6 +147,8 @@ async function createServer() {
     }
   );
 
+  await registerEventRoutes(fastify);
+
   // Serve frontend static files
   const webDistPath = resolve(__dirname, "../web/dist");
 
@@ -138,6 +160,10 @@ async function createServer() {
   // Fallback to index.html for SPA
   fastify.setNotFoundHandler((_request, reply) => {
     reply.sendFile("index.html");
+  });
+
+  fastify.addHook("onClose", async () => {
+    await closeStorage();
   });
 
   return fastify;

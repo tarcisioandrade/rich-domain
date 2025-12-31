@@ -4,13 +4,12 @@ import { useStudioStore } from "./store";
 import Sidebar from "./components/Sidebar";
 import Console from "./components/Console";
 import Tabs from "./components/Tabs";
-import EventsPanel from "./components/EventsPanel";
-import EventDetails from "./components/EventDetails";
+import EventTrackerPanel from "./components/EventTrackerPanel";
+import EventTrackerDetails from "./components/EventTrackerDetails";
 import EntityDiagram from "./components/EntityDiagram";
 import {
   DomainEntity,
   DomainStructure,
-  DomainEventInfo,
   EnumInfo,
   TabState,
   ConsolePosition,
@@ -81,7 +80,8 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     getViewModeFromHash()
   );
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventData, setSelectedEventData] = useState<any>(null);
   const isResizing = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
@@ -324,8 +324,9 @@ export default function App() {
     }
   };
 
-  const handleEventClick = (event: DomainEventInfo) => {
-    setSelectedEvent(event.name);
+  const handleEventClick = (event: any) => {
+    setSelectedEventId(event.eventId);
+    setSelectedEventData(event);
   };
 
   const handleViewModeChange = (mode: ViewMode) => {
@@ -450,11 +451,7 @@ export default function App() {
     </div>
   );
 
-  // Get selected event data
-  const selectedEventData =
-    selectedEvent && domain
-      ? domain.events.find((e) => e.name === selectedEvent) || null
-      : null;
+  // selectedEventData is managed by state
 
   return (
     <main className="h-screen bg-background flex flex-col overflow-hidden">
@@ -537,13 +534,13 @@ export default function App() {
         {/* Events View */}
         {viewMode === "events" && (
           <>
-            <EventsPanel
-              domain={domain}
-              loading={loading}
-              selectedEvent={selectedEvent}
+            <EventTrackerPanel
               onEventClick={handleEventClick}
+              selectedEventId={selectedEventId}
             />
-            <EventDetails event={selectedEventData} />
+            <EventTrackerDetails
+              event={selectedEventData}
+            />
           </>
         )}
 
