@@ -7,6 +7,7 @@ export function registerUserEventHandlers(worker: BullMQDomainEventWorker) {
     queue: QUEUES.MAIN,
     event: UserCreatedEvent,
     handler: async (event) => {
+      throw new Error("test");
       console.log("   Email:", event.payload.email);
     },
   });

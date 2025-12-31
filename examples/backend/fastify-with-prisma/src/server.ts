@@ -11,6 +11,10 @@ import {
   jsonSchemaTransformObject,
 } from "fastify-type-provider-zod";
 import { diPlugin } from "./infrastructure/di";
+import {
+  initializeEventTracking,
+  shutdownEventTracking,
+} from "./infrastructure/queue/tracked-event-bus";
 
 const app = fastify({
   logger: true,
@@ -45,35 +49,38 @@ app.addHook("onError", async (request, reply, error) => {
   reply.status(500).send({ error: "Internal Server Error" });
 });
 
-app.get("/health", async (request, reply) => {
+app.get("/health", async () => {
   return { status: "ok", timestamp: new Date().toISOString() };
 });
 
-app.get("/openapi.json", async (request, reply) => {
-  // @ts-ignore
+app.get("/openapi.json", async () => {
   return app.swagger();
 });
 
 const start = async () => {
   try {
     await prisma.$connect();
+    console.log("✅ Database connected successfully");
 
-    console.log("Database connected successfully");
+    await initializeEventTracking();
 
     const port = Number(process.env.PORT) || 3000;
     await app.ready();
     await app.listen({ port, host: "0.0.0.0" });
 
-    console.log(`Server listening on http://localhost:${port}`);
+    console.log(`🚀 Server listening on http://localhost:${port}`);
   } catch (err) {
     app.log.error(err);
     await prisma.$disconnect();
+    await shutdownEventTracking();
     process.exit(1);
   }
 };
 
 process.on("SIGINT", async () => {
+  console.log("👋 Shutting down server...");
   await prisma.$disconnect();
+  await shutdownEventTracking();
   process.exit(0);
 });
 

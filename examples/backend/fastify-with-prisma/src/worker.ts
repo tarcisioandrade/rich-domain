@@ -1,9 +1,10 @@
-import "dotenv/config";
 import { registerUserEventHandlers } from "./infrastructure/events/user";
 import {
   BullMQDomainEventWorker,
   connection,
   QueuePublisher,
+  initializeEventTracking,
+  shutdownEventTracking,
 } from "./infrastructure/queue";
 
 export const worker = new BullMQDomainEventWorker(connection);
@@ -13,12 +14,13 @@ registerUserEventHandlers(worker);
 
 async function main() {
   try {
-    console.log("🔄 Starting domain event worker...");
+    await initializeEventTracking();
     await worker.start();
     console.log("✅ Domain event worker started successfully");
   } catch (error) {
     console.error("❌ Failed to start domain event worker:", error);
     await worker.stop();
+    await shutdownEventTracking();
     process.exit(1);
   }
 }
@@ -26,12 +28,14 @@ async function main() {
 process.on("SIGINT", async () => {
   console.log("👋 Shutting down worker...");
   await worker.stop();
+  await shutdownEventTracking();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   console.log("👋 Shutting down worker...");
   await worker.stop();
+  await shutdownEventTracking();
   process.exit(0);
 });
 

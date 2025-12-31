@@ -16,7 +16,10 @@
     "start:worker": "bun tsx watch src/worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "replay:event": "tsx src/scripts/replay-events.ts event",
+    "replay:all-failed": "tsx src/scripts/replay-events.ts all-failed",
+    "replay:by-name": "tsx src/scripts/replay-events.ts by-name"
   },
   "keywords": [
     "fastify",
@@ -32,7 +35,9 @@
     "@fastify/swagger-ui": "^5.2.3",
     "@prisma/client": "^5.22.0",
     "@woltz/rich-domain": "^1.6.0",
+    "@woltz/rich-domain-bullmq-tracker": "*",
     "@woltz/rich-domain-criteria-zod": "^0.1.0",
+    "@woltz/rich-domain-events-tracker": "*",
     "@woltz/rich-domain-prisma": "^0.7.0",
     "bullmq": "^5.64.0",
     "fastify": "^5.5.0",

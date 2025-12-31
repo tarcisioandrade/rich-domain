@@ -78,7 +78,7 @@ export class BullMQDomainEventWorker {
       };
 
       // Creating the Worker automatically starts it in BullMQ v5
-      const bullWorker = new Worker(workerName, onJobHandler, {
+      new Worker(workerName, onJobHandler, {
         ...worker?.settings,
         connection: this._connection,
       });

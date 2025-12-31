@@ -1,13 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
 import { prisma } from "../database/prisma.js";
-import { BullMQEventBus } from "../queue/event-bus.js";
-import { connection } from "../queue/connection.js";
 import { PrismaUserRepository } from "../database/repositories/prisma-user.repository.js";
 import { PrismaPostRepository } from "../database/repositories/prisma-post.repository.js";
 import { UserService } from "../../application/services/user.service.js";
 import { PostService } from "../../application/services/post.service.js";
 import { IDomainEventBus } from "@woltz/rich-domain";
+import { trackedEventBus } from "../queue/tracked-event-bus.js";
 
 export class Container {
   private static instance: Container;
@@ -28,7 +27,9 @@ export class Container {
     // Infrastructure dependencies
     this.register("prisma", () => prisma);
     this.register("unitOfWork", () => new PrismaUnitOfWork(prisma));
-    this.register("eventBus", () => new BullMQEventBus(connection));
+
+    // Event bus with automatic tracking
+    this.register("eventBus", () => trackedEventBus);
 
     // Repositories
     this.register(
