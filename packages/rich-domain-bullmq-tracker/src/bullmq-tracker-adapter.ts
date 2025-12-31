@@ -187,8 +187,10 @@ export class BullMQTrackerAdapter implements ITrackerAdapter {
             isRetrying ? 'retrying' : 'failed',
             {
               error: failedReason,
+              stacktrace: job.stacktrace?.join('\n'),
               attempts: job.attemptsMade,
               finishedAt: isRetrying ? undefined : new Date(),
+              incrementRetryCount: true,
             }
           );
         }
@@ -209,7 +211,8 @@ export class BullMQTrackerAdapter implements ITrackerAdapter {
         const job = await this.getJobFromQueue(queueName, jobId);
         if (job && this.isTrackedEvent(job.data)) {
           await callbacks.onStateChange(job.data.eventId, 'failed', {
-            error: 'Max retries exhausted',
+            error: job.failedReason || 'Max retries exhausted',
+            stacktrace: job.stacktrace?.join('\n'),
             attempts: job.attemptsMade,
             finishedAt: new Date(),
           });
@@ -274,20 +277,6 @@ export class BullMQTrackerAdapter implements ITrackerAdapter {
     }
 
     return null;
-  }
-
-  /**
-   * Re-enfileira um evento (replay)
-   */
-  async replayEvent(event: IDomainEvent): Promise<void> {
-    const queueName = this.getQueueNameForEvent(event);
-    const queue = this.getQueue(queueName);
-
-    await queue.add(
-      event.eventName,
-      event,
-      this.queueOptions?.defaultJobOptions
-    );
   }
 
   /**

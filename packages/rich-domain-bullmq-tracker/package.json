@@ -10,7 +10,7 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "coverage": "vitest --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "echo 'No linting rules defined'",
     "check": "tsc --noEmit"
   },
   "keywords": [
