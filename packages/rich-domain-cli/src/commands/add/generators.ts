@@ -84,6 +84,24 @@ export function generateEntityFile(options: GenerateEntityOptions): string {
   const baseClass = getBaseClass(type);
   const isValueObject = type === "value-object";
 
+  // Validate ValueObject structure
+  if (isValueObject) {
+    if (props.length !== 1) {
+      throw new Error(
+        "ValueObjects must have exactly one property of primitive type (string, number, boolean, or date)"
+      );
+    }
+    const prop = props[0];
+    if (prop.type === "relation" || prop.type === "enum") {
+      throw new Error(
+        "ValueObjects can only have primitive types (string, number, boolean, or date)"
+      );
+    }
+    if (prop.isArray) {
+      throw new Error("ValueObjects cannot have array types");
+    }
+  }
+
   // Imports
   if (isValueObject) {
     lines.push(`import { ValueObject } from "@woltz/rich-domain";`);
@@ -117,135 +135,154 @@ export function generateEntityFile(options: GenerateEntityOptions): string {
     lines.push("/**");
     lines.push(` * ${pascalName} Validation Schema`);
     lines.push(" */");
-    lines.push(`export const ${schemaName} = z.object({`);
 
-    if (!isValueObject) {
+    if (isValueObject) {
+      // For ValueObjects, schema validates the primitive value directly
+      const prop = props[0];
+      lines.push(`export const ${schemaName} = ${propToZod(prop)};`);
+    } else {
+      lines.push(`export const ${schemaName} = z.object({`);
       lines.push("  id: z.instanceof(Id),");
-    }
 
-    for (const prop of props) {
-      lines.push(`  ${prop.name}: ${propToZod(prop)},`);
-    }
+      for (const prop of props) {
+        lines.push(`  ${prop.name}: ${propToZod(prop)},`);
+      }
 
-    lines.push("});");
+      lines.push("});");
+    }
     lines.push("");
   } else if (validation === "valibot") {
     lines.push("/**");
     lines.push(` * ${pascalName} Validation Schema`);
     lines.push(" */");
-    lines.push(`export const ${schemaName} = v.object({`);
 
-    if (!isValueObject) {
+    if (isValueObject) {
+      // For ValueObjects, schema validates the primitive value directly
+      const prop = props[0];
+      lines.push(`export const ${schemaName} = ${propToValibot(prop)};`);
+    } else {
+      lines.push(`export const ${schemaName} = v.object({`);
       lines.push("  id: v.instance(Id),");
-    }
 
-    for (const prop of props) {
-      lines.push(`  ${prop.name}: ${propToValibot(prop)},`);
-    }
+      for (const prop of props) {
+        lines.push(`  ${prop.name}: ${propToValibot(prop)},`);
+      }
 
-    lines.push("});");
+      lines.push("});");
+    }
     lines.push("");
   } else if (validation === "arktype") {
     lines.push("/**");
     lines.push(` * ${pascalName} Validation Schema`);
     lines.push(" */");
-    lines.push(`export const ${schemaName} = type({`);
 
-    if (!isValueObject) {
+    if (isValueObject) {
+      // For ValueObjects, schema validates the primitive value directly
+      const prop = props[0];
+      lines.push(`export const ${schemaName} = ${propToArktype(prop)};`);
+    } else {
+      lines.push(`export const ${schemaName} = type({`);
       lines.push("  id: type.instanceOf(Id),");
-    }
 
-    for (const prop of props) {
-      lines.push(`  ${prop.name}: ${propToArktype(prop)},`);
-    }
+      for (const prop of props) {
+        lines.push(`  ${prop.name}: ${propToArktype(prop)},`);
+      }
 
-    lines.push("});");
+      lines.push("});");
+    }
     lines.push("");
   }
 
-  // Generate Props type
-  const hasRelations = props.some((p) => p.type === "relation");
+  // Generate Props type (skip for ValueObjects)
+  if (!isValueObject) {
+    const hasRelations = props.some((p) => p.type === "relation");
 
-  if (validation === "zod") {
-    if (hasRelations) {
-      lines.push("/**");
-      lines.push(` * ${pascalName} Props Type`);
-      lines.push(" */");
-      lines.push(
-        `export type ${pascalName}Props = z.infer<typeof ${schemaName}> & {`
-      );
-      for (const prop of props.filter((p) => p.type === "relation")) {
-        lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+    if (validation === "zod") {
+      if (hasRelations) {
+        lines.push("/**");
+        lines.push(` * ${pascalName} Props Type`);
+        lines.push(" */");
+        lines.push(
+          `export type ${pascalName}Props = z.infer<typeof ${schemaName}> & {`
+        );
+        for (const prop of props.filter((p) => p.type === "relation")) {
+          lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+        }
+        lines.push("};");
+      } else {
+        lines.push(
+          `export type ${pascalName}Props = z.infer<typeof ${schemaName}>;`
+        );
       }
-      lines.push("};");
-    } else {
-      lines.push(
-        `export type ${pascalName}Props = z.infer<typeof ${schemaName}>;`
-      );
-    }
-    lines.push("");
-  } else if (validation === "valibot") {
-    if (hasRelations) {
-      lines.push("/**");
-      lines.push(` * ${pascalName} Props Type`);
-      lines.push(" */");
-      lines.push(
-        `export type ${pascalName}Props = v.InferOutput<typeof ${schemaName}> & {`
-      );
-      for (const prop of props.filter((p) => p.type === "relation")) {
-        lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+      lines.push("");
+    } else if (validation === "valibot") {
+      if (hasRelations) {
+        lines.push("/**");
+        lines.push(` * ${pascalName} Props Type`);
+        lines.push(" */");
+        lines.push(
+          `export type ${pascalName}Props = v.InferOutput<typeof ${schemaName}> & {`
+        );
+        for (const prop of props.filter((p) => p.type === "relation")) {
+          lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+        }
+        lines.push("};");
+      } else {
+        lines.push(
+          `export type ${pascalName}Props = v.InferOutput<typeof ${schemaName}>;`
+        );
       }
-      lines.push("};");
-    } else {
-      lines.push(
-        `export type ${pascalName}Props = v.InferOutput<typeof ${schemaName}>;`
-      );
-    }
-    lines.push("");
-  } else if (validation === "arktype") {
-    if (hasRelations) {
-      lines.push("/**");
-      lines.push(` * ${pascalName} Props Type`);
-      lines.push(" */");
-      lines.push(
-        `export type ${pascalName}Props = typeof ${schemaName}.infer & {`
-      );
-      for (const prop of props.filter((p) => p.type === "relation")) {
-        lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+      lines.push("");
+    } else if (validation === "arktype") {
+      if (hasRelations) {
+        lines.push("/**");
+        lines.push(` * ${pascalName} Props Type`);
+        lines.push(" */");
+        lines.push(
+          `export type ${pascalName}Props = typeof ${schemaName}.infer & {`
+        );
+        for (const prop of props.filter((p) => p.type === "relation")) {
+          lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+        }
+        lines.push("};");
+      } else {
+        lines.push(
+          `export type ${pascalName}Props = typeof ${schemaName}.infer;`
+        );
       }
-      lines.push("};");
+      lines.push("");
     } else {
-      lines.push(
-        `export type ${pascalName}Props = typeof ${schemaName}.infer;`
-      );
-    }
-    lines.push("");
-  } else {
-    // No validation - just interface
-    lines.push("/**");
-    lines.push(` * ${pascalName} Props`);
-    lines.push(" */");
-    lines.push(`export interface ${pascalName}Props {`);
-
-    if (!isValueObject) {
+      // No validation - just interface
+      lines.push("/**");
+      lines.push(` * ${pascalName} Props`);
+      lines.push(" */");
+      lines.push(`export interface ${pascalName}Props {`);
       lines.push("  id: Id;");
-    }
 
-    for (const prop of props) {
-      lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
-    }
+      for (const prop of props) {
+        lines.push(`  ${prop.name}: ${propToTypeScript(prop)};`);
+      }
 
-    lines.push("}");
-    lines.push("");
+      lines.push("}");
+      lines.push("");
+    }
   }
 
   // Generate class
   lines.push("/**");
   lines.push(` * ${pascalName} ${toPascalCase(type)}`);
   lines.push(" */");
-  lines.push(
-    `export class ${pascalName} extends ${baseClass}<${pascalName}Props> {`
-  );
+
+  if (isValueObject) {
+    // For ValueObjects, extend with primitive type
+    const prop = props[0];
+    const tsType = propToTypeScript(prop);
+    lines.push(`export class ${pascalName} extends ${baseClass}<${tsType}> {`);
+  } else {
+    lines.push(
+      `export class ${pascalName} extends ${baseClass}<${pascalName}Props> {`
+    );
+  }
 
   // Add validation if using validation library
   if (validation !== "none") {
@@ -255,23 +292,25 @@ export function generateEntityFile(options: GenerateEntityOptions): string {
     lines.push("");
   }
 
-  // Getters
-  lines.push(
-    "  // ─────────────────────────────────────────────────────────────"
-  );
-  lines.push("  // Getters");
-  lines.push(
-    "  // ─────────────────────────────────────────────────────────────"
-  );
-  lines.push("");
-
-  for (const prop of props) {
-    const tsType = propToTypeScript(prop);
-    const readonlyPrefix = prop.isArray ? "readonly " : "";
-    lines.push(`  get ${prop.name}(): ${readonlyPrefix}${tsType} {`);
-    lines.push(`    return this.props.${prop.name};`);
-    lines.push("  }");
+  // Getters (skip for ValueObjects as they only have .value)
+  if (!isValueObject) {
+    lines.push(
+      "  // ─────────────────────────────────────────────────────────────"
+    );
+    lines.push("  // Getters");
+    lines.push(
+      "  // ─────────────────────────────────────────────────────────────"
+    );
     lines.push("");
+
+    for (const prop of props) {
+      const tsType = propToTypeScript(prop);
+      const readonlyPrefix = prop.isArray ? "readonly " : "";
+      lines.push(`  get ${prop.name}(): ${readonlyPrefix}${tsType} {`);
+      lines.push(`    return this.props.${prop.name};`);
+      lines.push("  }");
+      lines.push("");
+    }
   }
 
   // Factory method
@@ -285,8 +324,11 @@ export function generateEntityFile(options: GenerateEntityOptions): string {
   lines.push("");
 
   if (isValueObject) {
-    lines.push(`  static create(props: ${pascalName}Props): ${pascalName} {`);
-    lines.push(`    return new ${pascalName}(props);`);
+    // For ValueObjects, factory receives primitive value directly
+    const prop = props[0];
+    const tsType = propToTypeScript(prop);
+    lines.push(`  static create(value: ${tsType}): ${pascalName} {`);
+    lines.push(`    return new ${pascalName}(value);`);
     lines.push("  }");
   } else {
     const requiredProps = props.filter((p) => !p.isOptional && !p.isArray);
