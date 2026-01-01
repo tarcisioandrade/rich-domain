@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.6.0...v1.7.0) (2026-01-01)
+
+
+### Bug Fixes
+
+* convert PORT and REDIS_PORT environment variables to numbers for consistency ([fd868cf](https://github.com/tarcisioandrade/rich-domain/commit/fd868cfb3793082e0294197bfe457ae8090e7a5e))
+
+
+### Chores
+
+* update @woltz/rich-domain to version 1.6.0 and add fastify-plugin dependency ([9f7b48d](https://github.com/tarcisioandrade/rich-domain/commit/9f7b48d94fa7fff8be28a6af9eb58363b7dd80dc))
+
+
+### Refactoring
+
+* add validation for ValueObjects to enforce structure and primitive types ([456e674](https://github.com/tarcisioandrade/rich-domain/commit/456e6740f8e73def960074513af235b92adff07f))
+* enhance JSON serialization in PaginatedResult to support deep serialization ([c91abcb](https://github.com/tarcisioandrade/rich-domain/commit/c91abcb63da8594d608acb287d7184ca2371d62a))
+* move Tag value object to its own module and update imports ([0232b2c](https://github.com/tarcisioandrade/rich-domain/commit/0232b2ce2aa897d937fc384d3d9f3b8fe537423f))
+* simplify value object to receive only primitives value ([e574aba](https://github.com/tarcisioandrade/rich-domain/commit/e574aba8c9d2d5662431c1af9ff6f4fdba5f992b))
+* update Value Object docs ([27b911a](https://github.com/tarcisioandrade/rich-domain/commit/27b911a9eb5c388b37fecabd05de3ca7aeb740b2))
+
 ## [1.6.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.2...v1.6.0) (2025-12-27)
 
 
