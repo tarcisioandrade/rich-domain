@@ -59,7 +59,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "@woltz/rich-domain": "^1.5.0",
+    "@woltz/rich-domain": "^1.7.0",
     "@prisma/client": ">=5.0.0",
     "typescript": ">=4.7.0"
   },
