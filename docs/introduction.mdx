@@ -43,17 +43,22 @@ class Order extends Aggregate<OrderProps> {
 
 ### Value Objects
 
-Immutable objects compared by value, not identity.
+Immutable wrappers for primitive values with domain behavior.
 
 ```typescript
-class Money extends ValueObject<{ amount: number; currency: string }> {
-  add(other: Money): Money {
-    if (this.props.currency !== other.props.currency) {
-      throw new Error("Cannot add different currencies");
-    }
-    return this.clone({ amount: this.props.amount + other.props.amount });
+class Email extends ValueObject<string> {
+  getDomain(): string {
+    return this.value.split("@")[1];
+  }
+
+  isBusinessEmail(): boolean {
+    const freeProviders = ["gmail.com", "yahoo.com"];
+    return !freeProviders.includes(this.getDomain());
   }
 }
+
+const email = new Email("john@company.com");
+console.log(email.isBusinessEmail()); // true
 ```
 
 ### Change Tracking

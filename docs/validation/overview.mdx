@@ -221,28 +221,26 @@ Controls error handling behavior:
 Value Objects also support validation:
 
 ```typescript
-import { ValueObject, VOValidation } from "@woltz/rich-domain";
+import { ValueObject } from "@woltz/rich-domain";
 
-const emailSchema = z.object({
-  value: z.string().email("Invalid email format"),
-});
+const emailSchema = z.string().email("Invalid email format");
 
-class Email extends ValueObject<{ value: string }> {
-  protected static validation: VOValidation<{ value: string }> = {
+class Email extends ValueObject<string> {
+  protected static validation = {
     schema: emailSchema,
     config: { onCreate: true, throwOnError: true },
   };
 
-  get value() {
-    return this.props.value;
+  getDomain(): string {
+    return this.value.split("@")[1];
   }
 }
 
 // Valid
-const email = new Email({ value: "john@example.com" });
+const email = new Email("john@example.com");
 
 // Invalid - throws
-const invalid = new Email({ value: "not-an-email" });
+const invalid = new Email("not-an-email");
 // ValidationError: Invalid email format
 ```
 

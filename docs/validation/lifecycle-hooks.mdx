@@ -257,30 +257,43 @@ Change Applied
 
 ## Hooks for Value Objects
 
-Value Objects support similar hooks:
+Value Objects support hooks for primitive values:
 
 ```typescript
 import { ValueObject, VOHooks, throwValidationError } from "@woltz/rich-domain";
 
-class Money extends ValueObject<{ amount: number; currency: string }> {
-  protected static hooks: VOHooks<{ amount: number; currency: string }, Money> =
-    {
-      rules: (money) => {
-        if (money.amount > 1000000) {
-          throwValidationError("amount", "Amount cannot exceed 1,000,000");
-        }
+class Price extends ValueObject<number> {
+  protected static hooks: VOHooks<number, Price> = {
+    onBeforeCreate: (value) => {
+      console.log(`Creating price: ${value}`);
+    },
 
-        const validCurrencies = ["USD", "EUR", "GBP", "BRL"];
-        if (!validCurrencies.includes(money.currency)) {
-          throwValidationError("currency", "Invalid currency code");
-        }
-      },
+    rules: (price) => {
+      if (price.value < 0) {
+        throwValidationError("value", "Price cannot be negative");
+      }
 
-      onCreate: (money) => {
-        console.log(`Money created: ${money.currency} ${money.amount}`);
-      },
-    };
+      if (price.value > 1000000) {
+        throwValidationError("value", "Price cannot exceed 1,000,000");
+      }
+    },
+
+    onCreate: (price) => {
+      console.log(`Price created: $${price.value}`);
+    },
+  };
+
+  format(): string {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(this.value);
+  }
 }
+
+const price = new Price(99.99);
+// Logs: Creating price: 99.99
+// Logs: Price created: $99.99
 ```
 
 <Note>
