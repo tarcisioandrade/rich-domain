@@ -2,7 +2,7 @@ import { Criteria, EntityNotFoundError, Id } from "@woltz/rich-domain";
 import { Post, PostProps } from "../../domain/post/post.entity";
 import { PostRepository } from "../../domain/post/post.repository";
 import { UserRepository } from "../../domain/user/user.repository";
-import { Tag } from "../../domain/value-objects/tags";
+import { Tag } from "../../domain/tag/tags";
 
 interface CreatePostInput {
   title: string;

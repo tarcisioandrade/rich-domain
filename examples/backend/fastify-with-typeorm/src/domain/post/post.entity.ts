@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DomainError, Entity, EntityValidation, Id } from "@woltz/rich-domain";
 import { User } from "../user/user.entity";
-import { Tag } from "../value-objects/tags";
+import { Tag } from "../tag/tags";
 
 export const PostSchema = z.object({
   id: z.custom<Id>(),
