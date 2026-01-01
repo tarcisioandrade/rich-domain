@@ -1,18 +1,23 @@
 import { Id } from "../id.js";
+import { ValueObject } from "../value-object.js";
 
-export type DeepJsonResult<T> = {
-  [K in keyof T]: T[K] extends Id
-    ? string
-    : T[K] extends { toJSON(): infer U }
-    ? U
-    : T[K] extends Array<infer U>
-    ? U extends { toJSON(): infer V }
-      ? V[]
-      : U extends Id
-      ? string[]
-      : U[]
-    : T[K];
-};
+type JsonPrimitive = string | number | boolean | null;
+
+export type DeepJsonResult<T> = T extends Id
+  ? string
+  : T extends ValueObject<infer U>
+  ? U
+  : T extends Date
+  ? string
+  : T extends Array<infer U>
+  ? DeepJsonResult<U>[]
+  : T extends { toJSON(): infer R }
+  ? DeepJsonResult<R>
+  : T extends object
+  ? { [K in keyof T]: DeepJsonResult<T[K]> }
+  : T extends JsonPrimitive
+  ? T
+  : never;
 
 export type Primitive = string | number | boolean | Date | null | undefined;
 export type UnwrapArray<T> = T extends Array<infer U> ? U : never;
