@@ -79,8 +79,6 @@ export class FullstackTemplate extends BaseTemplate {
       typescript: "^5.7.2",
       tsx: "^4.19.2",
       prisma: "^6.1.0",
-      vitest: "^2.1.8",
-      "@vitest/coverage-v8": "^2.1.8",
     };
   }
 
@@ -89,8 +87,6 @@ export class FullstackTemplate extends BaseTemplate {
       dev: "tsx watch src/main.ts",
       build: "tsc",
       start: "node dist/main.js",
-      test: "vitest",
-      "test:coverage": "vitest --coverage",
       "db:generate": "prisma generate",
       "db:migrate": "prisma migrate dev",
       "db:push": "prisma db push",
@@ -120,10 +116,6 @@ export class FullstackTemplate extends BaseTemplate {
       "Prisma Studio: " + `${run} db:studio`,
     ];
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Config files generators
-  // ─────────────────────────────────────────────────────────────────────────────
 
   private generateTsConfig(): TemplateFile {
     const config = {
@@ -335,7 +327,6 @@ npm run dev
 | \`npm run dev\` | Start development server |
 | \`npm run build\` | Build for production |
 | \`npm run start\` | Start production server |
-| \`npm run test\` | Run tests |
 | \`npm run db:generate\` | Generate Prisma client |
 | \`npm run db:migrate\` | Run migrations |
 | \`npm run db:studio\` | Open Prisma Studio |
@@ -397,14 +388,9 @@ enum Role {
     };
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Source files
-  // ─────────────────────────────────────────────────────────────────────────────
-
   private generateSrcFiles(): TemplateFile[] {
     return [
       this.generateMain(),
-      this.generateConfig(),
       this.generateServer(),
       this.generateWorker(),
       this.generateConstants(),
@@ -446,27 +432,6 @@ process.on("SIGINT", async () => {
 });
 
 main();
-`,
-    };
-  }
-
-  private generateConfig(): TemplateFile {
-    return {
-      path: "src/config/index.ts",
-      content: `export const config = {
-  port: parseInt(process.env.PORT || "3000", 10),
-  nodeEnv: process.env.NODE_ENV || "development",
-  isDev: process.env.NODE_ENV !== "production",
-  
-  redis: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379", 10),
-  },
-  
-  log: {
-    level: process.env.LOG_LEVEL || "info",
-  },
-} as const;
 `,
     };
   }
@@ -621,7 +586,7 @@ export class User extends Aggregate<UserProps> {
 
   protected static hooks: EntityHooks<UserProps, User> = {
     onCreate: (entity) => {
-      entity.addDomainEvent(new UserCreatedEvent(entity.id));
+      entity.addDomainEvent(new UserCreatedEvent({ email: entity.email }));
     },
   };
 
