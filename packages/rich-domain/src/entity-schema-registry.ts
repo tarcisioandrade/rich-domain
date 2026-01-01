@@ -420,14 +420,15 @@ export class EntitySchemaRegistry {
   /**
    * Normalizes a value for persistence.
    */
-  private normalizeValue(value: any): any {
-    if (value === null || value === undefined) return value;
-    if (value instanceof Id) return value.value;
-    if (value instanceof Date) return value;
-    if (typeof value === "object" && "value" in value) {
-      return value.value;
+  private normalizeValue(input: any): any {
+    if (input === null || input === undefined) return input;
+    if (input instanceof Id) return input.value;
+    if (input instanceof ValueObject) return input.value;
+    if (input instanceof Date) return input;
+    if (typeof input === "object" && "value" in input) {
+      return input.value;
     }
-    return value;
+    return input;
   }
 
   /**

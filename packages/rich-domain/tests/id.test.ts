@@ -1,5 +1,5 @@
 import { Id } from "../src";
-import { Address, Post, User } from "./utils";
+import { Address, Email, Post, User } from "./utils";
 
 describe("Id Class", () => {
   describe("Construction", () => {
@@ -194,7 +194,7 @@ describe("Entity with Id Class", () => {
       const user = new User({
         id: new Id("user-1"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         posts: [],
         address: new Address({
           street: "Main St",
@@ -231,7 +231,7 @@ describe("Entity with Id Class", () => {
       const user = new User({
         id: new Id("user-1"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         posts: [
           new Post({
             id: postId,
@@ -264,7 +264,7 @@ describe("Aggregate with Id Class", () => {
     const user = new User({
       id: new Id(),
       name: "John",
-      email: "john@example.com",
+      email: new Email("john@example.com"),
       posts: [],
       address: new Address({
         street: "Main St",
@@ -280,7 +280,7 @@ describe("Aggregate with Id Class", () => {
     const user = new User({
       id: new Id("existing-user"),
       name: "John",
-      email: "john@example.com",
+      email: new Email("john@example.com"),
       posts: [],
       address: new Address({
         street: "Main St",
@@ -296,7 +296,7 @@ describe("Aggregate with Id Class", () => {
     const user = new User({
       id: new Id("user-1"),
       name: "John",
-      email: "john@example.com",
+      email: new Email("john@example.com"),
       posts: [
         new Post({
           id: new Id("post-1"),

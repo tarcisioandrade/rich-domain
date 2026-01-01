@@ -2,17 +2,8 @@ import { z } from "zod";
 import { ValueObject, ValidationError, throwValidationError } from "../src";
 import { VOHooks, VOValidation } from "../src/types";
 
-// ============================================================================
-// Test Value Objects with Validation
-// ============================================================================
-
-interface EmailProps {
-  value: string;
-}
-
-const emailSchema = z.object({
-  value: z.string().email("Invalid email format"),
-});
+const emailSchema = z.string().email("Invalid email format");
+type EmailProps = z.infer<typeof emailSchema>;
 
 class Email extends ValueObject<EmailProps> {
   protected static validation: VOValidation<EmailProps> = {
@@ -22,30 +13,11 @@ class Email extends ValueObject<EmailProps> {
       throwOnError: true,
     },
   };
-
-  get value(): string {
-    return this.props.value;
-  }
 }
 
-// ============================================================================
-// Test Value Object with Default Values and Hooks
-// ============================================================================
-
-interface MoneyProps {
-  amount: number;
-  currency: string;
-}
-
-const moneySchema = z.object({
-  amount: z.number().min(0, "Amount must be non-negative"),
-  currency: z
-    .string()
-    .length(3, "Currency must be 3 characters (e.g., USD, EUR)"),
-});
-
-class Money extends ValueObject<MoneyProps> {
-  protected static validation: VOValidation<MoneyProps> = {
+const moneySchema = z.number().min(0, "Amount must be non-negative");
+class Money extends ValueObject<number> {
+  protected static validation: VOValidation<number> = {
     schema: moneySchema,
     config: {
       onCreate: true,
@@ -53,33 +25,18 @@ class Money extends ValueObject<MoneyProps> {
     },
   };
 
-  protected static hooks: VOHooks<MoneyProps, Money> = {
+  protected static hooks: VOHooks<number, Money> = {
     rules: (money) => {
-      if (money.amount > 1000000) {
+      if (money.value > 1000000) {
         throwValidationError("amount", "Amount cannot exceed 1,000,000");
       }
     },
   };
 
-  get amount(): number {
-    return this.props.amount;
-  }
-
-  get currency(): string {
-    return this.props.currency;
-  }
-
   add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new Error("Cannot add money with different currencies");
-    }
-    return this.clone({ amount: this.amount + other.amount });
+    return this.clone(this.value + other.value);
   }
 }
-
-// ============================================================================
-// Test Value Object with throwOnError: false
-// ============================================================================
 
 class EmailSafe extends ValueObject<EmailProps> {
   protected static validation: VOValidation<EmailProps> = {
@@ -89,33 +46,25 @@ class EmailSafe extends ValueObject<EmailProps> {
       throwOnError: false,
     },
   };
-
-  get value(): string {
-    return this.props.value;
-  }
 }
-
-// ============================================================================
-// Tests
-// ============================================================================
 
 describe("ValueObject with Validation", () => {
   describe("Email ValueObject", () => {
     it("should create email with valid value", () => {
-      const email = new Email({ value: "test@example.com" });
+      const email = new Email("test@example.com");
       expect(email.value).toBe("test@example.com");
       expect(email.hasValidationErrors).toBe(false);
     });
 
     it("should throw on invalid email format", () => {
       expect(() => {
-        new Email({ value: "invalid-email" });
+        new Email("invalid-email");
       }).toThrow(ValidationError);
     });
 
     it("should have correct error message", () => {
       try {
-        new Email({ value: "invalid" });
+        new Email("invalid");
       } catch (error) {
         expect(ValidationError.isValidationError(error)).toBe(true);
         if (ValidationError.isValidationError(error)) {
@@ -127,56 +76,31 @@ describe("ValueObject with Validation", () => {
 
   describe("Money ValueObject with Hooks", () => {
     it("should create money with valid data", () => {
-      const money = new Money({ amount: 100, currency: "USD" });
-      expect(money.amount).toBe(100);
-      expect(money.currency).toBe("USD");
+      const money = new Money(100);
+      expect(money.value).toBe(100);
     });
 
     it("should throw on negative amount", () => {
       expect(() => {
-        new Money({ amount: -10, currency: "USD" });
-      }).toThrow(ValidationError);
-    });
-
-    it("should throw on invalid currency code", () => {
-      expect(() => {
-        new Money({ amount: 100, currency: "US" });
+        new Money(-10);
       }).toThrow(ValidationError);
     });
 
     it("should throw on custom rule violation (amount > 1M)", () => {
       expect(() => {
-        new Money({ amount: 1000001, currency: "USD" });
+        new Money(1000001);
       }).toThrow(ValidationError);
-    });
-
-    it("should add money with same currency", () => {
-      const m1 = new Money({ amount: 100, currency: "USD" });
-      const m2 = new Money({ amount: 50, currency: "USD" });
-      const result = m1.add(m2);
-
-      expect(result.amount).toBe(150);
-      expect(result.currency).toBe("USD");
-    });
-
-    it("should throw when adding different currencies", () => {
-      const m1 = new Money({ amount: 100, currency: "USD" });
-      const m2 = new Money({ amount: 50, currency: "EUR" });
-
-      expect(() => m1.add(m2)).toThrow(
-        "Cannot add money with different currencies"
-      );
     });
   });
 
   describe("Email ValueObject with throwOnError: false", () => {
     it("should not throw on invalid email", () => {
-      const email = new EmailSafe({ value: "invalid" });
+      const email = new EmailSafe("invalid");
       expect(email.hasValidationErrors).toBe(true);
     });
 
     it("should store validation errors", () => {
-      const email = new EmailSafe({ value: "not-an-email" });
+      const email = new EmailSafe("not-an-email");
 
       expect(email.validationErrors).toBeDefined();
       expect(email.validationErrors?.getMessages()).toContain(
@@ -185,7 +109,7 @@ describe("ValueObject with Validation", () => {
     });
 
     it("should not have errors for valid email", () => {
-      const email = new EmailSafe({ value: "valid@example.com" });
+      const email = new EmailSafe("valid@example.com");
 
       expect(email.hasValidationErrors).toBe(false);
       expect(email.validationErrors).toBeUndefined();
@@ -194,24 +118,22 @@ describe("ValueObject with Validation", () => {
 
   describe("ValueObject Immutability", () => {
     it("should remain immutable with validation", () => {
-      const email = new Email({ value: "test@example.com" });
+      const email = new Email("test@example.com");
 
       expect(() => {
-        (email as any).props.value = "changed@example.com";
+        (email as any).value = "changed@example.com";
       }).toThrow();
     });
 
     it("should create new instance when adding (immutability)", () => {
-      const m1 = new Money({ amount: 100, currency: "USD" });
-      const m2 = new Money({ amount: 50, currency: "USD" });
+      const m1 = new Money(100);
+      const m2 = new Money(50);
       const result = m1.add(m2);
 
-      // Original instances unchanged
-      expect(m1.amount).toBe(100);
-      expect(m2.amount).toBe(50);
+      expect(m1.value).toBe(100);
+      expect(m2.value).toBe(50);
 
-      // New instance created
-      expect(result.amount).toBe(150);
+      expect(result.value).toBe(150);
       expect(result).not.toBe(m1);
       expect(result).not.toBe(m2);
     });

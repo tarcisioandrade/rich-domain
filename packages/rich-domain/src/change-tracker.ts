@@ -18,7 +18,6 @@ export type OnChangeValidator = (path: string, newValue: any) => boolean | void;
  * - Tracks changes in primitive properties
  * - Tracks changes in nested entities (1:1)
  * - Tracks changes in collections (1:N)
- * - Supports Value Objects with identityKey
  * - Calculates depth automatically
  * - Generates AggregateChanges for persistence
  * - Supports validation on change via onChangeValidator
@@ -97,7 +96,7 @@ export class ChangeTracker {
 
       if (Array.isArray(value)) {
         this.captureArrayState(value, propPath, depth + 1, id, entityName);
-      } else if (this.isEntityOrVO(value)) {
+      } else if (value instanceof Entity) {
         const nestedName = this.getEntityName(value);
         this.captureEntityState(
           value,
@@ -133,7 +132,7 @@ export class ChangeTracker {
     });
 
     arr.forEach((item, index) => {
-      if (this.isEntityOrVO(item)) {
+      if (item instanceof Entity) {
         const itemPath = `${path}[${index}]`;
         this.captureEntityState(
           item,
@@ -166,7 +165,7 @@ export class ChangeTracker {
           return this.createArrayProxy(value, currentPath);
         }
 
-        if (this.isEntityOrVO(value)) {
+        if (value instanceof Entity) {
           const nestedTracker = new ChangeTracker(
             value,
             this.getEntityName(value),
@@ -217,7 +216,7 @@ export class ChangeTracker {
 
         if (Array.isArray(newValue)) {
           this.handleArrayAssignment(currentPath, oldValue);
-        } else if (this.isEntityOrVO(newValue) || this.isEntityOrVO(oldValue)) {
+        } else if (newValue instanceof Entity || oldValue instanceof Entity) {
           this.handleEntityChange(currentPath, oldValue, newValue);
         }
 
@@ -293,7 +292,7 @@ export class ChangeTracker {
           return value.bind(target);
         }
 
-        if (!isNaN(Number(prop)) && tracker.isEntityOrVO(value)) {
+        if (!isNaN(Number(prop)) && value instanceof Entity) {
           const nestedPath = `${path}[${String(prop)}]`;
           const nestedTracker = new ChangeTracker(
             value,
@@ -368,7 +367,10 @@ export class ChangeTracker {
       const currentValue = this.target[path];
 
       if (!this.isEqual(originalValue, currentValue)) {
-        changedFields[path] = currentValue;
+        changedFields[path] =
+          currentValue instanceof ValueObject
+            ? currentValue.value
+            : currentValue;
         hasChanges = true;
       }
     }
@@ -494,7 +496,7 @@ export class ChangeTracker {
         const relationField = propName;
 
         for (const child of value) {
-          if (this.isEntityOrVO(child)) {
+          if (child instanceof Entity) {
             const childEntityName = this.getEntityName(child);
             changes.addCreate(
               childEntityName,
@@ -507,7 +509,7 @@ export class ChangeTracker {
             this.markNestedItemsAsCreated(child, parentDepth + 1, changes);
           }
         }
-      } else if (this.isEntityOrVO(value)) {
+      } else if (value instanceof Entity) {
         const childEntityName = this.getEntityName(value);
         changes.addCreate(
           childEntityName,
@@ -635,14 +637,14 @@ export class ChangeTracker {
   }
 
   /**
-   * Extracts identity key from a JSON object by looking at the original ValueObject instances.
+   * Extracts identity key from a JSON object by looking at the original Entity instances.
    */
   private extractIdentityKeyFromJson(
     jsonItem: any,
     originalArray: any[]
   ): string | undefined {
     for (const originalItem of originalArray) {
-      if (this.isEntityOrVO(originalItem)) {
+      if (originalItem instanceof Entity) {
         const originalJson = this.deepClone(originalItem);
         if (JSON.stringify(originalJson) === JSON.stringify(jsonItem)) {
           const key = this.getItemKey(originalItem);
@@ -672,7 +674,7 @@ export class ChangeTracker {
 
       if (Array.isArray(value)) {
         value.forEach((item, index) => {
-          if (this.isEntityOrVO(item)) {
+          if (item instanceof Entity) {
             this.collectNestedArrays(
               item,
               `${propPath}[${index}]`,
@@ -681,7 +683,7 @@ export class ChangeTracker {
             );
           }
         });
-      } else if (this.isEntityOrVO(value)) {
+      } else if (value instanceof Entity) {
         this.collectNestedArrays(value, propPath, allArrays, processedArrays);
       }
     }
@@ -863,12 +865,13 @@ export class ChangeTracker {
       const origValue = origProps[key];
       const currValue = currProps[key];
 
-      if (Array.isArray(currValue) || this.isEntityOrVO(currValue)) {
+      if (Array.isArray(currValue) || currValue instanceof Entity) {
         continue;
       }
 
       if (!this.isEqual(origValue, currValue)) {
-        changes[key] = currValue;
+        changes[key] =
+          currValue instanceof ValueObject ? currValue.value : currValue;
       }
     }
 
@@ -957,10 +960,6 @@ export class ChangeTracker {
     const id = this.getEntityId(item);
     if (id) return id;
 
-    if (item instanceof ValueObject && item.hasIdentityKey()) {
-      return item.getIdentityKey() || undefined;
-    }
-
     return undefined;
   }
 
@@ -976,14 +975,11 @@ export class ChangeTracker {
     return item.constructor?.name || "Unknown";
   }
 
-  private isEntityOrVO(value: any): boolean {
-    if (value === null || value === undefined) return false;
-    return value instanceof Entity || value instanceof ValueObject;
-  }
-
   private isEqual(a: any, b: any): boolean {
     if (a === b) return true;
-    if (a instanceof Id && b instanceof Id) return a.value === b.value;
+    if (a instanceof Id && b instanceof Id) return a.equals(b);
+    if (a instanceof ValueObject && b instanceof ValueObject)
+      return a.equals(b);
     if (a instanceof Date && b instanceof Date)
       return a.getTime() === b.getTime();
 
@@ -1054,6 +1050,10 @@ export class ChangeTracker {
     }
 
     if (obj instanceof Id) {
+      return obj.value;
+    }
+
+    if (obj instanceof ValueObject) {
       return obj.value;
     }
 

@@ -1,27 +1,22 @@
-// ============================================================================
-// Id Class - Smart Identity Management
-// ============================================================================
-
 import UUID from "./crypto.js";
 
 export class Id {
   private readonly _value: string;
   private readonly _isNew: boolean;
 
-
   /**
    * Create a new Id
    * @param value - Optional existing ID value. If not provided, generates a new UUID.
-  *
-  * @example
-  * // New entity (generates UUID)
-  * const newId = new Id();
-  * newuser.isNew() // true
-  *
-  * // Existing entity (uses provided ID)
-  * const existingId = new Id("550e8400-e29b-41d4-a716-446655440000");
-  * existinguser.isNew() // false
-  */
+   *
+   * @example
+   * // New entity (generates UUID)
+   * const newId = new Id();
+   * newuser.isNew() // true
+   *
+   * // Existing entity (uses provided ID)
+   * const existingId = new Id("550e8400-e29b-41d4-a716-446655440000");
+   * existinguser.isNew() // false
+   */
   constructor(value: string, isNew?: boolean);
   constructor(value?: string);
   constructor(value?: string, isNew?: boolean) {
@@ -94,5 +89,22 @@ export class Id {
    */
   static from(value: string): Id {
     return new Id(value);
+  }
+
+  /**
+   * Compose two IDs into a single ID
+   * @param a - The first ID
+   * @param b - The second ID
+   * @returns The composed ID
+   */
+  static compose(a: string | Id, b: string | Id): string {
+    if (a instanceof Id) {
+      a = a.value;
+    }
+    if (b instanceof Id) {
+      b = b.value;
+    }
+
+    return `${a}-${b}`;
   }
 }

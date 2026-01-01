@@ -4,13 +4,12 @@ import {
   Entity,
   EntityValidation,
   Id,
-  ValueObject,
-  VOValidation,
 } from "../../src";
 
 const DateSchema = z.union([z.date(), z.string().datetime()]);
 
 const AddressProps = z.object({
+  id: z.instanceof(Id),
   street: z.string(),
   city: z.string(),
   state: z.string(),
@@ -20,8 +19,8 @@ const AddressProps = z.object({
 
 type AddressProps = z.infer<typeof AddressProps>;
 
-export class Address extends ValueObject<AddressProps> {
-  protected static validation: VOValidation<AddressProps> = {
+export class Address extends Entity<AddressProps> {
+  protected static validation: EntityValidation<AddressProps> = {
     schema: AddressProps,
   };
 }

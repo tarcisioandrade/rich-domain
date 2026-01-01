@@ -325,8 +325,8 @@ npx rich-domain add User name:string email:string
 # Create with optional and enum properties
 npx rich-domain add User name:string role:(USER,ADMIN) age:number?
 
-# Create a Value Object
-npx rich-domain add Email -v value:string
+# Create a Value Object (single primitive property)
+npx rich-domain add Email -v email:string
 
 # Create an Entity
 npx rich-domain add OrderItem -e quantity:number price:number

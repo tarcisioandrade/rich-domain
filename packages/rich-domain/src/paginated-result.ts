@@ -1,19 +1,14 @@
 import { Id } from "./id.js";
 import type { Criteria } from "./criteria.js";
-import type { Pagination, PaginationMeta, Filter } from "./types/index.js";
-
-/**
- * Infers the JSON result type from T
- * - If T has toJSON(), returns its return type
- * - Otherwise returns T as-is
- */
-type InferJsonResult<T> = T extends { toJSON(): infer R } ? R : T;
+import type { Pagination, PaginationMeta, Filter, DeepJsonResult } from "./types/index.js";
+import { ValueObject } from "./value-object.js";
 
 /**
  * Type for the serialized result of PaginatedResult.toJSON()
+ * Uses DeepJsonResult to ensure all nested entities are converted to plain objects
  */
 export type PaginatedJsonResult<T> = {
-  data: InferJsonResult<T>[];
+  data: DeepJsonResult<T>[];
   meta: PaginationMeta;
 };
 
@@ -99,7 +94,7 @@ export class PaginatedResult<T> {
   /**
    * Converts the result to JSON, deeply serializing all entities/aggregates/value objects
    * - Entities/Aggregates → calls toJSON() recursively
-   * - Value Objects → calls toJSON()
+   * - Value Objects → converts to value
    * - Id → converts to string
    * - Arrays → maps recursively
    * - Plain objects → serializes properties recursively
@@ -109,7 +104,7 @@ export class PaginatedResult<T> {
     return {
       data: this.data.map((item) =>
         this.deepSerialize(item)
-      ) as InferJsonResult<T>[],
+      ) as DeepJsonResult<T>[],
       meta: this.meta,
     };
   }
@@ -121,6 +116,7 @@ export class PaginatedResult<T> {
     if (obj === null || obj === undefined) return obj;
 
     if (obj instanceof Id) return obj.value;
+    if (obj instanceof ValueObject) return obj.value;
 
     if (Array.isArray(obj)) {
       return obj.map((item) => this.deepSerialize(item));

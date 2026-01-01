@@ -1,5 +1,5 @@
 import { Entity, Id } from "../src";
-import { Post, User, Address } from "./utils";
+import { Post, User, Address, Email } from "./utils";
 
 describe("toJSON Functionality", () => {
   it("should convert simple entity to JSON", () => {
@@ -25,7 +25,7 @@ describe("toJSON Functionality", () => {
     const user = new User({
       id: new Id("1"),
       name: "John Doe",
-      email: "john@example.com",
+      email: new Email("john@example.com"),
       posts: [
         new Post({
           id: new Id("1"),
@@ -53,6 +53,7 @@ describe("toJSON Functionality", () => {
 
     expect(json.id).toBe("1");
     expect(json.name).toBe("John Doe");
+    expect(json.email).toBe("john@example.com");
     expect(json.posts).toHaveLength(2);
     expect(json.posts[0].title).toBe("Post 1");
     expect(json.address?.city).toBe("NYC");
@@ -62,7 +63,7 @@ describe("toJSON Functionality", () => {
     const user = new User({
       id: new Id("1"),
       name: "John Doe",
-      email: "john@example.com",
+      email: new Email("john@example.com"),
       posts: [
         new Post({
           id: new Id("1"),

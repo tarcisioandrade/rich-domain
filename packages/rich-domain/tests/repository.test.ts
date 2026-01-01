@@ -91,8 +91,8 @@ class MockUserRepository extends Repository<User> {
   private store: Map<string, UserPersistence> = new Map();
 
   constructor(
-    protected readonly mapperToDomain: Mapper<UserPersistence, User>,
-    protected readonly mapperToPersistence: Mapper<User, UserPersistence>
+    protected readonly toDomainMapper: Mapper<UserPersistence, User>,
+    protected readonly toPersistenceMapper: Mapper<User, UserPersistence>
   ) {
     super();
   }
@@ -102,7 +102,7 @@ class MockUserRepository extends Repository<User> {
   }
 
   async save(entity: User) {
-    const persistence = await this.mapperToPersistence.build(entity);
+    const persistence = await this.toPersistenceMapper.build(entity);
     this.store.set(entity.id.value, persistence);
   }
 
@@ -126,7 +126,7 @@ class MockUserRepository extends Repository<User> {
   async findById(id: string): Promise<User | null> {
     const persistence = this.store.get(id);
     if (!persistence) return null;
-    return await this.mapperToDomain.build(persistence);
+    return await this.toDomainMapper.build(persistence);
   }
 
   protected async applyCriteria(criteria: Criteria<User>) {
@@ -173,7 +173,7 @@ class MockUserRepository extends Repository<User> {
       pagination.offset + pagination.limit
     );
 
-    const domains = results.map((p) => this.mapperToDomain.build(p));
+    const domains = results.map((p) => this.toDomainMapper.build(p));
 
     return PaginatedResult.create(domains, pagination, total);
   }

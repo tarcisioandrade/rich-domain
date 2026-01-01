@@ -499,21 +499,26 @@ class UserRepository {
 
 ### InvalidValueObjectError
 
-When a Value Object receives invalid data:
+When a Value Object receives invalid data, it throws automatically with schema validation:
 
 ```typescript
-import { InvalidValueObjectError } from "@woltz/rich-domain";
+import { ValueObject, InvalidValueObjectError } from "@woltz/rich-domain";
+import { z } from "zod";
 
-class Email extends ValueObject<{ value: string }> {
-  constructor(props: { value: string }) {
-    if (!isValidEmail(props.value)) {
-      throw new InvalidValueObjectError(
-        "Email",
-        "Invalid email format",
-        props.value // The invalid value
-      );
-    }
-    super(props);
+const emailSchema = z.string().email("Invalid email format");
+
+class Email extends ValueObject<string> {
+  protected static validation = {
+    schema: emailSchema,
+  };
+}
+
+try {
+  const email = new Email("not-an-email");
+} catch (error) {
+  if (error instanceof InvalidValueObjectError) {
+    console.log(error.message); // "Invalid email format"
+    console.log(error.value); // "not-an-email"
   }
 }
 ```

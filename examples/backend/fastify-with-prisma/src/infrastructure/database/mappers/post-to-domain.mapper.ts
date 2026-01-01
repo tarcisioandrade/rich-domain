@@ -2,7 +2,7 @@ import { Mapper } from "@woltz/rich-domain";
 import { Post } from "../../../domain/post/post.entity";
 import { PostSchema } from "../schemas/post.schema";
 import { Id } from "@woltz/rich-domain";
-import { Tag } from "../../../domain/value-objects/tags";
+import { Tag } from "../../../domain/tag/tags";
 
 export class PrismaPostToDomainMapper extends Mapper<PostSchema, Post> {
   public build(post: PostSchema): Post {

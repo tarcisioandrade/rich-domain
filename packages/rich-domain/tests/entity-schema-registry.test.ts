@@ -1,7 +1,3 @@
-// ============================================================================
-// Tests: EntitySchemaRegistry
-// ============================================================================
-
 import { EntitySchemaRegistry } from "../src/entity-schema-registry";
 
 describe("EntitySchemaRegistry", () => {

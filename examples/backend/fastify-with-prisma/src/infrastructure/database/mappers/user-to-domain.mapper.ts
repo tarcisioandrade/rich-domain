@@ -2,7 +2,7 @@ import { Id, Mapper } from "@woltz/rich-domain";
 import { UserSchema } from "../schemas/user.schema";
 import { User } from "../../../domain/user/user.entity";
 import { Post } from "../../../domain/post/post.entity";
-import { Tag } from "../../../domain/value-objects/tags";
+import { Tag } from "../../../domain/tag/tags";
 
 export class PrismaUserToDomainMapper extends Mapper<UserSchema, User> {
   public build(user: UserSchema): User {

@@ -1,7 +1,7 @@
 import { Post } from "../../../domain/post/post.entity";
 import { PostSchema } from "../schemas/post.schema";
 import { Id, Mapper } from "@woltz/rich-domain";
-import { Tag } from "../../../domain/value-objects/tags";
+import { Tag } from "../../../domain/tag/tags";
 
 export class PostToDomainMapper extends Mapper<PostSchema, Post> {
   public build(post: PostSchema): Post {

@@ -427,42 +427,45 @@ const batch = changes.toBatchOperations();
 // Order: Post → Comment → Like (root to leaf)
 ```
 
-## Value Objects with Identity Key
+## Collections with Entities
 
-Value Objects don't have IDs, but you can define an identity key for tracking:
-
-### Single Identity Key
+For tracking changes in collections of complex objects, use Entities instead of ValueObjects:
 
 ```typescript
-class TagReference extends ValueObject<{ tagId: string; name: string }> {
-  static readonly identityKey = "tagId";
-
+class TagReference extends Entity<{ id: Id; tagId: string; name: string }> {
   get tagId() { return this.props.tagId; }
   get name() { return this.props.name; }
 }
-```
 
-### Composite Identity Key
-
-```typescript
-class Like extends ValueObject<{ postId: string; userId: string; createdAt: Date }> {
-  static readonly identityKey = ["postId", "userId"];
-
+class Like extends Entity<{
+  id: Id;
+  postId: string;
+  userId: string;
+  createdAt: Date;
+}> {
   get postId() { return this.props.postId; }
   get userId() { return this.props.userId; }
 }
 ```
 
-### How Identity Keys Work
+### How Entity Tracking Works
 
-The identity key is used to detect additions and removals:
+Entities are tracked by their ID:
 
 ```typescript
 const user = new User({
   id: Id.from("user-1"),
   tags: [
-    new TagReference({ tagId: "tag-1", name: "JavaScript" }),
-    new TagReference({ tagId: "tag-2", name: "TypeScript" }),
+    new TagReference({
+      id: new Id(),
+      tagId: "tag-1",
+      name: "JavaScript"
+    }),
+    new TagReference({
+      id: new Id(),
+      tagId: "tag-2",
+      name: "TypeScript"
+    }),
   ],
 });
 
@@ -470,34 +473,48 @@ const user = new User({
 user.removeTag("tag-1");
 
 // Add a new tag
-user.addTag(new TagReference({ tagId: "tag-3", name: "Node.js" }));
+user.addTag(new TagReference({
+  id: new Id(),
+  tagId: "tag-3",
+  name: "Node.js"
+}));
 
 const changes = user.getChanges();
 const tagChanges = changes.for("TagReference");
 
-console.log(tagChanges.deleteIds); // ["tag-1"]
-console.log(tagChanges.createIds); // ["tag-3"]
+console.log(tagChanges.deletes.length); // 1
+console.log(tagChanges.creates.length); // 1
 ```
 
-### Composite Key Example
+### Nested Entities Example
 
 ```typescript
 const comment = new Comment({
   id: Id.from("comment-1"),
   text: "Great post!",
   likes: [
-    new Like({ postId: "post-1", userId: "user-1", createdAt: new Date() }),
-    new Like({ postId: "post-1", userId: "user-2", createdAt: new Date() }),
+    new Like({
+      id: new Id(),
+      postId: "post-1",
+      userId: "user-1",
+      createdAt: new Date()
+    }),
+    new Like({
+      id: new Id(),
+      postId: "post-1",
+      userId: "user-2",
+      createdAt: new Date()
+    }),
   ],
 });
 
-// Remove a specific like using composite key
+// Remove a specific like
 comment.removeLike("post-1", "user-2");
 
 const changes = comment.getChanges();
 const likeChanges = changes.for("Like");
 
-console.log(likeChanges.deleteIds); // ["post-1:user-2"]
+console.log(likeChanges.deletes.length); // 1
 ```
 
 ## Type-Safe Changes
