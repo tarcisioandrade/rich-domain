@@ -5,6 +5,7 @@ import {
   ValidationConfig,
   StandardSchema,
   EntityValidation,
+  Primitive,
 } from "./types/index.js";
 import { DEFAULT_VALIDATION_CONFIG } from "./constants.js";
 import { DomainError } from "./exceptions.js";
@@ -16,13 +17,8 @@ function getStaticProperty<T>(
   return instance.constructor[propertyName];
 }
 
-/**
- * Identity key type for a Value Object. Can be a single key or an array of keys (composite key).
- */
-export type IdentityKeyDefinition<T> = (keyof T)[] | keyof T;
-
-export abstract class ValueObject<T> {
-  protected readonly props!: T;
+export abstract class ValueObject<T extends Primitive> {
+  public readonly value!: T;
   private validationConfig: Required<ValidationConfig>;
   // @ts-expect-error - This is a private property
   private domainHooks?: VOHooks<T, any>;
@@ -32,26 +28,7 @@ export abstract class ValueObject<T> {
   protected static validation?: EntityValidation<any>;
   protected static hooks?: VOHooks<any, any>;
 
-  /**
-   * Identity key for identification in collections.
-   * Used by ChangeTracker to track changes in arrays of Value Objects.
-   *
-   * @example
-   * ```typescript
-   * // Simple key
-   * class TagReference extends ValueObject<{ tagId: string }> {
-   *   static readonly identityKey = 'tagId';
-   * }
-   *
-   * // Composite key
-   * class Like extends ValueObject<{ postId: string; userId: string }> {
-   *   static readonly identityKey = ['postId', 'userId'];
-   * }
-   * ```
-   */
-  protected static identityKey?: IdentityKeyDefinition<any>;
-
-  constructor(props: T) {
+  constructor(value: T) {
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
       "validation"
@@ -59,7 +36,7 @@ export abstract class ValueObject<T> {
     const hooks = getStaticProperty<VOHooks<T, any>>(this, "hooks");
 
     if (hooks?.onBeforeCreate) {
-      hooks.onBeforeCreate(props as T);
+      hooks.onBeforeCreate(value);
     }
 
     this.domainHooks = hooks;
@@ -73,29 +50,23 @@ export abstract class ValueObject<T> {
       ...validation?.config,
     };
 
-    let finalProps = { ...props } as T;
-
     if (this.domainSchema && this.validationConfig.onCreate) {
-      this.validateProps(finalProps);
+      this.validateValue(value);
     }
 
-    (this as any).props = finalProps;
+    this.value = value;
 
     if (hooks?.rules) {
       hooks.rules(this as any);
     }
 
-    Object.freeze(this.props);
-
-    if (hooks?.onCreate) {
-      hooks.onCreate(this as any);
-    }
+    Object.freeze(this);
   }
 
-  private validateProps(props: T): void {
+  private validateValue(value: T): void {
     if (!this.domainSchema) return;
 
-    const result = this.domainSchema["~standard"].validate(props);
+    const result = this.domainSchema["~standard"].validate(value);
 
     if (result instanceof Promise) {
       throw new DomainError(
@@ -154,56 +125,7 @@ export abstract class ValueObject<T> {
    */
   equals(other: ValueObject<T>): boolean {
     if (!other || !(other instanceof ValueObject)) return false;
-    return JSON.stringify(this.props) === JSON.stringify(other.props);
-  }
-
-  /**
-   * Returns the identity key for this Value Object.
-   * Used for identification in collections when identityKey is set.
-   *
-   * @returns String with the identity key or null if not defined
-   *
-   * @example
-   * ```typescript
-   * const like = new Like({ postId: 'p1', userId: 'u1' });
-   * like.getIdentityKey(); // 'p1:u1'
-   *
-   * const tag = new TagReference({ tagId: 'tag-123' });
-   * tag.getIdentityKey(); // 'tag-123'
-   * ```
-   */
-  getIdentityKey(): string | null {
-    const keyDef = getStaticProperty<IdentityKeyDefinition<T>>(
-      this,
-      "identityKey"
-    );
-
-    if (!keyDef) {
-      return null;
-    }
-
-    if (Array.isArray(keyDef)) {
-      return keyDef.map((k) => String(this.props[k])).join(":");
-    }
-
-    return String(this.props[keyDef]);
-  }
-
-  /**
-   * Returns true if this Value Object has an identity key defined.
-   */
-  hasIdentityKey(): boolean {
-    return (
-      getStaticProperty<IdentityKeyDefinition<T>>(this, "identityKey") !==
-      undefined
-    );
-  }
-
-  /**
-   * Returns the identity key definition (if any).
-   */
-  static getIdentityKeyDefinition<P>(): IdentityKeyDefinition<P> | undefined {
-    return (this as any).identityKey;
+    return this.value === other.value;
   }
 
   /**
@@ -234,16 +156,12 @@ export abstract class ValueObject<T> {
     return this.domainEvents.length > 0;
   }
 
-  toJSON(): T {
-    return { ...this.props };
-  }
-
   /**
-   * Creates a new ValueObject with updated properties.
+   * Creates a new ValueObject with updated value.
    * ValueObjects are immutable, so this returns a new instance.
    */
-  protected clone(updates: Partial<T>): this {
-    const Constructor = this.constructor as new (props: T) => this;
-    return new Constructor({ ...this.props, ...updates });
+  protected clone(value: T): this {
+    const Constructor = this.constructor as new (value: T) => this;
+    return new Constructor(value);
   }
 }

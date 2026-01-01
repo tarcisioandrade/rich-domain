@@ -6,17 +6,18 @@ import {
   Mapper,
   PaginatedResult,
   Repository,
+  throwValidationError,
   UnitOfWork,
   ValueObject,
+  VOHooks,
 } from "../src";
 
-export class Like extends ValueObject<{
+export class Like extends Entity<{
+  id: Id;
   postId: string;
   userId: string;
   createdAt: Date;
 }> {
-  static readonly identityKey = ["postId", "userId"];
-
   get postId() {
     return this.props.postId;
   }
@@ -42,9 +43,11 @@ export class Address extends Entity<{
   }
 }
 
-export class TagReference extends ValueObject<{ tagId: string; name: string }> {
-  static readonly identityKey = "tagId";
-
+export class TagReference extends Entity<{
+  tagId: string;
+  name: string;
+  id: Id;
+}> {
   get tagId() {
     return this.props.tagId;
   }
@@ -126,10 +129,20 @@ export class Post extends Entity<{
   }
 }
 
+export class Email extends ValueObject<string> {
+  protected static hooks?: VOHooks<string, Email> = {
+    rules(valueObject) {
+      if (!valueObject.value.includes("@")) {
+        throwValidationError("email", "Invalid email");
+      }
+    },
+  };
+}
+
 export class User extends Entity<{
   id: Id;
   name: string;
-  email: string;
+  email: Email;
   address: Address | null;
   posts: Post[];
   tags: TagReference[];
@@ -137,9 +150,11 @@ export class User extends Entity<{
   get name() {
     return this.props.name;
   }
+
   get email() {
-    return this.props.email;
+    return this.props.email.value;
   }
+
   get address() {
     return this.props.address;
   }
@@ -159,7 +174,7 @@ export class User extends Entity<{
   }
 
   changeEmail(email: string) {
-    this.props.email = email;
+    this.props.email = new Email(email);
   }
 
   setAddress(address: Address) {
@@ -215,8 +230,8 @@ export class InMemoryRepository<
   protected items: Map<string, TDomain> = new Map();
   readonly uow: UnitOfWork;
   constructor(
-    protected readonly mapperToDomain: Mapper<unknown, TDomain>,
-    protected readonly mapperToPersistence: Mapper<TDomain, unknown>
+    protected readonly toDomainMapper: Mapper<unknown, TDomain>,
+    protected readonly toPersistenceMapper: Mapper<TDomain, unknown>
   ) {
     super();
     this.uow = {} as UnitOfWork;

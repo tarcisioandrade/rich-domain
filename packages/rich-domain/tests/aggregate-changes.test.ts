@@ -1,7 +1,3 @@
-// ============================================================================
-// Tests: AggregateChanges
-// ============================================================================
-
 import { AggregateChanges } from "../src/aggregate-changes";
 
 describe("AggregateChanges", () => {

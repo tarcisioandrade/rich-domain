@@ -13,10 +13,9 @@ interface DomainValidation<T> {
 export type EntityValidation<T> = DomainValidation<T>;
 export type VOValidation<T> = DomainValidation<T>;
 
-export interface VOHooks<T, E> {
-  onBeforeCreate?: (props: T) => void;
-  onCreate?: (entity: E) => void;
-  rules?: (entity: E) => void;
+export interface VOHooks<V, VO> {
+  onBeforeCreate?: (value: V) => void;
+  rules?: (valueObject: VO) => void;
 }
 
 export interface EntityHooks<T extends BaseProps, E> {

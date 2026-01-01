@@ -1,80 +1,38 @@
-import { TagReference } from "./utils";
+import { Email } from "./utils";
 
 describe("Value Object", () => {
   it("should create immutable value object", () => {
-    const tag = new TagReference({
-      tagId: "1",
-      name: "Tag 1",
-    });
+    const email = new Email("test@example.com");
 
-    expect(tag.tagId).toBe("1");
-    expect(tag.name).toBe("Tag 1");
+    expect(email.value).toBe("test@example.com");
   });
 
   it("should compare value objects by value", () => {
-    const tag1 = new TagReference({
-      tagId: "1",
-      name: "Tag 1",
-    });
+    const email1 = new Email("test@example.com");
+    const email2 = new Email("test@example.com");
+    const email3 = new Email("test2@example.com");
 
-    const tag2 = new TagReference({
-      tagId: "1",
-      name: "Tag 1",
-    });
-
-    const tag3 = new TagReference({
-      tagId: "2",
-      name: "Tag 2",
-    });
-
-    expect(tag1.equals(tag2)).toBe(true);
-    expect(tag1.equals(tag3)).toBe(false);
-  });
-
-  it("should convert value object to JSON", () => {
-    const tag = new TagReference({
-      name: "Tag 1",
-      tagId: "1",
-    });
-
-    const json = tag.toJSON();
-    expect(json).toEqual({
-      name: "Tag 1",
-      tagId: "1",
-    });
+    expect(email1.equals(email2)).toBe(true);
+    expect(email1.equals(email3)).toBe(false);
   });
 
   describe("Value Object", () => {
     it("should be immutable", () => {
-      const tag = new TagReference({
-        tagId: "1",
-        name: "Tag 1",
-      });
+      const email = new Email("test@example.com");
 
-      expect(tag.tagId).toBe("1");
+      expect(email.value).toBe("test@example.com");
       expect(() => {
-        (tag as any).props.tagId = "2";
+        (email as any).value = "test2@example.com";
       }).toThrow();
     });
 
     it("should compare by value", () => {
-      const tag1 = new TagReference({
-        tagId: "1",
-        name: "Tag 1",
-      });
+      const email1 = new Email("test@example.com");
+      const email2 = new Email("test@example.com");
+      const email3 = new Email("test2@example.com");
 
-      const tag2 = new TagReference({
-        tagId: "1",
-        name: "Tag 1",
-      });
-
-      const tag3 = new TagReference({
-        tagId: "2",
-        name: "Tag 2",
-      });
-
-      expect(tag1.equals(tag2)).toBe(true);
-      expect(tag1.equals(tag3)).toBe(false);
+      expect(email1.equals(email2)).toBe(true);
+      expect(email1.equals(email3)).toBe(false);
     });
   });
 });

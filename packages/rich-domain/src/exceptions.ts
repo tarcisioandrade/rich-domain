@@ -12,7 +12,6 @@ abstract class DomainException extends Error {
     this.code = code || this.constructor.name;
     this.timestamp = new Date();
 
-    // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
     }
@@ -56,10 +55,6 @@ export class DomainError extends DomainException {
     super(message, code || "DOMAIN_ERROR");
   }
 }
-
-// ============================================================================
-// Entity & Aggregate Exceptions
-// ============================================================================
 
 /**
  * Thrown when an entity or aggregate is not found
@@ -112,10 +107,6 @@ export class EntityAlreadyExistsError extends DomainException {
     };
   }
 }
-
-// ============================================================================
-// Repository & Persistence Exceptions
-// ============================================================================
 
 /**
  * Base exception for repository operations
@@ -200,10 +191,6 @@ export class ConstraintViolationError extends RepositoryError {
   }
 }
 
-// ============================================================================
-// Value Object Exceptions
-// ============================================================================
-
 /**
  * Thrown when a value object has invalid data
  */
@@ -225,10 +212,6 @@ export class InvalidValueObjectError extends DomainException {
     };
   }
 }
-
-// ============================================================================
-// Domain Event Exceptions
-// ============================================================================
 
 /**
  * Thrown when a domain event operation fails
@@ -275,10 +258,6 @@ export class EventHandlerError extends DomainEventError {
   }
 }
 
-// ============================================================================
-// Criteria & Query Exceptions
-// ============================================================================
-
 /**
  * Thrown when a criteria or query is invalid
  */
@@ -297,10 +276,6 @@ export class InvalidCriteriaError extends DomainException {
     };
   }
 }
-
-// ============================================================================
-// Unit of Work Exceptions
-// ============================================================================
 
 /**
  * Thrown when a transaction operation fails
@@ -327,10 +302,6 @@ export class TransactionError extends DomainException {
     };
   }
 }
-
-// ============================================================================
-// Generic/Unknown Exceptions
-// ============================================================================
 
 /**
  * Thrown when an unexpected or unknown error occurs
@@ -393,10 +364,6 @@ export class ConfigurationError extends DomainException {
     };
   }
 }
-
-// ============================================================================
-// Mapper Exceptions
-// ============================================================================
 
 /**
  * Thrown when mapping between domain and persistence fails

@@ -1,9 +1,5 @@
 import { Entity, Id } from "../src";
-import { Address, User } from "./utils";
-
-// ============================================================================
-// Tests
-// ============================================================================
+import { Address, User, Email } from "./utils";
 
 class Order extends Entity<{ id: Id; total: number; status: string }> {}
 
@@ -14,7 +10,7 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         id,
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -25,7 +21,7 @@ describe("Entity Equality by ID", () => {
       const user2 = new User({
         id,
         name: "Jane",
-        email: "jane@example.com",
+        email: new Email("jane@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -43,7 +39,7 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         id,
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -54,7 +50,7 @@ describe("Entity Equality by ID", () => {
       const user2 = new User({
         id: Id.from("user-123"),
         name: "Jane",
-        email: "jane@example.com",
+        email: new Email("jane@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -70,7 +66,7 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         id: Id.from("user-1"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -81,7 +77,7 @@ describe("Entity Equality by ID", () => {
       const user2 = new User({
         id: Id.from("user-2"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -98,7 +94,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -116,7 +112,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id,
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -133,7 +129,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -151,7 +147,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -167,7 +163,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -185,7 +181,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -201,7 +197,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id: Id.from("user-123"),
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -216,7 +212,7 @@ describe("Entity Equality by ID", () => {
     it("should handle auto-generated IDs", () => {
       const user1 = new User({
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -226,7 +222,7 @@ describe("Entity Equality by ID", () => {
       });
       const user2 = new User({
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -249,7 +245,7 @@ describe("Entity Equality by ID", () => {
       const user = new User({
         id,
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -270,7 +266,7 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         id,
         name: "John",
-        email: "john@example.com",
+        email: new Email("john@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -281,7 +277,7 @@ describe("Entity Equality by ID", () => {
       const user2 = new User({
         id,
         name: "Jane",
-        email: "jane@example.com",
+        email: new Email("jane@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -304,7 +300,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("1"),
           name: "John",
-          email: "john@example.com",
+          email: new Email("john@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -316,7 +312,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("2"),
           name: "Jane",
-          email: "jane@example.com",
+          email: new Email("jane@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -328,7 +324,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("3"),
           name: "Bob",
-          email: "bob@example.com",
+          email: new Email("bob@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -351,7 +347,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("1"),
           name: "John",
-          email: "john@example.com",
+          email: new Email("john@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -363,7 +359,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("2"),
           name: "Jane",
-          email: "jane@example.com",
+          email: new Email("jane@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -375,7 +371,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("1"),
           name: "Johnny",
-          email: "johnny@example.com",
+          email: new Email("johnny@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -399,7 +395,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("1"),
           name: "John",
-          email: "john@example.com",
+          email: new Email("john@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -411,7 +407,7 @@ describe("Entity Equality by ID", () => {
         new User({
           id: Id.from("2"),
           name: "Jane",
-          email: "jane@example.com",
+          email: new Email("jane@example.com"),
           address: new Address({
             street: "Main St",
             city: "NYC",
@@ -425,7 +421,7 @@ describe("Entity Equality by ID", () => {
       const user1 = new User({
         id: Id.from("1"),
         name: "Different Name",
-        email: "different@example.com",
+        email: new Email("different@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",
@@ -436,7 +432,7 @@ describe("Entity Equality by ID", () => {
       const user3 = new User({
         id: Id.from("3"),
         name: "Bob",
-        email: "bob@example.com",
+        email: new Email("bob@example.com"),
         address: new Address({
           street: "Main St",
           city: "NYC",

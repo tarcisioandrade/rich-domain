@@ -1,10 +1,10 @@
 import { Id } from "../src/id";
-import { Post, TagReference, User, Like, Address, Comment } from "./utils";
+import { Post, TagReference, User, Like, Address, Comment, Email } from "./utils";
 
 function createUser(
   overrides: Partial<{
     name: string;
-    email: string;
+    email: Email;
     address: Address | null;
     posts: Post[];
     tags: TagReference[];
@@ -13,7 +13,7 @@ function createUser(
   const user = new User({
     id: new Id("user-1"),
     name: overrides.name ?? "Test User",
-    email: overrides.email ?? "test@test.com",
+    email: overrides.email ?? new Email("test@test.com"),
     address: overrides.address ?? null,
     posts: overrides.posts ?? [],
     tags: overrides.tags ?? [],
@@ -125,7 +125,7 @@ describe("ChangeTracker.getChanges()", () => {
       const user = new User({
         id: new Id(),
         name: "Test User",
-        email: "test@test.com",
+        email: new Email("test@test.com"),
         address: null,
         posts: [existingPost],
         tags: [],
