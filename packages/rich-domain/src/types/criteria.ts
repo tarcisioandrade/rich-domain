@@ -78,17 +78,26 @@ export type FilterValueFor<T> =
   | T[]
   | null;
 
+/**
+ * Extract the plain object type from an entity
+ * For entities with toJSON(), uses the return type of toJSON()
+ * Otherwise, uses the type as is
+ */
+type ExtractPlainType<T> = T extends { toJSON(): infer R }
+  ? R
+  : T;
+
 export type PathValue<
   T,
   P extends string
 > = P extends `${infer K}.${infer Rest}`
-  ? K extends keyof T
-    ? T[K] extends Array<infer U>
+  ? K extends keyof ExtractPlainType<T>
+    ? ExtractPlainType<T>[K] extends Array<infer U>
       ? PathValue<U, Rest>
-      : PathValue<T[K], Rest>
+      : PathValue<ExtractPlainType<T>[K], Rest>
     : never
-  : P extends keyof T
-  ? T[P]
+  : P extends keyof ExtractPlainType<T>
+  ? ExtractPlainType<T>[P]
   : never;
 
 export interface Filter<TField = string, TValue = unknown> {
@@ -146,14 +155,14 @@ export interface CriteriaOptions {
 
 type ExcludeBuiltInKeys<T> = Exclude<keyof T, keyof any[] | number | symbol>;
 
-export type FieldPath<T> = T extends Primitive
+export type FieldPath<T> = ExtractPlainType<T> extends Primitive
   ? never
   : {
-      [K in ExcludeBuiltInKeys<T> & string]: NonNullable<T[K]> extends Primitive
+      [K in ExcludeBuiltInKeys<ExtractPlainType<T>> & string]: NonNullable<ExtractPlainType<T>[K]> extends Primitive
         ? K
-        : NonNullable<T[K]> extends Array<infer U>
+        : NonNullable<ExtractPlainType<T>[K]> extends Array<infer U>
         ? U extends Primitive
           ? K
           : K | `${K}.${FieldPath<U>}`
-        : `${K}.${FieldPath<NonNullable<T[K]>>}`;
-    }[ExcludeBuiltInKeys<T> & string];
+        : `${K}.${FieldPath<NonNullable<ExtractPlainType<T>[K]>>}`;
+    }[ExcludeBuiltInKeys<ExtractPlainType<T>> & string];
