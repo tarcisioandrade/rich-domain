@@ -10,16 +10,23 @@ import { Button } from "../../ui/button";
 import { Filter as FilterIcon } from "lucide-react";
 import { DataTableFilterPopover } from "./data-table-filter-popover";
 import { DataTableFilterRow } from "./data-table-filter-row";
+import { Badge } from "@/components/ui/badge";
 
 export function DataTableFilter({ filters, ...props }: FilterIntegrationProps) {
-  const hasFilters = filters.length > 0;
+  const filtersCount = filters.length;
+  const hasFilters = filtersCount > 0;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8">
+        <Button variant="outline" size="sm" className="h-8 relative">
           <FilterIcon className="h-4 w-4" />
           Filter
+          {hasFilters && (
+            <Badge className="absolute top-0 right-0" variant="outline">
+              {filtersCount}
+            </Badge>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[450px] p-4" align="start">

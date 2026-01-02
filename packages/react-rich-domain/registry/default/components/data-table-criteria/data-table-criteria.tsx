@@ -13,7 +13,7 @@ import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-column-toggle";
 import type { PaginatedResult } from "@woltz/rich-domain";
 import { Input } from "@/components/ui/input";
-import { FileIcon, Loader2, Search } from "lucide-react";
+import { Code, FileBarChart, FileIcon, Loader2, Search } from "lucide-react";
 import { DataTableFilter } from "./data-table-filter/data-table-filter";
 import type { FilterIntegrationProps } from "@/types/use-criteria-table.type";
 import { Button } from "../ui/button";
@@ -133,7 +133,10 @@ export function DataTableCriteria<TData>({
                 {isExporting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Export"
+                  <>
+                    <FileIcon className="h-4 w-4" />
+                    Export
+                  </>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -143,11 +146,11 @@ export function DataTableCriteria<TData>({
                 CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport("excel")}>
-                <FileIcon className="h-4 w-4" />
+                <FileBarChart className="h-4 w-4" />
                 Excel
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport("json")}>
-                <FileIcon className="h-4 w-4" />
+                <Code className="h-4 w-4" />
                 JSON
               </DropdownMenuItem>
             </DropdownMenuContent>
