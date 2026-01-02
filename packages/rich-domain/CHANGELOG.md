@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.7.0...v1.7.1) (2026-01-02)
+
+
+### Features
+
+* add CSV export documentation and integration to the docs ([a1883b8](https://github.com/tarcisioandrade/rich-domain/commit/a1883b86272f53b9777b4a789d747866c96a99c5))
+* rich-domain-csv package implementation ([c22c9e9](https://github.com/tarcisioandrade/rich-domain/commit/c22c9e97aed4843195039a9ad473b2e559b09525))
+
+
+### Chores
+
+* update @woltz/rich-domain to version 1.7.0 across all package.json files ([d95403e](https://github.com/tarcisioandrade/rich-domain/commit/d95403e7f045a184e2741828074c3db3aef60d12))
+* update build and test scripts to include rich-domain-csv ([d580ab0](https://github.com/tarcisioandrade/rich-domain/commit/d580ab051f338e35cc245b21701b27db6a9bfdfa))
+* update package-lock.json and add documentation for rich-domain-csv ([5333864](https://github.com/tarcisioandrade/rich-domain/commit/5333864e6bbe565ce344bce217468ab5e09b19af))
+
+
+### Refactoring
+
+* clean up comments and improve code readability in CSV utility functions ([1a1c5b0](https://github.com/tarcisioandrade/rich-domain/commit/1a1c5b08f8b341fde0bd6725d347e84844934fd8))
+* enhance type extraction in criteria.ts for improved type safety ([955da6a](https://github.com/tarcisioandrade/rich-domain/commit/955da6a6ccce4b0f49c381ad569cdabe9baf85b4))
+* remove Vitest and related test scripts from FullstackTemplate ([837dc45](https://github.com/tarcisioandrade/rich-domain/commit/837dc457a7ed5046367f83a32022ee8003369791))
+
+
+### Documentation
+
+* add keywords in pages to SEO ([ac0135e](https://github.com/tarcisioandrade/rich-domain/commit/ac0135e30c39e086d4caa5ad52f375a3c572bdeb))
+* add rich-domain-csv package to README with npm badge ([4b5e17d](https://github.com/tarcisioandrade/rich-domain/commit/4b5e17dd109082118818ff37c36dfbb119d92e87))
+
 ## [1.7.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.6.0...v1.7.0) (2026-01-01)
 
 
