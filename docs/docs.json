@@ -68,6 +68,7 @@
           {
             "group": "Integrations",
             "pages": [
+              "integrations/csv-export",
               "integrations/prisma",
               "integrations/typeorm",
               "integrations/zod",
