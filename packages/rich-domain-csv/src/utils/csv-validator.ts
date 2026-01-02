@@ -1,9 +1,3 @@
-/**
- * CSV Validation Utilities
- *
- * Validates CSV export options and detects potential issues.
- */
-
 import type { Aggregate } from "@woltz/rich-domain";
 import type { CsvExportOptions, CsvValidationResult, PropsOf } from "../types";
 
@@ -34,7 +28,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Validate delimiter
   if (options.delimiter !== undefined) {
     if (options.delimiter.length !== 1) {
       errors.push("Delimiter must be a single character");
@@ -45,7 +38,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
     }
   }
 
-  // Validate batch size
   if (options.batchSize !== undefined) {
     if (options.batchSize < 1) {
       errors.push("Batch size must be greater than 0");
@@ -58,7 +50,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
     }
   }
 
-  // Validate columns against sample data
   if (options.columns && sampleData) {
     const sampleJson =
       typeof sampleData === "object" && "toJSON" in sampleData
@@ -75,7 +66,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
     }
   }
 
-  // Validate headers match columns
   if (options.headers && options.columns) {
     for (const headerKey of Object.keys(options.headers)) {
       if (!options.columns.includes(headerKey as PropsOf<T>)) {
@@ -86,7 +76,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
     }
   }
 
-  // Validate formatters match columns
   if (options.formatters && options.columns) {
     for (const formatterKey of Object.keys(options.formatters)) {
       if (!options.columns.includes(formatterKey as PropsOf<T>)) {
@@ -97,7 +86,6 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
     }
   }
 
-  // Check for empty columns array
   if (options.columns && options.columns.length === 0) {
     errors.push("Columns array cannot be empty");
   }

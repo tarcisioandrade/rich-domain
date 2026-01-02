@@ -1,12 +1,12 @@
 /**
  * Escapes a value for safe CSV output
- * 
+ *
  * Handles quotes, delimiters, and newlines according to RFC 4180.
- * 
+ *
  * @param value - Value to escape
  * @param delimiter - CSV delimiter character
  * @returns Escaped CSV value
- * 
+ *
  * @example
  * ```typescript
  * escapeCsvValue('Hello, World')      // "Hello, World"
@@ -15,7 +15,6 @@
  * ```
  */
 export function escapeCsvValue(value: string, delimiter: string = ","): string {
-  // Check if value needs escaping
   const needsEscaping =
     value.includes(delimiter) ||
     value.includes('"') ||
@@ -29,52 +28,44 @@ export function escapeCsvValue(value: string, delimiter: string = ","): string {
   // Escape quotes by doubling them (RFC 4180)
   const escaped = value.replace(/"/g, '""');
 
-  // Wrap in quotes
   return `"${escaped}"`;
 }
 
 /**
  * Formats a value for CSV export
- * 
+ *
  * Handles different data types appropriately:
  * - null/undefined → empty string
  * - Date → ISO string
  * - Object/Array → JSON string
  * - Others → string representation
- * 
+ *
  * @param value - Value to format
  * @param delimiter - CSV delimiter (for escaping)
  * @returns Formatted CSV value
  */
 export function formatCsvValue(value: any, delimiter: string = ","): string {
-  // Handle null/undefined
   if (value === null || value === undefined) {
     return "";
   }
 
-  // Handle dates
   if (value instanceof Date) {
     return escapeCsvValue(value.toISOString(), delimiter);
   }
 
-  // Handle arrays
   if (Array.isArray(value)) {
     return escapeCsvValue(JSON.stringify(value), delimiter);
   }
 
-  // Handle objects
   if (typeof value === "object") {
     return escapeCsvValue(JSON.stringify(value), delimiter);
   }
 
-  // Handle booleans
   if (typeof value === "boolean") {
     return value.toString();
   }
 
-  // Handle numbers
   if (typeof value === "number") {
-    // Handle special numeric values
     if (Number.isNaN(value)) {
       return "NaN";
     }
@@ -84,18 +75,16 @@ export function formatCsvValue(value: any, delimiter: string = ","): string {
     return value.toString();
   }
 
-  // Handle strings and everything else
   return escapeCsvValue(String(value), delimiter);
 }
 
-
 /**
  * Extracts field value from an object, supporting nested paths
- * 
+ *
  * @param obj - Object to extract from
  * @param field - Field name or path
  * @returns Field value
- * 
+ *
  * @example
  * ```typescript
  * extractFieldValue({ name: "John" }, "name")  // "John"
@@ -105,7 +94,6 @@ export function formatCsvValue(value: any, delimiter: string = ","): string {
 export function extractFieldValue(obj: any, field: string | symbol): any {
   const fieldStr = String(field);
 
-  // Handle nested paths (e.g., "user.name")
   if (fieldStr.includes(".")) {
     const parts = fieldStr.split(".");
     let current = obj;
@@ -120,7 +108,6 @@ export function extractFieldValue(obj: any, field: string | symbol): any {
     return current;
   }
 
-  // Direct field access
   return obj[fieldStr];
 }
 
