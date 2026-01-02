@@ -31,6 +31,24 @@
       ]
     },
     {
+      "name": "use-criteria-query",
+      "type": "registry:block",
+      "title": "Use Criteria Query",
+      "description": "A hook to use criteria query from @woltz/rich-domain and @tanstack/react-query.",
+      "dependencies": ["@woltz/rich-domain", "@tanstack/react-query"],
+      "registryDependencies": [
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/hooks/use-criteria-query.ts",
+          "type": "registry:hook",
+          "description": "A hook to use criteria query from @woltz/rich-domain.",
+          "target": "~/src/hooks/use-criteria-query.ts"
+        }
+      ]
+    },
+    {
       "name": "filter",
       "type": "registry:block",
       "title": "Filter",

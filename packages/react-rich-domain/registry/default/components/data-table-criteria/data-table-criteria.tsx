@@ -13,14 +13,43 @@ import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-column-toggle";
 import type { PaginatedResult } from "@woltz/rich-domain";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { FileIcon, Loader2, Search } from "lucide-react";
 import { DataTableFilter } from "./data-table-filter/data-table-filter";
 import type { FilterIntegrationProps } from "@/types/use-criteria-table.type";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { useTransition } from "react";
+
+type FileFormat = "csv" | "excel" | "json";
+
+function downloadFile(filename: string, content: string, format: FileFormat) {
+  const fileExtension: Record<FileFormat, string> = {
+    csv: "text/csv",
+    excel: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    json: "application/json",
+  };
+
+  const blob = new Blob([content], { type: fileExtension[format] });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  console.log("url", url);
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
+}
 
 interface DataTableCriteriaProps<TData> {
   table: TableType<TData>;
   isLoading?: boolean;
   emptyMessage?: string;
+  onExport?: (format: FileFormat) => Promise<string> | string;
   data?: PaginatedResult<TData>;
   showColumnToggle?: boolean;
   searchValue?: string;
@@ -37,6 +66,7 @@ export function DataTableCriteria<TData>({
   emptyMessage = "No results.",
   data,
   showColumnToggle = true,
+  onExport,
   searchValue = "",
   onSearchChange,
   searchPlaceholder = "Search...",
@@ -48,6 +78,25 @@ export function DataTableCriteria<TData>({
   const hasSearch = showSearch && onSearchChange;
   const showActionBar = actionBar || showColumnToggle;
   const hasFilters = filterProps && filterProps.fields.length > 0;
+  const [isExporting, startTransition] = useTransition();
+
+  async function handleExport(format: FileFormat) {
+    if (!onExport) {
+      console.warn("onExport is not defined");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await onExport(format);
+        if (result) {
+          downloadFile(`exported-${Date.now()}.${format}`, result, format);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -71,6 +120,38 @@ export function DataTableCriteria<TData>({
             {actionBar}
             {showColumnToggle && <DataTableViewOptions table={table} />}
           </div>
+        )}
+        {onExport && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Export"
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
+                <FileIcon className="h-4 w-4" />
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("excel")}>
+                <FileIcon className="h-4 w-4" />
+                Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("json")}>
+                <FileIcon className="h-4 w-4" />
+                JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
