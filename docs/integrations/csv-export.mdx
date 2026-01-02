@@ -1,0 +1,427 @@
+---
+title: "CSV Export"
+description: "Export your domain entities to CSV format with type-safe columns, custom formatters, and streaming support"
+keywords: ["csv","export","data-export","csv-export","typescript","streaming"]
+---
+
+## Overview
+
+**@woltz/rich-domain-csv** provides powerful CSV export capabilities for your rich-domain entities. Export data with full type safety, custom formatting, and efficient streaming for large datasets.
+
+<CardGroup cols={2}>
+  <Card title="Type-Safe Columns" icon="shield-check">
+    Only entity properties are allowed - no methods or getters
+  </Card>
+  <Card title="Custom Formatters" icon="wand-magic-sparkles">
+    Transform field values with custom formatting functions
+  </Card>
+  <Card title="Streaming Support" icon="water">
+    Memory-efficient export for large datasets
+  </Card>
+  <Card title="Progress Tracking" icon="chart-line">
+    Real-time progress callbacks for long-running exports
+  </Card>
+</CardGroup>
+
+## Installation
+
+```bash
+npm install @woltz/rich-domain-csv
+```
+
+## Quick Start
+
+### Using CsvExportService (Recommended)
+
+Use the standalone service to keep export logic separate from repositories:
+
+```typescript
+import { CsvExportService } from "@woltz/rich-domain-csv";
+import { UserRepository } from "./repositories/user-repository";
+
+const csvService = new CsvExportService();
+const userRepository = new UserRepository();
+
+// Export all users
+const { csv, stats } = await csvService.export(userRepository);
+
+console.log(csv);
+console.log(`Exported ${stats.totalRecords} users in ${stats.durationMs}ms`);
+```
+
+### Using ExportableRepository
+
+Extend your repository with CSV export capabilities:
+
+```typescript
+import { ExportableRepository } from "@woltz/rich-domain-csv";
+
+class UserRepository extends ExportableRepository<User> {
+  // Your repository implementation
+}
+
+const repository = new UserRepository();
+const csv = await repository.exportToCSV();
+```
+
+## Basic Usage
+
+### Export with Selected Columns
+
+```typescript
+const { csv } = await csvService.export(userRepository, undefined, {
+  columns: ["name", "email", "status"], // Type-safe - only User properties!
+});
+
+// Output:
+// name,email,status
+// John Doe,john@example.com,active
+// Jane Smith,jane@example.com,active
+```
+
+### Export with Custom Headers
+
+```typescript
+const { csv } = await csvService.export(userRepository, undefined, {
+  columns: ["name", "email", "createdAt"],
+  headers: {
+    name: "Full Name",
+    email: "Email Address",
+    createdAt: "Registration Date",
+  },
+});
+
+// Output:
+// Full Name,Email Address,Registration Date
+// John Doe,john@example.com,2024-01-01T00:00:00.000Z
+```
+
+### Export with Filters
+
+Use Criteria to filter data before export:
+
+```typescript
+import { Criteria } from "@woltz/rich-domain";
+
+const criteria = Criteria.create<User>()
+  .where("status", "equals", "active")
+  .where("age", "greaterThan", 18)
+  .orderBy("name", "asc");
+
+const { csv } = await csvService.export(userRepository, criteria, {
+  columns: ["name", "email", "age"],
+});
+```
+
+## Advanced Features
+
+### Custom Formatters
+
+Transform field values before CSV serialization:
+
+```typescript
+const { csv } = await csvService.export(userRepository, undefined, {
+  columns: ["name", "createdAt", "balance", "status"],
+  formatters: {
+    createdAt: (date) => new Date(date).toLocaleDateString("en-US"),
+    balance: (value) => `$${value.toFixed(2)}`,
+    status: (value) => value.toUpperCase(),
+  },
+});
+
+// Output:
+// name,createdAt,balance,status
+// John Doe,1/1/2024,$1,234.56,ACTIVE
+```
+
+### Common Formatters
+
+The library provides common formatters out of the box:
+
+```typescript
+import { commonFormatters } from "@woltz/rich-domain-csv";
+
+const { csv } = await csvService.export(userRepository, undefined, {
+  formatters: {
+    createdAt: commonFormatters.localeDate,
+    balance: commonFormatters.currencyUSD,
+    isActive: commonFormatters.yesNo,
+    tags: commonFormatters.array, // Joins array as comma-separated
+  },
+});
+```
+
+Available formatters:
+- `isoDate` - ISO 8601 date string
+- `localeDate` - Locale date string (e.g., "1/1/2024")
+- `localeDateTime` - Locale datetime string
+- `decimal2` - Number with 2 decimal places
+- `currencyUSD` - USD currency format ($X.XX)
+- `yesNo` - Boolean as "Yes" or "No"
+- `trueFalse` - Boolean as "True" or "False"
+- `array` - Array as comma-separated string
+- `json` - Object as JSON string
+- `uppercase` - Convert to uppercase
+- `lowercase` - Convert to lowercase
+- `trim` - Trim whitespace
+
+### Custom Delimiter
+
+Change the CSV delimiter (default is comma):
+
+```typescript
+const { csv } = await csvService.export(userRepository, undefined, {
+  delimiter: ";", // Semicolon-separated values
+  columns: ["name", "email"],
+});
+
+// Output:
+// name;email
+// John Doe;john@example.com
+```
+
+### Disable Headers
+
+Export data without header row:
+
+```typescript
+const { csv } = await csvService.export(userRepository, undefined, {
+  includeHeaders: false,
+  columns: ["name", "email"],
+});
+
+// Output (no header):
+// John Doe,john@example.com
+// Jane Smith,jane@example.com
+```
+
+### Progress Tracking
+
+Monitor export progress for large datasets:
+
+```typescript
+const { csv, stats } = await csvService.export(
+  userRepository,
+  undefined,
+  { columns: ["name", "email"] },
+  (processed, total) => {
+    const percentage = Math.round((processed / total) * 100);
+    console.log(`Progress: ${processed}/${total} (${percentage}%)`);
+  }
+);
+
+// Output:
+// Progress: 100/1000 (10%)
+// Progress: 200/1000 (20%)
+// ...
+```
+
+## Streaming for Large Datasets
+
+For memory-efficient export of large datasets, use streaming:
+
+```typescript
+import * as fs from "fs";
+
+// Export to stream
+const stream = await csvService.exportStream(userRepository, undefined, {
+  columns: ["name", "email"],
+  batchSize: 500, // Process 500 records at a time
+});
+
+// Save to file
+stream.pipe(fs.createWriteStream("users.csv"));
+
+// Or use with Fastify
+reply
+  .header("Content-Type", "text/csv")
+  .header("Content-Disposition", 'attachment; filename="users.csv"')
+  .send(stream);
+```
+
+### Stream with Filters
+
+Combine streaming with criteria filtering:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .where("status", "equals", "active")
+  .orderBy("createdAt", "desc");
+
+const stream = await csvService.exportStream(userRepository, criteria, {
+  columns: ["name", "email", "createdAt"],
+  batchSize: 1000,
+});
+```
+
+## Export Statistics
+
+Get detailed statistics about the export operation:
+
+```typescript
+const { csv, stats } = await csvService.export(userRepository);
+
+console.log({
+  totalRecords: stats.totalRecords,     // Number of records exported
+  totalColumns: stats.totalColumns,     // Number of columns
+  sizeInBytes: stats.sizeInBytes,       // CSV size in bytes
+  durationMs: stats.durationMs,         // Export duration
+  hasWarnings: stats.hasWarnings,       // Whether there are warnings
+  warnings: stats.warnings,             // Array of warning messages
+});
+```
+
+## Type Safety
+
+The library provides full type safety for column selection:
+
+```typescript
+interface UserProps {
+  id: Id;
+  name: string;
+  email: string;
+  age: number;
+}
+
+class User extends Aggregate<UserProps> {
+  // Methods are NOT allowed in columns
+  getFullName() {
+    return this.name;
+  }
+}
+
+// ✅ Valid - only properties
+const valid = await csvService.export(userRepository, undefined, {
+  columns: ["id", "name", "email", "age"],
+});
+
+// ❌ TypeScript Error - methods not allowed
+const invalid = await csvService.export(userRepository, undefined, {
+  columns: ["getFullName"], // Error: Type '"getFullName"' is not assignable
+});
+```
+
+## Error Handling
+
+The library provides specific error types:
+
+```typescript
+import {
+  CsvValidationError,
+  CsvFormatterError,
+  CsvExportOperationError,
+} from "@woltz/rich-domain-csv";
+
+try {
+  const { csv } = await csvService.export(userRepository, undefined, {
+    columns: ["invalid-column"], // Invalid column
+  });
+} catch (error) {
+  if (error instanceof CsvValidationError) {
+    console.error("Validation errors:", error.errors);
+  } else if (error instanceof CsvFormatterError) {
+    console.error("Formatter error:", error.field, error.message);
+  } else if (error instanceof CsvExportOperationError) {
+    console.error("Export failed:", error.operation, error.message);
+  }
+}
+```
+
+## Complete Example
+
+```typescript
+import { CsvExportService, commonFormatters } from "@woltz/rich-domain-csv";
+import { Criteria } from "@woltz/rich-domain";
+import { UserRepository } from "./repositories/user-repository";
+
+async function exportActiveUsers() {
+  const csvService = new CsvExportService();
+  const userRepository = new UserRepository();
+
+  // Create criteria for active users over 18
+  const criteria = Criteria.create<User>()
+    .where("status", "equals", "active")
+    .where("age", "greaterThanOrEqual", 18)
+    .orderBy("name", "asc");
+
+  // Export with custom formatting
+  const { csv, stats } = await csvService.export(
+    userRepository,
+    criteria,
+    {
+      columns: ["name", "email", "age", "createdAt", "balance"],
+      headers: {
+        name: "Full Name",
+        email: "Email Address",
+        age: "Age",
+        createdAt: "Registered",
+        balance: "Account Balance",
+      },
+      formatters: {
+        createdAt: commonFormatters.localeDate,
+        balance: commonFormatters.currencyUSD,
+      },
+      delimiter: ",",
+      includeHeaders: true,
+    },
+    (processed, total) => {
+      const percentage = Math.round((processed / total) * 100);
+      console.log(`Exporting: ${percentage}%`);
+    }
+  );
+
+  console.log(`✅ Exported ${stats.totalRecords} users in ${stats.durationMs}ms`);
+  console.log(`📊 File size: ${(stats.sizeInBytes / 1024).toFixed(2)} KB`);
+
+  return csv;
+}
+```
+## API Reference
+
+### CsvExportService
+
+#### `export<T>(repository, criteria?, options?, onProgress?)`
+
+Export entities to CSV string.
+
+**Parameters:**
+- `repository: Repository<T>` - Repository to export from
+- `criteria?: Criteria<T>` - Optional filter and sort criteria
+- `options?: CsvExportOptions<T>` - Export configuration
+- `onProgress?: (processed: number, total: number) => void` - Progress callback
+
+**Returns:** `Promise<{ csv: string; stats: CsvExportStats }>`
+
+#### `exportStream<T>(repository, criteria?, options?)`
+
+Export entities to CSV stream for large datasets.
+
+**Parameters:**
+- `repository: Repository<T>` - Repository to export from
+- `criteria?: Criteria<T>` - Optional filter and sort criteria
+- `options?: CsvExportOptions<T>` - Export configuration
+
+**Returns:** `Promise<Readable>`
+
+### CsvExportOptions
+
+```typescript
+interface CsvExportOptions<T> {
+  columns?: PropsOf<T>[];              // Selected columns
+  headers?: Partial<Record<PropsOf<T>, string>>;  // Custom headers
+  delimiter?: string;                   // CSV delimiter (default: ",")
+  includeHeaders?: boolean;             // Include header row (default: true)
+  batchSize?: number;                   // Batch size for streaming (default: 1000)
+  formatters?: Partial<Record<PropsOf<T>, (value: any) => string>>;
+}
+```
+
+### ExportableRepository
+
+#### `exportToCSV(criteria?, options?, onProgress?)`
+
+Export entities to CSV string (instance method).
+
+#### `exportToCSVStream(criteria?, options?)`
+
+Export entities to CSV stream (instance method).

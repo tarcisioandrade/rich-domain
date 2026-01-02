@@ -1,0 +1,63 @@
+{
+  "name": "@woltz/rich-domain-csv",
+  "version": "0.1.0",
+  "description": "CSV integration for Rich Domain Library",
+  "homepage": "https://woltz.mintlify.app",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain-csv"
+  },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "check": "tsc --noEmit",
+    "lint": "echo 'No linting yet'",
+    "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
+    "prepublishOnly": "npm run build",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch"
+  },
+  "keywords": [
+    "@woltz/rich-domain",
+    "csv",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.7.0",
+    "typescript": ">=4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
