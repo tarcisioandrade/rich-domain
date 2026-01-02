@@ -332,6 +332,20 @@ describe("UserRepository CSV Export", () => {
 });
 ```
 
+## Documentation
+
+For complete documentation with advanced examples and best practices, visit:
+
+📚 **[Full Documentation](https://rich-domain.dev/integrations/csv-export)**
+
+Topics covered in the full documentation:
+- Advanced filtering with Criteria API
+- Streaming best practices for large datasets
+- Custom formatter examples
+- Error handling patterns
+- HTTP endpoint integration (Fastify, Express)
+- Performance optimization tips
+
 ## License
 
 MIT
