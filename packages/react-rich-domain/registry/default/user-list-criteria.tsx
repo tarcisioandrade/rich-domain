@@ -6,6 +6,8 @@ import type { QueryFilter } from "./lib/filter-utils";
 import { cn } from "./lib/utils";
 import { DataTableColumnHeader } from "./components/data-table-criteria/data-table-column-header";
 import { Button } from "./components/ui/button";
+import { exportUsersToCSV } from "./service/get-users-from-api";
+import { Criteria } from "@woltz/rich-domain";
 
 const filterFields: QueryFilter[] = [
   {
@@ -70,7 +72,7 @@ const columns: ColumnDef<TestUser>[] = [
   },
 ];
 
-export function UserList() {
+export function UserListCriteria() {
   const { table, data, isLoading, filterProps, searchProps } =
     useCriteriaTable<TestUser>({
       filterFields,
@@ -86,6 +88,10 @@ export function UserList() {
   return (
     <div className="space-y-4">
       <DataTableCriteria
+        onExport={async () => {
+          const csv = await exportUsersToCSV(Criteria.create<TestUser>());
+          return csv;
+        }}
         table={table}
         data={data}
         isLoading={isLoading}
