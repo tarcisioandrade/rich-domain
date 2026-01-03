@@ -4,7 +4,7 @@ import type {
   TableOptions,
   Table,
 } from "@tanstack/react-table";
-import type { Criteria, PaginatedResult } from "@woltz/rich-domain";
+import type { Criteria, PaginatedJsonResult } from "@woltz/rich-domain";
 import type { UseCriteriaOptions, UseCriteriaReturn } from "./use-criteria.type";
 import type { QueryFilter } from "../lib/filter-utils";
 import type { QueryKey, UseQueryResult } from "@tanstack/react-query";
@@ -31,7 +31,7 @@ export interface UseCriteriaTableOptions<T> {
   /**
    * Query function that receives criteria and returns paginated result
    */
-  queryFn: (criteria: Criteria<T>) => Promise<PaginatedResult<T>>;
+  queryFn: (criteria: Criteria<T>) => Promise<PaginatedJsonResult<T>>;
 
   /**
    * Options for useCriteria hook
@@ -98,12 +98,12 @@ export interface UseCriteriaTableReturn<T> {
   /**
    * React Query result with paginated data
    */
-  query: UseQueryResult<PaginatedResult<T>, Error>;
+  query: UseQueryResult<PaginatedJsonResult<T>, Error>;
 
   /**
    * Paginated result data (shortcut for query.data)
    */
-  data?: PaginatedResult<T>;
+  data?: PaginatedJsonResult<T>;
 
   /**
    * Loading state (shortcut for query.isLoading)

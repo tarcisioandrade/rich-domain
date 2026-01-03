@@ -49,7 +49,7 @@ export function useCriteriaTable<T>(
 
   const query = useQuery({
     queryKey: [...queryKey, criteriaState.criteria.toJSON()],
-    queryFn: () => queryFn(criteriaState.criteria),
+    queryFn: async () => await queryFn(criteriaState.criteria),
   });
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -107,8 +107,9 @@ export function useCriteriaTable<T>(
     return query.data?.meta.totalPages ?? -1;
   }, [query.data?.meta.totalPages]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: query.data?.data ?? [],
+    data: (query.data?.data as T[]) ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

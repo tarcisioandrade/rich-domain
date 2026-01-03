@@ -10,24 +10,15 @@ import type {
   OrderDirection,
   Pagination,
   PathValue,
+  PaginatedJsonResult,
+  PaginationMeta,
 } from "@woltz/rich-domain";
 import { useCriteria } from "./use-criteria";
 import type { UseCriteriaOptions } from "../types/use-criteria.type";
 
 /**
- * Pagination metadata from rich-domain PaginatedResult
- */
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-/**
- * Expected response from the fetcher function
+ * Expected response from the fetcher function (JSON format from API)
+ * Compatible with PaginatedJsonResult from @woltz/rich-domain
  */
 export interface PaginatedResult<T> {
   data: T[];
@@ -48,13 +39,13 @@ export interface UseCriteriaQueryOptions<TData, TError = Error>
   refetchOnReconnect?: boolean | "always";
   retry?: boolean | number;
   retryDelay?: number | ((attempt: number) => number);
-  onSuccess?: (data: PaginatedResult<TData>) => void;
+  onSuccess?: (data: PaginatedJsonResult<TData>) => void;
   onError?: (error: TError) => void;
   onSettled?: (
-    data: PaginatedResult<TData> | undefined,
+    data: PaginatedJsonResult<TData> | undefined,
     error: TError | null
   ) => void;
-  select?: (data: PaginatedResult<TData>) => unknown;
+  select?: (data: PaginatedJsonResult<TData>) => unknown;
 }
 
 /**
@@ -122,7 +113,7 @@ export interface UseCriteriaQueryReturn<TData, TError = Error> {
  */
 export function useCriteriaQuery<TData, TError = Error>(
   queryKey: string | readonly unknown[],
-  fetcher: (criteria: Criteria<TData>) => Promise<PaginatedResult<TData>>,
+  fetcher: (criteria: Criteria<TData>) => Promise<PaginatedJsonResult<TData>>,
   options?: UseCriteriaQueryOptions<TData, TError>
 ): UseCriteriaQueryReturn<TData, TError> {
   const criteriaHook = useCriteria<TData>(options);
@@ -135,7 +126,7 @@ export function useCriteriaQuery<TData, TError = Error>(
 
   const query = useQuery({
     queryKey: completeKey,
-    queryFn: () => fetcher(criteria),
+    queryFn: async () => await fetcher(criteria),
     enabled: options?.enabled,
     staleTime: options?.staleTime,
     gcTime: options?.gcTime,
@@ -146,7 +137,7 @@ export function useCriteriaQuery<TData, TError = Error>(
     retry: options?.retry,
     retryDelay: options?.retryDelay,
     select: options?.select,
-  } as UseQueryOptions<PaginatedResult<TData>, TError>);
+  } as UseQueryOptions<PaginatedJsonResult<TData>, TError>);
 
   const { data: queryData, error, isSuccess } = query;
 
@@ -167,7 +158,7 @@ export function useCriteriaQuery<TData, TError = Error>(
   }, [query]);
 
   return {
-    data: queryData?.data ?? [],
+    data: (queryData?.data as TData[]) ?? [],
     meta: queryData?.meta,
     isLoading: query.isLoading,
     isFetching: query.isFetching,

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-column-toggle";
-import type { PaginatedResult } from "@woltz/rich-domain";
+import type { PaginatedResult } from "@/hooks/use-criteria-query";
 import { Input } from "@/components/ui/input";
 import { Code, FileBarChart, FileIcon, Loader2, Search } from "lucide-react";
 import { DataTableFilter } from "./data-table-filter/data-table-filter";
