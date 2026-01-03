@@ -23,7 +23,7 @@ export function DataTableFilter({ filters, ...props }: FilterIntegrationProps) {
           <FilterIcon className="h-4 w-4" />
           Filter
           {hasFilters && (
-            <Badge className="absolute top-0 right-0" variant="outline">
+            <Badge className="absolute -top-2.5 -right-2.5">
               {filtersCount}
             </Badge>
           )}
