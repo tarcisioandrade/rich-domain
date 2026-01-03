@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Code, FileBarChart, FileIcon, Loader2, Search } from "lucide-react";
-import { DataTableFilter } from "../data-table-criteria/data-table-filter/data-table-filter";
+import { DataViewFilter } from "./data-view-filter/data-view-filter";
 import type {
   FilterIntegrationProps,
   SearchIntegrationProps,
@@ -86,7 +86,7 @@ export function DataViewToolbar({
             />
           </div>
         )}
-        {hasFilters && <DataTableFilter {...filterProps} />}
+        {hasFilters && <DataViewFilter {...filterProps} />}
       </div>
       {(actionBar || onExport) && (
         <div className="ml-auto flex gap-2">

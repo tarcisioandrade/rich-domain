@@ -56,7 +56,7 @@ const TYPE_ICONS: Record<FilterType, React.ReactNode> = {
   boolean: <ToggleLeft className="h-4 w-4" />,
 };
 
-export function DataTableFilterPopover({
+export function DataViewFilterPopover({
   fields,
   filters,
   addOrReplaceByIndex,

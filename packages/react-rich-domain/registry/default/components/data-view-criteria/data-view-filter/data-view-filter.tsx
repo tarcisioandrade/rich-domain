@@ -8,11 +8,11 @@ import {
 } from "../../ui/dropdown-menu";
 import { Button } from "../../ui/button";
 import { Filter as FilterIcon } from "lucide-react";
-import { DataTableFilterPopover } from "./data-table-filter-popover";
-import { DataTableFilterRow } from "./data-table-filter-row";
+import { DataViewFilterPopover } from "./data-view-filter-popover";
+import { DataViewFilterRow } from "./data-view-filter-row";
 import { Badge } from "@/components/ui/badge";
 
-export function DataTableFilter({ filters, ...props }: FilterIntegrationProps) {
+export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
   const filtersCount = filters.length;
   const hasFilters = filtersCount > 0;
 
@@ -40,10 +40,10 @@ export function DataTableFilter({ filters, ...props }: FilterIntegrationProps) {
         ) : (
           <div className="space-y-4 mb-4">
             <p className="font-semibold">Filters</p>
-            <DataTableFilterRow filters={filters} {...props} />
+            <DataViewFilterRow filters={filters} {...props} />
           </div>
         )}
-        <DataTableFilterPopover filters={filters} {...props} />
+        <DataViewFilterPopover filters={filters} {...props} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -14,7 +14,7 @@ import { DataTableViewOptions } from "./data-table-column-toggle";
 import type { PaginatedResult } from "@/hooks/use-criteria-query";
 import { Input } from "@/components/ui/input";
 import { Code, FileBarChart, FileIcon, Loader2, Search } from "lucide-react";
-import { DataTableFilter } from "./data-table-filter/data-table-filter";
+import { DataViewFilter } from "../data-view-criteria/data-view-filter/data-view-filter";
 import type { FilterIntegrationProps } from "@/types/use-criteria-table.type";
 import { Button } from "../ui/button";
 import {
@@ -113,7 +113,7 @@ export function DataTableCriteria<TData>({
               />
             </div>
           )}
-          {hasFilters && <DataTableFilter {...filterProps} />}
+          {hasFilters && <DataViewFilter {...filterProps} />}
         </div>
         {showActionBar && (
           <div className="ml-auto flex gap-2">
