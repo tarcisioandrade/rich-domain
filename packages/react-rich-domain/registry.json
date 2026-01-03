@@ -169,22 +169,22 @@
           "target": "~/src/components/data-table-criteria/data-table-column-header.tsx"
         },
         {
-          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter.tsx",
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter.tsx",
           "type": "registry:component",
-          "description": "DataTable Criteria Filter",
-          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter.tsx"
+          "description": "Data View Criteria Filter",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter.tsx"
         },
         {
-          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter-popover.tsx",
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx",
           "type": "registry:component",
-          "description": "DataTable Criteria Filter Popover",
-          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter-popover.tsx"
+          "description": "Data View Criteria Filter Popover",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx"
         },
         {
-          "path": "registry/default/components/data-table-criteria/data-table-filter/data-table-filter-row.tsx",
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx",
           "type": "registry:component",
-          "description": "DataTable Criteria Filter Row",
-          "target": "~/src/components/data-table-criteria/data-table-filter/data-table-filter-row.tsx"
+          "description": "Data View Criteria Filter Row",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx"
         },
         {
           "path": "registry/default/types/use-criteria-table.type.ts",
@@ -197,6 +197,95 @@
           "type": "registry:hook",
           "description": "A hook to use criteria table.",
           "target": "~/src/hooks/use-criteria-table.ts"
+        }
+      ]
+    },
+    {
+      "name": "use-criteria-infinite-query",
+      "type": "registry:block",
+      "title": "Use Criteria Infinite Query",
+      "description": "A hook to use criteria infinite query from @woltz/rich-domain and @tanstack/react-query.",
+      "dependencies": ["@woltz/rich-domain", "@tanstack/react-query"],
+      "registryDependencies": [
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/hooks/use-criteria-infinite-query.ts",
+          "type": "registry:hook",
+          "description": "A hook to use criteria infinite query from @woltz/rich-domain and @tanstack/react-query.",
+          "target": "~/src/hooks/use-criteria-infinite-query.ts"
+        }
+      ]
+    },
+    {
+      "name": "data-timeline-criteria",
+      "type": "registry:block",
+      "title": "Data Timeline Criteria",
+      "description": "A component to display a data timeline with @woltz/rich-domain criteria and @tanstack/react-query.",
+      "dependencies": [
+        "@woltz/rich-domain",
+        "@tanstack/react-query",
+        "react-intersection-observer",
+        "date-fns"
+      ],
+      "registryDependencies": [
+        "@shadcn/skeleton",
+        "@shadcn/badge",
+        "@shadcn/input",
+        "@shadcn/button",
+        "@shadcn/dropdown-menu",
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json",
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/components/data-timeline-criteria/data-timeline-criteria.tsx",
+          "type": "registry:component",
+          "description": "Data Timeline Criteria",
+          "target": "~/src/components/data-timeline-criteria/data-timeline-criteria.tsx"
+        },
+        {
+          "path": "registry/default/components/data-timeline-criteria/data-timeline-group.tsx",
+          "type": "registry:component",
+          "description": "Data Timeline Criteria Group",
+          "target": "~/src/components/data-timeline-criteria/data-timeline-group.tsx"
+        },
+        {
+          "path": "registry/default/components/data-timeline-criteria/data-timeline-item.tsx",
+          "type": "registry:component",
+          "description": "Data Timeline Criteria Item",
+          "target": "~/src/components/data-timeline-criteria/data-timeline-item.tsx"
+        },
+        {
+          "path": "registry/default/components/data-timeline-criteria/data-timeline-skeleton.tsx",
+          "type": "registry:component",
+          "description": "Data Timeline Criteria Skeleton",
+          "target": "~/src/components/data-timeline-criteria/data-timeline-skeleton.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter.tsx",
+          "type": "registry:component",
+          "description": "Data View Criteria Filter",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx",
+          "type": "registry:component",
+          "description": "Data View Criteria Filter Popover",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx",
+          "type": "registry:component",
+          "description": "Data View Criteria Filter Row",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx"
+        },
+        {
+          "path": "registry/default/hooks/use-criteria-timeline.ts",
+          "type": "registry:hook",
+          "description": "A hook to use criteria timeline.",
+          "target": "~/src/hooks/use-criteria-timeline.ts"
         }
       ]
     }
