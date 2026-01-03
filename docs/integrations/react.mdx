@@ -33,19 +33,12 @@ keywords: ["react","hooks","frontend","ui","components","integration","typescrip
 Install components using the shadcn CLI:
 
 ```bash
-# Install the useCriteria hook
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
 ```
 
 ```bash
-# Install the Filter component (includes useCriteria as dependency)
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
 ```
-
-<Note>
-  The Filter component requires shadcn/ui components: `button`, `input`,
-  `popover`, and `calendar`.
-</Note>
 
 ### What Gets Installed
 
@@ -640,3 +633,403 @@ export function ProductList() {
 | `addOrReplaceByIndex` | `function`      | Yes      | Add or update a filter         |
 | `removeFilter`        | `function`      | Yes      | Remove a filter by index       |
 | `clearFilters`        | `function`      | Yes      | Clear all filters              |
+
+---
+
+## Advanced Components
+
+Pre-built, production-ready components for common data visualization patterns.
+
+### Data Table with Criteria
+
+A complete data table component integrated with React Query and TanStack Table.
+
+#### Installation
+
+```bash
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-table-criteria.json"
+```
+
+#### Features
+
+- Integrated filtering, sorting, and pagination
+- Search functionality with debouncing
+- Column visibility toggle
+- Export to CSV/Excel
+- Mobile responsive
+- Customizable action bar
+
+#### Basic Usage
+
+```tsx
+import { useCriteriaTable } from "@/hooks/use-criteria-table";
+import { DataTableCriteria } from "@/components/data-table-criteria/data-table-criteria";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { QueryFilter } from "@/lib/filter-utils";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+const columns: ColumnDef<User>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "age",
+    header: "Age",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+  },
+];
+
+const filterFields: QueryFilter[] = [
+  { field: "name", fieldLabel: "Name", type: "string" },
+  { field: "age", fieldLabel: "Age", type: "number" },
+  {
+    field: "status",
+    fieldLabel: "Status",
+    type: "string",
+    multiSelect: true,
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Inactive", value: "inactive" },
+    ],
+  },
+];
+
+function UserTable() {
+  const { table, data, isLoading, filterProps, searchProps } =
+    useCriteriaTable<User>({
+      columns,
+      filterFields,
+      queryKey: ["users"],
+      queryFn: getUsers,
+      criteriaOptions: {
+        pageSize: 10,
+        syncWithUrl: true,
+      },
+    });
+
+  return (
+    <DataTableCriteria
+      table={table}
+      data={data}
+      isLoading={isLoading}
+      filterProps={filterProps}
+      searchProps={searchProps}
+      searchPlaceholder="Search users..."
+      emptyMessage="No users found."
+    />
+  );
+}
+```
+
+---
+
+### Timeline with Infinite Scroll
+
+A timeline component with date-based grouping and infinite scroll support.
+
+#### Installation
+
+```bash
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/user-timeline.json"
+```
+
+#### Features
+
+- Infinite scroll with React Query
+- Automatic date grouping (hour/day/week/month/year)
+- Relative time labels ("Today", "Yesterday", etc.)
+- Integrated search and filtering
+- Customizable event rendering
+- Timeline layout options (default or horizontal sidebar)
+
+#### Basic Usage
+
+```tsx
+import { useCriteriaTimeline } from "@/hooks/use-criteria-timeline";
+import { DataTimelineCriteria } from "@/components/data-timeline-criteria/data-timeline-criteria";
+import type { QueryFilter } from "@/lib/filter-utils";
+
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  type: "create" | "update" | "delete";
+}
+
+const filterFields: QueryFilter[] = [
+  {
+    field: "type",
+    fieldLabel: "Type",
+    type: "string",
+    options: [
+      { label: "Created", value: "create" },
+      { label: "Updated", value: "update" },
+      { label: "Deleted", value: "delete" },
+    ],
+  },
+];
+
+function ActivityTimeline() {
+  const timeline = useCriteriaTimeline<Activity>(
+    ["activities"],
+    getActivities,
+    {
+      dateField: "createdAt",
+      groupBy: "day",
+      filterFields,
+      pageSize: 20,
+    }
+  );
+
+  return (
+    <DataTimelineCriteria
+      timeline={timeline}
+      renderEvent={(activity) => (
+        <div className="space-y-1">
+          <h3 className="font-semibold">{activity.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {activity.description}
+          </p>
+        </div>
+      )}
+      toolbarLayout="default" // or "none" for no toolbar
+    />
+  );
+}
+```
+
+#### Timeline Options
+
+```tsx
+interface UseCriteriaTimelineOptions<T> {
+  // Required
+  dateField: FieldPath<T>; // Field to group by
+
+  // Grouping
+  groupBy?: "hour" | "day" | "week" | "month" | "year"; // Default: "day"
+  sortDirection?: "asc" | "desc"; // Default: "desc"
+
+  // Filter configuration
+  filterFields?: QueryFilter[];
+
+  // Search
+  searchDebounceMs?: number; // Default: 300
+
+  // React Query options
+  pageSize?: number;
+  enabled?: boolean;
+  staleTime?: number;
+  gcTime?: number;
+}
+```
+
+#### Toolbar Layouts
+
+```tsx
+// Default layout - toolbar on top
+<DataTimelineCriteria
+  timeline={timeline}
+  renderEvent={renderEvent}
+  toolbarLayout="default"
+/>
+
+// No toolbar - pure timeline
+<DataTimelineCriteria
+  timeline={timeline}
+  renderEvent={renderEvent}
+  toolbarLayout="none"
+/>
+```
+
+---
+
+### Infinite Query Hook
+
+A specialized hook for infinite scroll patterns using React Query's `useInfiniteQuery`.
+
+#### Usage
+
+```tsx
+import { useCriteriaInfiniteQuery } from "@/hooks/use-criteria-infinite-query";
+
+function InfiniteList() {
+  const {
+    data, // All accumulated data
+    pages, // Array of page results
+    meta, // Last page metadata
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    // ... all useCriteria methods
+  } = useCriteriaInfiniteQuery<User>(
+    ["users"],
+    getUsers,
+    {
+      pageSize: 20,
+      enabled: true,
+    }
+  );
+
+  return (
+    <div>
+      {data.map((user) => (
+        <UserCard key={user.id} user={user} />
+      ))}
+
+      {hasNextPage && (
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? "Loading..." : "Load More"}
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+#### Features
+
+- Automatic page accumulation
+- Built-in loading states
+- Proper TypeScript types
+- All `useCriteria` methods available
+- Seamless React Query integration
+
+---
+
+## Component Comparison
+
+| Component | Use Case | Features |
+|-----------|----------|----------|
+| **DataTableCriteria** | Tabular data with sorting/filtering | Pagination, column sorting, filters, search, export |
+| **DataTimelineCriteria** | Chronological events/activities | Date grouping, infinite scroll, relative times |
+| **useCriteriaInfiniteQuery** | Custom infinite scroll implementations | Page accumulation, full criteria control |
+| **useCriteriaTable** | Custom table implementations | TanStack Table integration, criteria sync |
+| **useCriteriaTimeline** | Custom timeline implementations | Date grouping logic, infinite scroll |
+
+---
+
+## Best Practices
+
+### Performance
+
+1. **Debounce search inputs** - The hooks include built-in debouncing (default 300ms)
+2. **Use React Query staleTime** - Reduce unnecessary refetches
+3. **Implement proper loading states** - Show skeletons during data fetch
+4. **Virtualize long lists** - For very large datasets, consider virtual scrolling
+
+### State Management
+
+1. **URL Sync for shareable views** - Enable `syncWithUrl` for bookmarkable filtered states
+2. **localStorage for user preferences** - Use `persistKey` for filter persistence
+3. **Server-side filtering** - Always filter on the backend, not client-side
+
+### Accessibility
+
+1. **Use semantic HTML** - Tables should use `<table>`, lists use `<ul>`/`<ol>`
+2. **Keyboard navigation** - All interactive elements should be keyboard accessible
+3. **ARIA labels** - Provide descriptive labels for screen readers
+4. **Loading states** - Announce loading states to assistive technologies
+
+### Type Safety
+
+```tsx
+// Define your entity types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// Use generic types throughout
+const criteria = useCriteria<User>();
+const table = useCriteriaTable<User>({ ... });
+const timeline = useCriteriaTimeline<User>(...);
+
+// TypeScript will ensure field names are valid
+criteria.addFilter("name", "equals", "John"); // ✅
+criteria.addFilter("invalidField", "equals", "value"); // ❌ Type error
+```
+
+---
+
+## Advanced Patterns
+
+### Multi-step Filtering
+
+```tsx
+// Create saved filter presets
+const filterPresets = {
+  activeUsers: [
+    { field: "status", operator: "equals", value: "active" },
+    { field: "verified", operator: "equals", value: true },
+  ],
+  recentlyCreated: [
+    {
+      field: "createdAt",
+      operator: "greaterThan",
+      value: subDays(new Date(), 7).toISOString(),
+    },
+  ],
+};
+
+// Apply presets
+function applyPreset(presetName: keyof typeof filterPresets) {
+  clearFilters();
+  filterPresets[presetName].forEach((filter) => {
+    addFilter(filter.field, filter.operator, filter.value);
+  });
+}
+```
+
+### Custom Date Grouping
+
+```tsx
+// Custom timeline grouping logic
+const timeline = useCriteriaTimeline<Event>(
+  ["events"],
+  getEvents,
+  {
+    dateField: "occurredAt",
+    groupBy: "week", // Group by week
+    sortDirection: "desc", // Newest first
+  }
+);
+
+// Access grouped data
+timeline.groupedData.forEach((group) => {
+  console.log(group.label); // "Week of January 1, 2024"
+  console.log(group.relativeLabel); // "This Week"
+  console.log(group.items); // Events in this week
+});
+```
+
+### Conditional Filtering
+
+```tsx
+// Add filters based on user permissions
+const criteria = useCriteria<Document>({
+  initialFilters: userRole === "admin"
+    ? [] // Admins see everything
+    : [{ field: "userId", operator: "equals", value: currentUserId }],
+});
+```
