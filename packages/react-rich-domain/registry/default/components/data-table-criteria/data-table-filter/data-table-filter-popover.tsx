@@ -20,6 +20,7 @@ import {
 import {
   type FieldPath,
   type Filter,
+  type FilterOperator,
   type FilterValueFor,
   type OperatorsForType,
   isValidOperatorForType,
@@ -86,14 +87,52 @@ export function DataTableFilterPopover({
     setSelectedFieldForAdd(field);
     const defaultOp = getDefaultOperator(field.type);
     setTempOperator(defaultOp);
+
+    const defaultDateRange = [
+      new Date().toISOString(),
+      new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+    ];
+
     const defaultValue = operatorIsBetween(defaultOp)
       ? field.type === "number"
         ? [0, 0]
+        : field.type === "date"
+        ? defaultDateRange
         : ["", ""]
       : defineDefaultFilterValue(field.type, defaultOp);
+
+    console.log("defaultValue", defaultValue);
     setTempValue(defaultValue);
     setSearch("");
     setAddFilterStep("value");
+  };
+
+  const onSelectOperator = (op: FilterOperator) => {
+    if (!selectedFieldForAdd) return;
+
+    const defaultDateRange = [
+      new Date().toISOString(),
+      new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+    ];
+    const defaultValue =
+      selectedFieldForAdd.type === "date"
+        ? defaultDateRange
+        : selectedFieldForAdd.type === "number"
+        ? [0, 0]
+        : ["", ""];
+
+    const prevOperatorIsBetween = operatorIsBetween(tempOperator);
+    const newOperatorIsBetween = operatorIsBetween(op);
+
+    setTempOperator(op);
+
+    if (!operatorRequiresValue(op)) {
+      setTempValue(null);
+    } else if (!prevOperatorIsBetween && newOperatorIsBetween) {
+      setTempValue(defaultValue);
+    } else if (prevOperatorIsBetween && !newOperatorIsBetween) {
+      setTempValue(defineDefaultFilterValue(selectedFieldForAdd.type, op));
+    }
   };
 
   const handleConfirmAddFilter = () => {
@@ -204,35 +243,7 @@ export function DataTableFilterPopover({
                     type={selectedFieldForAdd.type}
                     isNullable={selectedFieldForAdd.isNullable}
                     selectedOperator={tempOperator}
-                    onSelect={(op) => {
-                      const prevOperatorIsBetween =
-                        operatorIsBetween(tempOperator);
-                      const newOperatorIsBetween = operatorIsBetween(op);
-
-                      setTempOperator(op);
-
-                      if (!operatorRequiresValue(op)) {
-                        setTempValue(null);
-                      } else if (
-                        !prevOperatorIsBetween &&
-                        newOperatorIsBetween
-                      ) {
-                        // Switching to between operator
-                        setTempValue(
-                          selectedFieldForAdd.type === "number"
-                            ? [0, 0]
-                            : ["", ""]
-                        );
-                      } else if (
-                        prevOperatorIsBetween &&
-                        !newOperatorIsBetween
-                      ) {
-                        // Switching from between operator
-                        setTempValue(
-                          defineDefaultFilterValue(selectedFieldForAdd.type, op)
-                        );
-                      }
-                    }}
+                    onSelect={onSelectOperator}
                   />
                 </div>
 
