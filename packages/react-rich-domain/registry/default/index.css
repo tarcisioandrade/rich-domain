@@ -10,8 +10,8 @@
   --card-foreground: hsl(223.8136 0% 3.9388%);
   --popover: hsl(223.8136 -172.5242% 100%);
   --popover-foreground: hsl(223.8136 0% 3.9388%);
-  --primary: hsl(223.8136 0% 9.0527%);
-  --primary-foreground: hsl(223.8136 0.0004% 98.0256%);
+  --primary: hsl(262 80% 55%);
+  --primary-foreground: hsl(0 0% 100%);
   --secondary: hsl(223.8136 0.0002% 96.0587%);
   --secondary-foreground: hsl(223.8136 0% 9.0527%);
   --muted: hsl(223.8136 0.0002% 96.0587%);
@@ -72,8 +72,8 @@
   --card-foreground: hsl(223.8136 0.0004% 98.0256%);
   --popover: hsl(223.8136 0% 14.9382%);
   --popover-foreground: hsl(223.8136 0.0004% 98.0256%);
-  --primary: hsl(223.8136 0.0001% 89.8161%);
-  --primary-foreground: hsl(223.8136 0% 9.0527%);
+  --primary: hsl(262 80% 55%);
+  --primary-foreground: hsl(0 0% 100%);
   --secondary: hsl(223.8136 0% 14.9382%);
   --secondary-foreground: hsl(223.8136 0.0004% 98.0256%);
   --muted: hsl(223.8136 0% 14.9382%);
@@ -184,5 +184,43 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* Smooth scrolling */
+  .scroll-smooth {
+    scroll-behavior: smooth;
   }
 }

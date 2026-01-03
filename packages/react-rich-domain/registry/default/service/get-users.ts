@@ -21,8 +21,6 @@ export async function getUsers(
     const data = (await response) as TestUser[];
     const result = PaginatedResult.fromArray<TestUser>(data, criteria);
 
-    console.log("criteria", criteria.toJSON());
-    console.log("result", result.toJSON());
     return result.toJSON();
   } catch (error) {
     console.error(error);

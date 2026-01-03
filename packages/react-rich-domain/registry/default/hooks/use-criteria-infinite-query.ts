@@ -115,10 +115,14 @@ export function useCriteriaInfiniteQuery<TData, TError = Error>(
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       const pageCriteria = criteria.clone();
       pageCriteria.paginate(pageParam, criteria.getPagination().limit);
-      return fetcher(pageCriteria);
+      const result = await fetcher(pageCriteria);
+      return result;
     },
     getNextPageParam: (lastPage: PaginatedJsonResult<TData>) => {
-      return lastPage.meta.hasNext ? lastPage.meta.page + 1 : undefined;
+      const nextPage = lastPage.meta.hasNext
+        ? lastPage.meta.page + 1
+        : undefined;
+      return nextPage;
     },
     initialPageParam: 1,
     enabled: options?.enabled,
