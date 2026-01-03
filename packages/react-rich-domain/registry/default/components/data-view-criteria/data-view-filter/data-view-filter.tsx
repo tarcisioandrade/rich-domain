@@ -1,6 +1,5 @@
 "use client";
 
-import type { FilterIntegrationProps } from "@/types/use-criteria-table.type";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,29 @@ import { Filter as FilterIcon } from "lucide-react";
 import { DataViewFilterPopover } from "./data-view-filter-popover";
 import { DataViewFilterRow } from "./data-view-filter-row";
 import { Badge } from "@/components/ui/badge";
+import type { QueryFilter } from "@/lib/filter-utils";
+import type { UseCriteriaReturn } from "@/types/use-criteria.type";
+
+/**
+ * Props for Filter component integration
+ */
+export interface FilterIntegrationProps {
+  fields: QueryFilter[];
+  filters: UseCriteriaReturn<unknown>["filters"];
+  addOrReplaceByIndex: UseCriteriaReturn<unknown>["addOrReplaceByIndex"];
+  removeFilter: UseCriteriaReturn<unknown>["removeFilter"];
+  clearFilters: UseCriteriaReturn<unknown>["clearFilters"];
+}
+
+/**
+ * Props for Search integration
+ */
+export interface SearchIntegrationProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder?: string;
+  showSearch: boolean;
+}
 
 export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
   const filtersCount = filters.length;
@@ -23,7 +45,7 @@ export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
           <FilterIcon className="h-4 w-4" />
           Filter
           {hasFilters && (
-            <Badge className="absolute -top-2.5 -right-2.5">
+            <Badge className="absolute -top-2 size-4 -right-2 text-[10px]">
               {filtersCount}
             </Badge>
           )}

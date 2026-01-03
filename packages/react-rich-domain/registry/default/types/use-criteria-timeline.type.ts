@@ -1,11 +1,10 @@
 import type { FieldPath } from "@woltz/rich-domain";
+import type { UseCriteriaQueryReturn } from "../hooks/use-criteria-query";
+import type { UseCriteriaInfiniteQueryOptions } from "../hooks/use-criteria-infinite-query";
 import type {
-  UseCriteriaQueryReturn,
-} from "../hooks/use-criteria-query";
-import type {
-  UseCriteriaInfiniteQueryOptions,
-} from "../hooks/use-criteria-infinite-query";
-import type { FilterIntegrationProps, SearchIntegrationProps } from "./use-criteria-table.type";
+  FilterIntegrationProps,
+  SearchIntegrationProps,
+} from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 import type { QueryFilter } from "../lib/filter-utils";
 
 /**

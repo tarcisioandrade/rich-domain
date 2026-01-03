@@ -31,7 +31,6 @@ import {
   isThisYear,
 } from "date-fns";
 
-
 function getStartOfPeriod(date: Date, groupBy: TimelineGroupBy): Date {
   switch (groupBy) {
     case "hour":
@@ -47,7 +46,6 @@ function getStartOfPeriod(date: Date, groupBy: TimelineGroupBy): Date {
   }
 }
 
-
 function formatGroupLabel(date: Date, groupBy: TimelineGroupBy): string {
   switch (groupBy) {
     case "hour":
@@ -62,7 +60,6 @@ function formatGroupLabel(date: Date, groupBy: TimelineGroupBy): string {
       return format(date, "yyyy");
   }
 }
-
 
 function getRelativeLabel(date: Date, groupBy: TimelineGroupBy): string {
   if (groupBy === "hour") {
@@ -164,7 +161,7 @@ export function useCriteriaTimeline<T>(
     groupBy = "day",
     sortDirection = "desc",
     filterFields = [],
-    searchDebounceMs = 300,
+    searchDebounceMs = 500,
     ...queryOptions
   } = options;
 

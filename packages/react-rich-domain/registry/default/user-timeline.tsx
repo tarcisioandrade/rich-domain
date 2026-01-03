@@ -48,9 +48,10 @@ export function UserTimeline() {
     getUsers,
     {
       dateField: "createdAt",
-      groupBy: "day",
+      groupBy: "year",
       sortDirection: "desc",
       filterFields,
+      syncWithUrl: true,
     }
   );
 
@@ -79,7 +80,8 @@ export function UserTimeline() {
                       <Badge variant="default" className="text-xs">
                         Active
                       </Badge>
-                    )}
+                    )}{" "}
+                    {user.age}
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2">
                     <Mail className="h-3 w-3" />
