@@ -18,6 +18,10 @@ keywords: ["react","hooks","frontend","ui","components","integration","typescrip
   Pre-built UI component for building dynamic filter interfaces
 </Card>
 
+<Card title="Sorting Component" icon="arrow-down-a-z">
+  Drag-and-drop sorting component with multi-level support
+</Card>
+
 <Card title="URL Sync" icon="link">
   Automatic synchronization with URL query parameters
 </Card>
@@ -40,25 +44,35 @@ npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-ric
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
 ```
 
+```bash
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/sorting.json"
+```
+
 ### What Gets Installed
 
 ```
 src/
 ├── hooks/
-│   └── use-criteria.ts          # The main hook
+│   ├── use-criteria.ts          # The main hook
+│   └── use-sorting-adapter.ts   # Sorting adapter hook
 ├── types/
 │   └── use-criteria.type.ts     # TypeScript types
 ├── utils/
 │   └── persistence.ts           # URL and localStorage utilities
 ├── components/
-│   └── filter/
-│       ├── filter.tsx           # Main Filter component
-│       ├── filter-row.tsx       # Individual filter row
-│       ├── filter-field-selector.tsx
-│       ├── filter-operator-selector.tsx
-│       ├── filter-value-selector.tsx
-│       ├── filter-date-value.tsx
-│       └── filter-boolean-value.tsx
+│   ├── filter/
+│   │   ├── filter.tsx           # Main Filter component
+│   │   ├── filter-row.tsx       # Individual filter row
+│   │   ├── filter-field-selector.tsx
+│   │   ├── filter-operator-selector.tsx
+│   │   ├── filter-value-selector.tsx
+│   │   ├── filter-date-value.tsx
+│   │   └── filter-boolean-value.tsx
+│   ├── sorting.tsx              # Main Sorting component
+│   └── sorting/
+│       ├── sorting-popover.tsx  # Add sort popover
+│       ├── sorting-list.tsx     # Sortable list with DnD
+│       └── sorting-row.tsx      # Individual sort item
 └── lib/
     └── filter-utils.ts          # Filter utilities
 ```
@@ -433,6 +447,158 @@ const userFields: QueryFilter[] = [
     ],
   },
 ];
+```
+
+---
+
+## Sorting Component
+
+A pre-built sorting UI component with drag-and-drop support for reordering sort priority.
+
+### Installation
+
+```bash
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/sorting.json"
+```
+
+### Basic Usage
+
+```tsx
+import { useCriteria } from "@/hooks/use-criteria";
+import { Sorting } from "@/components/sorting";
+import type { SortingField } from "@/components/sorting";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  createdAt: Date;
+}
+
+// Define sortable fields
+const sortingFields: SortingField[] = [
+  { field: "name", fieldLabel: "Name" },
+  { field: "email", fieldLabel: "Email" },
+  { field: "age", fieldLabel: "Age" },
+  { field: "createdAt", fieldLabel: "Created At" },
+];
+
+function UserSorting() {
+  const criteria = useCriteria<User>({
+    initialSort: [{ field: "name", direction: "asc" }],
+  });
+
+  return <Sorting fields={sortingFields} criteria={criteria} />;
+}
+```
+
+### SortingField Type
+
+```tsx
+interface SortingField {
+  // Field path in the entity (e.g., "name", "profile.bio")
+  field: string;
+
+  // Display label for the field
+  fieldLabel: string;
+}
+```
+
+### Features
+
+- **One-click add**: Click a field to add it with default "asc" direction
+- **Drag-and-drop reordering**: Change sort priority by dragging items
+- **Toggle direction**: Click the direction button to switch between ascending/descending
+- **Remove sorts**: Individual remove buttons for each sort
+- **Clear all**: One button to clear all sorting
+- **Duplicate prevention**: Automatically prevents duplicate fields
+
+### Drag-and-Drop Sorting
+
+The Sorting component uses [@dnd-kit](https://dndkit.com/) for smooth drag-and-drop interactions:
+
+```tsx
+import { Sorting } from "@/components/sorting";
+
+function ProductTable() {
+  const criteria = useCriteria<Product>({
+    initialSort: [
+      { field: "price", direction: "desc" },
+      { field: "name", direction: "asc" },
+    ],
+  });
+
+  return (
+    <div>
+      <Sorting
+        fields={[
+          { field: "name", fieldLabel: "Name" },
+          { field: "price", fieldLabel: "Price" },
+          { field: "stock", fieldLabel: "Stock" },
+          { field: "createdAt", fieldLabel: "Created" },
+        ]}
+        criteria={criteria}
+      />
+
+      {/* Your table or list */}
+    </div>
+  );
+}
+```
+
+### Multi-level Sorting
+
+The order of sorts matters - the first sort is applied first, then the second, and so on:
+
+```tsx
+// Sort by status first, then by name within each status
+const criteria = useCriteria<User>({
+  initialSort: [
+    { field: "status", direction: "asc" },
+    { field: "name", direction: "asc" },
+  ],
+});
+
+// Users will be grouped by status (active, inactive, pending)
+// Within each status group, they'll be sorted alphabetically by name
+```
+
+### With Data Table
+
+Combine Sorting with data tables for a complete solution:
+
+```tsx
+import { useCriteria } from "@/hooks/use-criteria";
+import { Sorting } from "@/components/sorting";
+import { Filter } from "@/components/filter/filter";
+
+function UserManagement() {
+  const criteria = useCriteria<User>({
+    pageSize: 10,
+    syncWithUrl: true,
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar with Filter and Sorting */}
+      <div className="flex gap-2">
+        <Filter
+          fields={filterFields}
+          filters={criteria.filters}
+          addOrReplaceByIndex={criteria.addOrReplaceByIndex}
+          removeFilter={criteria.removeFilter}
+          clearFilters={criteria.clearFilters}
+        />
+
+        <Sorting fields={sortingFields} criteria={criteria} />
+      </div>
+
+      {/* Your table */}
+      <DataTable data={data} sorting={criteria.sorting} />
+    </div>
+  );
+}
 ```
 
 ---
