@@ -23,6 +23,33 @@ import {
   syncCriteriaWithUrl,
 } from "../utils/persistence";
 
+function applyInitials<T>(
+  criteria: Criteria<T>,
+  initialFilters: Filter<string, unknown>[],
+  initialSort: Order[],
+  initialSearch?: Search
+) {
+  if (!criteria.hasFilters() && initialFilters.length > 0) {
+    initialFilters.forEach((filter) => {
+      criteria.where(
+        filter.field as FieldPath<T>,
+        filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
+        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+      );
+    });
+  }
+
+  if (!criteria.hasOrders() && initialSort.length > 0) {
+    initialSort.forEach((sort) => {
+      criteria.orderBy(sort.field as FieldPath<T>, sort.direction);
+    });
+  }
+
+  if (!criteria.hasSearch() && initialSearch) {
+    criteria.search(initialSearch);
+  }
+}
+
 export function useCriteria<T = unknown>(
   options: UseCriteriaOptions<T> = {}
 ): UseCriteriaReturn<T> {
@@ -75,12 +102,24 @@ export function useCriteria<T = unknown>(
   const createInitialCriteria = useCallback((): Criteria<T> => {
     if (syncWithUrl) {
       const fromUrl = loadCriteriaFromUrl<T>();
-      if (fromUrl) return fromUrl;
+
+      if (fromUrl) {
+        applyInitials<T>(fromUrl, initialFilters, initialSort, initialSearch);
+        return fromUrl;
+      }
     }
 
     if (persistKey) {
       const fromStorage = loadCriteriaFromStorage<T>(persistKey);
-      if (fromStorage) return fromStorage;
+      if (fromStorage) {
+        applyInitials<T>(
+          fromStorage,
+          initialFilters,
+          initialSort,
+          initialSearch
+        );
+        return fromStorage;
+      }
     }
 
     const criteria = Criteria.create<T>().paginate(initialPage, pageSize);
@@ -259,7 +298,16 @@ export function useCriteria<T = unknown>(
   const addSort = useCallback(
     (field: FieldPath<T>, direction: OrderDirection = "asc") => {
       setCriteria((prev) => {
-        const newOrders = [{ field: String(field), direction }];
+        const currentOrders = prev.getOrders();
+        let newOrders: Order[] = [{ field: String(field), direction }];
+
+        const existingIndex = currentOrders.findIndex((o) => o.field === field);
+        if (existingIndex !== -1) {
+          newOrders = [...currentOrders];
+          newOrders[existingIndex] = { field: String(field), direction };
+        } else {
+          newOrders = [...currentOrders, { field: String(field), direction }];
+        }
 
         return buildCriteria({
           filters: prev.getFilters(),
@@ -444,6 +492,10 @@ export function useCriteria<T = unknown>(
 
   const clone = useCallback(() => criteria.clone(), [criteria]);
 
+  const clearAll = useCallback(() => {
+    setCriteria(Criteria.create<T>());
+  }, []);
+
   return {
     criteria,
     addOrReplaceByIndex,
@@ -470,5 +522,6 @@ export function useCriteria<T = unknown>(
     reset,
     toJSON,
     clone,
+    clearAll,
   };
 }

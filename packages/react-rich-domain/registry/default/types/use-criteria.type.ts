@@ -197,4 +197,9 @@ export interface UseCriteriaReturn<T> {
    * Clone current criteria
    */
   clone: () => Criteria<T>;
+
+  /**
+   * Clear all criteria
+   */
+  clearAll: () => void;
 }

@@ -5,14 +5,22 @@ import { ToggleTheme } from "./components/toggle-theme";
 import { UserListCriteria } from "./user-list-criteria";
 import { UserTimeline } from "./user-timeline";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
-import { Table, Clock } from "lucide-react";
+import { Table, Clock, SortAsc, Filter } from "lucide-react";
+import { SortingExample } from "./components/sorting/sorting-example";
+import { useCriteria } from "./hooks/use-criteria";
+import { FilterExample } from "./components/filter/filter-example";
 
 const queryClient = new QueryClient();
 
-type DemoTab = "table" | "timeline";
+type DemoTab = "table" | "timeline" | "sorting" | "filter";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<DemoTab>("timeline");
+  const { clearAll } = useCriteria({ syncWithUrl: true });
+  const defaultTab =
+    (window.location.hash as DemoTab | undefined) || "#timeline";
+  const [activeTab, setActiveTab] = useState<DemoTab>(
+    defaultTab.replace("#", "") as DemoTab
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -37,9 +45,13 @@ export default function App() {
           <main className="container mx-auto py-6">
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as DemoTab)}
+              onValueChange={(v) => {
+                clearAll();
+                setActiveTab(v as DemoTab);
+                window.history.pushState(null, "", `#${v}`);
+              }}
             >
-              <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsList className="grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="table" className="gap-2">
                   <Table className="h-4 w-4" />
                   Data Table
@@ -47,6 +59,14 @@ export default function App() {
                 <TabsTrigger value="timeline" className="gap-2">
                   <Clock className="h-4 w-4" />
                   Timeline
+                </TabsTrigger>
+                <TabsTrigger value="sorting" className="gap-2">
+                  <SortAsc className="h-4 w-4" />
+                  Sorting
+                </TabsTrigger>
+                <TabsTrigger value="filter" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filter
                 </TabsTrigger>
               </TabsList>
 
@@ -78,6 +98,12 @@ export default function App() {
                     </div>
                     <UserTimeline />
                   </div>
+                </TabsContent>
+                <TabsContent value="sorting" className="mt-0">
+                  <SortingExample />
+                </TabsContent>
+                <TabsContent value="filter" className="mt-0">
+                  <FilterExample />
                 </TabsContent>
               </div>
             </Tabs>

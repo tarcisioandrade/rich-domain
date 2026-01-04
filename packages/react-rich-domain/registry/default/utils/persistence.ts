@@ -67,10 +67,10 @@ export function criteriaToQueryParams<T>(
   }
 
   if (json.orders && json.orders.length > 0) {
-    const sortValue = json.orders
-      .map((order) => `${order.field}:${order.direction}`)
-      .join(",");
-    params.set("orderBy", sortValue);
+    const sortValue = json.orders.map(
+      (order) => `${order.field}:${order.direction}`
+    );
+    params.set("orderBy", JSON.stringify(sortValue));
   }
 
   if (json.search) {

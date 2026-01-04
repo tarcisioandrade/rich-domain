@@ -288,6 +288,59 @@
           "target": "~/src/hooks/use-criteria-timeline.ts"
         }
       ]
+    },
+    {
+      "name": "sorting",
+      "type": "registry:block",
+      "title": "Sorting",
+      "description": "A component to sort data using use-criteria hook from @woltz/react-rich-domain with drag-and-drop support.",
+      "dependencies": [
+        "@woltz/rich-domain",
+        "@dnd-kit/core",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities"
+      ],
+      "registryDependencies": [
+        "@shadcn/button",
+        "@shadcn/badge",
+        "@shadcn/dropdown-menu",
+        "@shadcn/input",
+        "@shadcn/popover",
+        "@shadcn/select",
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/components/sorting/sorting.tsx",
+          "type": "registry:component",
+          "description": "Main sorting component",
+          "target": "~/src/components/sorting/sorting.tsx"
+        },
+        {
+          "path": "registry/default/components/sorting/sorting-popover.tsx",
+          "type": "registry:component",
+          "description": "Sorting popover to add new sorts",
+          "target": "~/src/components/sorting/sorting-popover.tsx"
+        },
+        {
+          "path": "registry/default/components/sorting/sorting-list.tsx",
+          "type": "registry:component",
+          "description": "Sorting list with drag-and-drop",
+          "target": "~/src/components/sorting/sorting-list.tsx"
+        },
+        {
+          "path": "registry/default/components/sorting/sorting-row.tsx",
+          "type": "registry:component",
+          "description": "Sorting row item",
+          "target": "~/src/components/sorting/sorting-row.tsx"
+        },
+        {
+          "path": "registry/default/hooks/use-sorting-adapter.ts",
+          "type": "registry:hook",
+          "description": "A hook to adapt sorting operations for the Sorting component",
+          "target": "~/src/hooks/use-sorting-adapter.ts"
+        }
+      ]
     }
   ]
 }

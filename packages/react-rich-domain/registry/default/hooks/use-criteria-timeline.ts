@@ -177,7 +177,9 @@ export function useCriteriaTimeline<T>(
     ) {
       queryResult.addSort(dateField, sortDirection);
     }
-  }, [dateField, sortDirection, queryResult]);
+    // Do not have sorting button so we don't need to re-add the sort when the sorting changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateField, sortDirection]);
 
   const groupedData = useMemo(() => {
     return groupDataByTime(queryResult.data, dateField, groupBy);
