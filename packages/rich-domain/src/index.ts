@@ -24,11 +24,12 @@ export {
   Mapper,
   UnitOfWork,
   PaginatedResult,
+  type PaginatedJsonResult,
   ReadRepository,
   WriteAndRead,
   WriteRepository,
   BaseTransactionContext,
-  EntitySchemaRegistry
+  EntitySchemaRegistry,
 } from "./repository/index.js";
 export type {
   EntityHooks,
@@ -59,4 +60,3 @@ export type {
   CriteriaOptions,
   IDomainEventBus,
 } from "./types/index.js";
-
