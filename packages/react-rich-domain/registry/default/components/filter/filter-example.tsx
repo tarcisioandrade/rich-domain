@@ -14,8 +14,8 @@ interface User {
   isVerified: boolean;
 }
 
-export function UserFilterExample() {
-  const { filters, addOrReplaceByIndex, removeFilter, clearFilters } =
+export function FilterExample() {
+  const { filters, addOrReplaceByIndex, removeFilter, clearFilters, criteria } =
     useCriteria<User>({
       syncWithUrl: true,
     });
@@ -72,10 +72,15 @@ export function UserFilterExample() {
       />
 
       {/* Display current filters for debugging */}
-      <div className="mt-4">
-        <h3 className="text-sm font-medium">Current Filters:</h3>
-        <pre className="mt-2 rounded-md bg-slate-950 p-4 text-sm">
-          {JSON.stringify(filters, null, 2)}
+      <div className="p-4 border rounded-md">
+        <h3 className="font-semibold mb-2">Current Filters:</h3>
+        <pre className="text-sm">{JSON.stringify(filters, null, 2)}</pre>
+      </div>
+
+      <div className="p-4 border rounded-md">
+        <h3 className="font-semibold mb-2">Criteria JSON:</h3>
+        <pre className="text-sm">
+          {JSON.stringify(criteria.toJSON(), null, 2)}
         </pre>
       </div>
     </div>

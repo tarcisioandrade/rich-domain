@@ -47,8 +47,8 @@ export type FilterValue = {
 
 export type OperatorLabels = Record<FilterOperator, string>;
 export const OPERATOR_LABELS: OperatorLabels = {
-  equals: "is",
-  notEquals: "is not",
+  equals: "equals",
+  notEquals: "not equals",
   contains: "contains",
   startsWith: "starts with",
   endsWith: "ends with",

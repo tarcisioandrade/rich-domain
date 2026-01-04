@@ -99,24 +99,15 @@ export function DataTimelineCriteria<T>({
   });
 
   useEffect(() => {
-    console.log("[Timeline] useEffect triggered:", {
-      inView,
-      hasMore,
-      isLoadingMore,
-      isFetching: isFetchingRef.current,
-    });
-
     if (inView && hasMore && !isLoadingMore && !isFetchingRef.current) {
-      console.log("[Timeline] Calling loadMore()");
       isFetchingRef.current = true;
       loadMore();
     }
   }, [inView, hasMore, isLoadingMore, loadMore]);
-
+  
   // Reset the fetching ref when element goes out of view
   useEffect(() => {
     if (!inView && !isLoadingMore) {
-      console.log("[Timeline] Element out of view, resetting fetch lock");
       isFetchingRef.current = false;
     }
   }, [inView, isLoadingMore]);

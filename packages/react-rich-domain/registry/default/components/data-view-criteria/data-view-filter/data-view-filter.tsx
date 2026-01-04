@@ -45,7 +45,7 @@ export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
           <FilterIcon className="h-4 w-4" />
           Filter
           {hasFilters && (
-            <Badge className="absolute -top-2 size-4 -right-2 text-[10px]">
+            <Badge className="text-[10px] rounded bg-secondary size-[18px] text-foreground">
               {filtersCount}
             </Badge>
           )}
