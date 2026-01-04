@@ -1,7 +1,12 @@
-import { Id } from "./id.js";
-import type { Criteria } from "./criteria.js";
-import type { Pagination, PaginationMeta, Filter, DeepJsonResult } from "./types/index.js";
-import { ValueObject } from "./value-object.js";
+import { Id } from "../core/id.js";
+import { ValueObject } from "../core/value-object.js";
+import type { Criteria } from "../criteria.js";
+import type {
+  Pagination,
+  PaginationMeta,
+  Filter,
+  DeepJsonResult,
+} from "../types/index.js";
 
 /**
  * Type for the serialized result of PaginatedResult.toJSON()
@@ -166,7 +171,7 @@ function applyFilter<T>(item: T, filter: Filter): boolean {
 
   const isValueDate = value instanceof Date;
 
-  const parseValue = (v: any) => {
+  const parseValue = (v: any): Date => {
     if (isValueDate && typeof v === "string") return new Date(v);
     if (isValueDate && typeof v === "number") return new Date(v);
     return v;

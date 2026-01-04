@@ -1,6 +1,4 @@
-import { Id } from "./id.js";
-import { ValidationError } from "./validation-error.js";
-import { IDomainEvent, ValueObject } from ".";
+import { ValidationError } from "../validation-error.js";
 import {
   BaseProps,
   HistoryEntry,
@@ -10,11 +8,11 @@ import {
   StandardSchema,
   EntityValidation,
   IDomainEventBus,
-} from "./types/index.js";
-import { DEFAULT_VALIDATION_CONFIG } from "./constants.js";
-import { DomainError } from "./exceptions.js";
-import { ChangeTracker } from "./change-tracker.js";
-import { AggregateChanges } from "./aggregate-changes.js";
+  IDomainEvent,
+} from "../types/index.js";
+import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
+import { DomainError } from "../exceptions.js";
+import { ChangeTracker, AggregateChanges, Id, ValueObject } from "./index";
 
 function getStaticProperty<T>(
   instance: any,

@@ -1,4 +1,4 @@
-import { IDomainEvent } from ".";
+import { IDomainEvent } from "..";
 
 /**
  * Base class for domain events

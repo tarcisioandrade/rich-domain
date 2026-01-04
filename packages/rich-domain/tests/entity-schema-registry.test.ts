@@ -1,4 +1,4 @@
-import { EntitySchemaRegistry } from "../src/entity-schema-registry";
+import { EntitySchemaRegistry } from "../src";
 
 describe("EntitySchemaRegistry", () => {
   let registry: EntitySchemaRegistry;

@@ -6,7 +6,7 @@ import {
   BatchOperations,
   BatchCreateItem,
   BatchUpdateItem,
-} from "./types/change-tracker.js";
+} from "../types/change-tracker.js";
 import { EntityChanges } from "./entity-changes.js";
 
 /**

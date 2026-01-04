@@ -1,8 +1,6 @@
-import { Entity } from "./entity.js";
-import { ValueObject } from "./value-object.js";
-import { Id } from "./id.js";
-import { ConfigurationError } from "./exceptions.js";
-import { levenshteinDistance } from "./utils/helpers.js";
+import { Entity, ValueObject, Id } from "../core/index";
+import { ConfigurationError } from "../exceptions.js";
+import { levenshteinDistance } from "../utils/helpers.js";
 
 /**
  * Type of collection relationship.

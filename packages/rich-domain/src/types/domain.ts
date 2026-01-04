@@ -1,4 +1,4 @@
-import { Id } from "../id.js";
+import { Id } from "../core/index";
 import { StandardSchema } from "./standard-schema.js";
 
 export interface BaseProps {

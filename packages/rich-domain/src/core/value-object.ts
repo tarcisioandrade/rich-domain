@@ -1,14 +1,14 @@
-import { ValidationError } from "./validation-error.js";
-import { IDomainEvent } from ".";
+import { ValidationError } from "../validation-error.js";
+import { IDomainEvent } from "../index.js";
 import {
   VOHooks,
   ValidationConfig,
   StandardSchema,
   EntityValidation,
   Primitive,
-} from "./types/index.js";
-import { DEFAULT_VALIDATION_CONFIG } from "./constants.js";
-import { DomainError } from "./exceptions.js";
+} from "../types/index.js";
+import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
+import { DomainError } from "../exceptions.js";
 
 function getStaticProperty<T>(
   instance: any,

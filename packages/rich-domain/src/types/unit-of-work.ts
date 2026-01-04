@@ -1,4 +1,4 @@
-import { Aggregate } from "../entity.js";
+import { Aggregate } from "../core/index";
 import { Repository } from "../repository/base-repository.js";
 
 /**

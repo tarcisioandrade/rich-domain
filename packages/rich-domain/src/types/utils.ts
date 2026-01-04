@@ -1,5 +1,4 @@
-import { Id } from "../id.js";
-import { ValueObject } from "../value-object.js";
+import { Id, ValueObject } from "../core/index";
 
 type JsonPrimitive = string | number | boolean | null;
 

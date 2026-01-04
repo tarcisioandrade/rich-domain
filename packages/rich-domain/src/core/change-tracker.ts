@@ -1,8 +1,8 @@
 import { Id } from "./id.js";
 import { Entity } from "./entity.js";
 import { ValueObject } from "./value-object.js";
-import { ArrayState, HistoryEntry, TrackedItem } from "./types/index.js";
-import { EntityChangeState } from "./types/change-tracker.js";
+import { ArrayState, HistoryEntry, TrackedItem } from "../types/index.js";
+import { EntityChangeState } from "../types/change-tracker.js";
 import { AggregateChanges } from "./aggregate-changes.js";
 
 /**

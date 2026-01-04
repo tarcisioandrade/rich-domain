@@ -1,5 +1,13 @@
-import { Id } from "../src/id";
-import { Post, TagReference, User, Like, Address, Comment, Email } from "./utils";
+import { Id } from "../src/core/index";
+import {
+  Post,
+  TagReference,
+  User,
+  Like,
+  Address,
+  Comment,
+  Email,
+} from "./utils";
 
 function createUser(
   overrides: Partial<{

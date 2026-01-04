@@ -1,5 +1,4 @@
-import { Entity } from "../entity.js";
-import { ValueObject } from "../value-object.js";
+import { Entity, ValueObject } from "../core/index";
 
 /**
  * Base operation with common information.

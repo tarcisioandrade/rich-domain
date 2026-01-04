@@ -1,8 +1,8 @@
+import { FILTER_OPERATORS } from "../index.js";
 import {
   ArrayOperators,
   BooleanOperators,
   DateOperators,
-  FILTER_OPERATORS,
   FilterOperator,
   NumberOperators,
   StringOperators,

@@ -1,4 +1,4 @@
-import UUID from "./crypto.js";
+import UUID from "../utils/crypto.js";
 
 export class Id {
   private readonly _value: string;

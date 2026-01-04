@@ -1,5 +1,4 @@
-import { Entity } from "../../src/entity";
-import { Id } from "../../src/id";
+import { Entity, Id } from "../../src/core/index";
 
 interface Level10Props {
   id: Id;

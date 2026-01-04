@@ -1,16 +1,34 @@
-import { Pagination } from "../src";
+import { Aggregate, Id, Pagination } from "../src";
 import { Criteria } from "../src/criteria";
-import { PaginatedResult } from "../src/paginated-result";
+import { PaginatedResult } from "../src/repository/paginated-result";
 import { CriteriaAdapter } from "../src/types";
 import { Post } from "./utils";
 
-interface TestUser {
-  id: string;
+interface TestUserProps {
+  id: Id;
   name: string;
   email: string;
   age: number;
   status: "active" | "inactive";
   createdAt: Date;
+}
+
+class TestUser extends Aggregate<TestUserProps> {
+  get name() {
+    return this.props.name;
+  }
+  get email() {
+    return this.props.email;
+  }
+  get age() {
+    return this.props.age;
+  }
+  get status() {
+    return this.props.status;
+  }
+  get createdAt() {
+    return this.props.createdAt;
+  }
 }
 
 interface UserWithPostsDto {
@@ -36,46 +54,46 @@ interface UserWithNestedObject {
 }
 
 const testUsers: TestUser[] = [
-  {
-    id: "1",
+  new TestUser({
+    id: Id.from("1"),
     name: "Alice",
     email: "alice@example.com",
     age: 25,
     status: "active",
     createdAt: new Date("2024-01-01"),
-  },
-  {
-    id: "2",
+  }),
+  new TestUser({
+    id: Id.from("2"),
     name: "Bob",
     email: "bob@example.com",
     age: 30,
     status: "active",
     createdAt: new Date("2024-02-01"),
-  },
-  {
-    id: "3",
+  }),
+  new TestUser({
+    id: Id.from("3"),
     name: "Charlie",
     email: "charlie@test.com",
     age: 35,
     status: "inactive",
     createdAt: new Date("2024-03-01"),
-  },
-  {
-    id: "4",
+  }),
+  new TestUser({
+    id: Id.from("4"),
     name: "Diana",
     email: "diana@example.com",
     age: 28,
     status: "active",
     createdAt: new Date("2024-04-01"),
-  },
-  {
-    id: "5",
+  }),
+  new TestUser({
+    id: Id.from("5"),
     name: "Eve",
     email: "eve@test.com",
     age: 22,
     status: "inactive",
     createdAt: new Date("2024-05-01"),
-  },
+  }),
 ];
 
 describe("Criteria", () => {
@@ -195,10 +213,14 @@ describe("Criteria", () => {
     });
 
     it("should filter by between", () => {
-      const criteria = Criteria.create<TestUser>().whereBetween("age", 25, 30);
+      const criteria = Criteria.create<TestUser>().whereBetween(
+        "createdAt",
+        "2024-01-01",
+        "2024-02-01"
+      );
       const result = PaginatedResult.fromArray(testUsers, criteria);
-      expect(result.data).toHaveLength(3);
-      expect(result.data.map((u) => u.name)).toEqual(["Alice", "Bob", "Diana"]);
+      expect(result.data).toHaveLength(2);
+      expect(result.data.map((u) => u.name)).toEqual(["Alice", "Bob"]);
     });
 
     it("should combine multiple filters", () => {

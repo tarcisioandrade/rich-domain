@@ -1,4 +1,4 @@
-import { AggregateChanges } from "../src/aggregate-changes";
+import { AggregateChanges } from "../src/core/index";
 
 describe("AggregateChanges", () => {
   let changes: AggregateChanges;

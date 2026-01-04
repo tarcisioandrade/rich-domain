@@ -1,6 +1,7 @@
 import { Primitive } from "./utils.js";
 
-export const FILTER_OPERATORS = [
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const FILTER_OPERATORS = [
   "equals",
   "notEquals",
   "greaterThan",
@@ -83,9 +84,7 @@ export type FilterValueFor<T> =
  * For entities with toJSON(), uses the return type of toJSON()
  * Otherwise, uses the type as is
  */
-type ExtractPlainType<T> = T extends { toJSON(): infer R }
-  ? R
-  : T;
+type ExtractPlainType<T> = T extends { toJSON(): infer R } ? R : T;
 
 export type PathValue<
   T,
@@ -158,7 +157,9 @@ type ExcludeBuiltInKeys<T> = Exclude<keyof T, keyof any[] | number | symbol>;
 export type FieldPath<T> = ExtractPlainType<T> extends Primitive
   ? never
   : {
-      [K in ExcludeBuiltInKeys<ExtractPlainType<T>> & string]: NonNullable<ExtractPlainType<T>[K]> extends Primitive
+      [K in ExcludeBuiltInKeys<ExtractPlainType<T>> & string]: NonNullable<
+        ExtractPlainType<T>[K]
+      > extends Primitive
         ? K
         : NonNullable<ExtractPlainType<T>[K]> extends Array<infer U>
         ? U extends Primitive
