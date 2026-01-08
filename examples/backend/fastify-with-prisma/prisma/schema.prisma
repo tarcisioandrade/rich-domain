@@ -23,22 +23,31 @@ model User {
 }
 
 model Post {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   title        String
   main_content String
-  published    Boolean  @default(false)
+  published    Boolean   @default(false)
   authorId     String
-  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tags         Tag[]
+  author       User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  tagPosts     TagPost[]
 
   @@map("posts")
 }
 
+model TagPost {
+  tagId  String
+  postId String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([tagId, postId])
+}
+
 model Tag {
-  id    String @id // TagName
-  posts Post[]
+  id       String    @id // TagName
+  tagPosts TagPost[]
 
   @@map("tags")
 }

@@ -25,7 +25,11 @@ export class PrismaUserRepository
   protected readonly includes = {
     posts: {
       include: {
-        tags: true,
+        tagPosts: {
+          include: {
+            tag: true,
+          },
+        },
       },
     },
   } satisfies Prisma.UserInclude;

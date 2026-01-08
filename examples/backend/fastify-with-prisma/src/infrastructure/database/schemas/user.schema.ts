@@ -4,7 +4,11 @@ export type UserSchema = Prisma.UserGetPayload<{
   include: {
     posts: {
       include: {
-        tags: true;
+        tagPosts: {
+          include: {
+            tag: true;
+          };
+        };
       };
     };
   };

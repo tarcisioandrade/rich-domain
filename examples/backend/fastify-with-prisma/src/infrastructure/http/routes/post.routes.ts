@@ -8,6 +8,7 @@ const createPostSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
   authorId: z.string(),
+  tagsId: z.array(z.string()).optional(),
 });
 
 const OnlyIdSchema = z.object({

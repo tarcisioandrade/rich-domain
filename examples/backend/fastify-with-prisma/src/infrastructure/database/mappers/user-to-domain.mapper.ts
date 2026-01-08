@@ -19,10 +19,10 @@ export class PrismaUserToDomainMapper extends Mapper<UserSchema, User> {
           authorId: post.authorId,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
-          tags: post.tags.map(
+          tags: post.tagPosts.map(
             (tag) =>
               new Tag({
-                id: new Id(tag.id),
+                id: new Id(tag.tag.id),
               })
           ),
         })

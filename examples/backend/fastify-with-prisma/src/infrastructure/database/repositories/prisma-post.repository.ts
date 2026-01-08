@@ -12,7 +12,11 @@ export class PrismaPostRepository
   implements PostRepository
 {
   protected includes = {
-    tags: true,
+    tagPosts: {
+      include: {
+        tag: true,
+      },
+    },
   } satisfies Prisma.PostInclude;
 
   protected generateSearchQuery(s: string) {

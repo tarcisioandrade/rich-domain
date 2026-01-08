@@ -39,6 +39,10 @@ export class Post extends Entity<PostProps> {
     this.props.content = content;
   }
 
+  addTags(tags: Tag[]): void {
+    this.props.tags.push(...tags);
+  }
+
   publish(): void {
     this.props.published = true;
   }

@@ -11,10 +11,10 @@ export class PrismaPostToDomainMapper extends Mapper<PostSchema, Post> {
       title: post.title,
       content: post.main_content,
       published: post.published,
-      tags: post.tags.map(
+      tags: post.tagPosts.map(
         (tag) =>
           new Tag({
-            id: new Id(tag.id),
+            id: new Id(tag.tag.id),
           })
       ),
       authorId: post.authorId,

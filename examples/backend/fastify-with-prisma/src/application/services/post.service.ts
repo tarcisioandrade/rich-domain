@@ -3,11 +3,13 @@ import { Post, PostProps } from "../../domain/post/post.entity";
 import { PostRepository } from "../../domain/post/post.repository";
 import { UserRepository } from "../../domain/user/user.repository";
 import { Tag } from "../../domain/tag/tags";
+import assert from "assert";
 
 interface CreatePostInput {
   title: string;
   content: string;
   authorId: string;
+  tagsId?: string[];
 }
 
 export class PostService {
@@ -33,6 +35,12 @@ export class PostService {
       tags: [],
       published: false,
     });
+
+    const hasTags = input?.tagsId && input.tagsId.length > 0;
+    if (hasTags) {
+      assert(input.tagsId);
+      post.addTags(input.tagsId.map((tag) => new Tag({ id: new Id(tag) })));
+    }
 
     await this.postRepository.save(post);
 

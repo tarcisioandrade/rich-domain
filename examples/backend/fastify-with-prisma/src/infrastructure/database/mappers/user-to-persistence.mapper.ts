@@ -54,6 +54,14 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
                   authorId: user.id.value,
                   createdAt: post.createdAt,
                   updatedAt: post.updatedAt,
+                  tagPosts: {
+                    createMany: {
+                      data: post.tags.map((tag) => ({
+                        tagId: tag.id.value,
+                        postId: post.id.value,
+                      })),
+                    },
+                  },
                 })),
                 skipDuplicates: true,
               }

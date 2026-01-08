@@ -2,6 +2,10 @@ import { Prisma } from "@prisma/client";
 
 export type PostSchema = Prisma.PostGetPayload<{
   include: {
-    tags: true;
+    tagPosts: {
+      include: {
+        tag: true;
+      };
+    };
   };
 }>;

@@ -20,6 +20,11 @@ export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
       tags: {
         type: "reference",
         entity: "Tag",
+        junction: {
+          table: "TagPost",
+          sourceKey: "postId",
+          targetKey: "tagId",
+        },
       },
     },
     parentFk: {
@@ -40,6 +45,15 @@ export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
         updatedAt: post.updatedAt,
       },
     });
+
+    if (post.tags.length) {
+      await this.context.tagPost.createMany({
+        data: post.tags.map((tag) => ({
+          tagId: tag.id.value,
+          postId: post.id.value,
+        })),
+      });
+    }
   }
 
   protected async onUpdate(
