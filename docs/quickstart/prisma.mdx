@@ -1,0 +1,310 @@
+---
+title: "With Prisma"
+description: "Complete guide to using Rich Domain with Prisma ORM"
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide", "prisma"]
+---
+
+## Installation
+
+Install the Prisma adapter:
+
+<CodeGroup>
+
+```bash npm
+npm install @woltz/rich-domain-prisma @prisma/client
+npm install -D prisma
+```
+
+
+```bash pnpm
+pnpm add @woltz/rich-domain-prisma @prisma/client
+pnpm add -D prisma
+```
+
+
+```bash yarn
+yarn add @woltz/rich-domain-prisma @prisma/client
+yarn add -D prisma
+```
+
+</CodeGroup>
+
+## Setup Prisma
+
+Initialize Prisma in your project:
+
+```bash
+npx prisma init
+```
+
+Define your schema in `prisma/schema.prisma`:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  stock     Int
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+Generate Prisma Client and push schema:
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+## Define Your Aggregate
+
+Create your domain model:
+
+```typescript
+import { z } from "zod";
+import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+
+const productSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(3),
+  price: z.number().positive(),
+  stock: z.number().int().min(0),
+  status: z.enum(["active", "inactive"]),
+});
+
+type ProductProps = z.infer<typeof productSchema>;
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  get name() {
+    return this.props.name;
+  }
+
+  get price() {
+    return this.props.price;
+  }
+
+  get stock() {
+    return this.props.stock;
+  }
+
+  updatePrice(newPrice: number) {
+    this.props.price = newPrice;
+  }
+
+  decreaseStock(amount: number) {
+    this.props.stock -= amount;
+  }
+
+  activate() {
+    this.props.status = "active";
+  }
+
+  deactivate() {
+    this.props.status = "inactive";
+  }
+}
+```
+
+## Create Mappers
+
+Create ToDomain and ToPersistence mappers:
+
+```typescript
+import { Mapper } from "@woltz/rich-domain";
+import { Product as PrismaProduct } from "@prisma/client";
+
+// Prisma -> Domain
+class ProductToDomainMapper implements Mapper<PrismaProduct, Product> {
+  map(raw: PrismaProduct): Product {
+    return new Product({
+      id: Id.from(raw.id),
+      name: raw.name,
+      price: raw.price,
+      stock: raw.stock,
+      status: raw.status as "active" | "inactive",
+    });
+  }
+}
+
+// Domain -> Prisma
+class ProductToPersistenceMapper implements Mapper<Product, void> {
+  map(product: Product): any {
+    return {
+      id: product.id.value,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      status: product.status,
+      updatedAt: new Date(),
+    };
+  }
+}
+```
+
+## Create Repository
+
+Implement the repository:
+
+```typescript
+import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { PrismaClient } from "@prisma/client";
+import { Criteria } from "@woltz/rich-domain";
+
+const prisma = new PrismaClient();
+const uow = new PrismaUnitOfWork(prisma);
+
+interface IProductRepository {
+  save(product: Product): Promise<void>;
+  findById(id: string): Promise<Product | null>;
+}
+
+class ProductRepository
+  extends PrismaRepository<Product, PrismaProduct>
+  implements IProductRepository
+{
+  constructor() {
+    super(
+      new ProductToPersistenceMapper(),
+      new ProductToDomainMapper(),
+      prisma,
+      uow
+    );
+  }
+
+  protected get model() {
+    return "product";
+  }
+
+  protected generateSearchQuery(search: string) {
+    return [
+      { name: { contains: search, mode: "insensitive" as const } }
+    ];
+  }
+
+  async findById(id: string): Promise<Product | null> {
+    const data = await this.modelAccessor.findUnique({ 
+      where: { id } 
+    });
+    
+    if (!data) return null;
+    return this.toDomainMapper.map(data);
+  }
+}
+```
+
+## Use It
+
+```typescript
+const repository = new ProductRepository();
+
+// Create product
+const product = new Product({
+  name: "Mechanical Keyboard",
+  price: 149.99,
+  stock: 50,
+  status: "active",
+});
+
+// Save to database
+await repository.save(product);
+console.log("Product created:", product.id.value);
+
+// Update
+product.updatePrice(129.99);
+product.decreaseStock(5);
+await repository.save(product);
+
+// Query
+const found = await repository.findById(product.id.value);
+console.log("Found product:", found?.name); // "Mechanical Keyboard"
+
+// Use Criteria for complex queries
+const criteria = Criteria.create<Product>()
+  .where("status", "equals", "active")
+  .where("price", "greaterThan", 100)
+  .orderBy("name", "asc")
+  .paginate(1, 10);
+
+const results = await repository.find(criteria);
+console.log(results.data); // Array of products
+console.log(results.meta); // Pagination info
+```
+
+## Generate Domain from Schema
+
+Use the CLI to automatically generate everything:
+
+```bash
+npx rich-domain generate
+```
+
+This creates:
+
+- ✅ Aggregates/Entities
+- ✅ Value Objects
+- ✅ Repository interfaces
+- ✅ Repository implementations with PrismaRepository
+- ✅ Mappers (ToDomain & ToPersistence)
+
+<Tip>
+  The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
+</Tip>
+
+## Unit of Work
+
+Use transactions for complex operations:
+
+```typescript
+async function transferStock(fromId: string, toId: string, amount: number) {
+  await uow.transaction(async () => {
+    const from = await repository.findById(fromId);
+    const to = await repository.findById(toId);
+
+    if (!from || !to) throw new Error("Product not found");
+
+    from.decreaseStock(amount);
+    to.increaseStock(amount);
+
+    await repository.save(from);
+    await repository.save(to);
+  });
+  // All or nothing - automatic rollback on error
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Prisma Integration" icon="database" href="/integrations/prisma">
+    Deep dive into Prisma adapter features
+  </Card>
+  <Card title="Repository Pattern" icon="book" href="/repository/overview">
+    Learn advanced repository patterns
+  </Card>
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
+    Understand how changes are tracked
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/CLI">
+    Complete CLI documentation
+  </Card>
+</CardGroup>

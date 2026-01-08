@@ -1,0 +1,414 @@
+---
+title: "Without ORM"
+description: "Use Rich Domain with raw SQL or any database driver"
+---
+
+## Installation
+
+Only the core library is needed:
+
+<CodeGroup>
+
+```bash npm
+npm install @woltz/rich-domain zod
+```
+
+
+```bash pnpm
+pnpm add @woltz/rich-domain zod
+```
+
+
+```bash yarn
+yarn add @woltz/rich-domain zod
+```
+
+</CodeGroup>
+
+You can use any database driver:
+
+- PostgreSQL: `pg`, `postgres`
+- MySQL: `mysql2`
+- SQLite: `better-sqlite3`
+- Or any other driver
+
+## Define Your Aggregate
+
+Create your domain model:
+
+```typescript
+import { z } from "zod";
+import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+
+const productSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  price: z.number().positive("Price must be positive"),
+  stock: z.number().int().min(0, "Stock cannot be negative"),
+  status: z.enum(["active", "inactive"]),
+});
+
+type ProductProps = z.infer<typeof productSchema>;
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  get name() {
+    return this.props.name;
+  }
+
+  get price() {
+    return this.props.price;
+  }
+
+  get stock() {
+    return this.props.stock;
+  }
+
+  get status() {
+    return this.props.status;
+  }
+
+  updatePrice(newPrice: number) {
+    this.props.price = newPrice;
+  }
+
+  decreaseStock(amount: number) {
+    this.props.stock -= amount;
+  }
+
+  increaseStock(amount: number) {
+    this.props.stock += amount;
+  }
+
+  activate() {
+    this.props.status = "active";
+  }
+
+  deactivate() {
+    this.props.status = "inactive";
+  }
+}
+```
+
+## Implement Repository
+
+### PostgreSQL with `pg`
+
+```typescript
+import { Pool } from "pg";
+import { Repository, Criteria, PaginatedResult } from "@woltz/rich-domain";
+
+const pool = new Pool({
+  host: "localhost",
+  port: 5432,
+  database: "mydb",
+  user: "user",
+  password: "password",
+});
+
+class PostgresProductRepository implements IProductRepository {
+  async save(product: Product): Promise<void> {
+    const changes = product.getChanges();
+
+    if (product.isNew()) {
+      await pool.query(
+        `INSERT INTO products (id, name, price, stock, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        [
+          product.id.value,
+          product.name,
+          product.price,
+          product.stock,
+          product.status,
+        ]
+      );
+    } else if (changes.hasUpdates()) {
+      const updates = changes.getUpdatedFields();
+      const setClauses = updates
+        .map((field, idx) => `${field} = $${idx + 2}`)
+        .join(", ");
+      const values = updates.map((field) => (product as any)[field]);
+
+      await pool.query(
+        `UPDATE products 
+         SET ${setClauses}, updated_at = NOW() 
+         WHERE id = $1`,
+        [product.id.value, ...values]
+      );
+    }
+
+    product.markAsClean();
+  }
+
+  async findById(id: string): Promise<Product | null> {
+    const result = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return new Product({
+      id: Id.from(row.id),
+      name: row.name,
+      price: parseFloat(row.price),
+      stock: row.stock,
+      status: row.status,
+    });
+  }
+
+  async findByName(name: string): Promise<Product | null> {
+    const result = await pool.query(
+      "SELECT * FROM products WHERE name = $1",
+      [name]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return new Product({
+      id: Id.from(row.id),
+      name: row.name,
+      price: parseFloat(row.price),
+      stock: row.stock,
+      status: row.status,
+    });
+  }
+
+  async find(criteria: Criteria<Product>): Promise<PaginatedResult<Product>> {
+    const filters = criteria.getFilters();
+    const ordering = criteria.getOrdering();
+    const pagination = criteria.getPagination();
+
+    // Build WHERE clause
+    const whereClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    for (const filter of filters) {
+      switch (filter.operator) {
+        case "equals":
+          whereClauses.push(`${filter.field} = $${paramIndex}`);
+          values.push(filter.value);
+          paramIndex++;
+          break;
+        case "contains":
+          whereClauses.push(`${filter.field} ILIKE $${paramIndex}`);
+          values.push(`%${filter.value}%`);
+          paramIndex++;
+          break;
+        case "greaterThan":
+          whereClauses.push(`${filter.field} > $${paramIndex}`);
+          values.push(filter.value);
+          paramIndex++;
+          break;
+      }
+    }
+
+    const whereClause =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+    // Build ORDER BY clause
+    const orderClauses = ordering.map(
+      (o) => `${o.field} ${o.direction.toUpperCase()}`
+    );
+    const orderClause =
+      orderClauses.length > 0 ? `ORDER BY ${orderClauses.join(", ")}` : "";
+
+    // Get total count
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM products ${whereClause}`,
+      values
+    );
+    const total = parseInt(countResult.rows[0].count);
+
+    // Get paginated data
+    const offset = (pagination.page - 1) * pagination.limit;
+    const dataResult = await pool.query(
+      `SELECT * FROM products ${whereClause} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...values, pagination.limit, offset]
+    );
+
+    const products = dataResult.rows.map(
+      (row) =>
+        new Product({
+          id: Id.from(row.id),
+          name: row.name,
+          price: parseFloat(row.price),
+          stock: row.stock,
+          status: row.status,
+        })
+    );
+
+    return {
+      data: products,
+      meta: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasNext: offset + pagination.limit < total,
+        hasPrevious: pagination.page > 1,
+      },
+    };
+  }
+
+  async delete(id: string): Promise<void> {
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
+  }
+}
+```
+
+## Create Database Tables
+
+Create your schema manually:
+
+```sql
+CREATE TABLE products (
+  id UUID PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  stock INTEGER NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_name ON products(name);
+```
+
+## Use It
+
+```typescript
+// In-memory for testing
+const repository = new InMemoryProductRepository();
+
+// Or PostgreSQL for production
+const repository = new PostgresProductRepository();
+
+// Create product
+const product = new Product({
+  name: "Mechanical Keyboard",
+  price: 149.99,
+  stock: 50,
+  status: "active",
+});
+
+console.log(product.isNew()); // true
+console.log(product.id.value); // UUID
+
+// Save
+await repository.save(product);
+
+// Update
+product.updatePrice(129.99);
+product.decreaseStock(5);
+
+// Get changes
+const changes = product.getChanges();
+console.log(changes.hasUpdates()); // true
+console.log(changes.getUpdatedFields()); // ["price", "stock"]
+
+// Save changes
+await repository.save(product);
+
+// Query with Criteria
+const criteria = Criteria.create<Product>()
+  .where("status", "equals", "active")
+  .where("price", "greaterThan", 100)
+  .orderBy("name", "asc")
+  .paginate(1, 10);
+
+const results = await repository.find(criteria);
+console.log(results.data); // Array of products
+console.log(results.meta); // Pagination info
+
+// Simple queries
+const found = await repository.findById(product.id.value);
+console.log(found?.name); // "Mechanical Keyboard"
+
+const byName = await repository.findByName("Mechanical Keyboard");
+```
+
+## Transactions
+
+Implement transactions with your database driver:
+
+```typescript
+class PostgresProductRepository {
+  async withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await fn();
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+}
+
+// Usage
+await repository.withTransaction(async () => {
+  const from = await repository.findById(fromId);
+  const to = await repository.findById(toId);
+
+  if (!from || !to) throw new Error("Product not found");
+
+  from.decreaseStock(amount);
+  to.increaseStock(amount);
+
+  await repository.save(from);
+  await repository.save(to);
+});
+```
+
+## Validation
+
+Validation works the same way:
+
+```typescript
+// Invalid on creation - throws ValidationError
+const invalid = new Product({
+  name: "AB", // too short
+  price: -10, // negative
+  stock: 50,
+  status: "active",
+});
+// ❌ ValidationError: Name must be at least 3 characters, Price must be positive
+
+// Invalid on update - throws ValidationError
+product.decreaseStock(100); // stock becomes negative
+// ❌ ValidationError: Stock cannot be negative
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Repository Pattern" icon="book" href="/repository/overview">
+    Learn advanced repository patterns
+  </Card>
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
+    Understand how changes are tracked
+  </Card>
+  <Card title="Criteria API" icon="filter" href="/criteria/overview">
+    Type-safe query building
+  </Card>
+  <Card title="Entities & Aggregates" icon="cube" href="/core/entities-and-aggregates">
+    Core DDD concepts
+  </Card>
+</CardGroup>

@@ -1,0 +1,357 @@
+---
+title: "With TypeORM"
+description: "Complete guide to using Rich Domain with TypeORM"
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide", "typeorm"]
+---
+
+## Installation
+
+Install the TypeORM adapter:
+
+<CodeGroup>
+
+```bash npm
+npm install @woltz/rich-domain-typeorm typeorm reflect-metadata
+```
+
+```bash pnpm
+pnpm add @woltz/rich-domain-typeorm typeorm reflect-metadata
+```
+
+```bash yarn
+yarn add @woltz/rich-domain-typeorm typeorm reflect-metadata
+```
+
+</CodeGroup>
+
+## Setup TypeORM
+
+Create `src/data-source.ts`:
+
+```typescript
+import { DataSource } from "typeorm";
+import "reflect-metadata";
+
+export const AppDataSource = new DataSource({
+  type: "postgres",
+  host: "localhost",
+  port: 5432,
+  username: "user",
+  password: "password",
+  database: "mydb",
+  synchronize: true,
+  logging: false,
+  entities: ["src/infrastructure/entities/**/*.ts"],
+  migrations: [],
+  subscribers: [],
+});
+```
+
+Initialize in your app:
+
+```typescript
+import { AppDataSource } from "./data-source";
+
+await AppDataSource.initialize();
+console.log("Data Source initialized");
+```
+
+## Define Entity Schema
+
+Create your TypeORM entity:
+
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+
+@Entity("products")
+export class ProductEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @Column()
+  name!: string;
+
+  @Column("decimal")
+  price!: number;
+
+  @Column("int")
+  stock!: number;
+
+  @Column()
+  status!: string;
+
+  @Column()
+  createdAt!: Date;
+
+  @Column()
+  updatedAt!: Date;
+}
+```
+
+## Define Your Aggregate
+
+Create your domain model:
+
+```typescript
+import { z } from "zod";
+import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+
+const productSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  name: z.string().min(3),
+  price: z.number().positive(),
+  stock: z.number().int().min(0),
+  status: z.enum(["active", "inactive"]),
+});
+
+type ProductProps = z.infer<typeof productSchema>;
+
+class Product extends Aggregate<ProductProps> {
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: productSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: true,
+    },
+  };
+
+  get name() {
+    return this.props.name;
+  }
+
+  get price() {
+    return this.props.price;
+  }
+
+  get stock() {
+    return this.props.stock;
+  }
+
+  updatePrice(newPrice: number) {
+    this.props.price = newPrice;
+  }
+
+  decreaseStock(amount: number) {
+    this.props.stock -= amount;
+  }
+
+  activate() {
+    this.props.status = "active";
+  }
+
+  deactivate() {
+    this.props.status = "inactive";
+  }
+}
+```
+
+## Create Mappers
+
+Create ToDomain and ToPersistence mappers:
+
+```typescript
+import { Mapper } from "@woltz/rich-domain";
+
+// TypeORM Entity -> Domain
+class ProductToDomainMapper implements Mapper<ProductEntity, Product> {
+  map(entity: ProductEntity): Product {
+    return new Product({
+      id: Id.from(entity.id),
+      name: entity.name,
+      price: entity.price,
+      stock: entity.stock,
+      status: entity.status as "active" | "inactive",
+    });
+  }
+}
+
+// Domain -> TypeORM Entity
+class ProductToPersistenceMapper implements Mapper<Product, void> {
+  map(product: Product): Partial<ProductEntity> {
+    return {
+      id: product.id.value,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      status: product.status,
+      updatedAt: new Date(),
+    };
+  }
+}
+```
+
+## Create Repository
+
+Implement the repository:
+
+```typescript
+import { TypeORMRepository, TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
+import { AppDataSource } from "./data-source";
+
+const uow = new TypeORMUnitOfWork(AppDataSource);
+
+interface IProductRepository {
+  save(product: Product): Promise<void>;
+  findById(id: string): Promise<Product | null>;
+}
+
+class ProductRepository
+  extends TypeORMRepository<Product, ProductEntity>
+  implements IProductRepository
+{
+  constructor() {
+    super(
+      new ProductToPersistenceMapper(),
+      new ProductToDomainMapper(),
+      AppDataSource,
+      ProductEntity,
+      uow
+    );
+  }
+
+  protected generateSearchQuery(search: string) {
+    return [
+      { name: { contains: search, mode: "insensitive" } }
+    ];
+  }
+
+  async findById(id: string): Promise<Product | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? this.toDomainMapper.map(entity) : null;
+  }
+}
+```
+
+## Use It
+
+```typescript
+// Initialize TypeORM
+await AppDataSource.initialize();
+
+const repository = new ProductRepository();
+
+// Create product
+const product = new Product({
+  name: "Mechanical Keyboard",
+  price: 149.99,
+  stock: 50,
+  status: "active",
+});
+
+// Save to database
+await repository.save(product);
+console.log("Product created:", product.id.value);
+
+// Update
+product.updatePrice(129.99);
+product.decreaseStock(5);
+await repository.save(product);
+
+// Query
+const found = await repository.findById(product.id.value);
+console.log("Found product:", found?.name); // "Mechanical Keyboard"
+
+// Use Criteria for complex queries
+const criteria = Criteria.create<Product>()
+  .where("status", "equals", "active")
+  .where("price", "greaterThan", 100)
+  .orderBy("name", "asc")
+  .paginate(1, 10);
+
+const results = await repository.find(criteria);
+console.log(results.data); // Array of products
+console.log(results.meta); // Pagination info
+```
+
+## Unit of Work with Transactions
+
+Use the `@Transactional` decorator for automatic transaction management:
+
+```typescript
+import { Transactional } from "@woltz/rich-domain-typeorm";
+
+class ProductService {
+  constructor(private repository: ProductRepository) {}
+
+  @Transactional()
+  async transferStock(fromId: string, toId: string, amount: number) {
+    const from = await this.repository.findById(fromId);
+    const to = await this.repository.findById(toId);
+
+    if (!from || !to) throw new Error("Product not found");
+
+    from.decreaseStock(amount);
+    to.increaseStock(amount);
+
+    await this.repository.save(from);
+    await this.repository.save(to);
+    
+    // Commits on success, rolls back on error
+  }
+}
+```
+
+Or use the imperative API:
+
+```typescript
+async function transferStock(fromId: string, toId: string, amount: number) {
+  await uow.transaction(async () => {
+    const from = await repository.findById(fromId);
+    const to = await repository.findById(toId);
+
+    if (!from || !to) throw new Error("Product not found");
+
+    from.decreaseStock(amount);
+    to.increaseStock(amount);
+
+    await repository.save(from);
+    await repository.save(to);
+  });
+}
+```
+
+## Advanced Queries
+
+TypeORM gives you full access to QueryBuilder:
+
+```typescript
+class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
+  async findLowStock(threshold: number): Promise<Product[]> {
+    const entities = await this.repository
+      .createQueryBuilder("product")
+      .where("product.stock < :threshold", { threshold })
+      .andWhere("product.status = :status", { status: "active" })
+      .orderBy("product.stock", "ASC")
+      .getMany();
+
+    return entities.map(e => this.toDomainMapper.map(e));
+  }
+
+  async findByPriceRange(min: number, max: number): Promise<Product[]> {
+    const entities = await this.repository
+      .createQueryBuilder("product")
+      .where("product.price BETWEEN :min AND :max", { min, max })
+      .getMany();
+
+    return entities.map(e => this.toDomainMapper.map(e));
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="TypeORM Integration" icon="table" href="/integrations/typeorm">
+    Deep dive into TypeORM adapter features
+  </Card>
+  <Card title="Repository Pattern" icon="book" href="/repository/overview">
+    Learn advanced repository patterns
+  </Card>
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
+    Understand how changes are tracked
+  </Card>
+  <Card title="Transactions" icon="arrows-rotate" href="/integrations/typeorm#transactions">
+    Advanced transaction management
+  </Card>
+</CardGroup>
