@@ -20,11 +20,12 @@ export {
   DomainEvent,
 } from "./core/index.js";
 export {
+  type PaginatedJsonResult,
+  type CollectionConfig,
   Repository,
   Mapper,
   UnitOfWork,
   PaginatedResult,
-  type PaginatedJsonResult,
   ReadRepository,
   WriteAndRead,
   WriteRepository,
