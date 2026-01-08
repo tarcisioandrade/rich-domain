@@ -1,7 +1,6 @@
 ---
 title: "With Prisma"
 description: "Complete guide to using Rich Domain with Prisma ORM"
-keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide", "prisma"]
 ---
 
 ## Installation
@@ -125,17 +124,30 @@ class Product extends Aggregate<ProductProps> {
 }
 ```
 
-## Create Mappers
+## Create Schema Type
 
-Create ToDomain and ToPersistence mappers:
+Define the Prisma schema type for type safety:
 
 ```typescript
-import { Mapper } from "@woltz/rich-domain";
-import { Product as PrismaProduct } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
-// Prisma -> Domain
-class ProductToDomainMapper implements Mapper<PrismaProduct, Product> {
-  map(raw: PrismaProduct): Product {
+export type ProductSchema = Prisma.ProductGetPayload<{
+  include: {};
+}>;
+```
+
+## Create Mappers
+
+### ToDomain Mapper
+
+Maps from Prisma to Domain:
+
+```typescript
+import { Mapper, Id } from "@woltz/rich-domain";
+import { ProductSchema } from "../schemas/product.schema";
+
+export class ProductToDomainMapper extends Mapper<ProductSchema, Product> {
+  build(raw: ProductSchema): Product {
     return new Product({
       id: Id.from(raw.id),
       name: raw.name,
@@ -145,21 +157,72 @@ class ProductToDomainMapper implements Mapper<PrismaProduct, Product> {
     });
   }
 }
+```
 
-// Domain -> Prisma
-class ProductToPersistenceMapper implements Mapper<Product, void> {
-  map(product: Product): any {
-    return {
-      id: product.id.value,
-      name: product.name,
-      price: product.price,
-      stock: product.stock,
-      status: product.status,
-      updatedAt: new Date(),
-    };
+### ToPersistence Mapper
+
+Maps from Domain to Prisma using `PrismaToPersistence`:
+
+```typescript
+import { PrismaClient } from "@prisma/client";
+import { 
+  PrismaToPersistence, 
+  PrismaBatchExecutor 
+} from "@woltz/rich-domain-prisma";
+import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
+
+export class ProductToPersistenceMapper extends PrismaToPersistence<
+  Product,
+  PrismaClient
+> {
+  protected readonly registry = new EntitySchemaRegistry().register({
+    entity: "Product",
+    table: "product",
+    // Optional: Map domain fields to database columns
+    // fields: {
+    //   content: "main_content", // domain.content -> db.main_content
+    // },
+  });
+
+  protected async onCreate(product: Product): Promise<void> {
+    await this.context.product.create({
+      data: {
+        id: product.id.value,
+        name: product.name,
+        price: product.price,
+        stock: product.stock,
+        status: product.status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  protected async onUpdate(
+    product: Product,
+    changes: AggregateChanges
+  ): Promise<void> {
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+      rootId: product.id.value,
+       // Custom data mappers per entity. 
+       // Use this to transform domain objects to persistence format. (optional)
+      dataMappers: {
+        Produtct: (item) => {
+          (...)
+        }
+      }
+    });
+
+    // Automatically creates UPDATE queries based on changed fields
+    await executor.execute(changes);
   }
 }
 ```
+
+<Note>
+  The `EntitySchemaRegistry` helps `PrismaBatchExecutor` understand your domain structure and automatically generate the correct SQL operations for creates, updates, and deletes.
+</Note>
 
 ## Create Repository
 
@@ -167,8 +230,7 @@ Implement the repository:
 
 ```typescript
 import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { PrismaClient } from "@prisma/client";
-import { Criteria } from "@woltz/rich-domain";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const uow = new PrismaUnitOfWork(prisma);
@@ -179,12 +241,12 @@ interface IProductRepository {
 }
 
 class ProductRepository
-  extends PrismaRepository<Product, PrismaProduct>
+  extends PrismaRepository<Product, ProductSchema, PrismaClient>
   implements IProductRepository
 {
   constructor() {
     super(
-      new ProductToPersistenceMapper(),
+      new ProductToPersistenceMapper(prisma, uow),
       new ProductToDomainMapper(),
       prisma,
       uow
@@ -197,8 +259,8 @@ class ProductRepository
 
   protected generateSearchQuery(search: string) {
     return [
-      { name: { contains: search, mode: "insensitive" as const } }
-    ];
+      { name: { contains: search, mode: "insensitive" } }
+    ] satisfies Prisma.ProductWhereInput[];
   }
 
   async findById(id: string): Promise<Product | null> {
@@ -207,7 +269,7 @@ class ProductRepository
     });
     
     if (!data) return null;
-    return this.toDomainMapper.map(data);
+    return this.toDomainMapper.build(data);
   }
 }
 ```
@@ -250,6 +312,112 @@ console.log(results.data); // Array of products
 console.log(results.meta); // Pagination info
 ```
 
+## Working with Relations
+
+The `PrismaBatchExecutor` automatically handles nested entities and collections:
+
+```typescript
+// Example with relations
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  email: z.string().email(),
+  name: z.string(),
+  posts: z.array(z.custom<Post>()),
+});
+
+class User extends Aggregate<UserProps> {
+  // ... validation
+
+  addPost(post: Post) {
+    this.props.posts.push(post);
+  }
+
+  removePost(postId: string) {
+    const index = this.props.posts.findIndex(p => p.id.value === postId);
+    if (index !== -1) {
+      this.props.posts.splice(index, 1);
+    }
+  }
+}
+
+// ToPersistence with relations
+export class UserToPersistenceMapper extends PrismaToPersistence<
+  User,
+  PrismaClient
+> {
+  protected readonly registry = new EntitySchemaRegistry()
+    .register({
+      entity: "User",
+      table: "user",
+    })
+    .register({
+      entity: "Post",
+      table: "post",
+      parentFk: {
+        field: "authorId",
+        parentEntity: "User",
+      },
+    });
+
+  protected async onCreate(user: User): Promise<void> {
+    await this.context.user.create({
+      data: {
+        id: user.id.value,
+        email: user.email,
+        name: user.name,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        posts: {
+          createMany: user.posts.length
+            ? {
+                data: user.posts.map((post) => ({
+                  id: post.id.value,
+                  title: post.title,
+                  content: post.content,
+                  published: post.published,
+                  authorId: user.id.value,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                })),
+              }
+            : undefined,
+        },
+      },
+    });
+  }
+
+  protected async onUpdate(
+    user: User,
+    changes: AggregateChanges
+  ): Promise<void> {
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+      rootId: user.id.value,
+    });
+
+    // Automatically handles:
+    // - Field updates on User
+    // - Post creates/updates/deletes
+    // - Nested entity changes
+    await executor.execute(changes);
+  }
+}
+
+// Usage
+const user = User.create({ email: "john@example.com", name: "John" });
+
+const post = Post.create({
+  title: "My First Post",
+  content: "Hello World",
+  authorId: user.id.value,
+});
+
+user.addPost(post);
+
+await userRepository.save(user);
+// Both User and Post are created in a single transaction
+```
+
 ## Generate Domain from Schema
 
 Use the CLI to automatically generate everything:
@@ -270,27 +438,112 @@ This creates:
   The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
 </Tip>
 
-## Unit of Work
+## Many-to-Many Relations
 
-Use transactions for complex operations:
+Handle N:N relationships with junction tables:
 
 ```typescript
-async function transferStock(fromId: string, toId: string, amount: number) {
-  await uow.transaction(async () => {
-    const from = await repository.findById(fromId);
-    const to = await repository.findById(toId);
+// Prisma Schema
+model Post {
+  id       String     @id
+  title    String
+  tagPosts TagPost[]
+}
 
-    if (!from || !to) throw new Error("Product not found");
+model Tag {
+  id       String     @id
+  name     String
+  tagPosts TagPost[]
+}
 
-    from.decreaseStock(amount);
-    to.increaseStock(amount);
+model TagPost {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id])
+  tag    Tag    @relation(fields: [tagId], references: [id])
 
-    await repository.save(from);
-    await repository.save(to);
-  });
-  // All or nothing - automatic rollback on error
+  @@id([postId, tagId])
 }
 ```
+
+```typescript
+// Domain
+class Post extends Aggregate<PostProps> {
+  addTag(tag: Tag) {
+    if (!this.props.tags.some(t => t.id.equals(tag.id))) {
+      this.props.tags.push(tag);
+    }
+  }
+
+  removeTag(tagId: Id) {
+    const index = this.props.tags.findIndex(t => t.id.equals(tagId));
+    if (index !== -1) {
+      this.props.tags.splice(index, 1);
+    }
+  }
+}
+
+// ToPersistence
+export class PostToPersistenceMapper extends PrismaToPersistence<
+  Post,
+  PrismaClient
+> {
+  protected readonly registry = new EntitySchemaRegistry().register({
+    entity: "Post",
+    table: "post",
+    collections: {
+      tags: {
+        type: "reference",
+        entity: "Tag",
+        // Junction config is necessary, as we created the pivot table manually
+        junction: {
+          table: "TagPost", // <- The pivot table name, in example name is TagPost
+          sourceKey: "postId",
+          targetKey: "tagId",
+        },
+      },
+    },
+  });
+
+  protected async onCreate(post: Post): Promise<void> {
+    await this.context.post.create({
+      data: {
+        id: post.id.value,
+        title: post.title,
+        content: post.content,
+        published: post.published,
+      },
+    });
+
+    // Create junction records
+    if (post.tags.length) {
+      await this.context.tagPost.createMany({
+        data: post.tags.map((tag) => ({
+          tagId: tag.id.value,
+          postId: post.id.value,
+        })),
+      });
+    }
+  }
+
+  protected async onUpdate(
+    post: Post,
+    changes: AggregateChanges
+  ): Promise<void> {
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+      rootId: post.id.value,
+    });
+
+    // Automatically handles tag additions/removals in junction table
+    await executor.execute(changes);
+  }
+}
+```
+
+<Note>
+  A collection junction is only necessary when you remove the responsibility of creating the pivot table from Prisma and create it manually.
+</Note>
 
 ## Next Steps
 

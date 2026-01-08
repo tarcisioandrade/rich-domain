@@ -26,7 +26,7 @@
             "pages": [
               "introduction",
               {
-                "group":"quickstart",
+                "group":"Quickstart",
                 "expanded": false,
                 "pages": [
                   "quickstart/default",
