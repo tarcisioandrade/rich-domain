@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.4.1...v1.8.0) (2026-01-08)
+
+
+### Features
+
+* add DataTimelineCriteria component and related hooks for timeline view ([ee2c261](https://github.com/tarcisioandrade/rich-domain/commit/ee2c261ccc8d1f4c22c20c3ff3d0d1dc2c320630))
+* add DataViewEmpty, DataViewSkeleton, and DataViewToolbar components ([396477d](https://github.com/tarcisioandrade/rich-domain/commit/396477d03aa69340c9ae84d79b06a3bcdd115e6e))
+* add react-intersection-observer dependency and adjust badge positioning ([718deb6](https://github.com/tarcisioandrade/rich-domain/commit/718deb6bd0ab6163692ea06fead5a2e3cd7c990a))
+* criteria sorting component ([f247aac](https://github.com/tarcisioandrade/rich-domain/commit/f247aac5e95d6c183226cf2fc7213497c4148618))
+* data-timeline component ([40be3b5](https://github.com/tarcisioandrade/rich-domain/commit/40be3b5afbf969dddf9d4e52e755092676ea1b72))
+* enhance App component with tabbed interface for UserListCriteria and UserTimeline ([2337d6a](https://github.com/tarcisioandrade/rich-domain/commit/2337d6a0a8c962d222c3018693eec650e6d51ae8))
+* enhance DataTableCriteria and DataTableFilter with new icons and filter count badge ([642f6c4](https://github.com/tarcisioandrade/rich-domain/commit/642f6c45c6b6d293b23451224f96fc51d5189759))
+* implement useCriteriaInfiniteQuery hook for paginated data fetching ([120378c](https://github.com/tarcisioandrade/rich-domain/commit/120378ceee4b1c5fffd5bb4053a350591d5255c6))
+* rename UserList to UserListCriteria and add CSV export functionality ([302c34f](https://github.com/tarcisioandrade/rich-domain/commit/302c34fd8e340f8fac1f974cfd3b08d7fd3bd520))
+
+
+### Bug Fixes
+
+* add PaginatedJsonResult type export and clean up index file ([babbf38](https://github.com/tarcisioandrade/rich-domain/commit/babbf3889b87733da2a2f8eb08097a000625e56f))
+* refactor filter operator selection logic ([b0d63cd](https://github.com/tarcisioandrade/rich-domain/commit/b0d63cdabc2802b825e8c898a1ea1e5fa7f43ddc))
+
+
+### Chores
+
+* update @woltz/rich-domain to version 1.7.1 ([2532c16](https://github.com/tarcisioandrade/rich-domain/commit/2532c162eecf4413678a63869c318f07e4e8ce63))
+
+
+### Refactoring
+
+* re-build registry components ([ed38f9d](https://github.com/tarcisioandrade/rich-domain/commit/ed38f9d4ebf778efabc198cc8025997874a0fce6))
+* rename DataTableFilter to DataViewFilter ([aebcf2e](https://github.com/tarcisioandrade/rich-domain/commit/aebcf2eac5436a91447e8d00fc7ab82b9bfdc760))
+* update filter and timeline components for improved UI and functionality ([170432c](https://github.com/tarcisioandrade/rich-domain/commit/170432ce9ab1464df80887a38f439b78ebfc6a8a))
+* update getUsers function to return PaginatedJsonResult ([dbacaea](https://github.com/tarcisioandrade/rich-domain/commit/dbacaea8afc13471d0f00716f8f1b733d655bd5f))
+* update use-criteria-query and related hooks to utilize PaginatedJsonResult ([7a72160](https://github.com/tarcisioandrade/rich-domain/commit/7a72160d6f40398f7bd4c20d92c623814eea5292))
+
+
+### Documentation
+
+* add sorting component with drag-and-drop support and update documentation ([0b02a72](https://github.com/tarcisioandrade/rich-domain/commit/0b02a7219dea40d9425637e3ee15427ab27b5bd9))
+* update react implementation docs ([5c9b7d0](https://github.com/tarcisioandrade/rich-domain/commit/5c9b7d09a57e571a158f94c626db26a85b5cb29a))
+
 ### [1.7.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.7.0...v1.7.1) (2026-01-02)
 
 
