@@ -1,4 +1,8 @@
-import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
+import {
+  AggregateChanges,
+  EntitySchemaRegistry,
+  CollectionConfig,
+} from "@woltz/rich-domain";
 import { PrismaClientLike, PrismaTransactionClient } from "./unit-of-work";
 import { TableNotFoundError, BatchOperationError } from "./errors";
 
@@ -337,17 +341,27 @@ export class PrismaBatchExecutor {
       throw new TableNotFoundError(parentEntity, this.getRegisteredEntities());
     }
 
+    const juction = this.config.registry.getJunctionConfig(
+      parentEntity,
+      relationField
+    );
+    const modelField = juction ? juction.table : relationField;
+
     // Execute connect for each parent
     for (const [parentId, idsToConnect] of groupedByParent) {
       try {
-        await parentModel.update({
-          where: { id: parentId },
-          data: {
-            [relationField]: {
-              connect: idsToConnect.map((id) => ({ id })),
+        if (juction) {
+          await this.insertIntoJunctionTable(juction, parentId, idsToConnect);
+        } else {
+          await parentModel.update({
+            where: { id: parentId },
+            data: {
+              [modelField]: {
+                connect: idsToConnect.map((id) => ({ id })),
+              },
             },
-          },
-        });
+          });
+        }
       } catch (error: any) {
         if (error.code === "P2025") {
           throw new BatchOperationError(
@@ -364,6 +378,32 @@ export class PrismaBatchExecutor {
           error
         );
       }
+    }
+  }
+
+  private async insertIntoJunctionTable(
+    junction: NonNullable<CollectionConfig["junction"]>,
+    parentId: string,
+    idsToConnect: string[]
+  ) {
+    const junctionModel = (this.context as any)[junction.table];
+
+    if (!junctionModel) {
+      throw new TableNotFoundError(
+        junction.table,
+        this.getRegisteredEntities()
+      );
+    }
+
+    try {
+      await junctionModel.createMany({
+        data: idsToConnect.map((id) => ({
+          [junction.targetKey]: id,
+          [junction.sourceKey]: parentId,
+        })),
+      });
+    } catch (error: any) {
+      throw error;
     }
   }
 
@@ -386,15 +426,24 @@ export class PrismaBatchExecutor {
       throw new TableNotFoundError(parentEntity, this.getRegisteredEntities());
     }
 
+    const junction = this.config.registry.getJunctionConfig(
+      parentEntity,
+      relationField
+    );
+
     try {
-      await parentModel.update({
-        where: { id: parentId },
-        data: {
-          [relationField]: {
-            disconnect: ids.map((id) => ({ id })),
+      if (junction) {
+        await this.deleteFromJunctionTable(junction, parentId, ids);
+      } else {
+        await parentModel.update({
+          where: { id: parentId },
+          data: {
+            [relationField]: {
+              disconnect: ids.map((id) => ({ id })),
+            },
           },
-        },
-      });
+        });
+      }
     } catch (error: any) {
       if (error.code === "P2025") {
         throw new BatchOperationError(
@@ -410,6 +459,32 @@ export class PrismaBatchExecutor {
         `Failed to disconnect relation "${relationField}": ${error.message}`,
         error
       );
+    }
+  }
+
+  private async deleteFromJunctionTable(
+    junction: NonNullable<CollectionConfig["junction"]>,
+    parentId: string,
+    idsToDisconnect: string[]
+  ) {
+    const junctionModel = (this.context as any)[junction.table];
+
+    if (!junctionModel) {
+      throw new TableNotFoundError(
+        junction.table,
+        this.getRegisteredEntities()
+      );
+    }
+
+    try {
+      await junctionModel.deleteMany({
+        where: {
+          [junction.sourceKey]: parentId,
+          [junction.targetKey]: { in: idsToDisconnect },
+        },
+      });
+    } catch (error: any) {
+      throw error;
     }
   }
 
