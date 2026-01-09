@@ -221,11 +221,11 @@ export abstract class TypeORMRepository<
 
     relations.forEach((relation) => {
       // Handle nested relations (e.g., 'posts.tags')
-      const parts = relation.split('.');
+      const parts = relation.split(".");
       let currentAlias = alias;
 
       parts.forEach((part, index) => {
-        const joinAlias = parts.slice(0, index + 1).join('_');
+        const joinAlias = parts.slice(0, index + 1).join("_");
 
         // Only add if not already joined
         const existingJoin = qb.expressionMap.joinAttributes.find(
@@ -440,6 +440,7 @@ export abstract class TypeORMRepository<
   async save(aggregate: TDomain): Promise<void> {
     try {
       await this._toPersistenceMapper.save(aggregate);
+      aggregate.markAsPersisted();
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to save ${this.alias}: ${error.message}`,
