@@ -206,7 +206,7 @@ export abstract class PrismaRepository<
    */
   async save(entity: TDomain): Promise<void> {
     await this.toPersistenceMapper.build(entity);
-    entity.markAsClean();
+    entity.markAsPersisted();
   }
 
   /**
