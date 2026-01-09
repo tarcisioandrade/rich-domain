@@ -2,7 +2,7 @@ import UUID from "../utils/crypto.js";
 
 export class Id {
   private readonly _value: string;
-  private readonly _isNew: boolean;
+  private _isNew: boolean;
 
   /**
    * Create a new Id
@@ -82,6 +82,20 @@ export class Id {
    */
   static create(): Id {
     return new Id();
+  }
+
+  /**
+   * Mark the Id as not new
+   */
+  public markAsNotNew(): void {
+    this._isNew = false;
+  }
+
+  /**
+   * Mark the Id as new
+   */
+  public markAsNew(): void {
+    this._isNew = true;
   }
 
   /**

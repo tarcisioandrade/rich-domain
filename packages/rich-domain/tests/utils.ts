@@ -267,6 +267,7 @@ export class InMemoryRepository<
 
   async save(aggregate: TDomain): Promise<void> {
     this.items.set(aggregate.id.value, aggregate);
+    aggregate.markAsPersisted();
   }
 
   async createMany(aggregates: TDomain[]): Promise<void> {

@@ -104,6 +104,7 @@ class MockUserRepository extends Repository<User> {
   async save(entity: User) {
     const persistence = await this.toPersistenceMapper.build(entity);
     this.store.set(entity.id.value, persistence);
+    entity.markAsPersisted();
   }
 
   async delete(entity: User): Promise<void> {
@@ -435,6 +436,12 @@ describe("Repository", () => {
         const users = await repository.findAll();
         expect(users).toHaveLength(3);
       });
+    });
+
+    it("should mark the Id as not new after save", async () => {
+      expect(user1.id.isNew()).toBe(true);
+      await repository.save(user1);
+      expect(user1.id.isNew()).toBe(false);
     });
   });
 

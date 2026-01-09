@@ -37,6 +37,10 @@ class User extends Aggregate<UserProps> {
       if (entity.name.toLowerCase() === "admin") {
         throw new Error("Name cannot be 'admin'");
       }
+
+      if (entity.name === "changeInRules") {
+        entity.changeStatus("inactive");
+      }
     },
   };
 
@@ -74,6 +78,10 @@ class User extends Aggregate<UserProps> {
 
   activate(): void {
     this.props.status = "active";
+  }
+
+  changeStatus(status: "active" | "inactive"): void {
+    this.props.status = status;
   }
 }
 
@@ -385,6 +393,21 @@ describe("Rich Domain with Standard Schema Validation", () => {
       });
 
       expect(user.name).toBe("OnCreateHook");
+    });
+
+    it("does not enter in loop when mutate entity in rules", () => {
+      const user = new User({
+        name: "John Doe",
+        email: "john@example.com",
+        age: 30,
+        status: "active",
+      });
+
+      expect(() => {
+        user.name = "changeInRules";
+      }).not.toThrow();
+
+      expect(user.status).toBe("inactive");
     });
   });
 

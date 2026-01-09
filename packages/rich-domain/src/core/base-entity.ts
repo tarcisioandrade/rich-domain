@@ -364,6 +364,15 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   /**
+   * Clears history, marks entity as "clean" and marks the Id as not new.
+   * Call this after successfully persisting to the database.
+   */
+  markAsPersisted(): void {
+    this.markAsClean();
+    this.id.markAsNotNew();
+  }
+
+  /**
    * Add a domain event to this entity
    */
   protected addDomainEvent(event: IDomainEvent): void {
