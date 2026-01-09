@@ -334,6 +334,20 @@ export abstract class BaseEntity<T extends BaseProps> {
   }
 
   /**
+   * Get a domain event by name
+   */
+  getEvent(eventName: string): IDomainEvent | undefined {
+    return this.domainEvents.find((event) => event.eventName === eventName);
+  }
+
+  /**
+   * Check if an event has been added to the entity
+   */
+  hasEvent(eventName: string): boolean {
+    return this.domainEvents.some((event) => event.eventName === eventName);
+  }
+
+  /**
    * Returns the change history (for debugging).
    */
   getHistory(): HistoryEntry[] {
