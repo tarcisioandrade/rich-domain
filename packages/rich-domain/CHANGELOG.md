@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.7.2...v1.8.1) (2026-01-09)
+
+
+### Features
+
+* add markAsPersisted method to BaseEntity and update Id management in repository ([3823b90](https://github.com/tarcisioandrade/rich-domain/commit/3823b9059404854c0c3923fa0e987cbcfbb1f1a0))
+* add methods to retrieve and check domain events in BaseEntity ([cb3d003](https://github.com/tarcisioandrade/rich-domain/commit/cb3d003bda9c201cafdd83a01fedc6a88fbba84b))
+* add pivo table beetwen post and tag ([582dfd2](https://github.com/tarcisioandrade/rich-domain/commit/582dfd287cdeb046dfc7a785a0f0fce212466750))
+* implement junction table handling in PrismaBatchExecutor for N:N relationships ([7dc709c](https://github.com/tarcisioandrade/rich-domain/commit/7dc709c4834ec328180120dd9b88f7cfc189cbb6))
+
+
+### Bug Fixes
+
+* CollectionConfig type in index file ([1833bcc](https://github.com/tarcisioandrade/rich-domain/commit/1833bcc637c077ea686e4432342d960c72a3ce8f))
+* correct string splitting and ensure aggregate is marked as persisted after saving ([4b69db6](https://github.com/tarcisioandrade/rich-domain/commit/4b69db6e74a2db5a34a0d62633fd273e5c6aacef))
+* update entity state to mark as persisted after saving in PrismaRepository ([c707cd1](https://github.com/tarcisioandrade/rich-domain/commit/c707cd1a211f8fa708eb6c00c6030df687d3e976))
+
+
+### Chores
+
+* remove postinstall script from package.json ([5931d9a](https://github.com/tarcisioandrade/rich-domain/commit/5931d9ab4897047f41c4b454292a93c547483292))
+* update @woltz/rich-domain and related packages to version 1.8.0 ([5425f61](https://github.com/tarcisioandrade/rich-domain/commit/5425f61cdfb9353e49e96c1447fee8afc53f6440))
+* update CI workflow for consistency and clarity in job steps ([c8d9965](https://github.com/tarcisioandrade/rich-domain/commit/c8d9965eed1b44e2918f996d3f1851432ed23299))
+
 ## [1.8.0](https://github.com/tarcisioandrade/rich-domain/compare/v0.4.1...v1.8.0) (2026-01-08)
 
 
