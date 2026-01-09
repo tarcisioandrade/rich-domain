@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DomainError, Entity, EntityValidation, Id } from "@woltz/rich-domain";
+import { Aggregate, DomainError, Entity, EntityValidation, Id } from "@woltz/rich-domain";
 import { User } from "../user/user.entity";
 import { Tag } from "../tag/tags";
 
@@ -16,7 +16,7 @@ export const PostSchema = z.object({
 
 export type PostProps = z.infer<typeof PostSchema>;
 
-export class Post extends Entity<PostProps> {
+export class Post extends Aggregate<PostProps> {
   protected static validation: EntityValidation<PostProps> = {
     schema: PostSchema,
   };

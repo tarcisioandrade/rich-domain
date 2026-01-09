@@ -1,5 +1,4 @@
 import { ValidationError } from "../validation-error.js";
-import { IDomainEvent } from "../index.js";
 import {
   VOHooks,
   ValidationConfig,
@@ -23,7 +22,6 @@ export abstract class ValueObject<T extends Primitive> {
   // @ts-expect-error - This is a private property
   private domainHooks?: VOHooks<T, any>;
   private domainSchema?: StandardSchema<T>;
-  private domainEvents: IDomainEvent[] = [];
 
   protected static validation?: EntityValidation<any>;
   protected static hooks?: VOHooks<any, any>;
@@ -128,33 +126,6 @@ export abstract class ValueObject<T extends Primitive> {
     return this.value === other.value;
   }
 
-  /**
-   * Adds a domain event to this value object.
-   */
-  protected addDomainEvent(event: IDomainEvent): void {
-    this.domainEvents.push(event);
-  }
-
-  /**
-   * Returns all uncommitted domain events.
-   */
-  getUncommittedEvents(): IDomainEvent[] {
-    return [...this.domainEvents];
-  }
-
-  /**
-   * Clears all domain events (call after publishing).
-   */
-  clearEvents(): void {
-    this.domainEvents = [];
-  }
-
-  /**
-   * Returns true if the value object has uncommitted events.
-   */
-  hasUncommittedEvents(): boolean {
-    return this.domainEvents.length > 0;
-  }
 
   /**
    * Creates a new ValueObject with updated value.
