@@ -498,6 +498,8 @@ export class PostToPersistenceMapper extends PrismaToPersistence<
     entity: "Post",
     table: "post",
     collections: {
+      // Field name related to the relationship in the domain;
+      // 'posts.tags' <- Domain Relation field name is 'tags'   
       tags: {
         type: "reference",
         entity: "Tag",
