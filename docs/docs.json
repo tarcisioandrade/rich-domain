@@ -23,6 +23,7 @@
         "groups": [
           {
             "group": "Getting Started",
+            "icon": "rocket",
             "pages": [
               "introduction",
               {
@@ -39,6 +40,7 @@
           },
           {
             "group": "Core Concepts",
+            "icon": "layers",
             "pages": [
               "core/entities-and-aggregates",
               "core/value-objects",
@@ -49,6 +51,7 @@
           },
           {
             "group": "Validation",
+            "icon": "badge-check",
             "pages": [
               "validation/overview",
               "validation/lifecycle-hooks",
@@ -57,6 +60,7 @@
           },
          {
             "group": "Criteria",
+           "icon": "list-filter",
             "pages": [
               "criteria/overview",
               "criteria/filters",
@@ -66,6 +70,7 @@
           },
           {
             "group": "Repository",
+            "icon":"database",
             "pages": [
               "repository/overview",
               "repository/mappers",
@@ -75,6 +80,7 @@
           },
           {
             "group": "Integrations",
+            "icon": "plug",
             "pages": [
               "integrations/csv-export",
               "integrations/prisma",
@@ -101,5 +107,6 @@
   },
   "styling": {
     "latex": false
-  }
+  },
+  "description": "A TypeScript library for Domain-Driven Design with Standard Schema validation, automatic change tracking, and enterprise-ready repositories."
 }

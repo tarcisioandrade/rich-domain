@@ -136,6 +136,18 @@ export type ProductSchema = Prisma.ProductGetPayload<{
 }>;
 ```
 
+## Initialize Client e Unit Of Work
+
+Define the Prisma schema type for type safety:
+
+```typescript
+import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { PrismaClient, Prisma } from "@prisma/client";
+
+export const prisma = new PrismaClient();
+export const uow = new PrismaUnitOfWork(prisma);
+```
+
 ## Create Mappers
 
 ### ToDomain Mapper
@@ -165,10 +177,7 @@ Maps from Domain to Prisma using `PrismaToPersistence`:
 
 ```typescript
 import { PrismaClient } from "@prisma/client";
-import { 
-  PrismaToPersistence, 
-  PrismaBatchExecutor 
-} from "@woltz/rich-domain-prisma";
+import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
 
 export class ProductToPersistenceMapper extends PrismaToPersistence<
@@ -229,14 +238,11 @@ export class ProductToPersistenceMapper extends PrismaToPersistence<
 Implement the repository:
 
 ```typescript
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaRepository } from "@woltz/rich-domain-prisma";
+import { WriteAndRead } from "@woltz/rich-domain";
+import { prisma, uow } from "(...)";
 
-const prisma = new PrismaClient();
-const uow = new PrismaUnitOfWork(prisma);
-
-interface IProductRepository {
-  save(product: Product): Promise<void>;
+interface IProductRepository extends WriteAndRead<Product> {} {
   findById(id: string): Promise<Product | null>;
 }
 
@@ -505,6 +511,7 @@ export class PostToPersistenceMapper extends PrismaToPersistence<
     },
   });
 
+  Transactional()
   protected async onCreate(post: Post): Promise<void> {
     await this.context.post.create({
       data: {

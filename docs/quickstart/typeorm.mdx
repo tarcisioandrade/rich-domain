@@ -1,7 +1,7 @@
 ---
 title: "With TypeORM"
 description: "Complete guide to using Rich Domain with TypeORM"
-keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide", "typeorm"]
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","typeorm"]
 ---
 
 ## Installation
@@ -14,12 +14,14 @@ Install the TypeORM adapter:
 npm install @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
 ```
 
+
 ```bash pnpm
-pnpm install @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
+pnpm add @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
 ```
 
+
 ```bash yarn
-yarn install @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
+yarn add @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
 ```
 
 </CodeGroup>
@@ -148,14 +150,15 @@ class Product extends Aggregate<ProductProps> {
 
 ## Create Mappers
 
-Create ToDomain and ToPersistence mappers:
+### ToDomain Mapper
+
+Maps from TypeORM to Domain:
 
 ```typescript
-import { Mapper } from "@woltz/rich-domain";
+import { Mapper, Id } from "@woltz/rich-domain";
 
-// TypeORM Entity -> Domain
-class ProductToDomainMapper implements Mapper<ProductEntity, Product> {
-  map(entity: ProductEntity): Product {
+export class ProductToDomainMapper extends Mapper<ProductEntity, Product> {
+  build(entity: ProductEntity): Product {
     return new Product({
       id: Id.from(entity.id),
       name: entity.name,
@@ -165,29 +168,66 @@ class ProductToDomainMapper implements Mapper<ProductEntity, Product> {
     });
   }
 }
+```
 
-// Domain -> TypeORM Entity
-class ProductToPersistenceMapper implements Mapper<Product, void> {
-  map(product: Product): Partial<ProductEntity> {
-    return {
-      id: product.id.value,
-      name: product.name,
-      price: product.price,
-      stock: product.stock,
-      status: product.status,
-      updatedAt: new Date(),
-    };
+### ToPersistence Mapper
+
+Maps from Domain to TypeORM using `TypeORMToPersistence`:
+
+```typescript
+import { EntityManager } from "typeorm";
+import { 
+  TypeORMToPersistence, 
+  TypeORMUnitOfWork,
+  Transactional 
+} from "@woltz/rich-domain-typeorm";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+export class ProductToPersistenceMapper extends TypeORMToPersistence<Product> {
+  protected readonly registry = new EntitySchemaRegistry().register({
+    entity: "Product",
+    table: "products",
+  });
+
+  protected readonly entityClasses = new Map<string, new () => any>([
+    ["Product", ProductEntity],
+  ]);
+
+  @Transactional()
+  protected async onCreate(product: Product, em: EntityManager): Promise<void> {
+    const entity = new ProductEntity();
+    entity.id = product.id.value;
+    entity.name = product.name;
+    entity.price = product.price;
+    entity.stock = product.stock;
+    entity.status = product.status;
+    entity.createdAt = new Date();
+    entity.updatedAt = new Date();
+
+    await em.save(entity);
   }
 }
 ```
+
+<Note>
+  - `onCreate` receives `EntityManager` as second parameter
+  - Use `@Transactional()` decorator for automatic transaction management
+  - `entityClasses` Map is required for the BatchExecutor
+  - `onUpdate` is handled automatically by `TypeORMBatchExecutor` - no need to override
+</Note>
 
 ## Create Repository
 
 Implement the repository:
 
 ```typescript
-import { TypeORMRepository, TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
+import { 
+  TypeORMRepository, 
+  TypeORMUnitOfWork,
+  SearchableField 
+} from "@woltz/rich-domain-typeorm";
 import { AppDataSource } from "./data-source";
+import { Repository } from "typeorm";
 
 const uow = new TypeORMUnitOfWork(AppDataSource);
 
@@ -201,27 +241,46 @@ class ProductRepository
   implements IProductRepository
 {
   constructor() {
-    super(
-      new ProductToPersistenceMapper(),
-      new ProductToDomainMapper(),
-      AppDataSource,
-      ProductEntity,
-      uow
-    );
+    const typeormRepo = AppDataSource.getRepository(ProductEntity);
+    
+    super({
+      typeormRepository: typeormRepo,
+      toDomainMapper: new ProductToDomainMapper(),
+      toPersistenceMapper: new ProductToPersistenceMapper(uow),
+      uow,
+      alias: "product", // Optional: alias for QueryBuilder
+    });
   }
 
-  protected generateSearchQuery(search: string) {
-    return [
-      { name: { contains: search, mode: "insensitive" } }
-    ];
+  protected getSearchableFields(): SearchableField<ProductEntity>[] {
+    return ["name"]; // Case-insensitive search by default
+  }
+
+  protected getDefaultRelations(): string[] {
+    return []; // Add relations if needed: ["category", "supplier"]
   }
 
   async findById(id: string): Promise<Product | null> {
-    const entity = await this.repository.findOne({ where: { id } });
-    return entity ? this.toDomainMapper.map(entity) : null;
+    const entity = await this.typeormRepo.findOne({
+      where: { id },
+      relations: this.getDefaultRelations(),
+    });
+
+    return entity ? this.toDomainMapper.build(entity) : null;
   }
 }
 ```
+
+<Tip>
+  **Key points:**
+
+  - ToPersistenceMapper receives `uow` in constructor
+  - Use `getSearchableFields()` to define which fields support search
+  - Use `getDefaultRelations()` to eagerly load relations
+  - `typeormRepo` is available from the base class for custom queries
+</Tip>
+
+````
 
 ## Use It
 
@@ -262,6 +321,174 @@ const criteria = Criteria.create<Product>()
 const results = await repository.find(criteria);
 console.log(results.data); // Array of products
 console.log(results.meta); // Pagination info
+````
+
+## Working with Relations
+
+### 1:N Owned Relations
+
+```typescript
+// TypeORM Entities
+@Entity("users")
+export class UserEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @Column()
+  email!: string;
+
+  @Column()
+  name!: string;
+
+  @OneToMany(() => PostEntity, post => post.author)
+  posts!: PostEntity[];
+}
+
+@Entity("posts")
+export class PostEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @Column()
+  authorId!: string;
+
+  @ManyToOne(() => UserEntity, user => user.posts)
+  author!: UserEntity;
+}
+
+// ToPersistence with 1:N
+export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
+  protected readonly registry = new EntitySchemaRegistry()
+    .register({
+      entity: "User",
+      table: "user",
+      collections: {
+        posts: {
+          type: "owned",
+          entity: "Post",
+        },
+      },
+    })
+    .register({
+      entity: "Post",
+      table: "post",
+      parentFk: {
+        field: "authorId",
+        parentEntity: "User",
+      },
+    });
+
+  protected readonly entityClasses = new Map([
+    ["User", UserEntity],
+    ["Post", PostEntity],
+  ]);
+
+  @Transactional()
+  protected async onCreate(user: User, em: EntityManager): Promise<void> {
+    // Create user
+    const userEntity = new UserEntity();
+    userEntity.id = user.id.value;
+    userEntity.email = user.email;
+    userEntity.name = user.name;
+    await em.save(userEntity);
+
+    // Create owned posts
+    for (const post of user.posts) {
+      const postEntity = new PostEntity();
+      postEntity.id = post.id.value;
+      postEntity.title = post.title;
+      postEntity.authorId = user.id.value;
+      await em.save(postEntity);
+    }
+  }
+}
+```
+
+### N:N with Junction Tables
+
+```typescript
+// TypeORM Entities
+@Entity("posts")
+export class PostEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @ManyToMany(() => TagEntity)
+  @JoinTable({
+    name: "_PostToTag",
+    joinColumn: { name: "A" },
+    inverseJoinColumn: { name: "B" },
+  })
+  tags!: TagEntity[];
+}
+
+@Entity("tags")
+export class TagEntity {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
+
+  @Column()
+  name!: string;
+}
+
+// ToPersistence with N:N
+export class PostToPersistenceMapper extends TypeORMToPersistence<Post> {
+  protected readonly registry = new EntitySchemaRegistry().register({
+    entity: "Post",
+    table: "post",
+    collections: {
+      tags: {
+        type: "reference",
+        entity: "Tag",
+        junction: {
+          table: "_PostToTag",
+          sourceKey: "A",
+          targetKey: "B",
+        },
+      },
+    },
+  });
+
+  protected readonly entityClasses = new Map([
+    ["Post", PostEntity],
+    ["Tag", TagEntity],
+  ]);
+
+  @Transactional()
+  protected async onCreate(post: Post, em: EntityManager): Promise<void> {
+    // Create post
+    const entity = new PostEntity();
+    entity.id = post.id.value;
+    entity.title = post.title;
+    entity.content = post.content;
+    await em.save(entity);
+
+    // Create junction records
+    if (post.tags.length > 0) {
+      for (const tag of post.tags) {
+        await em.query(
+          `INSERT INTO "_PostToTag" ("A", "B") VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [entity.id, tag.id.value]
+        );
+      }
+    }
+  }
+}
+
+// Usage
+const post = Post.create({
+  title: "My Post",
+  content: "Content here",
+});
+
+const tag1 = new Tag({ id: Id.from("tag-1") });
+const tag2 = new Tag({ id: Id.from("tag-2") });
+
+post.addTag(tag1);
+post.addTag(tag2);
+
+await postRepository.save(post);
+// Post and junction records are created automatically
 ```
 
 ## Unit of Work with Transactions
