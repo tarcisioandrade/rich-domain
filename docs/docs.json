@@ -40,7 +40,7 @@
           },
           {
             "group": "Core Concepts",
-            "icon": "layers",
+            "icon": "stack",
             "pages": [
               "core/entities-and-aggregates",
               "core/value-objects",
@@ -60,7 +60,7 @@
           },
          {
             "group": "Criteria",
-           "icon": "list-filter",
+           "icon": "filter",
             "pages": [
               "criteria/overview",
               "criteria/filters",
