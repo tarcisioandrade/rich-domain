@@ -40,7 +40,7 @@
           },
           {
             "group": "Core Concepts",
-            "icon": "stack",
+            "icon": "map",
             "pages": [
               "core/entities-and-aggregates",
               "core/value-objects",
