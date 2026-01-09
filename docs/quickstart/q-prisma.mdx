@@ -1,28 +1,31 @@
 ---
 title: "With Prisma"
 description: "Complete guide to using Rich Domain with Prisma ORM"
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","prisma"]
 ---
 
-## Installation
+<Note>
+  For a complete working example, see the [fastify-with-prisma example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-prisma) in the repository.
+</Note>
 
-Install the Prisma adapter:
+## Installation
 
 <CodeGroup>
 
 ```bash npm
-npm install @woltz/rich-domain-prisma @prisma/client
+npm install @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 npm install -D prisma
 ```
 
 
 ```bash pnpm
-pnpm add @woltz/rich-domain-prisma @prisma/client
+pnpm add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 pnpm add -D prisma
 ```
 
 
 ```bash yarn
-yarn add @woltz/rich-domain-prisma @prisma/client
+yarn add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 yarn add -D prisma
 ```
 
@@ -30,7 +33,7 @@ yarn add -D prisma
 
 ## Setup Prisma
 
-Initialize Prisma in your project:
+Initialize and configure Prisma:
 
 ```bash
 npx prisma init
@@ -48,433 +51,125 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Product {
+// Aggregate Root
+model User {
   id        String   @id @default(uuid())
+  email     String   @unique
   name      String
-  price     Float
-  stock     Int
-  status    String
+  posts     Post[]   // 1:N owned collection
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Owned Entity (belongs to User)
+model Post {
+  id        String     @id @default(uuid())
+  title     String
+  content   String
+  published Boolean    @default(false)
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tagPosts  TagPost[]  // N:N reference collection
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// Reference Entity (independent, shared across Posts)
+model Tag {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  tagPosts TagPost[]
+}
+
+// Junction table for N:N (manually created)
+model TagPost {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
 ```
 
-Generate Prisma Client and push schema:
+Generate Prisma Client:
 
 ```bash
 npx prisma generate
 npx prisma db push
 ```
 
-## Define Your Aggregate
-
-Create your domain model:
+## Initialize Prisma Client
 
 ```typescript
-import { z } from "zod";
-import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
-
-const productSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(3),
-  price: z.number().positive(),
-  stock: z.number().int().min(0),
-  status: z.enum(["active", "inactive"]),
-});
-
-type ProductProps = z.infer<typeof productSchema>;
-
-class Product extends Aggregate<ProductProps> {
-  protected static validation: EntityValidation<ProductProps> = {
-    schema: productSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: true,
-    },
-  };
-
-  get name() {
-    return this.props.name;
-  }
-
-  get price() {
-    return this.props.price;
-  }
-
-  get stock() {
-    return this.props.stock;
-  }
-
-  updatePrice(newPrice: number) {
-    this.props.price = newPrice;
-  }
-
-  decreaseStock(amount: number) {
-    this.props.stock -= amount;
-  }
-
-  activate() {
-    this.props.status = "active";
-  }
-
-  deactivate() {
-    this.props.status = "inactive";
-  }
-}
-```
-
-## Create Schema Type
-
-Define the Prisma schema type for type safety:
-
-```typescript
-import { Prisma } from "@prisma/client";
-
-export type ProductSchema = Prisma.ProductGetPayload<{
-  include: {};
-}>;
-```
-
-## Initialize Client e Unit Of Work
-
-Define the Prisma schema type for type safety:
-
-```typescript
+import { PrismaClient } from "@prisma/client";
 import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { PrismaClient, Prisma } from "@prisma/client";
 
 export const prisma = new PrismaClient();
 export const uow = new PrismaUnitOfWork(prisma);
 ```
 
-## Create Mappers
+## Define Domain Models
 
-### ToDomain Mapper
-
-Maps from Prisma to Domain:
+### Domain Entities
 
 ```typescript
-import { Mapper, Id } from "@woltz/rich-domain";
-import { ProductSchema } from "../schemas/product.schema";
+import { z } from "zod";
+import { Aggregate, Entity, ValueObject, EntityValidation, Id } from "@woltz/rich-domain";
 
-export class ProductToDomainMapper extends Mapper<ProductSchema, Product> {
-  build(raw: ProductSchema): Product {
-    return new Product({
-      id: Id.from(raw.id),
-      name: raw.name,
-      price: raw.price,
-      stock: raw.stock,
-      status: raw.status as "active" | "inactive",
-    });
-  }
-}
-```
-
-### ToPersistence Mapper
-
-Maps from Domain to Prisma using `PrismaToPersistence`:
-
-```typescript
-import { PrismaClient } from "@prisma/client";
-import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
-import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
-
-export class ProductToPersistenceMapper extends PrismaToPersistence<
-  Product,
-  PrismaClient
-> {
-  protected readonly registry = new EntitySchemaRegistry().register({
-    entity: "Product",
-    table: "product",
-    // Optional: Map domain fields to database columns
-    // fields: {
-    //   content: "main_content", // domain.content -> db.main_content
-    // },
-  });
-
-  protected async onCreate(product: Product): Promise<void> {
-    await this.context.product.create({
-      data: {
-        id: product.id.value,
-        name: product.name,
-        price: product.price,
-        stock: product.stock,
-        status: product.status,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
-
-  protected async onUpdate(
-    product: Product,
-    changes: AggregateChanges
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-      rootId: product.id.value,
-       // Custom data mappers per entity. 
-       // Use this to transform domain objects to persistence format. (optional)
-      dataMappers: {
-        Produtct: (item) => {
-          (...)
-        }
-      }
-    });
-
-    // Automatically creates UPDATE queries based on changed fields
-    await executor.execute(changes);
-  }
-}
-```
-
-<Note>
-  The `EntitySchemaRegistry` helps `PrismaBatchExecutor` understand your domain structure and automatically generate the correct SQL operations for creates, updates, and deletes.
-</Note>
-
-## Create Repository
-
-Implement the repository:
-
-```typescript
-import { PrismaRepository } from "@woltz/rich-domain-prisma";
-import { WriteAndRead } from "@woltz/rich-domain";
-import { prisma, uow } from "(...)";
-
-interface IProductRepository extends WriteAndRead<Product> {} {
-  findById(id: string): Promise<Product | null>;
-}
-
-class ProductRepository
-  extends PrismaRepository<Product, ProductSchema, PrismaClient>
-  implements IProductRepository
-{
-  constructor() {
-    super(
-      new ProductToPersistenceMapper(prisma, uow),
-      new ProductToDomainMapper(),
-      prisma,
-      uow
-    );
-  }
-
-  protected get model() {
-    return "product";
-  }
-
-  protected generateSearchQuery(search: string) {
-    return [
-      { name: { contains: search, mode: "insensitive" } }
-    ] satisfies Prisma.ProductWhereInput[];
-  }
-
-  async findById(id: string): Promise<Product | null> {
-    const data = await this.modelAccessor.findUnique({ 
-      where: { id } 
-    });
-    
-    if (!data) return null;
-    return this.toDomainMapper.build(data);
-  }
-}
-```
-
-## Use It
-
-```typescript
-const repository = new ProductRepository();
-
-// Create product
-const product = new Product({
-  name: "Mechanical Keyboard",
-  price: 149.99,
-  stock: 50,
-  status: "active",
-});
-
-// Save to database
-await repository.save(product);
-console.log("Product created:", product.id.value);
-
-// Update
-product.updatePrice(129.99);
-product.decreaseStock(5);
-await repository.save(product);
-
-// Query
-const found = await repository.findById(product.id.value);
-console.log("Found product:", found?.name); // "Mechanical Keyboard"
-
-// Use Criteria for complex queries
-const criteria = Criteria.create<Product>()
-  .where("status", "equals", "active")
-  .where("price", "greaterThan", 100)
-  .orderBy("name", "asc")
-  .paginate(1, 10);
-
-const results = await repository.find(criteria);
-console.log(results.data); // Array of products
-console.log(results.meta); // Pagination info
-```
-
-## Working with Relations
-
-The `PrismaBatchExecutor` automatically handles nested entities and collections:
-
-```typescript
-// Example with relations
-const userSchema = z.object({
+// Tag (Value Object - shared, immutable reference)
+const tagSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
-  email: z.string().email(),
-  name: z.string(),
-  posts: z.array(z.custom<Post>()),
 });
 
-class User extends Aggregate<UserProps> {
-  // ... validation
+type TagProps = z.infer<typeof tagSchema>;
 
-  addPost(post: Post) {
-    this.props.posts.push(post);
-  }
-
-  removePost(postId: string) {
-    const index = this.props.posts.findIndex(p => p.id.value === postId);
-    if (index !== -1) {
-      this.props.posts.splice(index, 1);
-    }
+export class Tag extends ValueObject<TagProps> {
+  get id() {
+    return this.props.id;
   }
 }
 
-// ToPersistence with relations
-export class UserToPersistenceMapper extends PrismaToPersistence<
-  User,
-  PrismaClient
-> {
-  protected readonly registry = new EntitySchemaRegistry()
-    .register({
-      entity: "User",
-      table: "user",
-    })
-    .register({
-      entity: "Post",
-      table: "post",
-      parentFk: {
-        field: "authorId",
-        parentEntity: "User",
-      },
-    });
-
-  protected async onCreate(user: User): Promise<void> {
-    await this.context.user.create({
-      data: {
-        id: user.id.value,
-        email: user.email,
-        name: user.name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        posts: {
-          createMany: user.posts.length
-            ? {
-                data: user.posts.map((post) => ({
-                  id: post.id.value,
-                  title: post.title,
-                  content: post.content,
-                  published: post.published,
-                  authorId: user.id.value,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                })),
-              }
-            : undefined,
-        },
-      },
-    });
-  }
-
-  protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-      rootId: user.id.value,
-    });
-
-    // Automatically handles:
-    // - Field updates on User
-    // - Post creates/updates/deletes
-    // - Nested entity changes
-    await executor.execute(changes);
-  }
-}
-
-// Usage
-const user = User.create({ email: "john@example.com", name: "John" });
-
-const post = Post.create({
-  title: "My First Post",
-  content: "Hello World",
-  authorId: user.id.value,
+// Post (Entity - owned by User)
+const postSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  title: z.string().min(3),
+  content: z.string(),
+  published: z.boolean(),
+  authorId: z.string(),
+  tags: z.array(z.custom<Tag>()),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
-user.addPost(post);
+type PostProps = z.infer<typeof postSchema>;
 
-await userRepository.save(user);
-// Both User and Post are created in a single transaction
-```
+export class Post extends Entity<PostProps> {
+  protected static validation: EntityValidation<PostProps> = {
+    schema: postSchema,
+    config: { onCreate: true, onUpdate: true },
+  };
 
-## Generate Domain from Schema
+  get title() {
+    return this.props.title;
+  }
 
-Use the CLI to automatically generate everything:
+  get content() {
+    return this.props.content;
+  }
 
-```bash
-npx rich-domain generate
-```
+  get published() {
+    return this.props.published;
+  }
 
-This creates:
+  get authorId() {
+    return this.props.authorId;
+  }
 
-- ✅ Aggregates/Entities
-- ✅ Value Objects
-- ✅ Repository interfaces
-- ✅ Repository implementations with PrismaRepository
-- ✅ Mappers (ToDomain & ToPersistence)
+  get tags() {
+    return this.props.tags;
+  }
 
-<Tip>
-  The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
-</Tip>
-
-## Many-to-Many Relations
-
-Handle N:N relationships with junction tables:
-
-```typescript
-// Prisma Schema
-model Post {
-  id       String     @id
-  title    String
-  tagPosts TagPost[]
-}
-
-model Tag {
-  id       String     @id
-  name     String
-  tagPosts TagPost[]
-}
-
-model TagPost {
-  postId String
-  tagId  String
-  post   Post   @relation(fields: [postId], references: [id])
-  tag    Tag    @relation(fields: [tagId], references: [id])
-
-  @@id([postId, tagId])
-}
-```
-
-```typescript
-// Domain
-class Post extends Aggregate<PostProps> {
   addTag(tag: Tag) {
     if (!this.props.tags.some(t => t.id.equals(tag.id))) {
       this.props.tags.push(tag);
@@ -487,72 +182,365 @@ class Post extends Aggregate<PostProps> {
       this.props.tags.splice(index, 1);
     }
   }
+
+  publish() {
+    this.props.published = true;
+  }
 }
 
-// ToPersistence
-export class PostToPersistenceMapper extends PrismaToPersistence<
-  Post,
-  PrismaClient
-> {
-  protected readonly registry = new EntitySchemaRegistry().register({
-    entity: "Post",
-    table: "post",
-    collections: {
-      // Field name related to the relationship in the domain;
-      // 'posts.tags' <- Domain Relation field name is 'tags'   
-      tags: {
-        type: "reference",
-        entity: "Tag",
-        // Junction config is necessary, as we created the pivot table manually
-        junction: {
-          table: "TagPost", // <- The pivot table name, in example name is TagPost
-          sourceKey: "postId",
-          targetKey: "tagId",
-        },
-      },
-    },
-  });
+// User (Aggregate Root)
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  email: z.string().email(),
+  name: z.string().min(2),
+  posts: z.array(z.custom<Post>()),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
 
-  Transactional()
-  protected async onCreate(post: Post): Promise<void> {
-    await this.context.post.create({
-      data: {
-        id: post.id.value,
-        title: post.title,
-        content: post.content,
-        published: post.published,
-      },
-    });
+type UserProps = z.infer<typeof userSchema>;
 
-    // Create junction records
-    if (post.tags.length) {
-      await this.context.tagPost.createMany({
-        data: post.tags.map((tag) => ({
-          tagId: tag.id.value,
-          postId: post.id.value,
-        })),
-      });
+export class User extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: { onCreate: true, onUpdate: true, throwOnError: true },
+  };
+
+  get email() {
+    return this.props.email;
+  }
+
+  get name() {
+    return this.props.name;
+  }
+
+  get posts() {
+    return this.props.posts;
+  }
+
+  addPost(post: Post) {
+    this.props.posts.push(post);
+  }
+
+  removePost(postId: Id) {
+    const index = this.props.posts.findIndex(p => p.id.equals(postId));
+    if (index !== -1) {
+      this.props.posts.splice(index, 1);
     }
   }
 
-  protected async onUpdate(
-    post: Post,
-    changes: AggregateChanges
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-      rootId: post.id.value,
+  updateName(newName: string) {
+    this.props.name = newName;
+  }
+}
+```
+
+## Create Schema Types
+
+```typescript
+import { Prisma } from "@prisma/client";
+
+export type UserSchema = Prisma.UserGetPayload<{
+  include: {
+    posts: {
+      include: {
+        tagPosts: {
+          include: {
+            tag: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+```
+
+## Create Mappers
+
+### ToDomain Mapper
+
+```typescript
+import { Mapper, Id } from "@woltz/rich-domain";
+import { UserSchema } from "./schemas/user.schema";
+
+export class UserToDomainMapper extends Mapper<UserSchema, User> {
+  build(raw: UserSchema): User {
+    return new User({
+      id: Id.from(raw.id),
+      email: raw.email,
+      name: raw.name,
+      posts: raw.posts.map(post =>
+        Post.restore({
+          id: Id.from(post.id),
+          title: post.title,
+          content: post.content,
+          published: post.published,
+          authorId: post.authorId,
+          tags: post.tagPosts.map(tp => new Tag({ id: Id.from(tp.tag.id) })),
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+        })
+      ),
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
+  }
+}
+```
+
+### ToPersistence Mapper
+
+```typescript
+import { PrismaClient } from "@prisma/client";
+import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
+import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
+
+export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
+  protected readonly registry = new EntitySchemaRegistry()
+    .register({
+      entity: "User",
+      table: "user",
+      collections: {
+        // 'owned': Children entities that belong exclusively to this aggregate
+        // They are created/deleted with the parent
+        posts: {
+          type: "owned",
+          entity: "Post",
+        },
+      },
+    })
+    .register({
+      entity: "Post",
+      table: "post",
+      // Parent foreign key for owned entities
+      parentFk: {
+        field: "authorId",
+        parentEntity: "User",
+      },
+      collections: {
+        // Field name related to the relationship in the domain;
+        // 'posts.tags' <- Domain Relation field name is 'tags'  
+        tags: {
+        // 'reference': Independent entities connected via junction table
+        // They exist independently and are only linked/unlinked
+          type: "reference",
+          entity: "Tag",
+          // Junction config required for manually created pivot tables
+          junction: {
+            table: "tagPost",    // Pivot table name
+            sourceKey: "postId", // FK to Post
+            targetKey: "tagId",  // FK to Tag
+          },
+        },
+      },
     });
 
-    // Automatically handles tag additions/removals in junction table
+  protected async onCreate(user: User): Promise<void> {
+    // Create aggregate root
+    await this.context.user.create({
+      data: {
+        id: user.id.value,
+        email: user.email,
+        name: user.name,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create owned entities (Posts)
+    for (const post of user.posts) {
+      await this.context.post.create({
+        data: {
+          id: post.id.value,
+          title: post.title,
+          content: post.content,
+          published: post.published,
+          authorId: user.id.value,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create junction records for referenced entities (Tags)
+      if (post.tags.length > 0) {
+        await this.context.tagPost.createMany({
+          data: post.tags.map(tag => ({
+            postId: post.id.value,
+            tagId: tag.id.value,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+  }
+
+  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+      rootId: user.id.value,
+       // Custom data mappers per entity. 
+       // Use this to transform domain objects to persistence format. (optional)
+      dataMappers: {
+        Post: (item) => {
+          (...)
+        }
+      }
+    });
+
+    // Automatically handles:
+    // - Root updates (User fields)
+    // - Owned entity changes (Post creates/updates/deletes)
+    // - Reference changes (Tag link/unlink in junction table)
     await executor.execute(changes);
   }
 }
 ```
 
 <Note>
-  A collection junction is only necessary when you remove the responsibility of creating the pivot table from Prisma and create it manually.
+  **Collection Types:**
+
+  - **`owned`**: Entity belongs to and is lifecycle-managed by the aggregate (e.g., User → Posts). Created and deleted with the parent.
+  - **`reference`**: Independent entity that exists separately (e.g., Post ↔ Tags). Only the relationship is managed via junction table.
+
+  **Junction Table:**
+
+  - Only needed when you manually create the pivot table (like `TagPost`)
+  - If using Prisma's implicit many-to-many (`@relation`), no junction config needed
 </Note>
+
+## Create Repository
+
+```typescript
+import { PrismaRepository } from "@woltz/rich-domain-prisma";
+import { WriteAndRead } from "@woltz/rich-domain";
+import { Prisma } from "@prisma/client";
+
+interface IUserRepository extends WriteAndRead<User> {
+  findByEmail(email: string): Promise<User | null>;
+}
+
+export class UserRepository
+  extends PrismaRepository<User, UserSchema, PrismaClient>
+  implements IUserRepository
+{
+  constructor() {
+    super(
+      new UserToPersistenceMapper(prisma, uow),
+      new UserToDomainMapper(),
+      prisma,
+      uow
+    );
+  }
+
+  protected get model() {
+    return "user";
+  }
+
+  protected generateSearchQuery(search: string) {
+    return [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ] satisfies Prisma.UserWhereInput[];
+  }
+
+  protected readonly includes = {
+    posts: {
+      include: {
+        tagPosts: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.UserInclude;
+
+  async findByEmail(email: string): Promise<User | null> {
+    const data = await this.context.user.findUnique({
+      where: { email },
+      include: this.includes,
+    });
+
+    return data ? this.toDomainMapper.build(data) : null;
+  }
+}
+```
+
+## Usage
+
+```typescript
+const userRepo = new UserRepository();
+
+// Create user with posts and tags
+const user = new User({
+  email: "john@example.com",
+  name: "John Doe",
+  posts: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
+// Add post with tags
+const post = Post.restore({
+  title: "My First Post",
+  content: "Hello World",
+  published: false,
+  authorId: user.id.value,
+  tags: [
+    new Tag({ id: Id.from("tag-1") }),
+    new Tag({ id: Id.from("tag-2") }),
+  ],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
+user.addPost(post);
+
+// Save everything in one transaction
+await userRepo.save(user);
+// ✅ Creates: User, Post, and junction records (TagPost)
+
+// Update - add another tag
+const foundUser = await userRepo.findByEmail("john@example.com");
+foundUser!.posts[0].addTag(new Tag({ id: Id.from("tag-3") }));
+
+await userRepo.save(foundUser!);
+// ✅ Only creates new junction record for tag-3
+
+// Update - remove a post
+foundUser!.removePost(foundUser!.posts[0].id);
+
+await userRepo.save(foundUser!);
+// ✅ Deletes: Post and all its junction records (cascade)
+
+// Query with Criteria
+const criteria = Criteria.create<User>()
+  .where("email", "contains", "john")
+  .orderBy("name", "asc")
+  .paginate(1, 10);
+
+const results = await userRepo.find(criteria);
+```
+
+## Generate from Schema (CLI)
+
+Auto-generate all domain code from your Prisma schema:
+
+```bash
+npx rich-domain generate
+```
+
+This creates:
+
+- ✅ Aggregates/Entities
+- ✅ Value Objects
+- ✅ Repository interfaces
+- ✅ Repository implementations
+- ✅ Mappers (ToDomain & ToPersistence)
+
+<Tip>
+  The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
+</Tip>
 
 ## Next Steps
 

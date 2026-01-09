@@ -24,52 +24,19 @@ await userRepository.save(user);
 ## Why Use Repositories?
 
 <CardGroup cols={2}>
-
-<Card title="Domain Isolation" icon="shield-halved">
-  Domain code stays free of persistence concerns
-</Card>
-
-<Card title="Testability" icon="flask-vial">
-  Easy to mock or use in-memory implementations for testing
-</Card>
-
-<Card title="Flexibility" icon="arrows-rotate">
-  Switch databases or ORMs without changing domain code
-</Card>
-
-<Card title="Consistency" icon="check-double">
-  Centralized place for query logic and data access patterns
-</Card>
-
+  <Card title="Domain Isolation" icon="shield-halved">
+    Domain code stays free of persistence concerns
+  </Card>
+  <Card title="Testability" icon="flask-vial">
+    Easy to mock or use in-memory implementations for testing
+  </Card>
+  <Card title="Flexibility" icon="arrows-rotate">
+    Switch databases or ORMs without changing domain code
+  </Card>
+  <Card title="Consistency" icon="check-double">
+    Centralized place for query logic and data access patterns
+  </Card>
 </CardGroup>
-
-## Database Agnostic
-
-The Repository pattern in rich-domain is **completely database agnostic**. The core library provides abstract base classes that you implement for your specific database/ORM:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Domain Layer                          │
-│  (Entities, Aggregates, Value Objects, Domain Services)  │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Repository Interface                        │
-│   Repository<T>, ReadRepository<T>, WriteRepository<T>   │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-          ┌───────────────┼───────────────┐
-          ▼               ▼               ▼
-   ┌────────────┐  ┌────────────┐  ┌────────────┐
-   │   Prisma   │  │  Drizzle   │  │  MongoDB   │
-   │   Adapter  │  │   Adapter  │  │   Custom   │
-   └────────────┘  └────────────┘  └────────────┘
-```
-
-<Info>
-  rich-domain provides an official [Prisma Adapter](/integrations/prisma) (`@woltz/rich-domain-prisma`) with full support for change tracking, batch operations, and transactions.
-</Info>
 
 ## Repository Types
 
@@ -247,7 +214,9 @@ class UserRepository extends Repository<User> {
 
 <Note>
   For complete implementations with specific ORMs, see:
+
   - [Prisma Integration](/integrations/prisma) - Full-featured adapter with change tracking
+  - [TypeORM Integration](/integrations/typeorm) - Full-featured adapter with change tracking
   - [Drizzle Integration](/integrations/drizzle) - Coming soon
 </Note>
 
@@ -492,21 +461,16 @@ describe("UserService", () => {
 ## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Criteria" icon="filter" href="/criteria/overview">
-  Learn about type-safe query building
-</Card>
-
-<Card title="Mappers" icon="right-left" href="/repository/mappers">
-  Domain ↔ persistence data transformation
-</Card>
-
-<Card title="Schema Registry" icon="sitemap" href="/repository/schema-registry">
-  Map entities to database tables
-</Card>
-
-<Card title="Prisma Integration" icon="database" href="/integrations/prisma">
-  Complete Prisma implementation
-</Card>
-
+  <Card title="Criteria" icon="filter" href="/criteria/overview">
+    Learn about type-safe query building
+  </Card>
+  <Card title="Mappers" icon="right-left" href="/repository/mappers">
+    Domain ↔ persistence data transformation
+  </Card>
+  <Card title="Schema Registry" icon="sitemap" href="/repository/schema-registry">
+    Map entities to database tables
+  </Card>
+  <Card title="Prisma Integration" icon="database" href="/integrations/prisma">
+    Complete Prisma implementation
+  </Card>
 </CardGroup>

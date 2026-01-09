@@ -211,8 +211,10 @@ registry.register({
     // 1:N owned relationship - comments belong to post
     comments: { type: "owned" },
     
-    // N:N reference relationship - tags exist independently
+    // Field name related to the relationship in the domain;
+    // 'posts.tags' <- Domain Relation field name is 'tags' 
     tags: { 
+    // N:N reference relationship - tags exist independently
       type: "reference", 
       entity: "Tag",
       // Optional: junction table config (for ORMs that need it)

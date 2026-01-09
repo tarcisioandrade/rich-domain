@@ -31,23 +31,18 @@ console.log(email.isBusinessEmail()); // true
 ## Key Characteristics
 
 <CardGroup cols={2}>
-
-<Card title="Primitive Values Only" icon="hashtag">
-  Value Objects wrap a single primitive value: string, number, boolean, or Date.
-</Card>
-
-<Card title="Immutable" icon="lock">
-  Once created, a Value Object cannot be changed. Use `clone()` to create new instances.
-</Card>
-
-<Card title="Equality by Value" icon="equals">
-  Two Value Objects are equal if their primitive values are equal.
-</Card>
-
-<Card title="Self-Contained" icon="box">
-  Value Objects contain all the behavior related to the concept they represent.
-</Card>
-
+  <Card title="Primitive Values Only" icon="hashtag">
+    Value Objects wrap a single primitive value: string, number, boolean, or Date.
+  </Card>
+  <Card title="Immutable" icon="lock">
+    Once created, a Value Object cannot be changed. Use `clone()` to create new instances.
+  </Card>
+  <Card title="Equality by Value" icon="equals">
+    Two Value Objects are equal if their primitive values are equal.
+  </Card>
+  <Card title="Self-Contained" icon="box">
+    Value Objects contain all the behavior related to the concept they represent.
+  </Card>
 </CardGroup>
 
 ## Creating Value Objects
@@ -200,29 +195,6 @@ const invalidAge = new Age(-5);
 - **`onBeforeCreate`**: Called before validation, receives the primitive value
 - **`rules`**: Custom business rules, receives the ValueObject instance
 
-## Domain Events
-
-Value Objects can emit domain events:
-
-```typescript
-class Status extends ValueObject<string> {
-  protected static hooks: VOHooks<string, Status> = {
-    onCreate: (status) => {
-      if (status.value === "completed") {
-        status.addDomainEvent({
-          type: "status.completed",
-          payload: { value: status.value },
-        });
-      }
-    },
-  };
-}
-
-const status = new Status("completed");
-const events = status.getUncommittedEvents();
-// [{ type: "status.completed", payload: { value: "completed" } }]
-```
-
 ## Common Examples
 
 ### Email
@@ -354,34 +326,6 @@ const slug = Slug.fromTitle("Hello World!");
 console.log(slug.value); // "hello-world"
 console.log(slug.toUrl("https://example.com")); // "https://example.com/hello-world"
 ```
-
-## Best Practices
-
-<AccordionGroup>
-
-<Accordion title="Use ValueObjects for domain concepts">
-  Wrap primitive values that have domain meaning (Email, Price, Percentage) rather
-  than using plain strings/numbers.
-</Accordion>
-
-<Accordion title="Add validation">
-  Always validate ValueObjects to ensure they contain valid values.
-</Accordion>
-
-<Accordion title="Encapsulate behavior">
-  Put domain logic related to the value inside the ValueObject class.
-</Accordion>
-
-<Accordion title="Keep them simple">
-  ValueObjects should wrap a single primitive value. For complex objects with multiple
-  properties, use Entities instead.
-</Accordion>
-
-<Accordion title="Use factory methods">
-  Provide static factory methods for common creation patterns.
-</Accordion>
-
-</AccordionGroup>
 
 ## Serialization
 
