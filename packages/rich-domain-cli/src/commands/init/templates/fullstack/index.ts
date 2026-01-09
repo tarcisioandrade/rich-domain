@@ -59,7 +59,7 @@ export class FullstackTemplate extends BaseTemplate {
       "@fastify/helmet": "^13.0.0",
       "@fastify/sensible": "^6.0.1",
       "@prisma/client": "^6.1.0",
-      "@woltz/rich-domain": "^1.8.0",
+      "@woltz/rich-domain": "^1.8.1",
       "@woltz/rich-domain-criteria-zod": "^0.1.2",
       "@woltz/rich-domain-prisma": "^0.7.1",
       bullmq: "^5.64.0",
