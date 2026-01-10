@@ -18,7 +18,7 @@ A comprehensive TypeScript monorepo for Domain-Driven Design, providing enterpri
 | [@woltz/rich-domain-typeorm](./packages/rich-domain-typeorm) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) | TypeORM adapter with transaction support |
 | [@woltz/rich-domain-criteria-zod](./packages/rich-domain-criteria-zod) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod-based criteria builder for type-safe queries |
 | [@woltz/rich-domain-cli](./packages/rich-domain-cli) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli) | CLI for project scaffolding and code generation |
-| [@woltz/rich-domain-csv](./packages/rich-domain-csv) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-csv.svg)](https://www.npmjs.com/package/@woltz/rich-domain-csv) | CSV data export to @woltz/rich-domain repository
+| [@woltz/rich-domain-export](./packages/rich-domain-export) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg)](https://www.npmjs.com/package/@woltz/rich-domain-export) | Export data to @woltz/rich-domain repository
 
 ## 🚀 Quick Start
 
