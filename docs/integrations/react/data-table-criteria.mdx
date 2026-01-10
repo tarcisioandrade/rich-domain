@@ -39,6 +39,7 @@ import { useCriteriaTable } from "@/hooks/use-criteria-table";
 import { DataTableCriteria } from "@/components/data-table-criteria/data-table-criteria";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { QueryFilter } from "@/lib/filter-utils";
+import type { FileFormat } from "./components/data-view-criteria/data-view-toolbar";
 
 interface User {
   id: string;
@@ -67,6 +68,11 @@ const columns: ColumnDef<User>[] = [
     header: "Status",
   },
 ];
+
+async function getExport(format: FileFormat) {
+  const result = await apiCall(format);
+  return result;
+}
 
 const filterFields: QueryFilter[] = [
   { field: "name", fieldLabel: "Name", type: "string" },
@@ -103,6 +109,7 @@ function UserTable() {
       isLoading={isLoading}
       filterProps={filterProps}
       searchProps={searchProps}
+      onExport={getExport}
       searchPlaceholder="Search users..."
       emptyMessage="No users found."
     />
