@@ -1,5 +1,6 @@
 import type { Aggregate } from "@woltz/rich-domain";
-import type { CsvExportOptions, CsvValidationResult, PropsOf } from "../types";
+import type { CsvExportOptions } from "../../core/format-options.js";
+import type { ValidationResult, PropsOf } from "../../core/types.js";
 
 /**
  * Validates CSV export options before export operation
@@ -24,7 +25,7 @@ import type { CsvExportOptions, CsvValidationResult, PropsOf } from "../types";
 export function validateCsvExportOptions<T extends Aggregate<any>>(
   options: CsvExportOptions<T>,
   sampleData?: any | null
-): CsvValidationResult {
+): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
