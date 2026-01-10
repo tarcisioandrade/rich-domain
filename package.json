@@ -5,7 +5,8 @@
   "description": "Woltz monorepo containing DDD libraries",
   "workspaces": [
     "packages/*",
-    "examples/**/*"
+    "examples/**/*",
+    "apps/**/*"
   ],
   "scripts": {
     "build": "npm run build:packages && npm run build:examples",

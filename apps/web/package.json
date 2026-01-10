@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
+    "check": "tsc --noEmit",
+    "lint": "echo 'No linting yet'",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs"
   },
