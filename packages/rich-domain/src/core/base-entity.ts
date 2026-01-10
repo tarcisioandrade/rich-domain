@@ -7,8 +7,6 @@ import {
   ValidationConfig,
   StandardSchema,
   EntityValidation,
-  IDomainEventBus,
-  IDomainEvent,
 } from "../types/index.js";
 import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
 import { DomainError } from "../exceptions.js";
@@ -29,7 +27,6 @@ export abstract class BaseEntity<T extends BaseProps> {
   private validationConfig: Required<ValidationConfig>;
   private entityHooks?: EntityHooks<T, any>;
   private entitySchema?: StandardSchema<T>;
-  private domainEvents: IDomainEvent[] = [];
 
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
@@ -333,19 +330,6 @@ export abstract class BaseEntity<T extends BaseProps> {
     return this.tracker.getChanges<TEntityMap>();
   }
 
-  /**
-   * Get a domain event by name
-   */
-  getEvent(eventName: string): IDomainEvent | undefined {
-    return this.domainEvents.find((event) => event.eventName === eventName);
-  }
-
-  /**
-   * Check if an event has been added to the entity
-   */
-  hasEvent(eventName: string): boolean {
-    return this.domainEvents.some((event) => event.eventName === eventName);
-  }
 
   /**
    * Returns the change history (for debugging).
@@ -372,41 +356,7 @@ export abstract class BaseEntity<T extends BaseProps> {
     this.id.markAsNotNew();
   }
 
-  /**
-   * Add a domain event to this entity
-   */
-  protected addDomainEvent(event: IDomainEvent): void {
-    this.domainEvents.push(event);
-  }
 
-  /**
-   * Dispatch all events through the event bus
-   */
-  public async dispatchAll(bus: IDomainEventBus): Promise<void> {
-    await bus.publishAll(this.getUncommittedEvents());
-    this.clearEvents();
-  }
-
-  /**
-   * Get all uncommitted domain events
-   */
-  getUncommittedEvents(): IDomainEvent[] {
-    return [...this.domainEvents];
-  }
-
-  /**
-   * Clear all domain events (call after publishing)
-   */
-  clearEvents(): void {
-    this.domainEvents = [];
-  }
-
-  /**
-   * Check if entity has uncommitted events
-   */
-  hasUncommittedEvents(): boolean {
-    return this.domainEvents.length > 0;
-  }
 
   toJSON(): DeepJsonResult<T> {
     return this.deepToJson(this._props) as DeepJsonResult<T>;

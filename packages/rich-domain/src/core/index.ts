@@ -1,4 +1,5 @@
 export * from "./base-entity";
+export * from "./base-aggregate";
 export * from "./aggregate-changes";
 export * from "./change-tracker";
 export * from "./domain-event";
