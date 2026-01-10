@@ -85,12 +85,13 @@
               {
                 "group": "React",
                 "pages": [
-                  "documentation/integrations/react/use-criteria",
-                  "documentation/integrations/react/use",
-                  "documentation/integrations/react/timeline",
-                  "documentation/integrations/react/data-table-criteria",
-                  "documentation/integrations/react/sorting",
-                  "documentation/integrations/react/filter"
+                  "integrations/react/use-criteria",
+                  "integrations/react/use-criteria-query",
+                  "integrations/react/use-criteria-infinite-query",
+                  "integrations/react/timeline",
+                  "integrations/react/data-table-criteria",
+                  "integrations/react/sorting",
+                  "integrations/react/filter"
                 ]
               },
               "integrations/csv-export",

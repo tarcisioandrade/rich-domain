@@ -1,0 +1,346 @@
+---
+title: "useCriteriaQuery"
+description: "React hook for fetching paginated data using Criteria with React Query"
+keywords:
+  [
+    "react",
+    "hooks",
+    "react-query",
+    "criteria",
+    "pagination",
+    "filtering",
+    "frontend",
+  ]
+---
+
+## useCriteriaQuery Hook
+
+A powerful hook that combines Criteria for filter/sort/pagination management with React Query for data fetching, caching, and state management.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-query.json"
+```
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-query.json"
+```
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-query.json"
+```
+
+</CodeGroup>
+
+### Basic Usage
+
+```tsx
+import { useCriteriaQuery } from "@/hooks/use-criteria-query";
+import type { PaginatedJsonResult } from "@woltz/rich-domain";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  status: "active" | "inactive";
+  age: number;
+  createdAt: Date;
+}
+
+function UserList() {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    meta,
+    addFilter,
+    setPage,
+    setSearch,
+    clearFilters,
+  } = useCriteriaQuery<User>(
+    "users",
+    async (criteria) => {
+      const params = new URLSearchParams(
+        Object.entries(criteria.toJSON()).map(([key, value]) => [
+          key,
+          JSON.stringify(value),
+        ])
+      );
+      const response = await fetch(`/api/users?${params}`);
+      return response.json();
+    },
+    {
+      pageSize: 20,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error?.message}</div>;
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search users..."
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      <button onClick={() => addFilter("status", "equals", "active")}>
+        Show Active Users
+      </button>
+
+      <button onClick={clearFilters}>Clear Filters</button>
+
+      <ul>
+        {data.map((user) => (
+          <li key={user.id}>
+            {user.name} - {user.email}
+          </li>
+        ))}
+      </ul>
+
+      {meta && (
+        <div>
+          <button
+            disabled={!meta.hasPrev}
+            onClick={() => setPage(meta.page - 1)}
+          >
+            Previous
+          </button>
+          <span>
+            Page {meta.page} of {meta.totalPages}
+          </span>
+          <button
+            disabled={!meta.hasNext}
+            onClick={() => setPage(meta.page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Options
+
+```tsx
+interface UseCriteriaQueryOptions<TData, TError = Error>
+  extends UseCriteriaOptions<TData> {
+  // React Query options
+  enabled?: boolean; // Enable/disable query
+  staleTime?: number; // Time before data is considered stale
+  gcTime?: number; // Garbage collection time
+  refetchInterval?: number | false; // Auto-refetch interval
+  refetchOnMount?: boolean | "always"; // Refetch on component mount
+  refetchOnWindowFocus?: boolean | "always"; // Refetch on window focus
+  refetchOnReconnect?: boolean | "always"; // Refetch on reconnect
+  retry?: boolean | number; // Retry failed requests
+  retryDelay?: number | ((attempt: number) => number); // Delay between retries
+
+  // Callbacks
+  onSuccess?: (data: PaginatedJsonResult<TData>) => void;
+  onError?: (error: TError) => void;
+  onSettled?: (
+    data: PaginatedJsonResult<TData> | undefined,
+    error: TError | null
+  ) => void;
+
+  // Data transformation
+  select?: (data: PaginatedJsonResult<TData>) => unknown;
+
+  // UseCriteria options (inherited)
+  initialPage?: number; // Default: 1
+  pageSize?: number; // Default: 20
+  initialFilters?: Filter<FieldPath<TData>, unknown>[];
+  initialSort?: Order[];
+  initialSearch?: {
+    fields: FieldPath<TData>[];
+    value: string;
+  };
+  onChange?: (criteria: Criteria<TData>) => void;
+  persistKey?: string; // localStorage key
+  syncWithUrl?: boolean; // Sync with URL params
+}
+```
+
+### Return Value
+
+```tsx
+interface UseCriteriaQueryReturn<TData, TError = Error> {
+  // Data
+  data: TData[];
+  meta: PaginationMeta | undefined;
+
+  // Loading states
+  isLoading: boolean;
+  isFetching: boolean;
+  isRefetching: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+
+  // Error
+  error: TError | null;
+
+  // Actions
+  refetch: () => Promise<void>;
+
+  // Criteria state
+  criteria: Criteria<TData>;
+  filters: Filter<string, unknown>[];
+  sorting: Order[];
+  pagination: Pagination;
+
+  // Filter actions
+  addFilter: <K extends FieldPath<TData>>(
+    field: K,
+    operator: OperatorsForType<PathValue<TData, K>>,
+    value?: FilterValueFor<PathValue<TData, K>>
+  ) => void;
+  removeFilter: (index: number) => void;
+  removeFilterByField: (field: FieldPath<TData>) => void;
+  clearFilters: () => void;
+
+  // Sort actions
+  addSort: (field: FieldPath<TData>, direction: OrderDirection) => void;
+  removeSort: (index: number) => void;
+  removeSortByField: (field: FieldPath<TData>) => void;
+  clearSort: () => void;
+
+  // Pagination actions
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  nextPage: () => void;
+  prevPage: () => void;
+
+  // Search actions
+  setSearch: (value: string) => void;
+  clearSearch: () => void;
+
+  // Reset
+  reset: () => void;
+}
+```
+
+### Advanced Examples
+
+#### With URL Synchronization
+
+Keep your filters in sync with the URL so users can bookmark and share filtered views:
+
+```tsx
+const { data, addFilter, setPage } = useCriteriaQuery<User>(
+  "users",
+  fetchUsers,
+  {
+    syncWithUrl: true,
+    pageSize: 20,
+  }
+);
+
+// Changing filters updates the URL
+addFilter("status", "equals", "active");
+// URL: ?status:equals=active&page=1&limit=20
+```
+
+#### With Persistence
+
+Save filter state to localStorage:
+
+```tsx
+const { data, filters } = useCriteriaQuery<User>("users", fetchUsers, {
+  persistKey: "user-filters",
+  pageSize: 20,
+});
+
+// Filters are automatically saved and restored
+```
+
+### Building Query Strings
+
+The hook expects you to build the query string for your API. Here's a helper function:
+
+```tsx
+function buildUrlWithCriteria(
+  baseUrl: string,
+  criteria: Criteria<any>
+): string {
+  const json = criteria.toJSON();
+  const params = new URLSearchParams();
+
+  // Add filters
+  json.filters.forEach((filter) => {
+    const key = `${filter.field}:${filter.operator}`;
+    const value = Array.isArray(filter.value)
+      ? filter.value.join(",")
+      : String(filter.value);
+    params.set(key, value);
+  });
+
+  // Add ordering
+  if (json.orders.length > 0) {
+    params.set(
+      "orderBy",
+      json.orders.map((o) => `${o.field}:${o.direction}`).join(",")
+    );
+  }
+
+  // Add pagination
+  if (json.pagination) {
+    params.set("page", String(json.pagination.page));
+    params.set("limit", String(json.pagination.limit));
+  }
+
+  // Add search
+  if (json.search) {
+    params.set("search", json.search.value);
+  }
+
+  return `${baseUrl}?${params}`;
+}
+
+// Usage
+const { data } = useCriteriaQuery<User>("users", async (criteria) => {
+  const url = buildUrlWithCriteria("/api/users", criteria);
+  const response = await fetch(url);
+  return response.json();
+});
+```
+
+### Type Safety
+
+The hook provides full type safety for your filters and sorting:
+
+```tsx
+interface User {
+  id: string;
+  name: string;
+  age: number;
+  email: string;
+  status: "active" | "inactive";
+}
+
+const { addFilter, addSort } = useCriteriaQuery<User>("users", fetchUsers);
+
+// Type-safe field names
+addFilter("name", "contains", "john"); // ✓ Valid
+addFilter("invalidField", "equals", "value"); // ✗ TypeScript error
+
+// Type-safe operators for each field type
+addFilter("age", "greaterThan", 18); // ✓ Valid (number operator)
+addFilter("age", "contains", "18"); // ✗ TypeScript error (contains is for strings)
+
+// Type-safe values
+addFilter("status", "equals", "active"); // ✓ Valid
+addFilter("status", "equals", "invalid"); // ✗ TypeScript error
+
+// Type-safe sorting
+addSort("createdAt", "desc"); // ✓ Valid
+addSort("invalidField", "asc"); // ✗ TypeScript error
+```
