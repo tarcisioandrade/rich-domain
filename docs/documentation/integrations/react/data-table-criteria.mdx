@@ -1,0 +1,115 @@
+---
+title: "DataTableCriteria"
+description: "A complete data table component integrated with React Query and TanStack Table."
+---
+
+### Data Table with Criteria
+
+A complete data table component integrated with React Query and TanStack Table.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-table-criteria.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-table-criteria.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-table-criteria.json"
+```
+
+</CodeGroup>
+
+#### Features
+
+- Integrated filtering, sorting, and pagination
+- Search functionality with debouncing
+- Column visibility toggle
+- Export to CSV/Excel
+- Mobile responsive
+- Customizable action bar
+
+#### Basic Usage
+
+```tsx
+import { useCriteriaTable } from "@/hooks/use-criteria-table";
+import { DataTableCriteria } from "@/components/data-table-criteria/data-table-criteria";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { QueryFilter } from "@/lib/filter-utils";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+const columns: ColumnDef<User>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "age",
+    header: "Age",
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+  },
+];
+
+const filterFields: QueryFilter[] = [
+  { field: "name", fieldLabel: "Name", type: "string" },
+  { field: "age", fieldLabel: "Age", type: "number" },
+  {
+    field: "status",
+    fieldLabel: "Status",
+    type: "string",
+    multiSelect: true,
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Inactive", value: "inactive" },
+    ],
+  },
+];
+
+function UserTable() {
+  const { table, data, isLoading, filterProps, searchProps } =
+    useCriteriaTable<User>({
+      columns,
+      filterFields,
+      queryKey: ["users"],
+      queryFn: getUsers,
+      criteriaOptions: {
+        pageSize: 10,
+        syncWithUrl: true,
+      },
+    });
+
+  return (
+    <DataTableCriteria
+      table={table}
+      data={data}
+      isLoading={isLoading}
+      filterProps={filterProps}
+      searchProps={searchProps}
+      searchPlaceholder="Search users..."
+      emptyMessage="No users found."
+    />
+  );
+}
+```

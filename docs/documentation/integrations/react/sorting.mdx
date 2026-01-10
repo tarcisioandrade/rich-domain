@@ -1,0 +1,367 @@
+---
+title: "Sorting"
+description: "A pre-built sorting UI component with drag-and-drop support for reordering sort priority."
+---
+
+## Sorting Component
+
+A pre-built sorting UI component with drag-and-drop support for reordering sort priority.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/sorting.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/sorting.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/sorting.json"
+```
+
+</CodeGroup>
+
+### Basic Usage
+
+```tsx
+import { useCriteria } from "@/hooks/use-criteria";
+import { Sorting } from "@/components/sorting";
+import type { SortingField } from "@/components/sorting";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  createdAt: Date;
+}
+
+// Define sortable fields
+const sortingFields: SortingField[] = [
+  { field: "name", fieldLabel: "Name" },
+  { field: "email", fieldLabel: "Email" },
+  { field: "age", fieldLabel: "Age" },
+  { field: "createdAt", fieldLabel: "Created At" },
+];
+
+function UserSorting() {
+  const criteria = useCriteria<User>({
+    initialSort: [{ field: "name", direction: "asc" }],
+  });
+
+  return <Sorting fields={sortingFields} criteria={criteria} />;
+}
+```
+
+### SortingField Type
+
+```tsx
+interface SortingField {
+  // Field path in the entity (e.g., "name", "profile.bio")
+  field: string;
+
+  // Display label for the field
+  fieldLabel: string;
+}
+```
+
+### Features
+
+- **One-click add**: Click a field to add it with default "asc" direction
+- **Drag-and-drop reordering**: Change sort priority by dragging items
+- **Toggle direction**: Click the direction button to switch between ascending/descending
+- **Remove sorts**: Individual remove buttons for each sort
+- **Clear all**: One button to clear all sorting
+- **Duplicate prevention**: Automatically prevents duplicate fields
+
+### Drag-and-Drop Sorting
+
+The Sorting component uses [@dnd-kit](https://dndkit.com/) for smooth drag-and-drop interactions:
+
+```tsx
+import { Sorting } from "@/components/sorting";
+
+function ProductTable() {
+  const criteria = useCriteria<Product>({
+    initialSort: [
+      { field: "price", direction: "desc" },
+      { field: "name", direction: "asc" },
+    ],
+  });
+
+  return (
+    <div>
+      <Sorting
+        fields={[
+          { field: "name", fieldLabel: "Name" },
+          { field: "price", fieldLabel: "Price" },
+          { field: "stock", fieldLabel: "Stock" },
+          { field: "createdAt", fieldLabel: "Created" },
+        ]}
+        criteria={criteria}
+      />
+
+      {/* Your table or list */}
+    </div>
+  );
+}
+```
+
+### Multi-level Sorting
+
+The order of sorts matters - the first sort is applied first, then the second, and so on:
+
+```tsx
+// Sort by status first, then by name within each status
+const criteria = useCriteria<User>({
+  initialSort: [
+    { field: "status", direction: "asc" },
+    { field: "name", direction: "asc" },
+  ],
+});
+
+// Users will be grouped by status (active, inactive, pending)
+// Within each status group, they'll be sorted alphabetically by name
+```
+
+### With Data Table
+
+Combine Sorting with data tables for a complete solution:
+
+```tsx
+import { useCriteria } from "@/hooks/use-criteria";
+import { Sorting } from "@/components/sorting";
+import { Filter } from "@/components/filter/filter";
+
+function UserManagement() {
+  const criteria = useCriteria<User>({
+    pageSize: 10,
+    syncWithUrl: true,
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar with Filter and Sorting */}
+      <div className="flex gap-2">
+        <Filter
+          fields={filterFields}
+          filters={criteria.filters}
+          addOrReplaceByIndex={criteria.addOrReplaceByIndex}
+          removeFilter={criteria.removeFilter}
+          clearFilters={criteria.clearFilters}
+        />
+
+        <Sorting fields={sortingFields} criteria={criteria} />
+      </div>
+
+      {/* Your table */}
+      <DataTable data={data} sorting={criteria.sorting} />
+    </div>
+  );
+}
+```
+
+---
+
+## Complete Example
+
+A full example combining `useCriteria`, `Filter`, and a data table:
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { useCriteria } from "@/hooks/use-criteria";
+import { Filter } from "@/components/filter/filter";
+import type { QueryFilter } from "@/lib/filter-utils";
+import { PaginatedResult } from "@woltz/rich-domain";
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  status: "active" | "draft" | "archived";
+  createdAt: Date;
+}
+
+const productFields: QueryFilter[] = [
+  { field: "name", fieldLabel: "Name", type: "string" },
+  {
+    field: "category",
+    fieldLabel: "Category",
+    type: "string",
+    options: [
+      { value: "electronics", label: "Electronics" },
+      { value: "clothing", label: "Clothing" },
+      { value: "books", label: "Books" },
+    ],
+  },
+  { field: "price", fieldLabel: "Price", type: "number" },
+  { field: "stock", fieldLabel: "Stock", type: "number" },
+  {
+    field: "status",
+    fieldLabel: "Status",
+    type: "string",
+    options: [
+      { value: "active", label: "Active" },
+      { value: "draft", label: "Draft" },
+      { value: "archived", label: "Archived" },
+    ],
+  },
+  { field: "createdAt", fieldLabel: "Created At", type: "date" },
+];
+
+async function fetchProducts(criteria: Criteria<Product>) {
+  const params = new URLSearchParams();
+
+  // Add filters
+  criteria.getFilters().forEach((f) => {
+    params.set(`${f.field}:${f.operator}`, String(f.value));
+  });
+
+  // Add pagination
+  const pagination = criteria.getPagination();
+  params.set("page", String(pagination.page));
+  params.set("limit", String(pagination.limit));
+
+  // Add sorting
+  const orders = criteria.getOrders();
+  if (orders.length > 0) {
+    params.set(
+      "orderBy",
+      orders.map((o) => `${o.field}:${o.direction}`).join(",")
+    );
+  }
+
+  const response = await fetch(`/api/products?${params}`);
+  return response.json() as Promise<PaginatedResult<Product>>;
+}
+
+export function ProductList() {
+  const {
+    criteria,
+    filters,
+    sorting,
+    pagination,
+    addOrReplaceByIndex,
+    removeFilter,
+    clearFilters,
+    setSort,
+    setPage,
+  } = useCriteria<Product>({
+    pageSize: 10,
+    syncWithUrl: true,
+  });
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["products", criteria.toJSON()],
+    queryFn: () => fetchProducts(criteria),
+  });
+
+  if (error) {
+    return <div>Error loading products</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <Filter
+        fields={productFields}
+        filters={filters}
+        addOrReplaceByIndex={addOrReplaceByIndex}
+        removeFilter={removeFilter}
+        clearFilters={clearFilters}
+      />
+
+      {/* Table */}
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th onClick={() => setSort("name", "asc")}>Name</th>
+              <th onClick={() => setSort("category", "asc")}>Category</th>
+              <th onClick={() => setSort("price", "asc")}>Price</th>
+              <th onClick={() => setSort("stock", "asc")}>Stock</th>
+              <th onClick={() => setSort("status", "asc")}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data?.data.map((product) => (
+              <tr key={product.id}>
+                <td>{product.name}</td>
+                <td>{product.category}</td>
+                <td>${product.price}</td>
+                <td>{product.stock}</td>
+                <td>{product.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Pagination */}
+      {data && (
+        <div className="flex items-center justify-between">
+          <span>
+            Showing {pagination.offset + 1} to{" "}
+            {Math.min(pagination.offset + pagination.limit, data.meta.total)} of{" "}
+            {data.meta.total} results
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(pagination.page - 1)}
+              disabled={!data.meta.hasPrevious}
+            >
+              Previous
+            </button>
+            <span>
+              Page {pagination.page} of {data.meta.totalPages}
+            </span>
+            <button
+              onClick={() => setPage(pagination.page + 1)}
+              disabled={!data.meta.hasNext}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+---
+
+## API Reference
+
+### useCriteria Options
+
+| Option           | Type       | Default     | Description                      |
+| ---------------- | ---------- | ----------- | -------------------------------- |
+| `initialPage`    | `number`   | `1`         | Starting page number             |
+| `pageSize`       | `number`   | `20`        | Items per page                   |
+| `initialFilters` | `Filter[]` | `[]`        | Pre-applied filters              |
+| `initialSort`    | `Order[]`  | `[]`        | Pre-applied sorting              |
+| `initialSearch`  | `object`   | `undefined` | Pre-applied search               |
+| `onChange`       | `function` | `undefined` | Callback when criteria changes   |
+| `persistKey`     | `string`   | `undefined` | localStorage key for persistence |
+| `syncWithUrl`    | `boolean`  | `false`     | Sync state with URL params       |
+
+### Filter Props
+
+| Prop                  | Type            | Required | Description                    |
+| --------------------- | --------------- | -------- | ------------------------------ |
+| `fields`              | `QueryFilter[]` | Yes      | Available fields for filtering |
+| `filters`             | `Filter[]`      | Yes      | Current active filters         |
+| `addOrReplaceByIndex` | `function`      | Yes      | Add or update a filter         |
+| `removeFilter`        | `function`      | Yes      | Remove a filter by index       |
+| `clearFilters`        | `function`      | Yes      | Clear all filters              |

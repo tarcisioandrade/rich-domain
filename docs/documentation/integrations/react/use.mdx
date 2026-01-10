@@ -1,0 +1,78 @@
+---
+title: "useCriteriaInfiniteQuery"
+description: "A specialized hook for infinite scroll patterns using React Query's `useInfiniteQuery`."
+---
+
+### Infinite Query Hook
+
+A specialized hook for infinite scroll patterns using React Query's `useInfiniteQuery`.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
+```
+
+</CodeGroup>
+
+#### Usage
+
+```tsx
+import { useCriteriaInfiniteQuery } from "@/hooks/use-criteria-infinite-query";
+
+function InfiniteList() {
+  const {
+    data, // All accumulated data
+    pages, // Array of page results
+    meta, // Last page metadata
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    // ... all useCriteria methods
+  } = useCriteriaInfiniteQuery<User>(
+    ["users"],
+    getUsers,
+    {
+      pageSize: 20,
+      enabled: true,
+    }
+  );
+
+  return (
+    <div>
+      {data.map((user) => (
+        <UserCard key={user.id} user={user} />
+      ))}
+
+      {hasNextPage && (
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? "Loading..." : "Load More"}
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+#### Features
+
+- Automatic page accumulation
+- Built-in loading states
+- Proper TypeScript types
+- All `useCriteria` methods available
+- Seamless React Query integration

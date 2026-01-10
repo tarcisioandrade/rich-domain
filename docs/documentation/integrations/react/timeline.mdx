@@ -1,0 +1,137 @@
+---
+title: "Timeline"
+description: "A timeline component with date-based grouping and infinite scroll support."
+---
+
+### Timeline with Infinite Scroll
+
+A timeline component with date-based grouping and infinite scroll support.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/user-timeline.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/user-timeline.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/user-timeline.json"
+```
+
+</CodeGroup>
+
+#### Features
+
+- Infinite scroll with React Query
+- Automatic date grouping (hour/day/week/month/year)
+- Relative time labels ("Today", "Yesterday", etc.)
+- Integrated search and filtering
+- Customizable event rendering
+- Timeline layout options (default or horizontal sidebar)
+
+#### Basic Usage
+
+```tsx
+import { useCriteriaTimeline } from "@/hooks/use-criteria-timeline";
+import { DataTimelineCriteria } from "@/components/data-timeline-criteria/data-timeline-criteria";
+import type { QueryFilter } from "@/lib/filter-utils";
+
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  type: "create" | "update" | "delete";
+}
+
+const filterFields: QueryFilter[] = [
+  {
+    field: "type",
+    fieldLabel: "Type",
+    type: "string",
+    options: [
+      { label: "Created", value: "create" },
+      { label: "Updated", value: "update" },
+      { label: "Deleted", value: "delete" },
+    ],
+  },
+];
+
+function ActivityTimeline() {
+  const timeline = useCriteriaTimeline<Activity>(
+    ["activities"],
+    getActivities,
+    {
+      dateField: "createdAt",
+      groupBy: "day",
+      filterFields,
+      pageSize: 20,
+    }
+  );
+
+  return (
+    <DataTimelineCriteria
+      timeline={timeline}
+      renderEvent={(activity) => (
+        <div className="space-y-1">
+          <h3 className="font-semibold">{activity.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {activity.description}
+          </p>
+        </div>
+      )}
+      toolbarLayout="default" // or "none" for no toolbar
+    />
+  );
+}
+```
+
+#### Timeline Options
+
+```tsx
+interface UseCriteriaTimelineOptions<T> {
+  // Required
+  dateField: FieldPath<T>; // Field to group by
+
+  // Grouping
+  groupBy?: "hour" | "day" | "week" | "month" | "year"; // Default: "day"
+  sortDirection?: "asc" | "desc"; // Default: "desc"
+
+  // Filter configuration
+  filterFields?: QueryFilter[];
+
+  // Search
+  searchDebounceMs?: number; // Default: 300
+
+  // React Query options
+  pageSize?: number;
+  enabled?: boolean;
+  staleTime?: number;
+  gcTime?: number;
+}
+```
+
+#### Toolbar Layouts
+
+```tsx
+// Default layout - toolbar on top
+<DataTimelineCriteria
+  timeline={timeline}
+  renderEvent={renderEvent}
+  toolbarLayout="default"
+/>
+
+// No toolbar - pure timeline
+<DataTimelineCriteria
+  timeline={timeline}
+  renderEvent={renderEvent}
+  toolbarLayout="none"
+/>
+```

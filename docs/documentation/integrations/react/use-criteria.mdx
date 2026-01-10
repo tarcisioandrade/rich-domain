@@ -1,0 +1,175 @@
+---
+title: "useCriteria"
+description: "React hook to manage criteria API in @woltz/rich-domain"
+keywords: ["react","hooks","frontend","ui","components","integration","typescript"]
+---
+
+## useCriteria Hook
+
+A comprehensive hook for managing Criteria state in React applications.
+
+## Instalation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
+```
+
+</CodeGroup>
+
+### Basic Usage
+
+```tsx
+import { useCriteria } from "@/hooks/use-criteria";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  status: "active" | "inactive";
+  age: number;
+  createdAt: Date;
+}
+
+function UserList() {
+  const {
+    criteria,
+    filters,
+    sorting,
+    pagination,
+    search,
+    addFilter,
+    removeFilter,
+    clearFilters,
+    setSort,
+    setPage,
+    setSearch,
+    reset,
+  } = useCriteria<User>({
+    pageSize: 20,
+  });
+
+  // Use criteria.toJSON() to send to your API
+  const fetchUsers = async () => {
+    const response = await fetch(
+      `/api/users?${new URLSearchParams(criteria.toJSON())}`
+    );
+    return response.json();
+  };
+
+  return <div>{/* Your UI */}</div>;
+}
+```
+
+### Options
+
+```tsx
+interface UseCriteriaOptions<T> {
+  // Pagination
+  initialPage?: number; // Default: 1
+  pageSize?: number; // Default: 20
+
+  // Initial state
+  initialFilters?: Filter<FieldPath<T>, unknown>[];
+  initialSort?: Order[];
+  initialSearch?: {
+    fields: FieldPath<T>[];
+    value: string;
+  };
+
+  // Callbacks
+  onChange?: (criteria: Criteria<T>) => void;
+
+  // Persistence
+  persistKey?: string; // localStorage key
+  syncWithUrl?: boolean; // Sync with URL params (default: false)
+}
+```
+
+### Return Value
+
+```tsx
+export interface UseCriteriaReturn<T> {
+  criteria: Criteria<T>;
+  filters: Array<Filter<string, unknown>>;
+  sorting: Order[];
+  pagination: Pagination;
+  search: Search | null;
+  addFilter: <K extends FieldPath<T>>(
+    field: K,
+    operator: OperatorsForType<PathValue<T, K>>,
+    value?: FilterValueFor<PathValue<T, K>>,
+    options?: CriteriaOptions
+  ) => void;
+  removeFilter: (index: number) => void;
+  removeFilterByField: (field: FieldPath<T>) => void;
+  clearFilters: () => void;
+  addSort: (field: FieldPath<T>, direction?: OrderDirection) => void;
+  removeSort: (index: number) => void;
+  addOrReplaceByIndex: (props: {
+    field: FieldPath<T>;
+    operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
+    value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
+    options?: CriteriaOptions;
+    replaceIndex?: number;
+  }) => void;
+  removeSortByField: (field: FieldPath<T>) => void;
+  getFilterByField: <K extends FieldPath<T>>(
+    field: K
+  ) => Filter<string, FilterValueFor<PathValue<T, K>>> | undefined;
+  getSortByField: <K extends FieldPath<T>>(field: K) => Order | undefined;
+  clearSort: () => void;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  nextPage: () => void;
+  prevPage: () => void;
+  setSearch: (value: string) => void;
+  clearSearch: () => void;
+  reset: () => void;
+  toJSON: () => ReturnType<Criteria<T>["toJSON"]>;
+  clone: () => Criteria<T>;
+  clearAll: () => void;
+}
+```
+
+### URL Synchronization
+
+Enable `syncWithUrl` to automatically sync criteria state with URL query parameters:
+
+```tsx
+const { criteria, addFilter } = useCriteria<User>({
+  syncWithUrl: true,
+});
+
+// Adding a filter updates the URL:
+addFilter("status", "equals", "active");
+// URL: ?status:equals=active&page=1&limit=20
+
+// Users can bookmark and share filtered views!
+```
+
+### localStorage Persistence
+
+Use `persistKey` to persist criteria state across page reloads:
+
+```tsx
+const { criteria, filters } = useCriteria<User>({
+  persistKey: "user-list-filters",
+});
+
+// Filters are automatically saved to localStorage
+// and restored on component mount
+```
+
+---

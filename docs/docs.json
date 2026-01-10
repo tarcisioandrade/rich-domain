@@ -27,7 +27,7 @@
             "pages": [
               "introduction",
               {
-                "group":"Quickstart",
+                "group": "Quickstart",
                 "expanded": false,
                 "pages": [
                   "quickstart/default",
@@ -40,7 +40,7 @@
           },
           {
             "group": "Core Concepts",
-            "icon": "map",
+            "icon": "layer-group",
             "pages": [
               "core/entities-and-aggregates",
               "core/value-objects",
@@ -58,9 +58,9 @@
               "validation/error-handling"
             ]
           },
-         {
+          {
             "group": "Criteria",
-           "icon": "filter",
+            "icon": "filter",
             "pages": [
               "criteria/overview",
               "criteria/filters",
@@ -70,7 +70,7 @@
           },
           {
             "group": "Repository",
-            "icon":"database",
+            "icon": "database",
             "pages": [
               "repository/overview",
               "repository/mappers",
@@ -82,6 +82,17 @@
             "group": "Integrations",
             "icon": "plug",
             "pages": [
+              {
+                "group": "React",
+                "pages": [
+                  "documentation/integrations/react/use-criteria",
+                  "documentation/integrations/react/use",
+                  "documentation/integrations/react/timeline",
+                  "documentation/integrations/react/data-table-criteria",
+                  "documentation/integrations/react/sorting",
+                  "documentation/integrations/react/filter"
+                ]
+              },
               "integrations/csv-export",
               "integrations/prisma",
               "integrations/typeorm",
