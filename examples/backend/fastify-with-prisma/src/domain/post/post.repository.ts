@@ -1,4 +1,4 @@
-import { WriteAndRead } from "@woltz/rich-domain";
+import { Repository } from "@woltz/rich-domain";
 import { Post } from "./post.entity";
 
-export abstract class PostRepository extends WriteAndRead<Post> {}
+export abstract class PostRepository extends Repository<Post> {}
