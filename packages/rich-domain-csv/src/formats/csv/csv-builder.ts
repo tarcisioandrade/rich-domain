@@ -1,7 +1,8 @@
-import { CsvFormatterError } from "../errors";
-import { CsvExportOptions, PropsOf } from "../types";
-import { extractFieldValue, formatCsvValue } from "./csv-formatter";
-import { isValidFormatter } from "./csv-validator";
+import { FormatterError } from "../../core/errors.js";
+import type { CsvExportOptions } from "../../core/format-options.js";
+import type { PropsOf } from "../../core/types.js";
+import { extractFieldValue, formatCsvValue } from "./csv-formatter.js";
+import { isValidFormatter } from "./csv-validator.js";
 import type { Aggregate } from "@woltz/rich-domain";
 
 export function buildCsvRow(values: string[], delimiter: string = ","): string {
@@ -24,18 +25,20 @@ export function buildDataRow<T extends Aggregate<any>>(
       const formatter = formatters?.[col as keyof typeof formatters];
       if (formatter) {
         if (!isValidFormatter(formatter)) {
-          throw new CsvFormatterError(
+          throw new FormatterError(
             `Invalid formatter for field "${String(col)}"`,
-            String(col)
+            String(col),
+            "csv"
           );
         }
 
         try {
           value = formatter(value);
         } catch (error) {
-          throw new CsvFormatterError(
+          throw new FormatterError(
             `Formatter failed for field "${String(col)}"`,
             String(col),
+            "csv",
             error as Error
           );
         }
@@ -43,13 +46,14 @@ export function buildDataRow<T extends Aggregate<any>>(
 
       return formatCsvValue(value, delimiter);
     } catch (error) {
-      if (error instanceof CsvFormatterError) {
+      if (error instanceof FormatterError) {
         throw error;
       }
 
-      throw new CsvFormatterError(
+      throw new FormatterError(
         `Failed to format field "${String(col)}"`,
         String(col),
+        "csv",
         error as Error
       );
     }

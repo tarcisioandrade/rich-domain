@@ -1,350 +1,355 @@
-# @woltz/rich-domain-csv
+# @woltz/rich-domain-export
 
-CSV export utilities for rich-domain repositories.
+Multi-format export utilities for rich-domain repositories. Export your domain entities to CSV, JSON, and more!
 
 ## Overview
 
-This package extends rich-domain repositories with powerful CSV export capabilities, supporting both in-memory and streaming exports for large datasets.
+This package extends rich-domain repositories with powerful multi-format export capabilities, supporting both in-memory and streaming exports for large datasets.
 
 ## Features
 
-- ✅ **Type-safe exports** - Full TypeScript support with column selection
+- ✅ **Multiple formats** - CSV, JSON, and extensible for custom formats
+- ✅ **Type-safe exports** - Full TypeScript support with discriminated unions
 - ✅ **Streaming support** - Memory-efficient exports for large datasets
 - ✅ **Criteria integration** - Uses rich-domain Criteria API for filtering
-- ✅ **Custom formatters** - Transform field values during export
+- ✅ **Custom formatters/transformers** - Transform field values during export
 - ✅ **Validation** - Built-in validation for export options
 - ✅ **Progress tracking** - Monitor export progress for large datasets
 - ✅ **Two approaches** - Repository extension or standalone service
+- ✅ **JSON Lines support** - Stream-friendly JSONL format
 
 ## Installation
 
 ```bash
-npm install @woltz/rich-domain-csv
+npm install @woltz/rich-domain-export
 ```
 
-**Note**: This is a backend-only package (Node.js). For frontend CSV export, use API endpoints or browser-compatible libraries.
+**Note**: This is a backend-only package (Node.js). For frontend exports, use API endpoints.
 
 ## Quick Start
 
-### Approach 1: Repository Extension
+### Approach 1: Repository Extension (Recommended)
 
 ```typescript
-import { ExportableRepository } from "@woltz/rich-domain-csv";
-import { User } from "./domain/user";
+import { ExportableRepository } from "@woltz/rich-domain-export";
+import { Criteria } from "@woltz/rich-domain";
 
 class UserRepository extends ExportableRepository<User> {
   // Your repository implementation
 }
 
-// Export to CSV
-const csv = await userRepository.exportToCSV(criteria, {
-  columns: ["name", "email", "status"],
-  headers: {
-    name: "Full Name",
-    email: "Email Address",
-  },
+const userRepository = new UserRepository();
+
+// Export as CSV
+const { data, stats } = await userRepository.export(
+  Criteria.create<User>().where("status", "equals", "active"),
+  {
+    format: "csv",
+    columns: ["name", "email", "createdAt"],
+    headers: {
+      name: "Full Name",
+      email: "Email Address",
+      createdAt: "Registration Date"
+    }
+  }
+);
+
+// Export as JSON
+const { data, stats } = await userRepository.export(
+  criteria,
+  {
+    format: "json",
+    pretty: true,
+    fields: ["name", "email"]
+  }
+);
+
+console.log(`Exported ${stats.totalRecords} records in ${stats.durationMs}ms`);
+```
+
+### Approach 2: Composition with ExportService
+
+```typescript
+import { ExportService } from "@woltz/rich-domain-export";
+
+const exportService = new ExportService();
+
+// Export from any repository
+const { data, stats } = await exportService.export(
+  userRepository,
+  criteria,
+  { format: "csv", columns: ["name", "email"] }
+);
+```
+
+## Supported Formats
+
+### CSV Format
+
+```typescript
+const { data } = await repository.export(criteria, {
+  format: "csv",
+  columns: ["name", "email", "age"],
+  headers: { name: "Full Name", email: "Email Address", age: "Age" },
+  delimiter: ",",
+  includeHeaders: true,
+  formatters: {
+    age: (value) => `${value} years old`
+  }
 });
 ```
 
-### Approach 2: Standalone Service
+**CSV Options:**
+- `columns?` - Fields to include (default: all fields)
+- `headers?` - Custom header labels
+- `delimiter?` - Delimiter character (default: `,`)
+- `includeHeaders?` - Include header row (default: `true`)
+- `formatters?` - Custom formatters (returns string)
+
+### JSON Format
 
 ```typescript
-import { CsvExportService } from "@woltz/rich-domain-csv";
-
-const csvService = new CsvExportService();
-
-const { csv, stats } = await csvService.export(userRepository, criteria, {
-  columns: ["name", "email"],
+// Standard JSON
+const { data } = await repository.export(criteria, {
+  format: "json",
+  pretty: true,
+  indent: 2,
+  fields: ["name", "email"],
+  rootKey: "users",
+  transformers: {
+    email: (email) => email.toLowerCase()
+  }
 });
 
-console.log(`Exported ${stats.totalRecords} records`);
+// JSON Lines (streaming-friendly)
+const { data } = await repository.export(criteria, {
+  format: "json",
+  jsonLines: true,
+  fields: ["name", "email"]
+});
+```
+
+**JSON Options:**
+- `pretty?` - Pretty print with indentation (default: `false`)
+- `indent?` - Number of spaces for indentation (default: `2`)
+- `jsonLines?` - Use JSON Lines format (default: `false`)
+- `fields?` - Fields to include (default: all fields)
+- `transformers?` - Custom transformers (returns any type)
+- `rootKey?` - Wrap output in root key
+
+## Streaming for Large Datasets
+
+For large datasets, use streaming to avoid loading everything into memory:
+
+```typescript
+// CSV stream
+const stream = await repository.exportStream(
+  criteria,
+  { format: "csv", batchSize: 1000 }
+);
+
+stream.pipe(fs.createWriteStream("users.csv"));
+
+// JSON Lines stream (recommended for large JSON exports)
+const stream = await repository.exportStream(
+  criteria,
+  { format: "json", jsonLines: true, batchSize: 500 }
+);
+
+stream.pipe(fs.createWriteStream("users.jsonl"));
+```
+
+### HTTP Streaming (Fastify Example)
+
+```typescript
+const stream = await repository.exportStream(criteria, {
+  format: "csv",
+  columns: ["name", "email"]
+});
+
+reply
+  .header("Content-Type", "text/csv")
+  .header("Content-Disposition", 'attachment; filename="users.csv"')
+  .send(stream);
+```
+
+## Progress Tracking
+
+```typescript
+const { data, stats } = await repository.export(
+  criteria,
+  { format: "csv", columns: ["name", "email"] },
+  (processed, total) => {
+    const percentage = (processed / total) * 100;
+    console.log(`Export progress: ${percentage.toFixed(1)}%`);
+  }
+);
+```
+
+## Custom Formats
+
+Extend the library with custom formats using the Strategy Pattern:
+
+```typescript
+import {
+  ExportFormatStrategy,
+  FormatRegistry
+} from "@woltz/rich-domain-export";
+
+class ExcelFormatStrategy implements ExportFormatStrategy<...> {
+  async export(records, options) {
+    // Your Excel export logic
+  }
+
+  async exportStream(recordsIterator, options) {
+    // Your streaming logic
+  }
+
+  validateOptions(options) { /* ... */ }
+  getMimeType() { return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; }
+  getFileExtension() { return "xlsx"; }
+  getFormatName() { return "excel"; }
+}
+
+// Register custom format
+FormatRegistry.register("excel", ExcelFormatStrategy);
+
+// Use it
+const { data } = await repository.export(criteria, {
+  format: "excel",
+  sheetName: "Users"
+});
+```
+
+## Common Formatters
+
+CSV includes pre-built formatters:
+
+```typescript
+import { commonFormatters } from "@woltz/rich-domain-export";
+
+const { data } = await repository.export(criteria, {
+  format: "csv",
+  columns: ["name", "amount", "createdAt", "active"],
+  formatters: {
+    amount: commonFormatters.currencyUSD,
+    createdAt: commonFormatters.isoDate,
+    active: commonFormatters.yesNo
+  }
+});
+```
+
+**Available formatters:**
+- **Dates**: `isoDate`, `localeDate`, `localeDateTime`
+- **Numbers**: `decimal2`, `currencyUSD`
+- **Booleans**: `yesNo`, `trueFalse`
+- **Collections**: `array`, `json`
+- **Text**: `uppercase`, `lowercase`, `trim`
+
+## Error Handling
+
+```typescript
+import {
+  ValidationError,
+  FormatterError,
+  ExportOperationError
+} from "@woltz/rich-domain-export";
+
+try {
+  const { data } = await repository.export(criteria, {
+    format: "csv",
+    columns: ["name", "email"]
+  });
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error("Invalid options:", error.validationErrors);
+  } else if (error instanceof FormatterError) {
+    console.error(`Formatter failed for field: ${error.field}`);
+  } else if (error instanceof ExportOperationError) {
+    console.error(`Export failed at phase: ${error.phase}`);
+  }
+}
 ```
 
 ## API Reference
 
 ### ExportableRepository
 
-Extended repository class with CSV export methods.
-
-#### `exportToCSV(criteria?, options?, onProgress?)`
-
-Export entities to CSV string.
-
-**Parameters:**
-
-- `criteria` (optional): Criteria for filtering and sorting
-- `options` (optional): Export configuration
-- `onProgress` (optional): Progress callback `(processed, total) => void`
-
-**Returns:** `Promise<string>` - CSV string
-
-**Example:**
-
 ```typescript
-const csv = await repository.exportToCSV(
-  Criteria.create<User>().where("status", "equals", "active"),
-  {
-    columns: ["name", "email", "createdAt"],
-    headers: {
-      name: "Full Name",
-      email: "Email Address",
-      createdAt: "Registration Date",
-    },
-    formatters: {
-      createdAt: (date) => new Date(date).toLocaleDateString(),
-    },
-  },
-  (processed, total) => console.log(`${processed}/${total}`)
-);
-```
+abstract class ExportableRepository<TDomain> extends Repository<TDomain> {
+  export(
+    criteria?: Criteria<TDomain>,
+    options: ExportOptions<TDomain>,
+    onProgress?: ExportProgressCallback
+  ): Promise<ExportResult>;
 
-#### `exportToCSVStream(criteria?, options?)`
-
-Export entities to CSV stream (for large datasets).
-
-**Parameters:**
-
-- `criteria` (optional): Criteria for filtering and sorting
-- `options` (optional): Export configuration
-
-**Returns:** `Promise<Readable>` - Node.js Readable stream
-
-**Example:**
-
-```typescript
-const stream = await repository.exportToCSVStream(criteria, {
-  batchSize: 1000,
-});
-
-// Pipe to file
-stream.pipe(fs.createWriteStream("users.csv"));
-
-// Or send in HTTP response
-reply.header("Content-Type", "text/csv").send(stream);
-```
-
-### CsvExportOptions
-
-Configuration for CSV export.
-
-```typescript
-interface CsvExportOptions<T> {
-  columns?: (keyof T)[]; // Selected columns
-  headers?: Record<keyof T, string>; // Custom headers
-  delimiter?: string; // Default: ","
-  includeHeaders?: boolean; // Default: true
-  batchSize?: number; // Default: 1000
-  formatters?: Record<keyof T, (value: any) => string>;
+  exportStream(
+    criteria?: Criteria<TDomain>,
+    options: ExportOptions<TDomain>
+  ): Promise<Readable>;
 }
 ```
 
-### Common Formatters
-
-Pre-built formatters for common use cases.
+### ExportService
 
 ```typescript
-import { commonFormatters } from "@woltz/rich-domain-csv";
+class ExportService {
+  export<T>(
+    repository: Repository<T>,
+    criteria: Criteria<T> | undefined,
+    options: ExportOptions<T>,
+    onProgress?: ExportProgressCallback
+  ): Promise<ExportResult>;
 
-const options = {
-  formatters: {
-    createdAt: commonFormatters.isoDate,
-    price: commonFormatters.currencyUSD,
-    isActive: commonFormatters.yesNo,
-    tags: commonFormatters.array,
-  },
-};
-```
+  exportStream<T>(
+    repository: Repository<T>,
+    criteria: Criteria<T> | undefined,
+    options: ExportOptions<T>
+  ): Promise<Readable>;
 
-Available formatters:
-
-- `isoDate` - ISO 8601 date string
-- `localeDate` - Locale date string
-- `localeDateTime` - Locale datetime string
-- `decimal2` - Number with 2 decimals
-- `currencyUSD` - USD currency format
-- `yesNo` - Boolean as Yes/No
-- `trueFalse` - Boolean as True/False
-- `array` - Array as comma-separated
-- `json` - Object as JSON string
-- `uppercase/lowercase` - Case conversion
-- `trim` - Trim whitespace
-
-### Validation
-
-Validate export options before export.
-
-```typescript
-import { validateCsvExportOptions } from "@woltz/rich-domain-csv";
-
-const validation = validateCsvExportOptions(options, sampleData);
-
-if (!validation.isValid) {
-  console.error("Validation errors:", validation.errors);
-}
-
-if (validation.warnings) {
-  console.warn("Warnings:", validation.warnings);
+  getMimeType(format: string): string;
+  getFileExtension(format: string): string;
 }
 ```
 
-### Error Handling
+### FormatRegistry
 
 ```typescript
-import {
-  CsvExportError,
-  CsvValidationError,
-  CsvFormatterError,
-} from "@woltz/rich-domain-csv";
-
-try {
-  const csv = await repository.exportToCSV(criteria, options);
-} catch (error) {
-  if (error instanceof CsvValidationError) {
-    console.error("Invalid options:", error.validationErrors);
-  } else if (error instanceof CsvFormatterError) {
-    console.error("Formatter failed for field:", error.field);
-  } else {
-    console.error("Export failed:", error);
-  }
+class FormatRegistry {
+  static register(format: string, strategyClass: new () => ExportFormatStrategy): void;
+  static getStrategy(format: string): ExportFormatStrategy;
+  static hasFormat(format: string): boolean;
+  static getRegisteredFormats(): string[];
 }
-```
-
-## Usage Examples
-
-### Fastify Endpoint
-
-```typescript
-app.get("/users/export", async (request, reply) => {
-  const criteria = Criteria.fromQueryParams<User>(request.query);
-
-  const stream = await userRepository.exportToCSVStream(criteria);
-
-  reply
-    .header("Content-Type", "text/csv")
-    .header("Content-Disposition", 'attachment; filename="users.csv"')
-    .send(stream);
-});
-```
-
-### Export with Progress
-
-```typescript
-const csv = await repository.exportToCSV(
-  criteria,
-  options,
-  (processed, total) => {
-    const percent = Math.round((processed / total) * 100);
-    console.log(`Export progress: ${percent}%`);
-  }
-);
-```
-
-### Custom Export Methods
-
-```typescript
-class UserRepository extends ExportableRepository<User> {
-  async exportActiveUsers(): Promise<string> {
-    const criteria = Criteria.create<User>().where(
-      "status",
-      "equals",
-      "active"
-    );
-
-    return this.exportToCSV(criteria, {
-      columns: ["name", "email", "department"],
-      headers: {
-        name: "Full Name",
-        email: "Email",
-        department: "Department",
-      },
-    });
-  }
-}
-```
-
-### Export Templates
-
-```typescript
-const templates = {
-  basic: {
-    columns: ["name", "email"],
-    headers: { name: "Name", email: "Email" },
-  },
-  detailed: {
-    columns: ["name", "email", "department", "createdAt"],
-    headers: {
-      name: "Full Name",
-      email: "Email Address",
-      department: "Department",
-      createdAt: "Registration Date",
-    },
-    formatters: {
-      createdAt: commonFormatters.localeDate,
-    },
-  },
-};
-
-const csv = await repository.exportToCSV(criteria, templates.detailed);
 ```
 
 ## Performance Considerations
 
-### When to Use Each Method
+| Dataset Size | Recommended Method | Memory Usage |
+|--------------|-------------------|--------------|
+| < 1,000 records | `export()` | ~1-5 MB |
+| 1,000 - 10,000 | `export()` | ~5-50 MB |
+| 10,000 - 100,000 | `exportStream()` | ~10-20 MB (constant) |
+| > 100,000 | `exportStream()` | ~10-20 MB (constant) |
 
-| Dataset Size   | Method                | Reason                     |
-| -------------- | --------------------- | -------------------------- |
-| < 1,000        | `exportToCSV()`       | Fast, simple               |
-| 1,000 - 10,000 | `exportToCSV()`       | Still manageable in memory |
-| > 10,000       | `exportToCSVStream()` | Memory efficient           |
+**Tips:**
+- Use `exportStream()` for datasets > 10,000 records
+- Use JSON Lines (`jsonLines: true`) for streaming large JSON exports
+- Adjust `batchSize` option to control memory usage (default: 1000)
 
-### Batch Size Guidelines
+## TypeScript Support
 
-```typescript
-// Small datasets (< 5,000)
-{
-  batchSize: 1000;
-}
-
-// Medium datasets (5,000 - 50,000)
-{
-  batchSize: 500;
-}
-
-// Large datasets (> 50,000)
-{
-  batchSize: 250;
-}
-```
-
-## Testing
+Full TypeScript support with discriminated unions for type-safe format selection:
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import { UserRepository } from "./user.repository";
-
-describe("UserRepository CSV Export", () => {
-  it("should export users to CSV", async () => {
-    const csv = await repository.exportToCSV();
-
-    expect(csv).toContain("name,email");
-    expect(csv).toContain("John Doe");
-  });
+// TypeScript enforces valid options for each format
+const result = await repository.export(criteria, {
+  format: "csv",
+  columns: ["name"],  // ✓ Valid for CSV
+  delimiter: ","      // ✓ Valid for CSV
+  // pretty: true     // ✗ Error: 'pretty' doesn't exist on CSV options
 });
 ```
-
-## Documentation
-
-For complete documentation with advanced examples and best practices, visit:
-
-📚 **[Full Documentation](https://rich-domain.dev/integrations/csv-export)**
-
-Topics covered in the full documentation:
-- Advanced filtering with Criteria API
-- Streaming best practices for large datasets
-- Custom formatter examples
-- Error handling patterns
-- HTTP endpoint integration (Fastify, Express)
-- Performance optimization tips
 
 ## License
 
@@ -352,4 +357,8 @@ MIT
 
 ## Contributing
 
-Contributions welcome! Please read the contributing guidelines first.
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Author
+
+Tarcisio Andrade
