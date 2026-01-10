@@ -94,7 +94,7 @@
                   "integrations/react/filter"
                 ]
               },
-              "integrations/csv-export",
+              "integrations/export",
               "integrations/prisma",
               "integrations/typeorm",
               "integrations/zod",
