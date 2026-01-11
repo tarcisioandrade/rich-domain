@@ -9,7 +9,7 @@
     "check": "tsc --noEmit",
     "lint": "echo 'No linting yet'",
     "preview": "vite preview",
-    "start": "node .output/server/index.mjs"
+    "start": "node dist/server/index.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist-mono": "^5.2.7",
@@ -21,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
+    "motion": "^12.25.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",

@@ -1,13 +1,17 @@
-import { ComponentProps, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { ComponentProps, useRef, useState } from "react";
+import { ExternalLink, Menu, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "~/lib/utils";
+import { useOutsideClick } from "~/hooks/use-outside-click";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useOutsideClick(ref, () => setIsMenuOpen(false));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md h-16">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/50 backdrop-blur-md h-16">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <picture>
@@ -27,7 +31,7 @@ export function Header() {
           </picture>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden gap-5 md:flex md:items-center">
           <a
             href="https://woltz.mintlify.app/"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -35,39 +39,29 @@ export function Header() {
             Docs
           </a>
           <a
-            href="https://woltz.mintlify.app/quickstart"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Quickstart
-          </a>
-          <a
-            href="https://woltz.mintlify.app/CLI"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            CLI
-          </a>
-          <a
             href="https://github.com/tarcisioandrade/rich-domain/tree/main/examples"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1"
           >
             Examples
+            <ExternalLink className="size-3" />
           </a>
-        </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+          <div className="h-6 border-r border-border mx-2" aria-hidden="true" />
+
           <a
             href="https://github.com/tarcisioandrade/rich-domain"
             target="_blank"
             rel="noopener noreferrer"
             className="p-1 text-muted-foreground transition-colors hover:text-foreground"
           >
-            <GithubIcon className="size-6" />
+            <GithubIcon className="size-5" />
           </a>
-        </div>
+        </nav>
 
         <button
           className="flex h-9 w-9 items-center justify-center rounded-md border border-border md:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
+          data-ignore-outside-click
         >
           {isMenuOpen ? (
             <X className="h-4 w-4" />
@@ -78,42 +72,32 @@ export function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="border-t border-border bg-background px-4 py-4 md:hidden">
+        <div
+          ref={ref}
+          className="border-t border-border bg-background px-4 py-4 md:hidden"
+        >
           <nav className="flex flex-col gap-4">
             <a
               href="https://woltz.mintlify.app/"
-              className="text-sm text-muted-foreground"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Docs
             </a>
             <a
-              href="https://woltz.mintlify.app/quickstart"
-              className="text-sm text-muted-foreground"
-            >
-              Quickstart
-            </a>
-            <a
-              href="https://woltz.mintlify.app/CLI"
-              className="text-sm text-muted-foreground"
-            >
-              CLI
-            </a>
-            <a
               href="https://github.com/tarcisioandrade/rich-domain/tree/main/examples"
-              className="text-sm text-muted-foreground"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1"
             >
               Examples
+              <ExternalLink className="size-3" />
             </a>
-            <div className="flex flex-col gap-2 pt-2">
-              <a
-                href="https://github.com/tarcisioandrade/rich-domain"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <GithubIcon className="size-4.5" />
-              </a>
-            </div>
+            <a
+              href="https://github.com/tarcisioandrade/rich-domain"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <GithubIcon className="size-5" />
+            </a>
           </nav>
         </div>
       )}

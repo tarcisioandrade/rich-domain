@@ -10,8 +10,8 @@
   --card-foreground: oklch(0.96 0.01 270);
   --popover: oklch(0.16 0.02 270);
   --popover-foreground: oklch(0.96 0.01 270);
-  --primary: oklch(0.68 0.19 264); /* #818cf8 light for dark mode */
-  --primary-foreground: oklch(0.12 0.02 270);
+  --primary: oklch(0.68 0.19 264);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.22 0.025 270);
   --secondary-foreground: oklch(0.96 0.01 270);
   --muted: oklch(0.22 0.025 270);
@@ -41,7 +41,7 @@
 
 @theme inline {
   --font-sans: "Inter", "Inter Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --font-mono: 'Geist Mono Variable', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
