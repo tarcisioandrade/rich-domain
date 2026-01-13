@@ -429,4 +429,175 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(typeof json.id).toBe("string");
     });
   });
+
+  describe("Optional Input Properties", () => {
+    const userWithPasswordSchema = z.object({
+      id: z.custom<Id>((val) => val instanceof Id),
+      email: z.string().email(),
+      password: z.string().min(8, "Password must be at least 8 characters"),
+      name: z.string(),
+    });
+
+    type UserWithPasswordProps = z.infer<typeof userWithPasswordSchema>;
+
+    it("should allow password to be optional in constructor but required in entity", () => {
+      class UserWithPassword extends Aggregate<
+        UserWithPasswordProps,
+        "password"
+      > {
+        protected static validation: EntityValidation<UserWithPasswordProps> = {
+          schema: userWithPasswordSchema,
+        };
+
+        protected static hooks: EntityHooks<
+          UserWithPasswordProps,
+          UserWithPassword
+        > = {
+          onBeforeCreate: (props) => {
+            if (!props.password) {
+              props.password = "generated-password-123";
+            }
+          },
+        };
+
+        get email() {
+          return this.props.email;
+        }
+
+        get password() {
+          return this.props.password;
+        }
+
+        get name() {
+          return this.props.name;
+        }
+      }
+
+      const user = new UserWithPassword({
+        email: "test@example.com",
+        name: "Test User",
+      });
+
+      expect(user.email).toBe("test@example.com");
+      expect(user.password).toBe("generated-password-123");
+      expect(user.name).toBe("Test User");
+    });
+
+    it("should allow providing the optional field explicitly", () => {
+      class UserWithPassword extends Aggregate<
+        UserWithPasswordProps,
+        "password"
+      > {
+        protected static validation: EntityValidation<UserWithPasswordProps> = {
+          schema: userWithPasswordSchema,
+        };
+
+        protected static hooks: EntityHooks<
+          UserWithPasswordProps,
+          UserWithPassword
+        > = {
+          onBeforeCreate: (props) => {
+            if (!props.password) {
+              props.password = "generated-password-123";
+            }
+          },
+        };
+
+        get password() {
+          return this.props.password;
+        }
+      }
+
+      const user = new UserWithPassword({
+        email: "test@example.com",
+        name: "Test User",
+        password: "custom-password-12345678",
+      });
+
+      expect(user.password).toBe("custom-password-12345678");
+    });
+
+    it("should validate that generated password meets schema requirements", () => {
+      class UserWithPassword extends Aggregate<
+        UserWithPasswordProps,
+        "password"
+      > {
+        protected static validation: EntityValidation<UserWithPasswordProps> = {
+          schema: userWithPasswordSchema,
+        };
+
+        protected static hooks: EntityHooks<
+          UserWithPasswordProps,
+          UserWithPassword
+        > = {
+          onBeforeCreate: (props) => {
+            if (!props.password) {
+              // This should fail validation (less than 8 chars)
+              props.password = "short";
+            }
+          },
+        };
+      }
+
+      expect(() => {
+        new UserWithPassword({
+          email: "test@example.com",
+          name: "Test User",
+        });
+      }).toThrow(ValidationError);
+    });
+
+    it("should support multiple optional input fields", () => {
+      const multiOptionalSchema = z.object({
+        id: z.custom<Id>((val) => val instanceof Id),
+        email: z.string().email(),
+        password: z.string().min(8),
+        createdAt: z.date(),
+        updatedAt: z.date(),
+      });
+
+      interface MultiOptionalProps extends z.infer<
+        typeof multiOptionalSchema
+      > {}
+
+      class MultiOptional extends Aggregate<
+        MultiOptionalProps,
+        "password" | "createdAt" | "updatedAt"
+      > {
+        protected static validation: EntityValidation<MultiOptionalProps> = {
+          schema: multiOptionalSchema,
+        };
+
+        protected static hooks: EntityHooks<MultiOptionalProps, MultiOptional> =
+          {
+            onBeforeCreate: (props) => {
+              const now = new Date();
+              if (!props.password) props.password = "generated-12345678";
+              if (!props.createdAt) props.createdAt = now;
+              if (!props.updatedAt) props.updatedAt = now;
+            },
+          };
+
+        get password() {
+          return this.props.password;
+        }
+
+        get createdAt() {
+          return this.props.createdAt;
+        }
+
+        get updatedAt() {
+          return this.props.updatedAt;
+        }
+      }
+
+      const entity = new MultiOptional({
+        email: "test@example.com",
+      });
+
+      expect(entity.password).toBe("generated-12345678");
+      expect(entity.createdAt).toBeInstanceOf(Date);
+      expect(entity.updatedAt).toBeInstanceOf(Date);
+    });
+  });
 });

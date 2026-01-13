@@ -19,7 +19,10 @@ function getStaticProperty<T>(
   return instance.constructor[propertyName];
 }
 
-export abstract class BaseEntity<T extends BaseProps> {
+export abstract class BaseEntity<
+  T extends BaseProps,
+  TOptionalInput extends keyof T = never
+> {
   private _props: T;
   private tracker: ChangeTracker;
   private proxiedProps: T;
@@ -31,7 +34,11 @@ export abstract class BaseEntity<T extends BaseProps> {
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
 
-  constructor(props: Omit<T, "id"> & { id?: Id }) {
+  constructor(
+    props: Omit<T, TOptionalInput | "id"> &
+      Partial<Pick<T, TOptionalInput>> &
+      { id?: Id }
+  ) {
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
       "validation"

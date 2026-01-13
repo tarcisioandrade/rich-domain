@@ -35,15 +35,13 @@ import { Aggregate, Entity, Id } from "@woltz/rich-domain";
 import { z } from "zod";
 
 // Value Object
-class Email extends ValueObject<{ value: string }> {
+class Email extends ValueObject<string> {
   protected static validation = {
-    schema: z.object({
-      value: z.string().email("Invalid email format"),
-    }),
+    schema: z.string().email("Invalid email format"),
   };
 
-  get value() {
-    return this.props.value;
+  getDomain(): string {
+    return this.value.split("@")[1];
   }
 }
 
@@ -109,7 +107,7 @@ Changes are tracked automatically - no manual tracking needed:
 // Load existing user
 const user = new User({
   id: Id.from("user-123"),
-  email: new Email({ value: "john@example.com" }),
+  email: new Email("john@example.com"),
   name: "John Doe",
   posts: [
     new Post({
@@ -240,28 +238,85 @@ Add validation and side effects at key points:
 class Product extends Aggregate<ProductProps> {
   protected static validation = {
     schema: ProductSchema,
-    hooks: {
-      onCreate: (props) => {
-        console.log(`Product created: ${props.name}`);
-      },
-      onBeforeUpdate: (current, updates) => {
-        // Prevent price changes on inactive products
-        if (current.status === "inactive" && "price" in updates) {
-          delete updates.price;
-        }
-      },
+  };
+
+  protected static hooks = {
+    onBeforeCreate: (props) => {
+      // Set default values before validation
+      if (!props.createdAt) {
+        props.createdAt = new Date();
+      }
     },
-    rules: (props) => {
-      if (props.price > 1000 && props.stock === 0) {
-        throw new ValidationError(
-          "Product",
-          "stock",
-          "Premium products must have stock available"
-        );
+
+    onCreate: (entity) => {
+      console.log(`Product created: ${entity.name}`);
+    },
+
+    onBeforeUpdate: (entity, snapshot) => {
+      // Prevent price changes on inactive products
+      if (snapshot.status === "inactive" && entity.price !== snapshot.price) {
+        return false; // Reject the change
+      }
+      return true;
+    },
+
+    rules: (entity) => {
+      if (entity.price > 1000 && entity.stock === 0) {
+        throw new ValidationError([{
+          path: ["stock"],
+          message: "Premium products must have stock available"
+        }]);
       }
     },
   };
 }
+```
+
+### Optional Input Properties
+
+Make properties optional at construction but required in the entity:
+
+```typescript
+const userSchema = z.object({
+  id: z.custom<Id>(),
+  email: z.string().email(),
+  password: z.string().min(8), // Required in entity
+  createdAt: z.date(), // Required in entity
+});
+
+type UserProps = z.infer<typeof userSchema>;
+
+// Second generic makes 'password' and 'createdAt' optional at input
+class User extends Aggregate<UserProps, "password" | "createdAt"> {
+  protected static validation = { schema: userSchema };
+
+  protected static hooks = {
+    onBeforeCreate: (props) => {
+      // Generate values before validation
+      if (!props.password) {
+        props.password = generateEncryptedPassword();
+      }
+      if (!props.createdAt) {
+        props.createdAt = new Date();
+      }
+    },
+  };
+
+  get email() {
+    return this.props.email;
+  }
+}
+
+// ✅ Works without password and createdAt
+const user = new User({
+  email: "user@example.com",
+});
+
+// ✅ Also works with explicit values
+const customUser = new User({
+  email: "user@example.com",
+  password: "custom-pass-12345678",
+});
 ```
 
 ### Domain Events
@@ -308,43 +363,47 @@ order.clearEvents();
 
 ### Value Objects
 
-Immutable objects compared by value:
+Immutable wrappers for primitive values with domain behavior:
 
 ```typescript
-import { ValueObject } from "@woltz/rich-domain";
+import { ValueObject, VOHooks, throwValidationError } from "@woltz/rich-domain";
 
-class Money extends ValueObject<{ amount: number; currency: string }> {
+class Price extends ValueObject<number> {
   protected static validation = {
-    schema: z.object({
-      amount: z.number().positive(),
-      currency: z.enum(["USD", "EUR", "BRL"]),
-    }),
+    schema: z.number().positive("Price must be positive"),
   };
 
-  add(other: Money): Money {
-    if (this.props.currency !== other.props.currency) {
-      throw new DomainError("Cannot add different currencies");
-    }
-    
-    return this.clone({ 
-      amount: this.props.amount + other.props.amount 
-    });
+  protected static hooks: VOHooks<number, Price> = {
+    rules: (price) => {
+      if (price.value > 1000000) {
+        throwValidationError("value", "Price cannot exceed 1,000,000");
+      }
+    },
+  };
+
+  addTax(taxRate: number): Price {
+    return this.clone(this.value * (1 + taxRate));
   }
 
-  get amount() {
-    return this.props.amount;
+  discount(percentage: number): Price {
+    return this.clone(this.value * (1 - percentage / 100));
   }
 
-  get currency() {
-    return this.props.currency;
+  format(currency: string = "USD"): string {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(this.value);
   }
 }
 
-const price1 = new Money({ amount: 100, currency: "USD" });
-const price2 = new Money({ amount: 50, currency: "USD" });
-const total = price1.add(price2);
+const price = new Price(99.99);
+const withTax = price.addTax(0.08);
+const discounted = price.discount(10);
 
-console.log(total.amount); // 150
+console.log(price.format()); // "$99.99"
+console.log(withTax.format()); // "$107.99"
+console.log(discounted.format()); // "$89.99"
 ```
 
 ## Integration with ORMs

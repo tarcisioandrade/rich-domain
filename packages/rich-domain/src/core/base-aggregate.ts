@@ -6,7 +6,10 @@ import { BaseProps, IDomainEvent, IDomainEventBus } from "../types/index.js";
  * In Domain-Driven Design (DDD), only Aggregates (aggregate roots) should emit domain events.
  * Regular Entities and Value Objects should NOT manage domain events.
  */
-export abstract class BaseAggregate<T extends BaseProps> extends BaseEntity<T> {
+export abstract class BaseAggregate<
+  T extends BaseProps,
+  TOptionalInput extends keyof T = never
+> extends BaseEntity<T, TOptionalInput> {
   private domainEvents: IDomainEvent[] = [];
 
   /**
