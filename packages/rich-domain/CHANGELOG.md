@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.2](https://github.com/tarcisioandrade/rich-domain/compare/v1.0.1...v1.8.2) (2026-01-13)
+
+
+### Features
+
+* add apps workspace and update web app configuration ([c6b5f49](https://github.com/tarcisioandrade/rich-domain/commit/c6b5f49d8f39b7ebf52b9e105e72af46e7a89e6a))
+* enhance entity and aggregate classes to support optional input properties ([799303c](https://github.com/tarcisioandrade/rich-domain/commit/799303cd7be56abc14363b4cbcdb6970694d7120))
+* implement cycle detection in dependency graph analysis ([a3a9a14](https://github.com/tarcisioandrade/rich-domain/commit/a3a9a14d432988dc175f07c3faebf135c1504cc5))
+* integrate framer-motion and motion libraries ([b56d879](https://github.com/tarcisioandrade/rich-domain/commit/b56d879dc831ca7a837fe90775cb4d652398a19b))
+* landing-page-init ([a34ce75](https://github.com/tarcisioandrade/rich-domain/commit/a34ce75cf74b6ac2f41590784c923a197fd69bda))
+
+
+### Chores
+
+* update .gitignore to exclude TypeScript build info and temporary files ([594aa1e](https://github.com/tarcisioandrade/rich-domain/commit/594aa1efc558405c28e679d3d6915b8cc6872428))
+* update build and test scripts in package.json and eslint configuration ([b936942](https://github.com/tarcisioandrade/rich-domain/commit/b936942127ff8c84ee0780d89af0be43fdf18cdc))
+* update build and test scripts in package.json and eslint configuration ([e91f19a](https://github.com/tarcisioandrade/rich-domain/commit/e91f19a1b5e9b1da4adca890a1f71a8fbd070dda))
+* update test scripts in package.json to use 'vitest run' ([861917d](https://github.com/tarcisioandrade/rich-domain/commit/861917dc39d42f40a95ab1c6c1402a96fe2c1574))
+
+
+### Documentation
+
+* expand lifecycle hooks documentation with examples for generating required values ([b8e6f2a](https://github.com/tarcisioandrade/rich-domain/commit/b8e6f2ab3c256bc2922a0ef2dfd05a3e47800ffc))
+* remove banner content from docs.json ([f7bb5a6](https://github.com/tarcisioandrade/rich-domain/commit/f7bb5a677798205b1e58410642465de4ccc54040))
+* remove React integration documentation ([afb618a](https://github.com/tarcisioandrade/rich-domain/commit/afb618a089824c7fb3bbce843d92a948d9663d5b))
+
 ### [1.8.1](https://github.com/tarcisioandrade/rich-domain/compare/v0.7.2...v1.8.1) (2026-01-09)
 
 
