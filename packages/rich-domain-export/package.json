@@ -37,7 +37,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",
     "postbuild": "node postbuild.js",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "check": "tsc --noEmit",
     "lint": "echo 'No linting yet'",

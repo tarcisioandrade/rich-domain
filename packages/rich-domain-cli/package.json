@@ -38,7 +38,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "check": "tsc --noEmit",
     "lint": "echo 'No linting rules defined'",
