@@ -244,6 +244,77 @@ class Order extends Aggregate<OrderProps> {
 }
 ```
 
+## Optional Input Properties
+
+Sometimes you need properties that are required in the entity but optional when constructing it, because they're generated internally via hooks. Use the second generic parameter to specify optional input fields:
+
+```typescript
+import { z } from "zod";
+import { Aggregate, Id, EntityValidation, EntityHooks } from "@woltz/rich-domain";
+
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  email: z.string().email(),
+  password: z.string().min(8), // Required in schema
+  name: z.string(),
+  createdAt: z.date(), // Required in schema
+});
+
+type UserProps = z.infer<typeof userSchema>;
+
+// Make 'password' and 'createdAt' optional in constructor
+class User extends Aggregate<UserProps, "password" | "createdAt"> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+  };
+
+  protected static hooks: EntityHooks<UserProps, User> = {
+    onBeforeCreate: (props) => {
+      // Generate password if not provided
+      if (!props.password) {
+        props.password = generateEncryptedPassword();
+      }
+      // Set createdAt if not provided
+      if (!props.createdAt) {
+        props.createdAt = new Date();
+      }
+    },
+  };
+
+  get email() {
+    return this.props.email;
+  }
+
+  get password() {
+    return this.props.password;
+  }
+}
+
+// ✅ Works without password and createdAt
+const user = new User({
+  email: "user@example.com",
+  name: "John Doe",
+});
+
+// ✅ Also works with explicit values
+const userWithPassword = new User({
+  email: "user@example.com",
+  name: "John Doe",
+  password: "custom-password-12345678",
+});
+```
+
+<Note>
+  Fields marked as optional input are still **required in the entity** and validated by the schema. The difference is they're optional when calling `new User()` because they'll be generated in `onBeforeCreate`.
+</Note>
+
+**Common Use Cases:**
+
+- Auto-generated passwords or tokens
+- Timestamps (createdAt, updatedAt)
+- Computed identifiers
+- Default configurations
+
 ### Consistency Boundaries
 
 <CardGroup cols={2}>

@@ -59,6 +59,72 @@ protected static hooks: EntityHooks<UserProps, User> = {
 #### Use Cases
 
 - Change data before it is validated
+- Generate required values that are optional at input
+
+#### Generating Required Values
+
+Use `onBeforeCreate` with optional input properties to generate values internally:
+
+```typescript
+import { z } from "zod";
+import { Aggregate, Id, EntityValidation, EntityHooks } from "@woltz/rich-domain";
+
+const userSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  email: z.string().email(),
+  password: z.string().min(8), // Required in entity
+  passwordResetToken: z.string().uuid(), // Required in entity
+  createdAt: z.date(),
+});
+
+type UserProps = z.infer<typeof userSchema>;
+
+// Mark fields as optional at input
+class User extends Aggregate<UserProps, "password" | "passwordResetToken" | "createdAt"> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+  };
+
+  protected static hooks: EntityHooks<UserProps, User> = {
+    onBeforeCreate: (props) => {
+      // Generate encrypted password if not provided
+      if (!props.password) {
+        const tempPassword = generateRandomPassword();
+        props.password = encrypt(tempPassword);
+      }
+
+      // Generate password reset token
+      if (!props.passwordResetToken) {
+        props.passwordResetToken = crypto.randomUUID();
+      }
+
+      // Set timestamp
+      if (!props.createdAt) {
+        props.createdAt = new Date();
+      }
+    },
+  };
+
+  get email() {
+    return this.props.email;
+  }
+}
+
+// ✅ Create user without password - it will be generated
+const user = new User({
+  email: "user@example.com",
+});
+
+// ✅ Or provide custom password
+const userWithPassword = new User({
+  email: "user@example.com",
+  password: encrypt("my-secure-password"),
+});
+```
+
+<Note>
+  Values generated in `onBeforeCreate` are still validated by the schema. If generation fails to meet schema requirements, a `ValidationError` will be thrown.
+</Note>
 
 ### onCreate
 
