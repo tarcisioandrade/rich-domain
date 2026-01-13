@@ -22,6 +22,56 @@ export interface DependencyAnalysis {
 }
 
 /**
+ * Detect cycles in the dependency graph using DFS
+ */
+function detectCycles(
+  nodes: Map<string, DependencyNode>
+): { hasCycles: boolean; cycles: string[][] } {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+  const cycles: string[][] = [];
+
+  function dfs(nodeName: string, path: string[]): boolean {
+    visited.add(nodeName);
+    recursionStack.add(nodeName);
+    path.push(nodeName);
+
+    const node = nodes.get(nodeName);
+    if (!node) return false;
+
+    for (const dep of node.dependencies) {
+      if (!visited.has(dep)) {
+        if (dfs(dep, path)) {
+          return true;
+        }
+      } else if (recursionStack.has(dep)) {
+        // Found a cycle
+        const cycleStart = path.indexOf(dep);
+        const cycle = path.slice(cycleStart);
+        cycle.push(dep); // Complete the cycle
+        cycles.push(cycle);
+        return true;
+      }
+    }
+
+    recursionStack.delete(nodeName);
+    path.pop();
+    return false;
+  }
+
+  for (const nodeName of nodes.keys()) {
+    if (!visited.has(nodeName)) {
+      dfs(nodeName, []);
+    }
+  }
+
+  return {
+    hasCycles: cycles.length > 0,
+    cycles,
+  };
+}
+
+/**
  * Analyze models to determine their dependencies and classify as Aggregate or Entity
  *
  * Note: Bidirectional relations (User has Post[], Post has author: User) are NORMAL
@@ -65,15 +115,16 @@ export function analyzeDependencies(models: PrismaModel[]): DependencyAnalysis {
     .filter((n) => !n.isAggregate)
     .map((n) => n.model.name);
 
-  // Bidirectional relations are normal in Prisma, not cycles
-  // We don't report them as problems
+  // Detect cycles in the dependency graph
+  const cycleDetection = detectCycles(nodes);
+
   return {
     nodes,
     sortedNames,
     aggregates,
     entities,
-    hasCycles: false,
-    cycles: [],
+    hasCycles: cycleDetection.hasCycles,
+    cycles: cycleDetection.cycles,
   };
 }
 
