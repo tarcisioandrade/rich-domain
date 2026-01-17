@@ -123,22 +123,7 @@ export function useCriteria<T = unknown>(
     }
 
     const criteria = Criteria.create<T>().paginate(initialPage, pageSize);
-
-    initialFilters.forEach((filter) => {
-      criteria.where(
-        filter.field,
-        filter.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-        filter.value as FilterValueFor<PathValue<T, FieldPath<T>>>
-      );
-    });
-
-    initialSort.forEach((sort) => {
-      criteria.orderBy(sort.field as FieldPath<T>, sort.direction);
-    });
-
-    if (initialSearch) {
-      criteria.search(initialSearch);
-    }
+    applyInitials(criteria, initialFilters, initialSort, initialSearch);
 
     return criteria;
   }, [
