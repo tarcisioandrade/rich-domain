@@ -1,0 +1,324 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Design system architecture",
+      "description": "Create the initial architecture document for the new design system including component hierarchy, theming strategy, and token system.",
+      "status": "doing",
+      "priority": "high",
+      "assignee": "Alice Johnson",
+      "labels": [
+        "architecture",
+        "design"
+      ],
+      "order": "Zw",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2026-01-17T18:33:30.303Z",
+      "updatedStageAt": "2026-01-17T18:33:28.251Z"
+    },
+    {
+      "id": "task-4",
+      "title": "Set up CI/CD pipeline",
+      "description": "Configure GitHub Actions for automated testing, linting, and deployment to staging and production environments.",
+      "status": "done",
+      "priority": "high",
+      "assignee": "Dave Brown",
+      "labels": [
+        "devops",
+        "automation"
+      ],
+      "order": "Zf",
+      "createdAt": "2024-01-14T11:00:00Z",
+      "updatedAt": "2026-01-17T18:32:58.084Z",
+      "updatedStageAt": "2026-01-17T18:32:58.084Z"
+    },
+    {
+      "id": "task-10",
+      "title": "Unit test coverage",
+      "description": "Increase test coverage to at least 80% for critical components with meaningful unit and integration tests.",
+      "status": "done",
+      "priority": "high",
+      "assignee": "Jack Thomas",
+      "labels": [
+        "testing",
+        "quality"
+      ],
+      "order": "Zb",
+      "createdAt": "2024-01-13T16:00:00Z",
+      "updatedAt": "2026-01-17T18:33:20.301Z",
+      "updatedStageAt": "2026-01-17T18:33:20.301Z"
+    },
+    {
+      "id": "task-12",
+      "title": "Database migrations",
+      "description": "Create migration scripts for the new schema changes and data transformations.",
+      "status": "done",
+      "priority": "high",
+      "assignee": "Leo Garcia",
+      "labels": [
+        "backend",
+        "database"
+      ],
+      "order": "ZZ",
+      "createdAt": "2024-01-12T14:30:00Z",
+      "updatedAt": "2026-01-17T18:33:22.586Z",
+      "updatedStageAt": "2026-01-17T18:33:22.586Z"
+    },
+    {
+      "id": "task-17",
+      "title": "Email templates",
+      "description": "Design and implement responsive email templates for transactional emails.",
+      "status": "doing",
+      "priority": "low",
+      "assignee": "Bob Smith",
+      "labels": [
+        "design",
+        "email"
+      ],
+      "order": "Zt",
+      "createdAt": "2024-01-11T14:00:00Z",
+      "updatedAt": "2026-01-17T18:33:26.853Z",
+      "updatedStageAt": "2026-01-17T18:33:26.853Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Implement OAuth2 authentication",
+      "description": "Build OAuth2 authentication flow with Google, GitHub, and Microsoft social login support.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Bob Smith",
+      "labels": [
+        "auth",
+        "security"
+      ],
+      "order": "Zt",
+      "createdAt": "2024-01-16T09:30:00Z",
+      "updatedAt": "2026-01-17T17:39:34.331Z",
+      "updatedStageAt": "2026-01-17T17:39:34.331Z"
+    },
+    {
+      "id": "task-5",
+      "title": "Write API documentation",
+      "description": "Document all REST endpoints using OpenAPI 3.0 specification with examples and error responses.",
+      "status": "doing",
+      "priority": "medium",
+      "assignee": "Eve Davis",
+      "labels": [
+        "documentation",
+        "api"
+      ],
+      "order": "Zx",
+      "createdAt": "2024-01-18T08:00:00Z",
+      "updatedAt": "2026-01-17T18:33:25.397Z",
+      "updatedStageAt": "2026-01-17T18:33:25.397Z"
+    },
+    {
+      "id": "task-7",
+      "title": "Performance optimization",
+      "description": "Analyze and optimize bundle size, implement code splitting, and improve loading performance metrics.",
+      "status": "done",
+      "priority": "high",
+      "assignee": "Grace Wilson",
+      "labels": [
+        "performance",
+        "optimization"
+      ],
+      "order": "Zj",
+      "createdAt": "2024-01-20T09:00:00Z",
+      "updatedAt": "2026-01-17T18:20:55.390Z",
+      "updatedStageAt": "2026-01-17T18:20:55.390Z"
+    },
+    {
+      "id": "task-8",
+      "title": "Mobile responsive design",
+      "description": "Ensure all components work properly on mobile devices with touch interactions and proper viewport handling.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Henry Taylor",
+      "labels": [
+        "frontend",
+        "mobile"
+      ],
+      "order": "Zx",
+      "createdAt": "2024-01-21T10:30:00Z",
+      "updatedAt": "2026-01-17T17:39:31.961Z",
+      "updatedStageAt": "2026-01-17T17:39:31.961Z"
+    },
+    {
+      "id": "task-11",
+      "title": "Error handling improvements",
+      "description": "Implement consistent error handling with user-friendly messages and proper logging.",
+      "status": "done",
+      "priority": "medium",
+      "assignee": "Kate Martinez",
+      "labels": [
+        "frontend",
+        "ux"
+      ],
+      "order": "Zy",
+      "createdAt": "2024-01-23T11:00:00Z",
+      "updatedAt": "2026-01-17T17:44:58.277Z",
+      "updatedStageAt": "2026-01-17T17:39:33.786Z"
+    },
+    {
+      "id": "task-15",
+      "title": "Rate limiting",
+      "description": "Implement API rate limiting to prevent abuse and ensure fair usage across all clients.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Olivia White",
+      "labels": [
+        "backend",
+        "security"
+      ],
+      "order": "Zr",
+      "createdAt": "2024-01-26T15:00:00Z",
+      "updatedAt": "2026-01-17T17:39:35.475Z",
+      "updatedStageAt": "2026-01-17T17:39:35.475Z"
+    },
+    {
+      "id": "task-18",
+      "title": "Analytics integration",
+      "description": "Integrate analytics tracking with privacy-compliant event logging and custom dashboards.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Carol Williams",
+      "labels": [
+        "analytics",
+        "tracking"
+      ],
+      "order": "Zv",
+      "createdAt": "2024-01-28T10:00:00Z",
+      "updatedAt": "2026-01-17T17:39:32.933Z",
+      "updatedStageAt": "2026-01-17T17:39:32.933Z"
+    },
+    {
+      "id": "task-3",
+      "title": "Create user dashboard",
+      "description": "Design and implement the main user dashboard with customizable widgets, analytics charts, and activity feed.",
+      "status": "done",
+      "priority": "medium",
+      "assignee": "Carol Williams",
+      "labels": [
+        "frontend",
+        "dashboard"
+      ],
+      "order": "Zh",
+      "createdAt": "2024-01-17T14:00:00Z",
+      "updatedAt": "2026-01-17T18:32:42.650Z",
+      "updatedStageAt": "2026-01-17T18:32:42.650Z"
+    },
+    {
+      "id": "task-6",
+      "title": "Implement dark mode",
+      "description": "Add theme switching with system preference detection and persistent user preference storage.",
+      "status": "doing",
+      "priority": "low",
+      "assignee": "Frank Miller",
+      "labels": [
+        "frontend",
+        "ux"
+      ],
+      "order": "Zq",
+      "createdAt": "2024-01-19T15:30:00Z",
+      "updatedAt": "2026-01-17T18:33:34.892Z",
+      "updatedStageAt": "2026-01-17T18:33:24.558Z"
+    },
+    {
+      "id": "task-9",
+      "title": "Accessibility audit",
+      "description": "Review and fix accessibility issues across the application following WCAG 2.1 AA guidelines.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Ivy Anderson",
+      "labels": [
+        "a11y",
+        "compliance"
+      ],
+      "order": "Zql",
+      "createdAt": "2024-01-22T13:00:00Z",
+      "updatedAt": "2026-01-17T18:08:47.900Z",
+      "updatedStageAt": "2026-01-17T18:03:47.241Z"
+    },
+    {
+      "id": "task-13",
+      "title": "Implement notifications",
+      "description": "Build real-time notification system with WebSocket support and push notifications.",
+      "status": "done",
+      "priority": "medium",
+      "assignee": "Mia Rodriguez",
+      "labels": [
+        "backend",
+        "realtime"
+      ],
+      "order": "Zd",
+      "createdAt": "2024-01-24T09:30:00Z",
+      "updatedAt": "2026-01-17T18:33:04.810Z",
+      "updatedStageAt": "2026-01-17T18:33:04.810Z"
+    },
+    {
+      "id": "task-14",
+      "title": "Search functionality",
+      "description": "Add full-text search with Elasticsearch integration and advanced filtering options.",
+      "status": "doing",
+      "priority": "low",
+      "assignee": "Noah Lee",
+      "labels": [
+        "backend",
+        "search"
+      ],
+      "order": "Zv",
+      "createdAt": "2024-01-25T10:00:00Z",
+      "updatedAt": "2026-01-17T18:33:26.159Z",
+      "updatedStageAt": "2026-01-17T18:33:26.159Z"
+    },
+    {
+      "id": "task-16",
+      "title": "User profile page",
+      "description": "Create user profile page with avatar upload, bio editing, and account settings.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alice Johnson",
+      "labels": [
+        "frontend",
+        "user"
+      ],
+      "order": "Zw",
+      "createdAt": "2024-01-27T09:00:00Z",
+      "updatedAt": "2026-01-17T17:47:37.111Z",
+      "updatedStageAt": "2026-01-17T17:47:35.285Z"
+    },
+    {
+      "id": "task-19",
+      "title": "Export functionality",
+      "description": "Add ability to export data in CSV, Excel, and PDF formats with customizable columns.",
+      "status": "doing",
+      "priority": "low",
+      "assignee": "Dave Brown",
+      "labels": [
+        "frontend",
+        "export"
+      ],
+      "order": "Zr",
+      "createdAt": "2024-01-29T11:00:00Z",
+      "updatedAt": "2026-01-17T18:33:27.439Z",
+      "updatedStageAt": "2026-01-17T18:33:27.439Z"
+    },
+    {
+      "id": "task-20",
+      "title": "Keyboard shortcuts",
+      "description": "Implement keyboard shortcuts for common actions with a discoverable shortcuts panel.",
+      "status": "done",
+      "priority": "low",
+      "assignee": "Eve Davis",
+      "labels": [
+        "frontend",
+        "ux"
+      ],
+      "order": "Zx",
+      "createdAt": "2024-01-30T08:30:00Z",
+      "updatedAt": "2026-01-17T17:39:32.425Z",
+      "updatedStageAt": "2026-01-17T17:39:32.425Z"
+    }
+  ]
+}

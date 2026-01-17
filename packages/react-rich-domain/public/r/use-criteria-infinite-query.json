@@ -1,7 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "use-criteria-infinite-query",
-  "type": "registry:block",
   "title": "Use Criteria Infinite Query",
   "description": "A hook to use criteria infinite query from @woltz/rich-domain and @tanstack/react-query.",
   "dependencies": [
@@ -18,5 +17,6 @@
       "type": "registry:hook",
       "target": "~/src/hooks/use-criteria-infinite-query.ts"
     }
-  ]
+  ],
+  "type": "registry:block"
 }

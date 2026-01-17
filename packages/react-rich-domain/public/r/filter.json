@@ -1,7 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "filter",
-  "type": "registry:block",
   "title": "Filter",
   "description": "A component to filter data using use-criteria hook from @woltz/react-rich-domain.",
   "dependencies": [
@@ -65,9 +64,10 @@
     },
     {
       "path": "registry/default/hooks/use-debounce-callback.ts",
-      "content": "import { useCallback, useEffect, useRef } from \"react\";\n\n// eslint-disable-next-line @typescript-eslint/no-explicit-any\ntype AnyFn = (...args: any[]) => any;\n\nexport function useDebounceCallback<T extends AnyFn>(\n  callback: T,\n  delay: number\n): [\n  (...args: Parameters<T>) => void,\n  {\n    cancel: () => void;\n    flush: (...args: Parameters<T>) => void;\n  }\n] {\n  const callbackRef = useRef(callback);\n  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);\n\n  useEffect(() => {\n    callbackRef.current = callback;\n  }, [callback]);\n\n  const cancel = useCallback(() => {\n    if (timeoutRef.current) {\n      clearTimeout(timeoutRef.current);\n      timeoutRef.current = null;\n    }\n  }, []);\n\n  const debounced = useCallback(\n    (...args: Parameters<T>) => {\n      cancel();\n\n      timeoutRef.current = setTimeout(() => {\n        callbackRef.current(...args);\n      }, delay);\n    },\n    [delay, cancel]\n  );\n\n  const flush = useCallback(\n    (...args: Parameters<T>) => {\n      cancel();\n      callbackRef.current(...args);\n    },\n    [cancel]\n  );\n\n  // Limpa timeout ao desmontar\n  useEffect(() => cancel, [cancel]);\n\n  return [debounced, { cancel, flush }];\n}\n",
+      "content": "import { useCallback, useEffect, useRef } from \"react\";\r\n\r\n// eslint-disable-next-line @typescript-eslint/no-explicit-any\r\ntype AnyFn = (...args: any[]) => any;\r\n\r\nexport function useDebounceCallback<T extends AnyFn>(\r\n  callback: T,\r\n  delay: number\r\n): [\r\n  (...args: Parameters<T>) => void,\r\n  {\r\n    cancel: () => void;\r\n    flush: (...args: Parameters<T>) => void;\r\n  }\r\n] {\r\n  const callbackRef = useRef(callback);\r\n  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);\r\n\r\n  useEffect(() => {\r\n    callbackRef.current = callback;\r\n  }, [callback]);\r\n\r\n  const cancel = useCallback(() => {\r\n    if (timeoutRef.current) {\r\n      clearTimeout(timeoutRef.current);\r\n      timeoutRef.current = null;\r\n    }\r\n  }, []);\r\n\r\n  const debounced = useCallback(\r\n    (...args: Parameters<T>) => {\r\n      cancel();\r\n\r\n      timeoutRef.current = setTimeout(() => {\r\n        callbackRef.current(...args);\r\n      }, delay);\r\n    },\r\n    [delay, cancel]\r\n  );\r\n\r\n  const flush = useCallback(\r\n    (...args: Parameters<T>) => {\r\n      cancel();\r\n      callbackRef.current(...args);\r\n    },\r\n    [cancel]\r\n  );\r\n\r\n  // Limpa timeout ao desmontar\r\n  useEffect(() => cancel, [cancel]);\r\n\r\n  return [debounced, { cancel, flush }];\r\n}\r\n",
       "type": "registry:hook",
       "target": "~/src/hooks/use-debounce-callback.ts"
     }
-  ]
+  ],
+  "type": "registry:block"
 }

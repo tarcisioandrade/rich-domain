@@ -4,15 +4,17 @@ import { ThemeProvider } from "./theme.provider";
 import { ToggleTheme } from "./components/toggle-theme";
 import { UserListCriteria } from "./user-list-criteria";
 import { UserTimeline } from "./user-timeline";
+import { TaskKanban } from "./task-kanban";
 import { Tabs, TabsContent } from "./components/ui/tabs";
-import { Table, Clock, SortAsc, Filter } from "lucide-react";
+import { Table, Clock, SortAsc, Filter, Kanban } from "lucide-react";
 import { SortingExample } from "./components/sorting/sorting-example";
 import { FilterExample } from "./components/filter/filter-example";
 import { cn } from "./lib/utils";
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient();
 
-type DemoTab = "table" | "timeline" | "sorting" | "filter";
+type DemoTab = "table" | "timeline" | "kanban" | "sorting" | "filter";
 
 function clearParams() {
   window.history.pushState(null, "", window.location.pathname);
@@ -61,6 +63,16 @@ export default function App() {
               >
                 <Clock className="h-4 w-4" />
                 Timeline
+              </li>
+              <li
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer rounded p-2 hover:bg-muted hover:text-foreground text-sm text-muted-foreground",
+                  activeTab === "kanban" && "text-foreground bg-muted"
+                )}
+                onClick={() => handleTabChange("kanban")}
+              >
+                <Kanban className="h-4 w-4" />
+                Kanban Board
               </li>
               <li
                 className={cn(
@@ -118,6 +130,21 @@ export default function App() {
                   <UserTimeline />
                 </div>
               </TabsContent>
+
+              <TabsContent value="kanban" className="mt-0">
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight">
+                      Kanban Board
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Drag and drop cards between columns with optimistic updates
+                    </p>
+                  </div>
+                  <TaskKanban />
+                </div>
+              </TabsContent>
+
               <TabsContent value="sorting" className="mt-0">
                 <SortingExample />
               </TabsContent>
@@ -128,6 +155,7 @@ export default function App() {
           </main>
         </div>
       </ThemeProvider>
+        <Toaster position="bottom-right" />
     </QueryClientProvider>
   );
 }

@@ -38,6 +38,7 @@ interface DataViewToolbarProps {
   filterProps?: FilterIntegrationProps;
   actionBar?: React.ReactNode;
   onExport?: (format: FileFormat) => Promise<string> | string;
+  children?: React.ReactNode;
 }
 
 export function DataViewToolbar({
@@ -46,6 +47,7 @@ export function DataViewToolbar({
   filterProps,
   actionBar,
   onExport,
+  children,
 }: DataViewToolbarProps) {
   const hasSearch = searchProps?.showSearch && searchProps?.onSearchChange;
   const hasFilters = filterProps && filterProps.fields.length > 0;
@@ -88,6 +90,7 @@ export function DataViewToolbar({
       {(actionBar || onExport) && (
         <div className="ml-auto flex gap-2">
           {actionBar}
+          {children}
           {onExport && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
