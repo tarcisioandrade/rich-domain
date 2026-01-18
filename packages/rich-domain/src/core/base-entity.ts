@@ -347,20 +347,42 @@ export abstract class BaseEntity<
 
   /**
    * Clears history and marks entity as "clean".
-   * Call this after successfully persisting to the database.
+   * Recursively marks all nested entities as clean.
    */
   markAsClean(): void {
     this.tracker.markAsClean();
     this.takeSnapshot();
+    this.forEachNestedEntity((entity) => entity.markAsClean());
   }
 
   /**
    * Clears history, marks entity as "clean" and marks the Id as not new.
+   * Recursively marks all nested entities as persisted.
    * Call this after successfully persisting to the database.
    */
   markAsPersisted(): void {
-    this.markAsClean();
+    this.tracker.markAsClean();
+    this.takeSnapshot();
     this.id.markAsNotNew();
+    this.forEachNestedEntity((entity) => entity.markAsPersisted());
+  }
+
+  /**
+   * Iterates over all nested entities (direct children only) and executes a callback.
+   * This includes entities in arrays and single entity properties.
+   */
+  private forEachNestedEntity(callback: (entity: BaseEntity<any>) => void): void {
+    for (const value of Object.values(this._props)) {
+      if (value instanceof BaseEntity) {
+        callback(value);
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item instanceof BaseEntity) {
+            callback(item);
+          }
+        }
+      }
+    }
   }
 
 

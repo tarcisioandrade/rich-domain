@@ -117,6 +117,7 @@ export class ChangeTracker {
     parentId?: string,
     parentEntity?: string
   ): void {
+    const isPrimitive = this.isPrimitiveArray(arr);
     const entityName = arr.length > 0 ? this.getEntityName(arr[0]) : "Unknown";
 
     this.trackedArrays.set(path, {
@@ -129,21 +130,25 @@ export class ChangeTracker {
         parentEntity,
         path,
       },
+      isPrimitiveArray: isPrimitive,
     });
 
-    arr.forEach((item, index) => {
-      if (item instanceof Entity) {
-        const itemPath = `${path}[${index}]`;
-        this.captureEntityState(
-          item,
-          this.getEntityName(item),
-          itemPath,
-          depth,
-          parentId,
-          parentEntity
-        );
-      }
-    });
+    // Only track individual items for non-primitive arrays
+    if (!isPrimitive) {
+      arr.forEach((item, index) => {
+        if (item instanceof Entity) {
+          const itemPath = `${path}[${index}]`;
+          this.captureEntityState(
+            item,
+            this.getEntityName(item),
+            itemPath,
+            depth,
+            parentId,
+            parentEntity
+          );
+        }
+      });
+    }
   }
 
   createProxy(): any {
@@ -347,20 +352,35 @@ export class ChangeTracker {
     const changes = new AggregateChanges<TEntityMap>();
     const rootTracker = this.getRootTracker();
 
-    this.analyzeRootChanges(changes, rootTracker);
+    // Collect all root-level changes (primitive fields + primitive arrays)
+    const rootChangedFields = this.collectRootChanges(rootTracker);
+
+    if (Object.keys(rootChangedFields).length > 0) {
+      const id = this.getEntityId(this.target);
+      if (id) {
+        changes.addUpdate(
+          this.rootEntityName,
+          id,
+          this.target,
+          rootChangedFields,
+          0
+        );
+      }
+    }
+
     this.analyzeCollectionChanges(changes, rootTracker);
     this.analyzeEntityChanges(changes, rootTracker);
 
     return changes;
   }
 
-  private analyzeRootChanges(
-    changes: AggregateChanges<any>,
-    rootTracker: ChangeTracker
-  ): void {
+  /**
+   * Collects all root-level changes: primitive properties and primitive arrays.
+   */
+  private collectRootChanges(rootTracker: ChangeTracker): Record<string, any> {
     const changedFields: Record<string, any> = {};
-    let hasChanges = false;
 
+    // Collect primitive property changes
     for (const [path, originalValue] of rootTracker.originalValues) {
       if (path.includes(".") || path.includes("[")) continue;
 
@@ -371,22 +391,36 @@ export class ChangeTracker {
           currentValue instanceof ValueObject
             ? currentValue.value
             : currentValue;
-        hasChanges = true;
       }
     }
 
-    if (hasChanges) {
-      const id = this.getEntityId(this.target);
-      if (id) {
-        changes.addUpdate(
-          this.rootEntityName,
-          id,
-          this.target,
-          changedFields,
-          0
-        );
+    // Collect primitive array changes
+    for (const [path, arrayState] of rootTracker.trackedArrays) {
+      if (!arrayState.isPrimitiveArray) continue;
+      if (path.includes(".")) continue; // Only root-level arrays
+
+      const currentArray = this.getValueAtPath(this.target, path);
+      if (!Array.isArray(currentArray)) continue;
+
+      const originalArray = arrayState.cloned;
+
+      if (!this.arraysEqual(originalArray, currentArray)) {
+        changedFields[path] = currentArray.slice();
       }
     }
+
+    return changedFields;
+  }
+
+  /**
+   * Compares two arrays for equality (shallow comparison for primitives).
+   */
+  private arraysEqual(a: any[], b: any[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
   }
 
   private analyzeCollectionChanges(
@@ -414,6 +448,9 @@ export class ChangeTracker {
     for (const [path, arrayState] of allTrackedArrays) {
       const currentArray = this.getValueAtPath(this.target, path);
       if (!Array.isArray(currentArray)) continue;
+
+      // Skip primitive arrays - they are handled as root property changes
+      if (arrayState.isPrimitiveArray) continue;
 
       const { created, updated, deleted } = this.detectArrayChanges(
         arrayState.cloned,
@@ -973,6 +1010,23 @@ export class ChangeTracker {
   private getEntityName(item: any): string {
     if (!item) return "Unknown";
     return item.constructor?.name || "Unknown";
+  }
+
+  /**
+   * Checks if a value is a primitive (string, number, boolean, null, undefined, symbol, bigint).
+   */
+  private isPrimitiveValue(value: any): boolean {
+    if (value === null || value === undefined) return true;
+    const type = typeof value;
+    return type === "string" || type === "number" || type === "boolean" || type === "symbol" || type === "bigint";
+  }
+
+  /**
+   * Checks if an array contains only primitive values.
+   */
+  private isPrimitiveArray(arr: any[]): boolean {
+    if (arr.length === 0) return false; // Empty arrays are not treated as primitive arrays
+    return arr.every(item => this.isPrimitiveValue(item));
   }
 
   private isEqual(a: any, b: any): boolean {

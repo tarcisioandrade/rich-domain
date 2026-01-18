@@ -1,4 +1,5 @@
-import { Id } from "../src/core/index";
+import { EntityValidation } from "../src";
+import { Aggregate, Id } from "../src/core/index";
 import {
   Post,
   TagReference,
@@ -8,6 +9,7 @@ import {
   Comment,
   Email,
 } from "./utils";
+import { z } from "zod";
 
 function createUser(
   overrides: Partial<{
@@ -445,3 +447,199 @@ describe("ChangeTracker.getChanges()", () => {
     });
   });
 });
+
+
+describe("Primitive Arrays", () => {
+  const TestStringSchema = z.object({
+    id: z.custom<Id>(),
+    name: z.string(),
+    strings: z.array(z.string()),
+  });
+  class TestString extends Aggregate<z.infer<typeof TestStringSchema>> {
+    protected static validation: EntityValidation<z.infer<typeof TestStringSchema>> = {
+      schema: TestStringSchema,
+    };
+  }
+
+  it("should not track primitive array items as individual creates on instantiation", () => {
+    const test = new TestString({
+      id: new Id("121212121"),
+      name: "Test User",
+      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+    });
+
+    const changes = test.getChanges();
+
+    // Should be empty - no changes detected on initial instantiation
+    expect(changes.isEmpty()).toBe(true);
+    expect(changes.creates().length).toBe(0);
+  });
+
+  it("should detect primitive array changes as property update", () => {
+    const test = new TestString({
+      id: new Id("121212121"),
+      name: "Test User",
+      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+    });
+
+    // Simulate data from database (clear initial state)
+    test.markAsClean();
+
+    // Now modify the array
+    test.props.strings.push('Teste 4');
+
+    const changes = test.getChanges();
+
+    expect(changes.isEmpty()).toBe(false);
+    expect(changes.hasUpdates()).toBe(true);
+
+    const updates = changes.updates();
+    expect(updates.length).toBe(1);
+    expect(updates[0].entity).toBe('TestString');
+    expect(updates[0].changedFields).toHaveProperty('strings');
+    expect(updates[0].changedFields.strings).toEqual(['Teste 1', 'Teste 2', 'Teste 3', 'Teste 4']);
+  });
+
+  it("should detect primitive array removal as property update", () => {
+    const test = new TestString({
+      id: new Id("121212121"),
+      name: "Test User",
+      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+    });
+
+    test.markAsClean();
+
+    // Remove an item by replacing the array
+    test.props.strings = test.props.strings.filter((_, i) => i !== 1);
+
+    const changes = test.getChanges();
+
+    expect(changes.hasUpdates()).toBe(true);
+    const updates = changes.updates();
+    expect(updates[0].changedFields.strings).toEqual(['Teste 1', 'Teste 3']);
+  });
+
+  it("should detect primitive array replacement as property update", () => {
+    const test = new TestString({
+      id: new Id("121212121"),
+      name: "Test User",
+      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+    });
+
+    test.markAsClean();
+
+    // Replace entire array
+    test.props.strings = ['New 1', 'New 2'];
+
+    const changes = test.getChanges();
+
+    expect(changes.hasUpdates()).toBe(true);
+    const updates = changes.updates();
+    expect(updates[0].changedFields.strings).toEqual(['New 1', 'New 2']);
+  });
+})
+
+describe("Recursive markAsClean and markAsPersisted", () => {
+  it("markAsClean should recursively clean nested entities", () => {
+    const comment = createComment({ text: "Original comment" });
+    const post = createPost({
+      title: "Original title",
+      comments: [comment]
+    });
+    const user = createUser({ posts: [post] });
+
+    // Make changes at all levels
+    user.props.name = "Changed Name";
+    post.props.title = "Changed Title";
+    comment.props.text = "Changed Comment";
+
+    // Verify changes exist at all levels
+    expect(user.getChanges().hasUpdates()).toBe(true);
+    expect(post.getChanges().hasUpdates()).toBe(true);
+    expect(comment.getChanges().hasUpdates()).toBe(true);
+
+    // Mark root as clean - should propagate to all nested entities
+    user.markAsClean();
+
+    // All entities should now be clean
+    expect(user.getChanges().isEmpty()).toBe(true);
+    expect(post.getChanges().isEmpty()).toBe(true);
+    expect(comment.getChanges().isEmpty()).toBe(true);
+  });
+
+  it("markAsPersisted should recursively mark all nested entity Ids as not new", () => {
+    const comment = createComment();
+    const post = createPost({ comments: [comment] });
+    const user = new User({
+      id: new Id(), // New ID (isNew = true)
+      name: "Test User",
+      email: new Email("test@test.com"),
+      address: null,
+      posts: [post],
+      tags: [],
+    });
+
+    // All Ids should be new initially
+    expect(user.id.isNew()).toBe(true);
+    expect(post.id.isNew()).toBe(true);
+    expect(comment.id.isNew()).toBe(true);
+
+    // Mark root as persisted - should propagate to all nested entities
+    user.markAsPersisted();
+
+    // All Ids should now be marked as not new
+    expect(user.id.isNew()).toBe(false);
+    expect(post.id.isNew()).toBe(false);
+    expect(comment.id.isNew()).toBe(false);
+  });
+
+  it("markAsPersisted should also clean changes in nested entities", () => {
+    const comment = createComment({ text: "Original" });
+    const post = createPost({ comments: [comment] });
+    const user = new User({
+      id: new Id(),
+      name: "Test User",
+      email: new Email("test@test.com"),
+      address: null,
+      posts: [post],
+      tags: [],
+    });
+
+    // Make changes
+    user.props.name = "Changed";
+    post.props.title = "Changed";
+    comment.props.text = "Changed";
+
+    // Verify changes exist
+    expect(user.getChanges().hasChanges()).toBe(true);
+
+    // Mark as persisted
+    user.markAsPersisted();
+
+    // All should be clean
+    expect(user.getChanges().isEmpty()).toBe(true);
+    expect(post.getChanges().isEmpty()).toBe(true);
+    expect(comment.getChanges().isEmpty()).toBe(true);
+
+    // And all Ids should be not new
+    expect(user.id.isNew()).toBe(false);
+    expect(post.id.isNew()).toBe(false);
+    expect(comment.id.isNew()).toBe(false);
+  });
+
+  it("markAsClean should work with single nested entity (1:1 relation)", () => {
+    const address = createAddress("Original St", "Original City");
+    const user = createUser({ address });
+
+    // Make changes
+    address.props.street = "Changed St";
+
+    expect(address.getChanges().hasUpdates()).toBe(true);
+
+    // Mark user as clean
+    user.markAsClean();
+
+    // Address should also be clean
+    expect(address.getChanges().isEmpty()).toBe(true);
+  });
+})
