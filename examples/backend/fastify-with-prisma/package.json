@@ -16,7 +16,8 @@
     "start:worker": "bun tsx watch src/worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts"
   },
   "keywords": [
     "fastify",
@@ -27,24 +28,29 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
+    "@fastify/cors": "^11.2.0",
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.3",
     "@prisma/client": "^5.22.0",
-    "@woltz/rich-domain": "^1.8.1",
+    "@woltz/rich-domain": "^1.8.3",
     "@woltz/rich-domain-criteria-zod": "^0.1.0",
-    "@woltz/rich-domain-prisma": "^0.7.3",
+    "@woltz/rich-domain-prisma": "^0.7.4",
     "bullmq": "^5.64.0",
     "fastify": "^5.5.0",
     "fastify-plugin": "^5.1.0",
     "fastify-type-provider-zod": "^6.1.0",
+    "fractional-indexing": "^3.2.0",
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.2.0",
     "@types/bun": "latest",
     "@types/node": "^22.9.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
