@@ -79,18 +79,16 @@ function DataKanbanCriteria<T>({
   renderCard,
   renderColumnHeader,
   renderColumnFooter,
-  renderEmptyColumn,
   toolbarLayout = "default",
   actionBar,
   className,
   columnsClassName,
   columnClassName,
   estimatedCardHeight = 120,
-  columnWidth = "320px",
-  columnMinHeight = "400px",
   showItemCount = true,
   showSkeleton = true,
   onCardClick,
+  columnsContentScrollClassName: columnsContentScrollClassName,
 }: DataKanbanCriteriaProps<T>) {
   const {
     columns,
@@ -131,8 +129,7 @@ function DataKanbanCriteria<T>({
       {isLoading && showSkeleton && (
         <KanbanSkeleton
           columnCount={columns.length}
-          cardCount={3}
-          columnWidth={columnWidth}
+          cardCount={6}
         />
       )}
 
@@ -156,13 +153,12 @@ function DataKanbanCriteria<T>({
                 renderCard={renderCard}
                 renderHeader={renderColumnHeader}
                 renderFooter={renderColumnFooter}
-                renderEmpty={renderEmptyColumn}
                 className={columnClassName}
                 estimatedCardHeight={estimatedCardHeight}
-                minHeight={columnMinHeight}
                 showItemCount={showItemCount}
                 activeId={activeId}
                 onCardClick={onCardClick}
+                columnsContentScrollClassName={columnsContentScrollClassName}
               />
             </div>
           ))}

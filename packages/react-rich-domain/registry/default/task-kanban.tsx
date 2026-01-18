@@ -14,9 +14,8 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle, Plus } from "lucide-react";
+import { Circle, Clock, CheckCircle2, User, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "./components/ui/button";
 
 /**
  * Filter field definitions for the Kanban toolbar
@@ -126,9 +125,8 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging: boolean }) {
             {task.labels.map((label) => (
               <span
                 key={label}
-                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                  labelColors[label] || labelColors.default
-                }`}
+                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${labelColors[label] || labelColors.default
+                  }`}
               >
                 {label}
               </span>
@@ -171,37 +169,22 @@ export function TaskKanban() {
     filterFields,
     columnPageSize: 20,
     syncWithUrl: true,
-    // Handle card moves with API call
-    // newOrder is calculated on frontend for optimistic updates
-    // Backend recalculates using ONLY prevOrder and nextOrder (no need to fetch all items!)
     onCardMove: async ({
       cardId,
-      fromColumn,
       toColumn,
       newOrder,
       prevOrder,
       nextOrder,
     }) => {
-      const isReordering = fromColumn.id === toColumn.id;
-
-      // Backend recalculates order using only prevOrder and nextOrder
-      // This is the power of fractional indexing - backend doesn't need all items!
       await moveTask(
         cardId,
         toColumn.id as Task["status"],
-        newOrder, // Proposed order (suggestion for validation)
-        prevOrder, // Order of item before (null if first)
-        nextOrder // Order of item after (null if last)
+        newOrder,
+        prevOrder,
+        nextOrder
       );
-
-      if (isReordering) {
-        toast.success("Task reordered");
-      } else {
-        toast.success(`Task moved to ${toColumn.title}`);
-      }
     },
 
-    // Handle errors with rollback notification
     onMoveError: (error, { fromColumn }) => {
       toast.error(`Failed to move task. Reverted to ${fromColumn.title}`, {
         description: error.message,
@@ -213,14 +196,6 @@ export function TaskKanban() {
     <div className="w-full">
       <DataKanbanCriteria
         kanban={kanban}
-        renderColumnHeader={(column, totalCount) => (
-          <div className="flex items-center justify-between px-3 py-2 border-b bg-background/50">
-            <h3 className="text-sm font-medium">{column.title} <span className="text-xs text-muted-foreground">{totalCount}</span></h3>
-            <Button variant="ghost" size="icon">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
         renderCard={(task, isDragging) => (
           <TaskCard task={task} isDragging={isDragging} />
         )}
@@ -228,7 +203,7 @@ export function TaskKanban() {
           console.log(task.order);
         }}
         estimatedCardHeight={160}
-        showItemCount
+        columnsContentScrollClassName="h-[calc(100vh-228px)]"
       />
     </div>
   );

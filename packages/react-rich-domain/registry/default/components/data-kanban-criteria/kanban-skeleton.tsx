@@ -16,12 +16,6 @@ interface KanbanSkeletonProps {
   cardCount?: number;
 
   /**
-   * Column width
-   * @default "320px"
-   */
-  columnWidth?: string;
-
-  /**
    * Custom class name
    */
   className?: string;
@@ -41,7 +35,6 @@ interface KanbanSkeletonProps {
 function KanbanSkeleton({
   columnCount = 3,
   cardCount = 3,
-  columnWidth = "320px",
   className,
 }: KanbanSkeletonProps) {
   return (
@@ -52,8 +45,7 @@ function KanbanSkeleton({
       {Array.from({ length: columnCount }).map((_, columnIndex) => (
         <div
           key={columnIndex}
-          className="flex flex-col rounded-lg border bg-muted/30"
-          style={{ width: columnWidth, minWidth: columnWidth }}
+          className="flex flex-col rounded-lg border bg-muted/30 w-full h-full"
         >
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/50">
             <div className="h-4 w-24 bg-muted rounded animate-pulse" />

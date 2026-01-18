@@ -361,11 +361,6 @@ export interface DataKanbanCriteriaProps<T> {
   renderColumnFooter?: (column: KanbanColumnDefinition<T>) => React.ReactNode;
 
   /**
-   * Optional render function for empty column state
-   */
-  renderEmptyColumn?: (column: KanbanColumnDefinition<T>) => React.ReactNode;
-
-  /**
    * Toolbar layout configuration
    * @default "default"
    */
@@ -398,18 +393,6 @@ export interface DataKanbanCriteriaProps<T> {
   estimatedCardHeight?: number;
 
   /**
-   * Column width (CSS value)
-   * @default "320px"
-   */
-  columnWidth?: string;
-
-  /**
-   * Column minimum height (CSS value)
-   * @default "400px"
-   */
-  columnMinHeight?: string;
-
-  /**
    * Whether to show column item counts
    * @default true
    */
@@ -425,6 +408,11 @@ export interface DataKanbanCriteriaProps<T> {
    * Callback when a card is clicked
    */
   onCardClick?: (item: T) => void;
+
+  /**
+   * Custom class name for the column content scroll container
+   */
+  columnsContentScrollClassName?: string;
 }
 
 /**
@@ -457,11 +445,6 @@ export interface KanbanColumnProps<T> {
   renderFooter?: (column: KanbanColumnDefinition<T>) => React.ReactNode;
 
   /**
-   * Optional render function for empty state
-   */
-  renderEmpty?: (column: KanbanColumnDefinition<T>) => React.ReactNode;
-
-  /**
    * Callback when a card is clicked
    */
   onCardClick?: (item: T) => void;
@@ -477,11 +460,6 @@ export interface KanbanColumnProps<T> {
   estimatedCardHeight: number;
 
   /**
-   * Column minimum height
-   */
-  minHeight?: string;
-
-  /**
    * Whether to show item count
    */
   showItemCount?: boolean;
@@ -490,6 +468,11 @@ export interface KanbanColumnProps<T> {
    * Currently active (dragging) item ID
    */
   activeId: UniqueIdentifier | null;
+
+  /**
+   * Custom class name for the column content scroll container
+   */
+  columnsContentScrollClassName?: string;
 }
 
 /**
@@ -557,9 +540,9 @@ export interface KanbanColumnContentProps<T> {
   estimatedCardHeight: number;
 
   /**
-   * Container height
+   * Custom class name for the column content scroll container
    */
-  containerHeight: number;
+  columnsContentScrollClassName?: string;
 
   /**
    * Callback when a card is clicked

@@ -34,6 +34,7 @@ function KanbanColumnContent<T>({
   onCardClick,
   hasNextPage,
   isFetchingNextPage,
+  columnsContentScrollClassName,
   onLoadMore,
 }: KanbanColumnContentProps<T>) {
   const parentRef = React.useRef<HTMLDivElement>(null);
@@ -99,7 +100,7 @@ function KanbanColumnContent<T>({
           onLoadMore();
         }
       },
-      { 
+      {
         root: parentRef.current,
         rootMargin: '100px',
         threshold: 0.1
@@ -127,9 +128,17 @@ function KanbanColumnContent<T>({
     [onCardClick]
   );
 
+  if (items.length === 0) {
+    return <Content className={columnsContentScrollClassName}>
+      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+        <p className="text-sm">No items</p>
+      </div>
+    </Content>
+  }
+
   if (items.length < 20) {
     return (
-      <div className="p-2 space-y-2 h-[calc(100vh-242px)] overflow-y-auto custom-scrollbar">
+      <Content ref={parentRef} className={cn("space-y-2", columnsContentScrollClassName)}>
         {items.map((item) => {
           const itemId = getItemId(item);
           const isDragging = activeId ? String(activeId) === itemId : false;
@@ -150,15 +159,12 @@ function KanbanColumnContent<T>({
             isFetchingNextPage={isFetchingNextPage}
           />
         )}
-      </div>
+      </Content>
     );
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="p-2 overflow-auto h-[calc(100vh-242px)] overflow-y-auto custom-scrollbar"
-    >
+    <Content ref={parentRef} className={columnsContentScrollClassName}>
       <div
         className="relative w-full"
         style={{ height: virtualizer.getTotalSize() }}
@@ -200,7 +206,7 @@ function KanbanColumnContent<T>({
           {isFetchingNextPage && <LoadingSpinner />}
         </div>
       )}
-    </div>
+    </Content>
   );
 }
 
@@ -271,6 +277,13 @@ function LoadingSpinner() {
       <span>Loading...</span>
     </div>
   );
+}
+
+function Content({ className, ...props }: React.ComponentProps<"div">) {
+  return <div
+    className={cn("p-2 overflow-y-auto custom-scrollbar", className)}
+    {...props}
+  />
 }
 
 export { KanbanColumnContent };
