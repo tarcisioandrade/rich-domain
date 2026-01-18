@@ -171,7 +171,7 @@ function DataKanbanCriteria<T>({
 
       <DragOverlay dropAnimation={null}>
         {activeItem ? (
-          <div style={{ width: columnWidth }}>{renderCard(activeItem, true)}</div>
+          renderCard(activeItem, true)
         ) : null}
       </DragOverlay>
     </>
