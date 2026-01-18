@@ -14,8 +14,9 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle } from "lucide-react";
+import { Circle, Clock, CheckCircle2, User, AlertTriangle, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "./components/ui/button";
 
 /**
  * Filter field definitions for the Kanban toolbar
@@ -168,7 +169,7 @@ export function TaskKanban() {
     getItemId: (task) => task.id,
     groupField: "status",
     filterFields,
-    columnPageSize: 50,
+    columnPageSize: 20,
     syncWithUrl: true,
     // Handle card moves with API call
     // newOrder is calculated on frontend for optimistic updates
@@ -212,12 +213,21 @@ export function TaskKanban() {
     <div className="w-full">
       <DataKanbanCriteria
         kanban={kanban}
+        renderColumnHeader={(column, totalCount) => (
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-background/50">
+            <h3 className="text-sm font-medium">{column.title} <span className="text-xs text-muted-foreground">{totalCount}</span></h3>
+            <Button variant="ghost" size="icon">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         renderCard={(task, isDragging) => (
           <TaskCard task={task} isDragging={isDragging} />
         )}
-        columnWidth="300px"
-        columnMinHeight="500px"
-        estimatedCardHeight={140}
+        onCardClick={(task) => {
+          console.log(task.order);
+        }}
+        estimatedCardHeight={160}
         showItemCount
       />
     </div>

@@ -113,7 +113,7 @@ export interface KanbanColumnData<T> {
   column: KanbanColumnDefinition<T>;
 
   /**
-   * Items currently in this column
+   * Items currently in this column (all loaded pages combined)
    */
   items: T[];
 
@@ -123,7 +123,7 @@ export interface KanbanColumnData<T> {
   totalCount: number;
 
   /**
-   * Whether column data is loading
+   * Whether column data is loading (initial load)
    */
   isLoading: boolean;
 
@@ -131,6 +131,21 @@ export interface KanbanColumnData<T> {
    * Whether column is fetching (refetch)
    */
   isFetching: boolean;
+
+  /**
+   * Whether column is fetching more items (infinite scroll)
+   */
+  isFetchingNextPage: boolean;
+
+  /**
+   * Whether there are more items to load
+   */
+  hasNextPage: boolean;
+
+  /**
+   * Fetch the next page of items for this column
+   */
+  fetchNextPage: () => void;
 
   /**
    * Error if column failed to load
@@ -555,4 +570,19 @@ export interface KanbanColumnContentProps<T> {
    * Currently active (dragging) item ID
    */
   activeId: UniqueIdentifier | null;
+
+  /**
+   * Whether there are more items to load
+   */
+  hasNextPage?: boolean;
+
+  /**
+   * Whether fetching more items
+   */
+  isFetchingNextPage?: boolean;
+
+  /**
+   * Callback to fetch next page
+   */
+  onLoadMore?: () => void;
 }

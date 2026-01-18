@@ -46,14 +46,11 @@ function KanbanCard({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: transition ?? undefined,
-    // Hide the original card completely during drag (only overlay is visible)
-    // This prevents the "ghost" glitch when dropping
     opacity: isSortableDragging && !isOverlay ? 0 : 1,
   };
 
   const dragging = isDragging || isSortableDragging;
 
-  // Track if we started dragging to prevent click events after drag
   const didDragRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -64,9 +61,7 @@ function KanbanCard({
 
   const handleClick = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      // Only fire onClick if we didn't just finish dragging
       if (didDragRef.current) {
-        // Reset flag after click is prevented
         didDragRef.current = false;
         return;
       }
@@ -92,7 +87,6 @@ function KanbanCard({
         dragging && "shadow-lg ring-2 ring-primary/20",
         isOverlay && "rotate-3 scale-105 shadow-xl",
         disabled && "opacity-60 cursor-not-allowed",
-        // Cards are always clickable and draggable (delay-based activation)
         !disabled && "cursor-pointer",
         className
       )}

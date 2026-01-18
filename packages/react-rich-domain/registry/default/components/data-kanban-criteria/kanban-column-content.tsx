@@ -21,7 +21,6 @@ import type { KanbanColumnContentProps } from "@/types/use-criteria-kanban.type"
  *   getItemId={(task) => task.id}
  *   renderCard={(task, isDragging) => <TaskCard task={task} />}
  *   estimatedCardHeight={120}
- *   containerHeight={500}
  *   activeId={activeId}
  * />
  * ```
@@ -31,15 +30,16 @@ function KanbanColumnContent<T>({
   getItemId,
   renderCard,
   estimatedCardHeight,
-  containerHeight,
   activeId,
   onCardClick,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
 }: KanbanColumnContentProps<T>) {
   const parentRef = React.useRef<HTMLDivElement>(null);
-  // Track if a drag just ended to prevent click
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
   const didDragRef = React.useRef(false);
-
-  // Set didDragRef when activeId changes from something to null (drag ended)
+  const isFetchingRef = React.useRef(false);
   const prevActiveIdRef = React.useRef(activeId);
   React.useEffect(() => {
     if (prevActiveIdRef.current !== null && activeId === null) {
@@ -53,29 +53,24 @@ function KanbanColumnContent<T>({
     prevActiveIdRef.current = activeId;
   }, [activeId]);
 
-  // Find the index of the actively dragged item
   const activeIndex = React.useMemo(() => {
     if (!activeId) return -1;
     return items.findIndex((item) => getItemId(item) === String(activeId));
   }, [items, activeId, getItemId]);
 
-  // Configure virtualizer
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => estimatedCardHeight + 8, // Add gap
-    overscan: 5, // Render 5 extra items above/below viewport
-    // Keep the active item always rendered during drag
+    estimateSize: () => estimatedCardHeight + 8,
+    overscan: 5,
     rangeExtractor: (range) => {
       const { startIndex, endIndex } = range;
       const indices = new Set<number>();
 
-      // Add visible indices
       for (let i = startIndex; i <= endIndex; i++) {
         indices.add(i);
       }
 
-      // Always include the active item if it exists
       if (activeIndex >= 0) {
         indices.add(activeIndex);
       }
@@ -86,7 +81,38 @@ function KanbanColumnContent<T>({
 
   const virtualItems = virtualizer.getVirtualItems();
 
-  // Handle card click - only fire if not dragging
+  // Infinite scroll: use IntersectionObserver to detect when sentinel is visible
+  React.useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage || !onLoadMore || !sentinelRef.current || !parentRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingRef.current) {
+          console.log("fetching more items");
+          isFetchingRef.current = true;
+          onLoadMore();
+        }
+      },
+      { 
+        root: parentRef.current,
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    );
+
+    observer.observe(sentinelRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, onLoadMore]);
+
+  React.useEffect(() => {
+    if (!isFetchingNextPage) {
+      isFetchingRef.current = false;
+    }
+  }, [isFetchingNextPage]);
+
   const handleCardClick = React.useCallback(
     (item: T, isDragging: boolean) => {
       if (isDragging || didDragRef.current || !onCardClick) return;
@@ -95,11 +121,9 @@ function KanbanColumnContent<T>({
     [onCardClick]
   );
 
-  // Don't use virtualization for small lists (< 20 items)
-  // This avoids complexity for the common case
   if (items.length < 20) {
     return (
-      <div className="p-2 space-y-2">
+      <div className="p-2 space-y-2 h-[calc(100vh-242px)] overflow-y-auto custom-scrollbar">
         {items.map((item) => {
           const itemId = getItemId(item);
           const isDragging = activeId ? String(activeId) === itemId : false;
@@ -114,6 +138,12 @@ function KanbanColumnContent<T>({
             </div>
           );
         })}
+        {hasNextPage && (
+          <LoadMoreTrigger
+            onLoadMore={onLoadMore}
+            isFetchingNextPage={isFetchingNextPage}
+          />
+        )}
       </div>
     );
   }
@@ -121,8 +151,7 @@ function KanbanColumnContent<T>({
   return (
     <div
       ref={parentRef}
-      className="p-2 overflow-auto"
-      style={{ height: containerHeight, maxHeight: containerHeight }}
+      className="p-2 overflow-auto h-[calc(100vh-242px)] overflow-y-auto custom-scrollbar"
     >
       <div
         className="relative w-full"
@@ -140,7 +169,7 @@ function KanbanColumnContent<T>({
               data-index={virtualItem.index}
               className={cn(
                 "absolute top-0 left-0 w-full",
-                "pb-2" // Gap between cards
+                "pb-2"
               )}
               style={{
                 height: virtualItem.size,
@@ -153,6 +182,81 @@ function KanbanColumnContent<T>({
           );
         })}
       </div>
+      {hasNextPage && (
+        <div className="flex justify-center py-2">
+          <div ref={sentinelRef} className="h-4" />
+          {isFetchingNextPage && <LoadingSpinner />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Component that triggers loading more items when it becomes visible
+ */
+function LoadMoreTrigger({
+  onLoadMore,
+  isFetchingNextPage,
+}: {
+  onLoadMore?: () => void;
+  isFetchingNextPage?: boolean;
+}) {
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!onLoadMore || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (triggerRef.current) {
+      observer.observe(triggerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [onLoadMore, isFetchingNextPage]);
+
+  return (
+    <div ref={triggerRef} className="flex justify-center py-2">
+      {isFetchingNextPage && <LoadingSpinner />}
+    </div>
+  );
+}
+
+/**
+ * Simple loading spinner
+ */
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <svg
+        className="animate-spin h-4 w-4"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+      <span>Loading...</span>
     </div>
   );
 }

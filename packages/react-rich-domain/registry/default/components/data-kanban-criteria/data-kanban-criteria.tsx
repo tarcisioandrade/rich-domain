@@ -103,17 +103,11 @@ function DataKanbanCriteria<T>({
     isLoading,
   } = kanban;
 
-  // Get the getItemId function from the hook's closure
-  // We need to extract it from one of the columns
   const getItemId = React.useCallback(
     (item: T): string => {
-      // Find the item in any column to determine its ID
       for (const col of columns) {
         const foundIndex = col.items.indexOf(item);
         if (foundIndex !== -1) {
-          // We found it, but we need the actual ID
-          // Since we don't have direct access to getItemId, we'll use a workaround
-          // The item should have some ID field - check common patterns
           const itemObj = item as Record<string, unknown>;
           if (typeof itemObj.id === "string") return itemObj.id;
           if (typeof itemObj.id === "number") return String(itemObj.id);
@@ -121,7 +115,6 @@ function DataKanbanCriteria<T>({
           if (typeof itemObj._id === "number") return String(itemObj._id);
         }
       }
-      // Fallback: try to get ID directly from item
       const itemObj = item as Record<string, unknown>;
       if (typeof itemObj.id === "string") return itemObj.id;
       if (typeof itemObj.id === "number") return String(itemObj.id);
@@ -133,10 +126,8 @@ function DataKanbanCriteria<T>({
 
   const showToolbar = toolbarLayout !== "none";
 
-  // Kanban board content
   const boardContent = (
     <>
-      {/* Loading skeleton */}
       {isLoading && showSkeleton && (
         <KanbanSkeleton
           columnCount={columns.length}
@@ -145,7 +136,6 @@ function DataKanbanCriteria<T>({
         />
       )}
 
-      {/* Kanban columns - always show columns, even when empty */}
       {!isLoading && (
         <div
           data-slot="kanban-columns"
@@ -158,7 +148,7 @@ function DataKanbanCriteria<T>({
           {columns.map((columnData) => (
             <div
               key={columnData.column.id}
-              style={{ width: columnWidth, minWidth: columnWidth }}
+              className="w-full"
             >
               <KanbanColumn
                 columnData={columnData}
@@ -179,12 +169,9 @@ function DataKanbanCriteria<T>({
         </div>
       )}
 
-      {/* Drag overlay - shows the card being dragged */}
-      {/* dropAnimation is null so overlay disappears instantly when activeItem is cleared */}
-      {/* This works with the optimistic update in handleDragEnd to prevent glitches */}
       <DragOverlay dropAnimation={null}>
         {activeItem ? (
-          <div className="w-[300px]">{renderCard(activeItem, true)}</div>
+          <div style={{ width: columnWidth }}>{renderCard(activeItem, true)}</div>
         ) : null}
       </DragOverlay>
     </>
@@ -197,7 +184,6 @@ function DataKanbanCriteria<T>({
       {...dndContextProps}
     >
       <div data-slot="kanban" className={cn("flex flex-col gap-4", className)}>
-        {/* Toolbar */}
         {showToolbar && (
           <DataViewToolbar
             searchProps={searchProps}
@@ -207,7 +193,6 @@ function DataKanbanCriteria<T>({
           />
         )}
 
-        {/* Board */}
         {boardContent}
       </div>
     </DndContext>

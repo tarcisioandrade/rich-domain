@@ -55,13 +55,11 @@ function KanbanSkeleton({
           className="flex flex-col rounded-lg border bg-muted/30"
           style={{ width: columnWidth, minWidth: columnWidth }}
         >
-          {/* Column header skeleton */}
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/50">
             <div className="h-4 w-24 bg-muted rounded animate-pulse" />
             <div className="h-5 w-8 bg-muted rounded-full animate-pulse" />
           </div>
 
-          {/* Column content skeleton */}
           <div className="flex-1 p-2 space-y-2 min-h-[300px]">
             {Array.from({ length: cardCount }).map((_, cardIndex) => (
               <KanbanCardSkeleton key={cardIndex} />
@@ -92,16 +90,13 @@ function KanbanCardSkeleton({ className }: KanbanCardSkeletonProps) {
         className
       )}
     >
-      {/* Title skeleton */}
       <div className="h-4 bg-muted rounded w-3/4" />
 
-      {/* Description skeleton */}
       <div className="space-y-1">
         <div className="h-3 bg-muted rounded w-full" />
         <div className="h-3 bg-muted rounded w-2/3" />
       </div>
 
-      {/* Footer/badges skeleton */}
       <div className="flex items-center gap-2 pt-2">
         <div className="h-5 w-16 bg-muted rounded-full" />
         <div className="h-5 w-12 bg-muted rounded-full" />
