@@ -133,9 +133,11 @@ export abstract class PrismaRepository<
       this.modelAccessor.count({ where: args.where }),
     ]);
 
-    const toDomain = data.map((item: TPersistence) =>
+    const toDomain: TDomain[] = data.map((item: TPersistence) =>
       this.toDomainMapper.build(item)
     );
+
+    this.markArrayOfAggregateWithClean(toDomain);
 
     return PaginatedResult.create(toDomain, criteria.getPagination(), total);
   }
@@ -145,8 +147,13 @@ export abstract class PrismaRepository<
       where: { id },
       include: this.includes,
     });
+    const result = data ? this.toDomainMapper.build(data) : null;
 
-    return data ? this.toDomainMapper.build(data) : null;
+    if (result instanceof Aggregate) {
+      result.markAsClean();
+    }
+    
+    return result
   }
 
   async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
@@ -157,7 +164,28 @@ export abstract class PrismaRepository<
       include: this.includes,
     });
 
-    return data ? this.toDomainMapper.build(data) : null;
+    const result = data ? this.toDomainMapper.build(data) : null;
+
+    if (result instanceof Aggregate) {
+      result.markAsClean();
+    }
+    
+    return result
+  }
+
+  async findManyByIds(ids: string[]): Promise<TDomain[]> {
+    const data = await this.modelAccessor.findMany({
+      where: { id: { in: ids } },
+      include: this.includes,
+    });
+    
+    const toDomain: TDomain[] = data.map((item: TPersistence) =>
+      this.toDomainMapper.build(item)
+    );
+
+    this.markArrayOfAggregateWithClean(toDomain);
+
+    return toDomain;
   }
 
   async exists(id: string): Promise<boolean> {
@@ -365,6 +393,14 @@ export abstract class PrismaRepository<
         this.mergeDeep(target[key], source[key]);
       } else {
         target[key] = source[key];
+      }
+    }
+  }
+
+  private markArrayOfAggregateWithClean(entity: TDomain[]): void {
+    for (const item of entity) {
+      if (item instanceof Aggregate) {
+        item.markAsClean();
       }
     }
   }

@@ -181,7 +181,7 @@ export class PrismaBatchExecutor {
       const model = (this.context as any)[table];
 
       if (!model) {
-        throw new TableNotFoundError(upd.entity, this.getRegisteredEntities());
+        throw new TableNotFoundError(upd.entity, this.getRegisteredTables());
       }
 
       for (const item of upd.items) {
@@ -227,7 +227,7 @@ export class PrismaBatchExecutor {
     const model = (this.context as any)[table];
 
     if (!model) {
-      throw new TableNotFoundError(entity, this.getRegisteredEntities());
+      throw new TableNotFoundError(entity, this.getRegisteredTables());
     }
 
     const result = await model.deleteMany({
@@ -259,7 +259,7 @@ export class PrismaBatchExecutor {
     const model = (this.context as any)[table];
 
     if (!model) {
-      throw new TableNotFoundError(entity, this.getRegisteredEntities());
+      throw new TableNotFoundError(entity, this.getRegisteredTables());
     }
 
     const dataMapper = this.config.dataMappers?.[entity];
@@ -338,7 +338,7 @@ export class PrismaBatchExecutor {
     const parentModel = (this.context as any)[parentTable];
 
     if (!parentModel) {
-      throw new TableNotFoundError(parentEntity, this.getRegisteredEntities());
+      throw new TableNotFoundError(parentEntity, this.getRegisteredTables());
     }
 
     const juction = this.config.registry.getJunctionConfig(
@@ -391,7 +391,7 @@ export class PrismaBatchExecutor {
     if (!junctionModel) {
       throw new TableNotFoundError(
         junction.table,
-        this.getRegisteredEntities()
+        this.getRegisteredTables()
       );
     }
 
@@ -423,7 +423,7 @@ export class PrismaBatchExecutor {
     const parentModel = (this.context as any)[parentTable];
 
     if (!parentModel) {
-      throw new TableNotFoundError(parentEntity, this.getRegisteredEntities());
+      throw new TableNotFoundError(parentEntity, this.getRegisteredTables());
     }
 
     const junction = this.config.registry.getJunctionConfig(
@@ -472,7 +472,7 @@ export class PrismaBatchExecutor {
     if (!junctionModel) {
       throw new TableNotFoundError(
         junction.table,
-        this.getRegisteredEntities()
+        this.getRegisteredTables()
       );
     }
 
@@ -511,11 +511,8 @@ export class PrismaBatchExecutor {
     return undefined;
   }
 
-  /**
-   * Get list of registered entities for better error messages.
-   */
-  private getRegisteredEntities() {
-    return this.config.registry.getAllSchemas().map((schema) => schema.entity);
+  private getRegisteredTables() {
+    return this.config.registry.getAllSchemas().map((schema) => schema.table);
   }
 }
 
