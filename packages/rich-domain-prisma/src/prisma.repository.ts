@@ -156,23 +156,6 @@ export abstract class PrismaRepository<
     return result
   }
 
-  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
-    const args = this.applyCriteria(criteria);
-
-    const data = await this.modelAccessor.findFirst({
-      ...args,
-      include: this.includes,
-    });
-
-    const result = data ? this.toDomainMapper.build(data) : null;
-
-    if (result instanceof Aggregate) {
-      result.markAsClean();
-    }
-    
-    return result
-  }
-
   async findManyByIds(ids: string[]): Promise<TDomain[]> {
     const data = await this.modelAccessor.findMany({
       where: { id: { in: ids } },
