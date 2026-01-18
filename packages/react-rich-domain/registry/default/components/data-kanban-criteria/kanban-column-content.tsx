@@ -63,6 +63,12 @@ function KanbanColumnContent<T>({
     getScrollElement: () => parentRef.current,
     estimateSize: () => estimatedCardHeight + 8,
     overscan: 5,
+    // Enable dynamic measurement to handle variable card heights
+    measureElement: (element) => {
+      // Measure the actual height of the card element
+      // This will be called after the element is rendered
+      return element?.getBoundingClientRect().height ?? estimatedCardHeight + 8;
+    },
     rangeExtractor: (range) => {
       const { startIndex, endIndex } = range;
       const indices = new Set<number>();
@@ -165,6 +171,13 @@ function KanbanColumnContent<T>({
           return (
             <div
               key={itemId}
+              ref={(element) => {
+                if (element) {
+                  // Measure element to get its actual height
+                  // This will update the virtualizer with the real size
+                  virtualizer.measureElement(element);
+                }
+              }}
               data-item-id={itemId}
               data-index={virtualItem.index}
               className={cn(
@@ -172,7 +185,6 @@ function KanbanColumnContent<T>({
                 "pb-2"
               )}
               style={{
-                height: virtualItem.size,
                 transform: `translateY(${virtualItem.start}px)`,
               }}
               onClick={() => handleCardClick(item, isDragging)}
