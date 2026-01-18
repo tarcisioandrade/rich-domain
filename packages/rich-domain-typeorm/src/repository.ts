@@ -325,44 +325,6 @@ export abstract class TypeORMRepository<
   }
 
   /**
-   * Find one entity matching criteria.
-   *
-   * @param criteria - Query criteria
-   * @returns Domain entity or null if not found
-   */
-  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null> {
-    try {
-      const em = this.uow.getCurrentEntityManager();
-      const repo = em.getRepository(this.typeormRepo.target);
-
-      const qb = repo.createQueryBuilder(this.alias);
-
-      // Apply default relations
-      this.applyRelationsToQueryBuilder(qb, this.alias);
-
-      // Apply criteria to query builder
-      TypeORMQueryBuilder.apply(
-        qb,
-        criteria,
-        this.alias,
-        this.getSearchableFields()
-      );
-
-      const entity = await qb.getOne();
-
-      if (!entity) return null;
-
-      const result = this.toDomainMapper.build(entity as TEntity);
-      return result instanceof Promise ? await result : result;
-    } catch (error: any) {
-      throw new TypeORMRepositoryError(
-        `Failed to find one ${this.alias}: ${error.message}`,
-        error
-      );
-    }
-  }
-
-  /**
    * Count entities matching criteria.
    *
    * @param criteria - Query criteria
@@ -405,6 +367,25 @@ export abstract class TypeORMRepository<
     }
   }
 
+  async findManyByIds(ids: string[]): Promise<TDomain[]> {
+    try {
+      const em = this.uow.getCurrentEntityManager();
+      const repo = em.getRepository(this.typeormRepo.target);
+      const relations = this.getDefaultRelations();
+
+      const entities = await repo.find({
+        where: { id: { in: ids } } as unknown as FindOptionsWhere<TEntity>,
+        relations: relations.length > 0 ? relations : undefined,
+      });
+
+      return await Promise.all(entities.map(this.toDomainMapper.build));
+    } catch (error: any) {
+      throw new TypeORMRepositoryError(
+        `Failed to find many by IDs ${this.alias}: ${error.message}`,
+        error
+      );
+    }
+  }
   /**
    * Check if entity exists by ID.
    *
