@@ -169,13 +169,13 @@ export class TaskService {
     return task;
   }
 
-  @Transactional(uow)
   async reorderTasks(
     updates: Array<{ taskId: string; order: string }>
   ): Promise<void> {
     const ids = updates.map((update) => update.taskId);
     const tasks = await this.taskRepository.findManyByIds(ids);
 
+    console.log('updates', updates)
     if (tasks.length !== ids.length) {
       throw new Error(`Some tasks not found: ${ids.filter((id) => !tasks.some((task) => task.id.value === id)).join(", ")}`);
     }

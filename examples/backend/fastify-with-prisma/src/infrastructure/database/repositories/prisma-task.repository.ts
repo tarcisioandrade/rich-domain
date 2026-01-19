@@ -12,7 +12,7 @@ export class PrismaTaskRepository
   implements TaskRepository
 {
   protected get model() {
-    return "tasks";
+    return "task";
   }
 
   protected generateSearchQuery(search: string) {

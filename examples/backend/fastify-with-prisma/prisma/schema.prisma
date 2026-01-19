@@ -65,5 +65,4 @@ model Task {
   updatedStageAt DateTime
 
   @@unique([status, order])
-  @@map("tasks")
 }
