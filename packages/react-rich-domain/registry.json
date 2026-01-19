@@ -354,7 +354,8 @@
         "@dnd-kit/core",
         "@dnd-kit/sortable",
         "@dnd-kit/utilities",
-        "fractional-indexing"
+        "fractional-indexing",
+        "react-intersection-observer"
       ],
       "registryDependencies": [
         "@shadcn/button",
@@ -395,6 +396,12 @@
           "type": "registry:component",
           "description": "Loading skeleton for Kanban board",
           "target": "~/src/components/data-kanban-criteria/kanban-skeleton.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/styles.css",
+          "type": "registry:style",
+          "description": "Custom scrollbar styles for Kanban board",
+          "target": "~/src/components/data-kanban-criteria/styles.css"
         },
         {
           "path": "registry/default/components/data-view-criteria/data-view-toolbar.tsx",
