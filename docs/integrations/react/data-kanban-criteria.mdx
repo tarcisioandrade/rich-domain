@@ -191,12 +191,12 @@ interface KanbanColumnDefinition<T> {
 }
 ```
 
-<Info>
+<Note>
 The `value` property is used when the column `id` differs from the actual value stored in your data.
 For example, if your column has `id: "in-progress"` but your database stores `status: "DOING"`,
 set `value: "DOING"`. When a card is moved to this column, the hook will use `value` for optimistic updates.
 If `value` is omitted, the column `id` is used instead.
-</Info>
+</Note>
 
 #### Card Move Parameters
 
