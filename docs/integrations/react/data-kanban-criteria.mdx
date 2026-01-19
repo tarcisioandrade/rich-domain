@@ -1,0 +1,374 @@
+---
+title: "DataKanbanCriteria"
+description: "A Kanban board component with drag and drop, virtualization, and Criteria integration."
+keywords:
+  [
+    "react",
+    "hooks",
+    "react-query",
+    "component",
+    "criteria",
+    "pagination",
+    "kanban",
+    "frontend",
+  ]
+---
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
+```
+
+
+```bash pnpm
+pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
+```
+
+
+```bash yarn
+yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
+```
+
+</CodeGroup>
+
+#### Features
+
+- Drag and drop between columns with @dnd-kit
+- Virtualized lists for large datasets with @tanstack/react-virtual
+- Infinite scroll per column
+- Integrated filtering and search
+- Optimistic updates with automatic rollback on error
+- Fractional indexing for scalable ordering
+- Customizable card and column rendering
+- URL sync for filters and search
+
+#### Basic Usage
+
+```tsx
+import { useCriteriaKanban } from "@/hooks/use-criteria-kanban";
+import {
+  DataKanbanCriteria,
+  KanbanCard,
+  KanbanCardHeader,
+  KanbanCardTitle,
+  KanbanCardDescription,
+  KanbanCardContent,
+  KanbanCardFooter,
+  KanbanCardBadge,
+} from "@/components/data-kanban-criteria";
+import type { KanbanColumnDefinition } from "@/types/use-criteria-kanban.type";
+import type { QueryFilter } from "@/lib/filter-utils";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: "todo" | "doing" | "done";
+  priority: "low" | "medium" | "high";
+  order: string; // Fractional index for ordering
+}
+
+// Define columns with criteria filters
+const columns: KanbanColumnDefinition<Task>[] = [
+  {
+    id: "todo",
+    title: "To Do",
+    criteria: (c) => c.where("status", "equals", "todo"),
+    value: "todo",
+  },
+  {
+    id: "doing",
+    title: "In Progress",
+    criteria: (c) => c.where("status", "equals", "doing"),
+    value: "doing",
+  },
+  {
+    id: "done",
+    title: "Done",
+    criteria: (c) => c.where("status", "equals", "done"),
+    value: "done",
+  },
+];
+
+const filterFields: QueryFilter[] = [
+  {
+    field: "priority",
+    fieldLabel: "Priority",
+    type: "string",
+    multiSelect: true,
+    options: [
+      { label: "High", value: "high" },
+      { label: "Medium", value: "medium" },
+      { label: "Low", value: "low" },
+    ],
+  },
+];
+
+function TaskKanban() {
+  const kanban = useCriteriaKanban<Task>(["tasks", "kanban"], getTasks, {
+    columns,
+    getItemId: (task) => task.id,
+    groupField: "status",
+    filterFields,
+    columnPageSize: 20,
+    syncWithUrl: true,
+    onCardMove: async ({ cardId, toColumn, insertAfterId }) => {
+      // Call your API to move the task
+      await moveTask(cardId, toColumn.id, insertAfterId);
+    },
+    onMoveError: (error, { fromColumn }) => {
+      toast.error(`Failed to move task. Reverted to ${fromColumn.title}`);
+    },
+  });
+
+  return (
+    <DataKanbanCriteria
+      kanban={kanban}
+      renderCard={(task, isDragging) => (
+        <KanbanCard id={task.id} isDragging={isDragging}>
+          <KanbanCardHeader>
+            <KanbanCardTitle>{task.title}</KanbanCardTitle>
+          </KanbanCardHeader>
+          <KanbanCardContent>
+            <KanbanCardDescription>{task.description}</KanbanCardDescription>
+          </KanbanCardContent>
+          <KanbanCardFooter>
+            <KanbanCardBadge>{task.priority}</KanbanCardBadge>
+          </KanbanCardFooter>
+        </KanbanCard>
+      )}
+      estimatedCardHeight={120}
+    />
+  );
+}
+```
+
+#### Hook Options
+
+```tsx
+interface UseCriteriaKanbanOptions<T> {
+  // Required
+  columns: KanbanColumnDefinition<T>[]; // Column definitions
+  getItemId: (item: T) => string; // Get unique ID from item
+  groupField: FieldPath<T>; // Field that determines column
+
+  // Card move handling
+  onCardMove?: (params: CardMoveParams<T>) => Promise<void>;
+  onMoveError?: (error: Error, params: CardMoveParams<T>) => void;
+
+  // Filter configuration
+  filterFields?: QueryFilter[];
+
+  // Search
+  searchDebounceMs?: number; // Default: 300
+
+  // Pagination
+  columnPageSize?: number; // Default: 50
+
+  // Drag and drop
+  enableDragDrop?: boolean; // Default: true
+  sensors?: SensorDescriptor<SensorOptions>[]; // Custom dnd-kit sensors
+
+  // URL sync
+  syncWithUrl?: boolean;
+}
+```
+
+#### Column Definition
+
+```tsx
+interface KanbanColumnDefinition<T> {
+  id: string; // Unique identifier
+  title: string; // Display title
+  criteria: (base: Criteria<T>) => Criteria<T>; // Filter for this column
+  value?: unknown; // Value to set on items when moved here
+  color?: string; // Optional color theme
+  icon?: React.ReactNode; // Optional icon
+  limit?: number; // WIP limit
+}
+```
+
+<Info>
+The `value` property is used when the column `id` differs from the actual value stored in your data.
+For example, if your column has `id: "in-progress"` but your database stores `status: "DOING"`,
+set `value: "DOING"`. When a card is moved to this column, the hook will use `value` for optimistic updates.
+If `value` is omitted, the column `id` is used instead.
+</Info>
+
+#### Card Move Parameters
+
+When a card is moved, `onCardMove` receives:
+
+```tsx
+interface CardMoveParams<T> {
+  cardId: string; // ID of the moved card
+  item: T; // The complete item data
+  fromColumn: KanbanColumnDefinition<T>;
+  toColumn: KanbanColumnDefinition<T>;
+  toIndex: number; // New position index
+  insertAfterId: string | null; // ID of item above, null if first
+}
+```
+
+The `insertAfterId` pattern is designed for scalability:
+- Frontend sends only the reference ID (not the order)
+- Backend queries the real neighbors to calculate the correct order
+- Works correctly even with filters applied
+
+#### Backend Integration
+
+Your backend should implement a move endpoint like:
+
+```typescript
+// Backend receives insertAfterId and calculates order
+async function moveTask(
+  taskId: string,
+  newStatus: string,
+  insertAfterId: string | null
+) {
+  let prevOrder: string | null = null;
+  let nextOrder: string | null = null;
+
+  if (insertAfterId === null) {
+    // Insert at top - find first item's order
+    const firstItem = await db.task.findFirst({
+      where: { status: newStatus },
+      orderBy: { order: "asc" },
+      select: { order: true },
+    });
+    nextOrder = firstItem?.order ?? null;
+  } else {
+    // Find the reference task's order
+    const refTask = await db.task.findUnique({
+      where: { id: insertAfterId },
+      select: { order: true },
+    });
+    prevOrder = refTask!.order;
+
+    // Find next order after reference
+    const nextItem = await db.task.findFirst({
+      where: { status: newStatus, order: { gt: prevOrder } },
+      orderBy: { order: "asc" },
+      select: { order: true },
+    });
+    nextOrder = nextItem?.order ?? null;
+  }
+
+  // Calculate new order between prev and next
+  const newOrder = generateFractionalIndex(prevOrder, nextOrder);
+
+  await db.task.update({
+    where: { id: taskId },
+    data: { status: newStatus, order: newOrder },
+  });
+}
+```
+
+#### Component Props
+
+```tsx
+interface DataKanbanCriteriaProps<T> {
+  kanban: UseCriteriaKanbanReturn<T>; // From useCriteriaKanban
+  renderCard: (item: T, isDragging: boolean) => React.ReactNode;
+  renderColumnHeader?: (column, itemCount) => React.ReactNode;
+  renderColumnFooter?: (column) => React.ReactNode;
+  onCardClick?: (item: T) => void;
+
+  // Layout
+  toolbarLayout?: "default" | "compact" | "none";
+  actionBar?: React.ReactNode;
+  className?: string;
+  columnsClassName?: string;
+  columnClassName?: string;
+  columnsContentScrollClassName?: string;
+
+  // Virtualization
+  estimatedCardHeight?: number; // Default: 120
+  showItemCount?: boolean; // Default: true
+  showSkeleton?: boolean; // Default: true
+}
+```
+
+#### Toolbar Layouts
+
+```tsx
+// Default layout - toolbar with filters and search
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={renderCard}
+  toolbarLayout="default"
+/>
+
+// Compact - smaller toolbar
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={renderCard}
+  toolbarLayout="compact"
+/>
+
+// No toolbar - just the board
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={renderCard}
+  toolbarLayout="none"
+/>
+```
+
+#### Programmatic Card Move
+
+```tsx
+const { moveCard } = useCriteriaKanban(...);
+
+// Move card programmatically
+await moveCard(
+  cardId,      // Card to move
+  fromColumnId,
+  toColumnId,
+  toIndex      // Position in target column
+);
+```
+
+#### Custom Card Components
+
+The package includes pre-built card components:
+
+```tsx
+import {
+  KanbanCard,
+  KanbanCardHeader,
+  KanbanCardTitle,
+  KanbanCardDescription,
+  KanbanCardContent,
+  KanbanCardFooter,
+  KanbanCardBadge,
+} from "@/components/data-kanban-criteria";
+
+<KanbanCard id={task.id} isDragging={isDragging}>
+  <KanbanCardHeader>
+    <KanbanCardTitle>{task.title}</KanbanCardTitle>
+  </KanbanCardHeader>
+  <KanbanCardContent>
+    <KanbanCardDescription>{task.description}</KanbanCardDescription>
+  </KanbanCardContent>
+  <KanbanCardFooter>
+    <KanbanCardBadge className="bg-red-100 text-red-700">
+      {task.priority}
+    </KanbanCardBadge>
+  </KanbanCardFooter>
+</KanbanCard>
+```
+
+#### Full Height Layout
+
+To make the kanban fill the viewport height:
+
+```tsx
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={renderCard}
+  columnsContentScrollClassName="h-[calc(100vh-200px)]"
+/>
+```

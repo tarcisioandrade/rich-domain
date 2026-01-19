@@ -260,4 +260,6 @@ export interface ArrayState {
   cloned: any[];
   original: any[];
   metadata: TrackedEntityMetadata;
+  /** Indicates if array contains only primitive values (string, number, boolean, etc.) */
+  isPrimitiveArray?: boolean;
 }

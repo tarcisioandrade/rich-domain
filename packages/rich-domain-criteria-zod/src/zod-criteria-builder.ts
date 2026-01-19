@@ -338,8 +338,11 @@ export function CriteriaQuerySchema<
     ? buildOrderSchema(orderByFields)
     : z.never().optional();
 
-  const paginationSchema = z
-    .object({
+  return z.preprocess(
+    parseQueryInput,
+    z.object({
+      filters: filterSchema.optional(),
+      orderBy: orderSchema,
       page: z.coerce
         .number()
         .min(1)
@@ -349,15 +352,6 @@ export function CriteriaQuerySchema<
         .min(1)
         .max(paginationOpts?.maxLimit ?? 100)
         .default(paginationOpts?.defaultLimit ?? 20),
-    })
-    .optional();
-
-  return z.preprocess(
-    parseQueryInput,
-    z.object({
-      filters: filterSchema.optional(),
-      orderBy: orderSchema,
-      pagination: paginationSchema,
       search: z.string().optional(),
     })
   ) as z.ZodType<CriteriaQueryResult<F, O>>;
@@ -409,6 +403,8 @@ export function PaginatedResponseSchema<T extends ZodObject<ZodRawShape>>(
       page: z.number().default(1),
       limit: z.number().default(20),
       total: z.number(),
+      hasNext: z.boolean(),
+      hasPrevious: z.boolean(),
       totalPages: z.number(),
     }),
   });

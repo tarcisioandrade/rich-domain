@@ -1,8 +1,10 @@
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
+import fastifyCors from "@fastify/cors";
 import fastify from "fastify";
 import { userRoutes } from "./infrastructure/http/routes/user.routes";
 import { postRoutes } from "./infrastructure/http/routes/post.routes";
+import { taskRoutes } from "./infrastructure/http/routes/task.routes";
 import { prisma } from "./infrastructure/database/prisma";
 import {
   serializerCompiler,
@@ -18,6 +20,13 @@ const app = fastify({
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
+
+app.register(fastifyCors, {
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
 
 app.register(fastifySwagger, {
   openapi: {
@@ -39,6 +48,7 @@ app.register(fastifySwaggerUI, {
 await app.register(diPlugin);
 await app.register(userRoutes);
 await app.register(postRoutes);
+await app.register(taskRoutes);
 
 app.addHook("onError", async (request, reply, error) => {
   console.log("error", JSON.stringify(error, null, 2));
@@ -50,7 +60,6 @@ app.get("/health", async (request, reply) => {
 });
 
 app.get("/openapi.json", async (request, reply) => {
-  // @ts-ignore
   return app.swagger();
 });
 

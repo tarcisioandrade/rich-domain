@@ -23,16 +23,16 @@ export class ModelNotFoundError extends PrismaRepositoryError {
 export class TableNotFoundError extends PrismaRepositoryError {
   constructor(
     entityName: string,
-    registeredEntities?: string[],
+    registeredTables?: string[],
     cause?: Error
   ) {
-    const registeredList = registeredEntities?.length
-      ? `\n\nRegistered entities: ${registeredEntities.join(", ")}`
+    const registeredList = registeredTables?.length
+      ? `Registered tables: ${registeredTables.join(", ")}`
       : "";
 
     super(
-      `Table mapping for entity "${entityName}" not found in registry. ` +
-        `Make sure you registered this entity in EntitySchemaRegistry.${registeredList}`,
+      `Table not found for entity "${entityName}". ` +
+        `Make sure you registered this entity in EntitySchemaRegistry or the table name is correct. ${registeredList}`,
       { cause }
     );
     this.name = "TableNotFoundError";

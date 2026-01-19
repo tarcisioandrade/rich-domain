@@ -11,6 +11,7 @@ export abstract class ReadRepository<Agg extends Aggregate<any>> {
    */
   abstract find(criteria?: Criteria<Agg>): Promise<PaginatedResult<Agg>>;
   abstract findById(id: string): Promise<Agg | null>;
+  abstract findManyByIds(ids: string[]): Promise<Agg[]>;
   /**
    * Count the number of entities based on criteria.
    * @param criteria - The criteria to use for the count. If not provided, all entities will be counted. (optional)
@@ -44,6 +45,7 @@ export abstract class WriteAndRead<Agg extends Aggregate<any>> {
    */
   abstract find(criteria?: Criteria<Agg>): Promise<PaginatedResult<Agg>>;
   abstract findById(id: string): Promise<Agg | null>;
+  abstract findManyByIds(ids: string[]): Promise<Agg[]>;
   /**
    *
    * Save or update an entity.

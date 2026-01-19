@@ -125,9 +125,8 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging: boolean }) {
             {task.labels.map((label) => (
               <span
                 key={label}
-                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                  labelColors[label] || labelColors.default
-                }`}
+                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${labelColors[label] || labelColors.default
+                  }`}
               >
                 {label}
               </span>
@@ -168,39 +167,12 @@ export function TaskKanban() {
     getItemId: (task) => task.id,
     groupField: "status",
     filterFields,
-    columnPageSize: 50,
+    columnPageSize: 20,
     syncWithUrl: true,
-    // Handle card moves with API call
-    // newOrder is calculated on frontend for optimistic updates
-    // Backend recalculates using ONLY prevOrder and nextOrder (no need to fetch all items!)
-    onCardMove: async ({
-      cardId,
-      fromColumn,
-      toColumn,
-      newOrder,
-      prevOrder,
-      nextOrder,
-    }) => {
-      const isReordering = fromColumn.id === toColumn.id;
-
-      // Backend recalculates order using only prevOrder and nextOrder
-      // This is the power of fractional indexing - backend doesn't need all items!
-      await moveTask(
-        cardId,
-        toColumn.id as Task["status"],
-        newOrder, // Proposed order (suggestion for validation)
-        prevOrder, // Order of item before (null if first)
-        nextOrder // Order of item after (null if last)
-      );
-
-      if (isReordering) {
-        toast.success("Task reordered");
-      } else {
-        toast.success(`Task moved to ${toColumn.title}`);
-      }
+    onCardMove: async ({ cardId, toColumn, insertAfterId }) => {
+      await moveTask(cardId, toColumn.id as Task["status"], insertAfterId);
     },
 
-    // Handle errors with rollback notification
     onMoveError: (error, { fromColumn }) => {
       toast.error(`Failed to move task. Reverted to ${fromColumn.title}`, {
         description: error.message,
@@ -215,10 +187,11 @@ export function TaskKanban() {
         renderCard={(task, isDragging) => (
           <TaskCard task={task} isDragging={isDragging} />
         )}
-        columnWidth="300px"
-        columnMinHeight="500px"
-        estimatedCardHeight={140}
-        showItemCount
+        onCardClick={(task) => {
+          console.log(task.order);
+        }}
+        estimatedCardHeight={160}
+        columnsContentScrollClassName="h-[calc(100vh-228px)]"
       />
     </div>
   );

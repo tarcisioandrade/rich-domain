@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.3](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.2...v1.8.3) (2026-01-18)
+
+
+### Features
+
+* add dynamic measurement for variable card heights in KanbanColumnContent ([265aab3](https://github.com/tarcisioandrade/rich-domain/commit/265aab3d3d2a6e4443d6089511b0b7cb6217f7d0))
+* add findManyByIds method to ReadRepository and WriteAndRead for batch retrieval of aggregates ([15a84a0](https://github.com/tarcisioandrade/rich-domain/commit/15a84a0203561366619f1114219c65a1f7ec78e7))
+* data kanban criteria ([4454433](https://github.com/tarcisioandrade/rich-domain/commit/4454433ab937a11d2c454ad00f6854c99adfa2ee))
+
+
+### Bug Fixes
+
+* incorrect tracking in array de primitives values ([6e86c20](https://github.com/tarcisioandrade/rich-domain/commit/6e86c20fedbd57c0a394e6f5e16c3014dfc06fc3))
+* kanban scroll infinite and somes ui bugs ([89de6ad](https://github.com/tarcisioandrade/rich-domain/commit/89de6ad20c831f3e67603a0b03ef48c5196f9534))
+
+
+### Refactoring
+
+*  enhance response structure with hasNext and hasPrevious flags ([bdb82a0](https://github.com/tarcisioandrade/rich-domain/commit/bdb82a02d656fe6202064fb1e4756feceacf76d5))
+* App component for improved tab navigation ([68241e3](https://github.com/tarcisioandrade/rich-domain/commit/68241e372eb7d88aa3c14c432b4a31642fa8dfdd))
+* improve errors messages and cleanup aggregates ([0509162](https://github.com/tarcisioandrade/rich-domain/commit/0509162ededa582bf5547ab93b5dea9e33690307))
+* remove findOne method and add findManyByIds for batch entity retrieval ([494c14e](https://github.com/tarcisioandrade/rich-domain/commit/494c14e76771beac8836330f2528009a9ff62200))
+* remove unused findOne method from PrismaRepository to streamline code ([498d470](https://github.com/tarcisioandrade/rich-domain/commit/498d4702371414ec820bae8c18df5747d1017a3c))
+* simplify rendering logic in DataKanbanCriteria component ([54c51ab](https://github.com/tarcisioandrade/rich-domain/commit/54c51aba9f3bb26c8a9b46c1868fe057d70c20af))
+* streamline Kanban component structure and enhance scroll behavior ([91427d2](https://github.com/tarcisioandrade/rich-domain/commit/91427d23a941a937828f36fe899d66d42ba6fdc0))
+
 ### [1.8.2](https://github.com/tarcisioandrade/rich-domain/compare/v1.0.1...v1.8.2) (2026-01-13)
 
 

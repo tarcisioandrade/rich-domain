@@ -341,6 +341,111 @@
           "target": "~/src/hooks/use-sorting-adapter.ts"
         }
       ]
+    },
+    {
+      "name": "data-kanban-criteria",
+      "type": "registry:block",
+      "title": "Data Kanban Criteria",
+      "description": "A Kanban board component with drag and drop, virtualization, and @woltz/rich-domain criteria integration.",
+      "dependencies": [
+        "@woltz/rich-domain",
+        "@tanstack/react-query",
+        "@tanstack/react-virtual",
+        "@dnd-kit/core",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities",
+        "fractional-indexing",
+        "react-intersection-observer"
+      ],
+      "registryDependencies": [
+        "@shadcn/button",
+        "@shadcn/input",
+        "@shadcn/badge",
+        "@shadcn/dropdown-menu",
+        "@shadcn/scroll-area",
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json",
+        "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/filter.json"
+      ],
+      "files": [
+        {
+          "path": "registry/default/components/data-kanban-criteria/data-kanban-criteria.tsx",
+          "type": "registry:component",
+          "description": "Main Kanban board component with DnD context",
+          "target": "~/src/components/data-kanban-criteria/data-kanban-criteria.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/kanban-column.tsx",
+          "type": "registry:component",
+          "description": "Kanban column with droppable area",
+          "target": "~/src/components/data-kanban-criteria/kanban-column.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/kanban-column-content.tsx",
+          "type": "registry:component",
+          "description": "Virtualized column content renderer",
+          "target": "~/src/components/data-kanban-criteria/kanban-column-content.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/kanban-card.tsx",
+          "type": "registry:component",
+          "description": "Draggable card component",
+          "target": "~/src/components/data-kanban-criteria/kanban-card.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/kanban-skeleton.tsx",
+          "type": "registry:component",
+          "description": "Loading skeleton for Kanban board",
+          "target": "~/src/components/data-kanban-criteria/kanban-skeleton.tsx"
+        },
+        {
+          "path": "registry/default/components/data-kanban-criteria/styles.css",
+          "type": "registry:style",
+          "description": "Custom scrollbar styles for Kanban board",
+          "target": "~/src/components/data-kanban-criteria/styles.css"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-toolbar.tsx",
+          "type": "registry:component",
+          "description": "Shared toolbar component for data views",
+          "target": "~/src/components/data-view-criteria/data-view-toolbar.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter.tsx",
+          "type": "registry:component",
+          "description": "Data View Filter component",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx",
+          "type": "registry:component",
+          "description": "Data View Filter Popover",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-popover.tsx"
+        },
+        {
+          "path": "registry/default/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx",
+          "type": "registry:component",
+          "description": "Data View Filter Row",
+          "target": "~/src/components/data-view-criteria/data-view-filter/data-view-filter-row.tsx"
+        },
+        {
+          "path": "registry/default/hooks/use-criteria-kanban.ts",
+          "type": "registry:hook",
+          "description": "Hook to manage Kanban state with criteria integration",
+          "target": "~/src/hooks/use-criteria-kanban.ts"
+        },
+        {
+          "path": "registry/default/types/use-criteria-kanban.type.ts",
+          "type": "registry:file",
+          "description": "Types for the Kanban hook and components",
+          "target": "~/src/types/use-criteria-kanban.type.ts"
+        },
+        {
+          "path": "registry/default/utils/fractional-index.ts",
+          "type": "registry:file",
+          "description": "Utility functions for fractional indexing",
+          "target": "~/src/utils/fractional-index.ts"
+        }
+      ]
     }
   ]
 }

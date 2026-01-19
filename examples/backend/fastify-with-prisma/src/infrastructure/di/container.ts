@@ -5,8 +5,10 @@ import { BullMQEventBus } from "../queue/event-bus.js";
 import { connection } from "../queue/connection.js";
 import { PrismaUserRepository } from "../database/repositories/prisma-user.repository.js";
 import { PrismaPostRepository } from "../database/repositories/prisma-post.repository.js";
+import { PrismaTaskRepository } from "../database/repositories/prisma-task.repository.js";
 import { UserService } from "../../application/services/user.service.js";
 import { PostService } from "../../application/services/post.service.js";
+import { TaskService } from "../../application/services/task.service.js";
 import { IDomainEventBus } from "@woltz/rich-domain";
 
 export class Container {
@@ -49,6 +51,15 @@ export class Container {
         )
     );
 
+    this.register(
+      "taskRepository",
+      () =>
+        new PrismaTaskRepository(
+          this.resolve<PrismaClient>("prisma"),
+          this.resolve<PrismaUnitOfWork>("unitOfWork")
+        )
+    );
+
     // Services
     this.register(
       "userService",
@@ -65,6 +76,15 @@ export class Container {
         new PostService(
           this.resolve<PrismaPostRepository>("postRepository"),
           this.resolve<PrismaUserRepository>("userRepository")
+        )
+    );
+
+    this.register(
+      "taskService",
+      () =>
+        new TaskService(
+          this.resolve<PrismaTaskRepository>("taskRepository"),
+          this.resolve<IDomainEventBus>("eventBus")
         )
     );
   }
@@ -97,12 +117,20 @@ export class Container {
     return this.resolve<PostService>("postService");
   }
 
+  get taskService(): TaskService {
+    return this.resolve<TaskService>("taskService");
+  }
+
   get userRepository(): PrismaUserRepository {
     return this.resolve<PrismaUserRepository>("userRepository");
   }
 
   get postRepository(): PrismaPostRepository {
     return this.resolve<PrismaPostRepository>("postRepository");
+  }
+
+  get taskRepository(): PrismaTaskRepository {
+    return this.resolve<PrismaTaskRepository>("taskRepository");
   }
 
   // Reset for testing

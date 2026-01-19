@@ -7,7 +7,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { KanbanColumnContent } from "./kanban-column-content";
 import type { KanbanColumnProps } from "@/types/use-criteria-kanban.type";
 
@@ -38,44 +37,33 @@ function KanbanColumn<T>({
   renderCard,
   renderHeader,
   renderFooter,
-  renderEmpty,
   className,
   estimatedCardHeight,
-  minHeight = "400px",
   showItemCount = true,
   activeId,
   onCardClick,
+  columnsContentScrollClassName,
 }: KanbanColumnProps<T>) {
-  const { column, items, totalCount, isLoading } = columnData;
+  const {
+    column,
+    items,
+    totalCount,
+    isLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = columnData;
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = React.useState(400);
 
-  // Set up droppable zone for the column
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
 
-  // Get item IDs for SortableContext
   const itemIds = React.useMemo(
     () => items.map((item) => getItemId(item)),
     [items, getItemId]
   );
 
-  // Measure container height for virtualization
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerHeight(entry.contentRect.height);
-      }
-    });
-
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  // Default header renderer
   const defaultHeader = (
     <KanbanColumnHeader>
       <KanbanColumnTitle
@@ -94,12 +82,6 @@ function KanbanColumn<T>({
     </KanbanColumnHeader>
   );
 
-  // Default empty state renderer
-  const defaultEmpty = (
-    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-      <p className="text-sm">No items</p>
-    </div>
-  );
 
   return (
     <div
@@ -113,35 +95,31 @@ function KanbanColumn<T>({
         isOver && "bg-primary/5 border-primary/30",
         className
       )}
-      style={{ minHeight }}
     >
-      {/* Column Header */}
       {renderHeader ? renderHeader(column, totalCount) : defaultHeader}
 
-      {/* Column Content */}
-      <div ref={containerRef} className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-            {isLoading ? (
-              <KanbanColumnSkeleton count={3} />
-            ) : items.length === 0 ? (
-              renderEmpty ? renderEmpty(column) : defaultEmpty
-            ) : (
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {isLoading ? (
+            <KanbanColumnSkeleton count={3} />
+          )
+            : (
               <KanbanColumnContent
                 items={items}
                 getItemId={getItemId}
                 renderCard={renderCard}
                 estimatedCardHeight={estimatedCardHeight}
-                containerHeight={containerHeight}
                 activeId={activeId}
                 onCardClick={onCardClick}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                onLoadMore={fetchNextPage}
+                columnsContentScrollClassName={columnsContentScrollClassName}
               />
             )}
-          </SortableContext>
-        </ScrollArea>
+        </SortableContext>
       </div>
 
-      {/* Column Footer */}
       {renderFooter && (
         <KanbanColumnFooter>
           {renderFooter(column)}

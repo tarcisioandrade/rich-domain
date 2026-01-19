@@ -17,7 +17,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   posts     Post[]
-  groups    Group[]
 
   @@map("users")
 }
@@ -52,10 +51,18 @@ model Tag {
   @@map("tags")
 }
 
-model Group {
-  id    String @id @default(uuid())
-  name  String
-  users User[]
+model Task {
+  id             String   @id @default(uuid())
+  title          String
+  description    String
+  status         String
+  priority       String
+  assignee       String
+  labels         String[]
+  order          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  updatedStageAt DateTime
 
-  @@map("groups")
+  @@unique([status, order])
 }
