@@ -27,7 +27,6 @@ import {
 import { useCriteria } from "./use-criteria";
 import {
   generateIndexForMove,
-  generateFractionalIndex,
 } from "../utils/fractional-index";
 import type {
   UseCriteriaKanbanOptions,
