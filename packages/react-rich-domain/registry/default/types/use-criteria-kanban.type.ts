@@ -86,21 +86,13 @@ export interface CardMoveParams<T> {
   toIndex: number;
 
   /**
-   * New fractional index for ordering (calculated by the hook, suggestion for backend)
+   * ID of the item that should be ABOVE the moved item in the destination column.
+   * null means insert at the top of the column.
+   *
+   * Backend uses this to query the REAL neighbors and calculate the correct order,
+   * which works correctly even when filters hide some items.
    */
-  newOrder: string;
-
-  /**
-   * Order of the item before the target position (for backend recalculation)
-   * null if inserting at the beginning
-   */
-  prevOrder: string | null;
-
-  /**
-   * Order of the item after the target position (for backend recalculation)
-   * null if inserting at the end
-   */
-  nextOrder: string | null;
+  insertAfterId: string | null;
 }
 
 /**

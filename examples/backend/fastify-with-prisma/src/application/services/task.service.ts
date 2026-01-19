@@ -3,7 +3,7 @@ import { TaskRepository } from "../../domain/task/task.repository";
 import { Criteria, Id, IDomainEventBus } from "@woltz/rich-domain";
 import { Transactional } from "@woltz/rich-domain-prisma";
 import { uow } from "../../infrastructure/database/prisma";
-import { generateFractionalIndex, isValidFractionalIndex } from "../../utils/fractional-index";
+import { generateFractionalIndex } from "../../utils/fractional-index";
 
 interface CreateTaskInput {
   title: string;
@@ -114,110 +114,81 @@ export class TaskService {
     await this.taskRepository.delete(task);
   }
 
+  /**
+   * Move a task to a new status and position.
+   *
+   * Uses "Insert Reference" pattern for scalability:
+   * - Frontend sends only the ID of the task that should be ABOVE the moved task
+   * - Backend queries the REAL neighbors (O(2) queries) to calculate correct order
+   * - Works correctly even with filters applied (no collision with hidden items)
+   *
+   * @param taskId - ID of the task to move
+   * @param newStatus - Target status/column
+   * @param insertAfterId - ID of the task that should be above, or null to insert at top
+   */
   async moveTask(
     taskId: string,
     newStatus: TaskStatusType,
-    proposedOrder: string,
-    prevOrder: string | null,
-    nextOrder: string | null
+    insertAfterId: string | null
   ): Promise<Task> {
     const task = await this.getById(taskId);
 
-    if (prevOrder !== null) {
-      const prevTask = await this.taskRepository.findByOrderInStatus(
+    let prevOrder: string | null = null;
+    let nextOrder: string | null = null;
+
+    if (insertAfterId === null) {
+      // Insert at the beginning - find the first item's order
+      const firstOrder = await this.taskRepository.findNextOrderInStatus(
+        "", // Empty string is less than any fractional index
+        newStatus
+      );
+      nextOrder = firstOrder;
+    } else {
+      // Insert after a specific task
+      const insertAfterTask = await this.taskRepository.findById(insertAfterId);
+
+      if (!insertAfterTask) {
+        throw new Error(`Reference task ${insertAfterId} not found`);
+      }
+
+      // Verify the reference task is in the target status
+      if (insertAfterTask.status !== newStatus) {
+        throw new Error(
+          `Reference task ${insertAfterId} is not in status ${newStatus}`
+        );
+      }
+
+      prevOrder = insertAfterTask.order;
+
+      // Find the next order after the reference task (O(1) query with index)
+      nextOrder = await this.taskRepository.findNextOrderInStatus(
         prevOrder,
         newStatus
       );
-      if (!prevTask) {
-        throw new Error(
-          `Previous task with order ${prevOrder} not found in status ${newStatus}`
-        );
-      }
     }
 
-    if (nextOrder !== null) {
-      const nextTask = await this.taskRepository.findByOrderInStatus(
-        nextOrder,
-        newStatus
-      );
-      if (!nextTask) {
-        throw new Error(
-          `Next task with order ${nextOrder} not found in status ${newStatus}`
-        );
-      }
-    }
-
-    if (prevOrder !== null && nextOrder !== null && prevOrder >= nextOrder) {
-      throw new Error(
-        `Invalid order: prevOrder (${prevOrder}) must be less than nextOrder (${nextOrder})`
-      );
-    }
-
-    const validatedOrder = generateFractionalIndex(prevOrder, nextOrder);
-
-    if (proposedOrder !== validatedOrder && process.env.NODE_ENV === "development") {
-      console.warn(
-        `Order mismatch: proposed=${proposedOrder}, validated=${validatedOrder}. Using validated value.`
-      );
-    }
+    // Calculate the new order between prev and next
+    const newOrder = generateFractionalIndex(prevOrder, nextOrder);
 
     task.updateStatus(newStatus);
-    task.updateOrder(validatedOrder);
+    task.updateOrder(newOrder);
+
+    if (process.env.NODE_ENV === "development") {
+      console.dir({
+        moveTask: {
+          taskId,
+          newStatus,
+          insertAfterId,
+          prevOrder,
+          nextOrder,
+          calculatedOrder: newOrder,
+          changes: task.getTypedChanges()
+        }
+      }, { depth: null });
+    }
 
     await this.taskRepository.save(task);
 
     return task;
-  }
-
-  async reorderTasks(
-    updates: Array<{ taskId: string; order: string }>
-  ): Promise<void> {
-    const ids = updates.map((update) => update.taskId);
-    const tasks = await this.taskRepository.findManyByIds(ids);
-
-    console.log('updates', updates)
-    if (tasks.length !== ids.length) {
-      throw new Error(`Some tasks not found: ${ids.filter((id) => !tasks.some((task) => task.id.value === id)).join(", ")}`);
-    }
-
-    const statusGroups = new Map<string, Task[]>();
-    for (const task of tasks) {
-      const status = task.status;
-      if (!statusGroups.has(status)) {
-        statusGroups.set(status, []);
-      }
-      statusGroups.get(status)!.push(task);
-    }
-
-    for (const [status, statusTasks] of statusGroups.entries()) {
-      const orders = updates
-        .filter((update) =>
-          statusTasks.some((task) => task.id.value === update.taskId)
-        )
-        .map((update) => update.order);
-
-      const uniqueOrders = new Set(orders);
-      if (uniqueOrders.size !== orders.length) {
-        throw new Error(
-          `Duplicate orders found in status ${status}. Each task must have a unique order.`
-        );
-      }
-    }
-
-    for (const update of updates) {
-      const task = tasks.find((t) => t.id.value === update.taskId);
-      if (!task) {
-        continue;
-      }
-
-      if (!update.order || update.order.trim() === "") {
-        if (!isValidFractionalIndex(update.order)) {
-          throw new Error(`Invalid order for task ${update.taskId}: empty order`);
-        }
-      }
-
-      task.updateOrder(update.order);
-      await this.taskRepository.save(task);
-    }
   }
 }

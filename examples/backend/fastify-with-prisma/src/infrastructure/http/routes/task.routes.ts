@@ -34,9 +34,7 @@ const updateTaskSchema = z.object({
 
 const moveTaskSchema = z.object({
   newStatus: z.enum(["todo", "doing", "done"]),
-  proposedOrder: z.string(),
-  prevOrder: z.string().nullable(),
-  nextOrder: z.string().nullable(),
+  insertAfterId: z.string().uuid().nullable(),
 });
 
 const reorderTasksSchema = z.object({
@@ -177,9 +175,7 @@ export const taskRoutes: FastifyPluginAsync = async (app) => {
       const task = await taskService.moveTask(
         params.id,
         body.newStatus,
-        body.proposedOrder,
-        body.prevOrder,
-        body.nextOrder
+        body.insertAfterId
       );
 
       return reply.send(task.toJSON());
@@ -193,19 +189,4 @@ export const taskRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
-  app.post("/tasks/reorder", async (request, reply) => {
-    try {
-      const body = reorderTasksSchema.parse(request.body);
-      await taskService.reorderTasks(body.updates);
-
-      return reply.send({ message: "Tasks reordered successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: z.treeifyError(error) });
-      }
-      return reply.status(400).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
 };

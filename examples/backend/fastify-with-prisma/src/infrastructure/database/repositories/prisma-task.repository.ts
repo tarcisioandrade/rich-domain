@@ -58,4 +58,24 @@ export class PrismaTaskRepository
 
     return task ? this.toDomainMapper.build(task) : null;
   }
+
+  /**
+   * Find the next order after a given order in a specific status.
+   * This is an O(1) query with proper index on (status, order).
+   */
+  async findNextOrderInStatus(
+    afterOrder: string,
+    status: string
+  ): Promise<string | null> {
+    const task = await this.context.task.findFirst({
+      where: {
+        status,
+        order: { gt: afterOrder },
+      },
+      orderBy: { order: "asc" },
+      select: { order: true },
+    });
+
+    return task?.order ?? null;
+  }
 }

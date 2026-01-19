@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useInView } from "react-intersection-observer";
 import { cn } from "@/lib/utils";
 import type { KanbanColumnContentProps } from "@/types/use-criteria-kanban.type";
 
@@ -38,10 +39,16 @@ function KanbanColumnContent<T>({
   onLoadMore,
 }: KanbanColumnContentProps<T>) {
   const parentRef = React.useRef<HTMLDivElement>(null);
-  const sentinelRef = React.useRef<HTMLDivElement>(null);
   const didDragRef = React.useRef(false);
-  const isFetchingRef = React.useRef(false);
   const prevActiveIdRef = React.useRef(activeId);
+
+  // Infinite scroll sentinel using react-intersection-observer
+  const { ref: sentinelRef, inView } = useInView({
+    root: parentRef.current,
+    rootMargin: "100px",
+    threshold: 0.1,
+  });
+
   React.useEffect(() => {
     if (prevActiveIdRef.current !== null && activeId === null) {
       didDragRef.current = true;
@@ -88,37 +95,12 @@ function KanbanColumnContent<T>({
 
   const virtualItems = virtualizer.getVirtualItems();
 
-  // Infinite scroll: use IntersectionObserver to detect when sentinel is visible
+  // Trigger load more when sentinel comes into view
   React.useEffect(() => {
-    if (!hasNextPage || isFetchingNextPage || !onLoadMore || !sentinelRef.current || !parentRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && !isFetchingRef.current) {
-          console.log("fetching more items");
-          isFetchingRef.current = true;
-          onLoadMore();
-        }
-      },
-      {
-        root: parentRef.current,
-        rootMargin: '100px',
-        threshold: 0.1
-      }
-    );
-
-    observer.observe(sentinelRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [hasNextPage, isFetchingNextPage, onLoadMore]);
-
-  React.useEffect(() => {
-    if (!isFetchingNextPage) {
-      isFetchingRef.current = false;
+    if (inView && hasNextPage && !isFetchingNextPage && onLoadMore) {
+      onLoadMore();
     }
-  }, [isFetchingNextPage]);
+  }, [inView, hasNextPage, isFetchingNextPage, onLoadMore]);
 
   const handleCardClick = React.useCallback(
     (item: T, isDragging: boolean) => {
@@ -201,8 +183,7 @@ function KanbanColumnContent<T>({
         })}
       </div>
       {hasNextPage && (
-        <div className="flex justify-center py-2">
-          <div ref={sentinelRef} className="h-4" />
+        <div ref={sentinelRef} className="flex justify-center py-2">
           {isFetchingNextPage && <LoadingSpinner />}
         </div>
       )}
@@ -220,29 +201,16 @@ function LoadMoreTrigger({
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
 }) {
-  const triggerRef = React.useRef<HTMLDivElement>(null);
+  const { ref, inView } = useInView({ threshold: 0.5 });
 
   React.useEffect(() => {
-    if (!onLoadMore || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          onLoadMore();
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (triggerRef.current) {
-      observer.observe(triggerRef.current);
+    if (inView && onLoadMore && !isFetchingNextPage) {
+      onLoadMore();
     }
-
-    return () => observer.disconnect();
-  }, [onLoadMore, isFetchingNextPage]);
+  }, [inView, onLoadMore, isFetchingNextPage]);
 
   return (
-    <div ref={triggerRef} className="flex justify-center py-2">
+    <div ref={ref} className="flex justify-center py-2">
       {isFetchingNextPage && <LoadingSpinner />}
     </div>
   );
@@ -281,7 +249,7 @@ function LoadingSpinner() {
 
 function Content({ className, ...props }: React.ComponentProps<"div">) {
   return <div
-    className={cn("p-2 overflow-y-auto custom-scrollbar", className)}
+    className={cn("p-2 overflow-y-auto kanban-scrollbar", className)}
     {...props}
   />
 }

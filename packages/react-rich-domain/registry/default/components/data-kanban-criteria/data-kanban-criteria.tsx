@@ -17,6 +17,7 @@ import type {
   DataKanbanCriteriaProps,
   KanbanColumnDefinition,
 } from "@/types/use-criteria-kanban.type";
+import "./styles.css";
 
 /**
  * Custom collision detection that combines pointerWithin and rectIntersection

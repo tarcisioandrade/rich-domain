@@ -169,20 +169,8 @@ export function TaskKanban() {
     filterFields,
     columnPageSize: 20,
     syncWithUrl: true,
-    onCardMove: async ({
-      cardId,
-      toColumn,
-      newOrder,
-      prevOrder,
-      nextOrder,
-    }) => {
-      await moveTask(
-        cardId,
-        toColumn.id as Task["status"],
-        newOrder,
-        prevOrder,
-        nextOrder
-      );
+    onCardMove: async ({ cardId, toColumn, insertAfterId }) => {
+      await moveTask(cardId, toColumn.id as Task["status"], insertAfterId);
     },
 
     onMoveError: (error, { fromColumn }) => {

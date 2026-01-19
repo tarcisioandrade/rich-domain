@@ -43,10 +43,7 @@ import type {
   SearchIntegrationProps,
 } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 
-type InternalCardMoveParams<T> = Omit<
-  CardMoveParams<T>,
-  "newOrder" | "prevOrder" | "nextOrder"
->;
+type InternalCardMoveParams<T> = Omit<CardMoveParams<T>, "insertAfterId">;
 
 type InfiniteColumnData<T> = InfiniteData<PaginatedJsonResult<T>, number>;
 
@@ -348,64 +345,9 @@ export function useCriteriaKanban<T>(
         const toData =
           queryClient.getQueryData<InfiniteColumnData<T>>(toQueryKey);
 
-        let newOrder: string;
-
-        if (fromData && toData) {
-          const fromDataItems = [...getItemsFromInfiniteData(fromData)];
-          const itemIndex = fromDataItems.findIndex(
-            (item) => getItemId(item as T) === cardId
-          );
-          if (itemIndex !== -1) {
-            fromDataItems.splice(itemIndex, 1);
-            // Filter out the moved item from destination column cache to prevent stale data issues
-            const toDataItems =
-              fromColumn.id === toColumn.id
-                ? fromDataItems
-                : [...getItemsFromInfiniteData(toData)].filter(
-                    (item) => getItemId(item as T) !== cardId
-                  );
-
-            const sortedItems = [...toDataItems].sort((a, b) => {
-              const aOrder = (a as T & { order: string }).order || "";
-              const bOrder = (b as T & { order: string }).order || "";
-              if (aOrder < bOrder) return -1;
-              if (aOrder > bOrder) return 1;
-              return 0;
-            });
-
-            newOrder = generateIndexForMove(
-              sortedItems as Array<T & { order: string }>,
-              toIndex
-            );
-          } else {
-            const toDataItems = [...getItemsFromInfiniteData(toData)];
-            const sortedItems = [...toDataItems].sort((a, b) => {
-              const aOrder = (a as T & { order: string }).order || "";
-              const bOrder = (b as T & { order: string }).order || "";
-              if (aOrder < bOrder) return -1;
-              if (aOrder > bOrder) return 1;
-              return 0;
-            });
-
-            if (sortedItems.length === 0 || toIndex <= 0) {
-              const firstOrder =
-                sortedItems.length > 0
-                  ? (sortedItems[0] as T & { order: string }).order
-                  : null;
-              newOrder = generateFractionalIndex(null, firstOrder);
-            } else {
-              newOrder = generateIndexForMove(
-                sortedItems as Array<T & { order: string }>,
-                toIndex
-              );
-            }
-          }
-        } else {
-          newOrder = generateFractionalIndex(null, null);
-        }
-
-        let prevOrder: string | null = null;
-        let nextOrder: string | null = null;
+        // Calculate insertAfterId - the ID of the item that should be ABOVE the moved item
+        // Backend will query the REAL neighbors to calculate the correct order
+        let insertAfterId: string | null = null;
 
         if (fromData && toData) {
           const fromDataItems = [...getItemsFromInfiniteData(fromData)];
@@ -416,7 +358,7 @@ export function useCriteriaKanban<T>(
             fromDataItems.splice(itemIndex, 1);
           }
 
-          // Filter out the moved item from destination column cache to prevent stale data issues
+          // Get destination items (excluding the moved item)
           const toDataItems =
             fromColumn.id === toColumn.id
               ? fromDataItems
@@ -432,52 +374,17 @@ export function useCriteriaKanban<T>(
             return 0;
           });
 
-          const validItems = sortedItems.filter(
-            (item) =>
-              (item as T & { order: string }).order &&
-              (item as T & { order: string }).order.trim() !== ""
-          );
-
-          if (toIndex <= 0) {
-            prevOrder = null;
-            nextOrder =
-              validItems.length > 0
-                ? (validItems[0] as T & { order: string }).order
-                : null;
-          } else if (toIndex >= sortedItems.length) {
-            prevOrder =
-              validItems.length > 0
-                ? (validItems[validItems.length - 1] as T & { order: string })
-                    .order
-                : null;
-            nextOrder = null;
-          } else {
-            let validCount = 0;
-            for (let i = 0; i < toIndex && i < sortedItems.length; i++) {
-              const itemOrder = (sortedItems[i] as T & { order: string }).order;
-              if (itemOrder && itemOrder.trim() !== "") {
-                validCount++;
-              }
-            }
-
-            if (validCount > 0 && validCount <= validItems.length) {
-              prevOrder =
-                (validItems[validCount - 1] as T & { order: string })?.order ||
-                null;
-            }
-            if (validCount < validItems.length) {
-              nextOrder =
-                (validItems[validCount] as T & { order: string })?.order ||
-                null;
-            }
+          // If toIndex > 0, insertAfterId is the ID of the item at position (toIndex - 1)
+          // If toIndex === 0, insertAfterId is null (insert at top)
+          if (toIndex > 0 && sortedItems.length > 0) {
+            const insertAfterIndex = Math.min(toIndex - 1, sortedItems.length - 1);
+            insertAfterId = getItemId(sortedItems[insertAfterIndex] as T);
           }
         }
 
         await onCardMove({
           ...params,
-          newOrder,
-          prevOrder,
-          nextOrder,
+          insertAfterId,
         } as CardMoveParams<T>);
       }
     },

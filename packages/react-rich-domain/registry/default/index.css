@@ -186,27 +186,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-.scrollbar-custom,
-  .custom-scrollbar {
-  @apply [&::-webkit-scrollbar]:w-1.5
-  [&::-webkit-scrollbar-track]:bg-gray-100
-  [&::-webkit-scrollbar-thumb]:bg-gray-300
-  dark:[&::-webkit-scrollbar-track]:bg-neutral-700
-  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500
-
-  [&::-webkit-scrollbar-track]:rounded-md
-  [&::-webkit-scrollbar-thumb]:rounded-md
-  dark:[&::-webkit-scrollbar-track]:rounded-md
-  dark:[&::-webkit-scrollbar-thumb]:rounded-md;
-}
-
-.scrollbar-custom-hidden,
-.custom-scrollbar-hidden {
-  @apply [&::-webkit-scrollbar]:hidden;
-}
-
-.scrollbar-custom-hidden-dark,
-.custom-scrollbar-hidden-dark {
-  @apply dark:[&::-webkit-scrollbar]:hidden;
-}
