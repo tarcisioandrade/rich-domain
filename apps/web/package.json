@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
+    "clean": "rm -rf dist node_modules dist .tanstack",
     "check": "tsc --noEmit",
     "lint": "echo 'No linting yet'",
     "preview": "vite preview",
