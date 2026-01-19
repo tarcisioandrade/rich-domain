@@ -87,7 +87,8 @@
                   "integrations/react/timeline",
                   "integrations/react/data-table-criteria",
                   "integrations/react/sorting",
-                  "integrations/react/filter"
+                  "integrations/react/filter",
+                  "integrations/react/data-kanban-criteria"
                 ]
               },
               "integrations/export",
