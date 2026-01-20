@@ -29,6 +29,7 @@ function KanbanCard({
   children,
   className,
   disabled = false,
+  isClickable = false,
   onClick,
 }: KanbanCardProps) {
   const {
@@ -87,7 +88,9 @@ function KanbanCard({
         dragging && "shadow-lg ring-2 ring-primary/20",
         isOverlay && "rotate-3 scale-105 shadow-xl",
         disabled && "opacity-60 cursor-not-allowed",
-        !disabled && "cursor-pointer",
+        !disabled && dragging && "cursor-grabbing",
+        !disabled && !dragging && isClickable && "cursor-pointer",
+        !disabled && !dragging && !isClickable && "cursor-grab",
         className
       )}
       {...attributes}

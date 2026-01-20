@@ -136,7 +136,7 @@ function KanbanColumnContent<T>({
               data-item-id={itemId}
               onClick={() => handleCardClick(item, isDragging)}
             >
-              {renderCard(item, isDragging)}
+              {renderCard(item, isDragging, !!onCardClick)}
             </div>
           );
         })}
@@ -182,7 +182,7 @@ function KanbanColumnContent<T>({
               }}
               onClick={() => handleCardClick(item, isDragging)}
             >
-              {renderCard(item, isDragging)}
+              {renderCard(item, isDragging, !!onCardClick)}
             </div>
           );
         })}

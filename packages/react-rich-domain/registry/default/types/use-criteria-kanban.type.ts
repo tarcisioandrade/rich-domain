@@ -339,8 +339,11 @@ export interface DataKanbanCriteriaProps<T> {
 
   /**
    * Render function for each card
+   * @param item - The item data
+   * @param isDragging - Whether the card is currently being dragged
+   * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean) => React.ReactNode;
+  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
 
   /**
    * Optional render function for column header
@@ -429,8 +432,11 @@ export interface KanbanColumnProps<T> {
 
   /**
    * Render function for each card
+   * @param item - The item data
+   * @param isDragging - Whether the card is currently being dragged
+   * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean) => React.ReactNode;
+  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
 
   /**
    * Optional render function for column header
@@ -513,6 +519,12 @@ export interface KanbanCardProps {
   disabled?: boolean;
 
   /**
+   * Whether the card has a click handler (affects cursor style)
+   * When true, uses cursor-pointer; when false, uses cursor-grab
+   */
+  isClickable?: boolean;
+
+  /**
    * Click handler for the card
    */
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -534,8 +546,11 @@ export interface KanbanColumnContentProps<T> {
 
   /**
    * Render function for each card
+   * @param item - The item data
+   * @param isDragging - Whether the card is currently being dragged
+   * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean) => React.ReactNode;
+  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
 
   /**
    * Estimated card height for virtualization

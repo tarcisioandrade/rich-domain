@@ -1,7 +1,7 @@
 "use client";
 
 import { useCriteriaKanban } from "./hooks/use-criteria-kanban";
-import { DataKanbanCriteria } from "./components/data-kanban-criteria";
+import { DataKanbanCriteria, KanbanCardAction } from "./components/data-kanban-criteria";
 import {
   KanbanCard,
   KanbanCardHeader,
@@ -14,7 +14,7 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive, Plus, PlusCircle } from "lucide-react";
+import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive, Plus, PlusCircle, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./components/ui/button";
 
@@ -126,9 +126,9 @@ const labelColors: Record<string, string> = {
 /**
  * Renders a task card for the Kanban board
  */
-function TaskCard({ task, isDragging }: { task: Task; isDragging: boolean }) {
+function TaskCard({ task, isDragging, isClickable }: { task: Task; isDragging: boolean; isClickable: boolean }) {
   return (
-    <KanbanCard id={task.id} isDragging={isDragging}>
+    <KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
       <KanbanCardHeader>
         <KanbanCardTitle>{task.title}</KanbanCardTitle>
       </KanbanCardHeader>
@@ -150,6 +150,13 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging: boolean }) {
             ))}
           </div>
         )}
+        <KanbanCardAction>
+          <Button data-no-drag variant="ghost" size="icon" onClick={() => {
+            console.log(task.id);
+          }}>
+            <Edit className="h-4 w-4" />
+          </Button>
+        </KanbanCardAction>
       </KanbanCardContent>
 
       <KanbanCardFooter>
@@ -201,8 +208,8 @@ export function TaskKanban() {
     <div className="w-full">
       <DataKanbanCriteria
         kanban={kanban}
-        renderCard={(task, isDragging) => (
-          <TaskCard task={task} isDragging={isDragging} />
+        renderCard={(task, isDragging, isClickable) => (
+          <TaskCard task={task} isDragging={isDragging} isClickable={isClickable} />
         )}
         renderColumnHeader={(column, total) => (
           <div className="flex items-center justify-between p-2">

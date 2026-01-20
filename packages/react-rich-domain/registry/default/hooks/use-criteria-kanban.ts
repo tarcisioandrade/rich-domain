@@ -17,6 +17,7 @@ import {
   type UniqueIdentifier,
   type DragStartEvent,
   type DragEndEvent,
+  type PointerSensorOptions,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import {
@@ -45,6 +46,62 @@ import type {
 type InternalCardMoveParams<T> = Omit<CardMoveParams<T>, "insertAfterId">;
 
 type InfiniteColumnData<T> = InfiniteData<PaginatedJsonResult<T>, number>;
+
+/**
+ * Check if an element or any of its ancestors has the data-no-drag attribute
+ */
+function shouldHandleEvent(element: Element | null): boolean {
+  let current = element;
+
+  while (current) {
+    if (current.getAttribute("data-no-drag") !== null) {
+      return false;
+    }
+    current = current.parentElement;
+  }
+
+  return true;
+}
+
+/**
+ * Custom PointerSensor that respects data-no-drag attribute
+ */
+class NoDragPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: "onPointerDown" as const,
+      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }, { onActivation }: PointerSensorOptions) => {
+        if (
+          !event.isPrimary ||
+          event.button !== 0 ||
+          !shouldHandleEvent(event.target as Element)
+        ) {
+          return false;
+        }
+
+        onActivation?.({ event });
+        return true;
+      },
+    },
+  ];
+}
+
+/**
+ * Custom TouchSensor that respects data-no-drag attribute
+ */
+class NoDragTouchSensor extends TouchSensor {
+  static activators = [
+    {
+      eventName: "onTouchStart" as const,
+      handler: ({ nativeEvent: event }: { nativeEvent: TouchEvent }) => {
+        if (!shouldHandleEvent(event.target as Element)) {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
+}
 
 /**
  * Custom hook for managing Kanban board state with Criteria integration
@@ -148,12 +205,12 @@ export function useCriteriaKanban<T>(
   const [activeItem, setActiveItem] = useState<T | null>(null);
 
   const defaultSensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(NoDragPointerSensor, {
       activationConstraint: {
         distance: 5,
       },
     }),
-    useSensor(TouchSensor, {
+    useSensor(NoDragTouchSensor, {
       activationConstraint: {
         delay: 200,
         tolerance: 5,
