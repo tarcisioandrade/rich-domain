@@ -81,7 +81,7 @@ function KanbanCard({
       data-dragging={dragging || undefined}
       data-overlay={isOverlay || undefined}
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-2 rounded-lg border p-3 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-2 rounded-lg border p-3 shadow-sm select-none",
         "transition-shadow duration-200",
         "hover:shadow-md",
         dragging && "shadow-lg ring-2 ring-primary/20",

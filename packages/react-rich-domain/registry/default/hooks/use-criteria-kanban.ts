@@ -647,6 +647,7 @@ export function useCriteriaKanban<T>(
           } as T;
 
           if (fromColumn.id === toColumn.id) {
+            // Same column reorder - preserve page structure
             const currentItems = [...getItemsFromInfiniteData(fromData)];
             const oldIndex = currentItems.findIndex(
               (dataItem) => getItemId(dataItem as T) === activeItemId
@@ -666,17 +667,22 @@ export function useCriteriaKanban<T>(
                 reorderedItems[itemIndexInReordered] = updatedItem;
               }
 
+              // Redistribute items across existing pages to preserve structure
+              let itemIndex = 0;
+              const updatedPages = toData.pages.map((page) => {
+                const pageSize = (page.data as T[]).length;
+                const pageItems = reorderedItems.slice(itemIndex, itemIndex + pageSize);
+                itemIndex += pageSize;
+                return { ...page, data: pageItems as typeof page.data };
+              });
+
               queryClient.setQueryData<InfiniteColumnData<T>>(toQueryKey, {
                 ...toData,
-                pages: toData.pages.map((page, idx) =>
-                  idx === 0
-                    ? { ...page, data: reorderedItems as typeof page.data }
-                    : { ...page, data: [] as typeof page.data }
-                ),
-                pageParams: [1],
+                pages: updatedPages,
               });
             }
           } else {
+            // Cross-column move - preserve page structure
             const updatedToItems = [...toDataItems] as T[];
             const insertIndex = Math.min(toIndex, updatedToItems.length);
             updatedToItems.splice(insertIndex, 0, updatedItem);
@@ -697,34 +703,54 @@ export function useCriteriaKanban<T>(
               return 0;
             });
 
+            // Redistribute from items across existing pages
+            let fromItemIndex = 0;
             const lastFromPage = fromData.pages[fromData.pages.length - 1];
-            queryClient.setQueryData<InfiniteColumnData<T>>(fromQueryKey, {
-              ...fromData,
-              pages: [{
-                ...fromData.pages[0],
-                data: sortedFromItems as typeof fromData.pages[0]["data"],
-                meta: {
-                  ...lastFromPage.meta,
-                  total: lastFromPage.meta.total - 1,
-                  hasNext: false,
-                },
-              }],
-              pageParams: [1],
+            const updatedFromPages = fromData.pages.map((page, idx) => {
+              const pageSize = (page.data as T[]).length;
+              // Last page may have one less item now
+              const adjustedSize = idx === fromData.pages.length - 1
+                ? Math.max(0, pageSize - 1)
+                : pageSize;
+              const pageItems = sortedFromItems.slice(fromItemIndex, fromItemIndex + adjustedSize);
+              fromItemIndex += adjustedSize;
+
+              return {
+                ...page,
+                data: pageItems as typeof page.data,
+                meta: idx === fromData.pages.length - 1
+                  ? { ...lastFromPage.meta, total: lastFromPage.meta.total - 1 }
+                  : page.meta,
+              };
             });
 
+            queryClient.setQueryData<InfiniteColumnData<T>>(fromQueryKey, {
+              ...fromData,
+              pages: updatedFromPages,
+            });
+
+            // Redistribute to items across existing pages
+            let toItemIndex = 0;
             const lastToPage = toData.pages[toData.pages.length - 1];
+            const updatedToPages = toData.pages.map((page, idx) => {
+              const pageSize = (page.data as T[]).length;
+              // First page gets one more item
+              const adjustedSize = idx === 0 ? pageSize + 1 : pageSize;
+              const pageItems = sortedToItems.slice(toItemIndex, toItemIndex + adjustedSize);
+              toItemIndex += adjustedSize;
+
+              return {
+                ...page,
+                data: pageItems as typeof page.data,
+                meta: idx === toData.pages.length - 1
+                  ? { ...lastToPage.meta, total: lastToPage.meta.total + 1 }
+                  : page.meta,
+              };
+            });
+
             queryClient.setQueryData<InfiniteColumnData<T>>(toQueryKey, {
               ...toData,
-              pages: [{
-                ...toData.pages[0],
-                data: sortedToItems as typeof toData.pages[0]["data"],
-                meta: {
-                  ...lastToPage.meta,
-                  total: lastToPage.meta.total + 1,
-                  hasNext: false,
-                },
-              }],
-              pageParams: [1],
+              pages: updatedToPages,
             });
           }
         }
