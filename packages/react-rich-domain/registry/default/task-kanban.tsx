@@ -14,8 +14,9 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive } from "lucide-react";
+import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive, Plus, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "./components/ui/button";
 
 /**
  * Filter field definitions for the Kanban toolbar
@@ -202,6 +203,36 @@ export function TaskKanban() {
         kanban={kanban}
         renderCard={(task, isDragging) => (
           <TaskCard task={task} isDragging={isDragging} />
+        )}
+        renderColumnHeader={(column, total) => (
+          <div className="flex items-center justify-between p-2">
+            <div className="flex items-center text-sm">
+              {column.color && (
+                <span
+                  className="inline-block w-2 h-2 rounded-full mr-2"
+                  style={{ backgroundColor: column.color }}
+                />
+              )}
+              <h3 className="font-semibold">{column.title}</h3>
+              <div className="ml-2 border p-1 rounded text-xs">{total}</div>
+            </div>
+            <Button className="cursor-pointer" variant="ghost" size="icon" onClick={() => {
+              console.log(column.id);
+            }}>
+              <PlusCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        renderEmptyState={(column) => (
+          <div className="space-y-4 mt-4">
+            <p className="text-muted-foreground text-sm">No task added here.</p>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+              console.log(column.id);
+            }}>
+              <Plus className="h-4 w-4" />
+              Add Task
+            </Button>
+          </div>
         )}
         onCardClick={(task) => {
           console.log(task.order);

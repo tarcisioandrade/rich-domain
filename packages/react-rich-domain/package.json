@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc -b && vite build && npm run registry:build",
     "dev": "vite",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "check": "tsc --noEmit",
