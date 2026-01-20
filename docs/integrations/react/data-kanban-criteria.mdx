@@ -275,6 +275,7 @@ interface DataKanbanCriteriaProps<T> {
   renderCard: (item: T, isDragging: boolean) => React.ReactNode;
   renderColumnHeader?: (column, itemCount) => React.ReactNode;
   renderColumnFooter?: (column) => React.ReactNode;
+  renderEmptyState?: (column) => React.ReactNode; // Custom empty state
   onCardClick?: (item: T) => void;
 
   // Layout
@@ -360,6 +361,27 @@ import {
   </KanbanCardFooter>
 </KanbanCard>
 ```
+
+#### Custom Empty State
+
+Customize what's shown when a column has no items:
+
+```tsx
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={renderCard}
+  renderEmptyState={(column) => (
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+      <p className="text-sm">No tasks in {column.title}</p>
+      <button className="mt-2 text-primary text-sm">
+        + Add task
+      </button>
+    </div>
+  )}
+/>
+```
+
+If not provided, defaults to a simple "No items" message.
 
 #### Full Height Layout
 
