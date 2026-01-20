@@ -4,7 +4,7 @@ import { generateFractionalIndex } from "../src/utils/fractional-index.js";
 
 const prisma = new PrismaClient();
 
-const statuses = ["todo", "doing", "done"] as const;
+const statuses = ["todo", "doing", "done", "archived", "cancelled"] as const;
 const priorities = ["low", "medium", "high", "urgent"] as const;
 const labelOptions = [
   "frontend",
@@ -20,7 +20,6 @@ const labelOptions = [
 async function main() {
   console.log("🌱 Starting seed...");
 
-  // Limpar tasks existentes
   await prisma.task.deleteMany({});
   const tasksPerStatus = 100;
 

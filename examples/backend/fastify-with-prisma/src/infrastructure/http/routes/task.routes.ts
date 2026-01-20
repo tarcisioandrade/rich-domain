@@ -33,18 +33,10 @@ const updateTaskSchema = z.object({
 });
 
 const moveTaskSchema = z.object({
-  newStatus: z.enum(["todo", "doing", "done"]),
+  newStatus: z.enum(["todo", "doing", "done", "archived", "cancelled"]),
   insertAfterId: z.string().uuid().nullable(),
 });
 
-const reorderTasksSchema = z.object({
-  updates: z.array(
-    z.object({
-      taskId: z.string().uuid(),
-      order: z.string(),
-    })
-  ),
-});
 
 const TaskResponseSchema = z.object({
   id: z.string(),

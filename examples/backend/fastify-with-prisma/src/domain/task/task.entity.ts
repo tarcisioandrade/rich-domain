@@ -7,7 +7,7 @@ import {
 import { z } from "zod";
 import { TaskCreatedEvent } from "./events/task-create.event";
 
-export const TaskStatus = z.enum(["todo", "doing", "done"]);
+export const TaskStatus = z.enum(["todo", "doing", "done", "archived", "cancelled"]);
 
 export const TaskSchema = z.object({
   id: z.custom<Id>(),
