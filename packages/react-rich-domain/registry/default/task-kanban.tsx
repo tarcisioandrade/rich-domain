@@ -14,7 +14,7 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle } from "lucide-react";
+import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -72,6 +72,22 @@ const columns: KanbanColumnDefinition<Task>[] = [
     value: "done",
     color: "#22c55e", // green
     icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,
+  },
+  {
+    id: "archived",
+    title: "Archived",
+    criteria: (c) => c.where("status", "equals", "archived"),
+    value: "archived",
+    color: "#6b7280", // gray
+    icon: <Archive className="h-4 w-4 text-gray-500" />,
+  },
+  {
+    id: "cancelled",
+    title: "Cancelled",
+    criteria: (c) => c.where("status", "equals", "cancelled"),
+    value: "cancelled",
+    color: "#f44336", // red
+    icon: <X className="h-4 w-4 text-red-500" />,
   },
 ];
 
@@ -191,7 +207,7 @@ export function TaskKanban() {
           console.log(task.order);
         }}
         estimatedCardHeight={160}
-        columnsContentScrollClassName="h-[calc(100vh-228px)]"
+        columnsContentScrollClassName="h-[calc(100vh-230px)]"
       />
     </div>
   );

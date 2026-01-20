@@ -22,7 +22,7 @@ function clearParams() {
 
 export default function App() {
   const defaultTab =
-    (window.location.hash as DemoTab | undefined) || "#timeline";
+    (window.location.hash as DemoTab | undefined) || "#table";
   const [activeTab, setActiveTab] = useState<DemoTab>(
     defaultTab.replace("#", "") as DemoTab
   );
@@ -155,7 +155,7 @@ export default function App() {
           </main>
         </div>
       </ThemeProvider>
-        <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" />
     </QueryClientProvider>
   );
 }

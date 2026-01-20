@@ -138,7 +138,7 @@ function DataKanbanCriteria<T>({
         <div
           data-slot="kanban-columns"
           className={cn(
-            "flex gap-4 overflow-x-auto pb-4",
+            "flex gap-4 overflow-x-auto pb-4 kanban-scrollbar-horizontal",
             "scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border",
             columnsClassName
           )}
@@ -146,7 +146,7 @@ function DataKanbanCriteria<T>({
           {columns.map((columnData) => (
             <div
               key={columnData.column.id}
-              className="w-full"
+              className="w-80 min-w-80 shrink-0"
             >
               <KanbanColumn
                 columnData={columnData}

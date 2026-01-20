@@ -45,7 +45,7 @@ function KanbanSkeleton({
       {Array.from({ length: columnCount }).map((_, columnIndex) => (
         <div
           key={columnIndex}
-          className="flex flex-col rounded-lg border bg-muted/30 w-full h-full"
+          className="flex flex-col rounded-lg border bg-muted/30 w-80 min-w-80 shrink-0 h-full"
         >
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background/50">
             <div className="h-4 w-24 bg-muted rounded animate-pulse" />

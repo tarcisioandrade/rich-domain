@@ -13,6 +13,19 @@
   dark:[&::-webkit-scrollbar-thumb]:rounded-md;
 }
 
+.kanban-scrollbar-horizontal {
+  @apply [&::-webkit-scrollbar]:h-1.5
+  [&::-webkit-scrollbar-track]:bg-gray-100
+  [&::-webkit-scrollbar-thumb]:bg-gray-300
+  dark:[&::-webkit-scrollbar-track]:bg-neutral-700
+  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500
+
+  [&::-webkit-scrollbar-track]:rounded-md
+  [&::-webkit-scrollbar-thumb]:rounded-md
+  dark:[&::-webkit-scrollbar-track]:rounded-md
+  dark:[&::-webkit-scrollbar-thumb]:rounded-md;
+}
+
 .kanban-scrollbar-hidden {
   @apply [&::-webkit-scrollbar]:hidden;
 }

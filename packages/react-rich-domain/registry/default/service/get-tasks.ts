@@ -10,7 +10,7 @@ export type Task = {
   id: string;
   title: string;
   description: string;
-  status: "todo" | "doing" | "done";
+  status: "todo" | "doing" | "done" | "archived" | "cancelled";
   priority: "low" | "medium" | "high";
   assignee: string;
   labels: string[];
