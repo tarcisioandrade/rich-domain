@@ -90,6 +90,7 @@ function DataKanbanCriteria<T>({
   showSkeleton = true,
   onCardClick,
   columnsContentScrollClassName: columnsContentScrollClassName,
+  renderEmptyState,
 }: DataKanbanCriteriaProps<T>) {
   const {
     columns,
@@ -160,6 +161,7 @@ function DataKanbanCriteria<T>({
                 activeId={activeId}
                 onCardClick={onCardClick}
                 columnsContentScrollClassName={columnsContentScrollClassName}
+                renderEmptyState={renderEmptyState ? () => renderEmptyState(columnData.column) : undefined}
               />
             </div>
           ))}

@@ -405,6 +405,12 @@ export interface DataKanbanCriteriaProps<T> {
    * Custom class name for the column content scroll container
    */
   columnsContentScrollClassName?: string;
+
+  /**
+   * Optional render function for empty column state
+   * If not provided, uses default "No items" message
+   */
+  renderEmptyState?: (column: KanbanColumnDefinition<T>) => React.ReactNode;
 }
 
 /**
@@ -465,6 +471,11 @@ export interface KanbanColumnProps<T> {
    * Custom class name for the column content scroll container
    */
   columnsContentScrollClassName?: string;
+
+  /**
+   * Optional render function for empty column state
+   */
+  renderEmptyState?: () => React.ReactNode;
 }
 
 /**
@@ -560,4 +571,9 @@ export interface KanbanColumnContentProps<T> {
    * Callback to fetch next page
    */
   onLoadMore?: () => void;
+
+  /**
+   * Optional render function for empty column state
+   */
+  renderEmptyState?: () => React.ReactNode;
 }

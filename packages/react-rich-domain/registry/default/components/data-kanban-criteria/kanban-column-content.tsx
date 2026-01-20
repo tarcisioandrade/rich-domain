@@ -37,6 +37,7 @@ function KanbanColumnContent<T>({
   isFetchingNextPage,
   columnsContentScrollClassName,
   onLoadMore,
+  renderEmptyState,
 }: KanbanColumnContentProps<T>) {
   const parentRef = React.useRef<HTMLDivElement>(null);
   const didDragRef = React.useRef(false);
@@ -112,9 +113,13 @@ function KanbanColumnContent<T>({
 
   if (items.length === 0) {
     return <Content className={columnsContentScrollClassName}>
-      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-        <p className="text-sm">No items</p>
-      </div>
+      {renderEmptyState ? (
+        renderEmptyState()
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <p className="text-sm">No items</p>
+        </div>
+      )}
     </Content>
   }
 

@@ -43,6 +43,7 @@ function KanbanColumn<T>({
   activeId,
   onCardClick,
   columnsContentScrollClassName,
+  renderEmptyState,
 }: KanbanColumnProps<T>) {
   const {
     column,
@@ -115,6 +116,7 @@ function KanbanColumn<T>({
                 isFetchingNextPage={isFetchingNextPage}
                 onLoadMore={fetchNextPage}
                 columnsContentScrollClassName={columnsContentScrollClassName}
+                renderEmptyState={renderEmptyState}
               />
             )}
         </SortableContext>
