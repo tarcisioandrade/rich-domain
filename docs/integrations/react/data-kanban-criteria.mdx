@@ -39,10 +39,13 @@ yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/reac
 - Drag and drop between columns with @dnd-kit
 - Virtualized lists for large datasets with @tanstack/react-virtual
 - Infinite scroll per column
+- Horizontal scroll for unlimited columns
 - Integrated filtering and search
 - Optimistic updates with automatic rollback on error
 - Fractional indexing for scalable ordering
-- Customizable card and column rendering
+- Customizable card, column, and empty state rendering
+- Smart cursor styles (grab/grabbing/pointer)
+- Prevent drag on specific elements with `data-no-drag`
 - URL sync for filters and search
 
 #### Basic Usage
@@ -127,8 +130,8 @@ function TaskKanban() {
   return (
     <DataKanbanCriteria
       kanban={kanban}
-      renderCard={(task, isDragging) => (
-        <KanbanCard id={task.id} isDragging={isDragging}>
+      renderCard={(task, isDragging, isClickable) => (
+        <KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
           <KanbanCardHeader>
             <KanbanCardTitle>{task.title}</KanbanCardTitle>
           </KanbanCardHeader>
@@ -272,7 +275,7 @@ async function moveTask(
 ```tsx
 interface DataKanbanCriteriaProps<T> {
   kanban: UseCriteriaKanbanReturn<T>; // From useCriteriaKanban
-  renderCard: (item: T, isDragging: boolean) => React.ReactNode;
+  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
   renderColumnHeader?: (column, itemCount) => React.ReactNode;
   renderColumnFooter?: (column) => React.ReactNode;
   renderEmptyState?: (column) => React.ReactNode; // Custom empty state
@@ -347,7 +350,7 @@ import {
   KanbanCardBadge,
 } from "@/components/data-kanban-criteria";
 
-<KanbanCard id={task.id} isDragging={isDragging}>
+<KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
   <KanbanCardHeader>
     <KanbanCardTitle>{task.title}</KanbanCardTitle>
   </KanbanCardHeader>
@@ -382,6 +385,59 @@ Customize what's shown when a column has no items:
 ```
 
 If not provided, defaults to a simple "No items" message.
+
+#### Preventing Drag on Specific Elements
+
+Use the `data-no-drag` attribute on elements that should not trigger dragging:
+
+```tsx
+<KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
+  <KanbanCardHeader>
+    <KanbanCardTitle>{task.title}</KanbanCardTitle>
+    {/* Button won't trigger drag when clicked */}
+    <button data-no-drag onClick={() => deleteTask(task.id)}>
+      Delete
+    </button>
+  </KanbanCardHeader>
+</KanbanCard>
+```
+
+This is useful for interactive elements inside cards like buttons, inputs, or dropdown menus.
+
+#### Cursor Styles
+
+The `KanbanCard` component automatically handles cursor styles based on state:
+
+| State | Cursor | When |
+|-------|--------|------|
+| `cursor-grab` | ✋ | Card is draggable, no `onCardClick` |
+| `cursor-pointer` | 👆 | Card has `onCardClick` handler |
+| `cursor-grabbing` | ✊ | Card is being dragged |
+| `cursor-not-allowed` | 🚫 | Card is disabled |
+
+The `isClickable` parameter in `renderCard` determines if the card should show `cursor-pointer`:
+
+```tsx
+<DataKanbanCriteria
+  kanban={kanban}
+  renderCard={(task, isDragging, isClickable) => (
+    <KanbanCard
+      id={task.id}
+      isDragging={isDragging}
+      isClickable={isClickable}  // Pass this to get correct cursor
+    >
+      {/* ... */}
+    </KanbanCard>
+  )}
+  onCardClick={(task) => openTaskModal(task)}  // When set, isClickable=true
+/>
+```
+
+#### Horizontal Scroll
+
+The board automatically supports horizontal scrolling when you have many columns. Each column has a fixed width (320px) and the container scrolls horizontally when columns exceed the viewport.
+
+This works out of the box - no configuration needed.
 
 #### Full Height Layout
 
