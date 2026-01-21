@@ -363,8 +363,8 @@ This project is inspired by:
 
 ## 📊 Project Status
 
-- ✅ Core library: **Stable**
-- ✅ Prisma adapter: **Stable**
+- ✅ Core library: **Beta**
+- ✅ Prisma adapter: **Beta**
 - ✅ TypeORM adapter: **Beta**
 - ✅ CLI tool: **Beta**
 - 🚧 Drizzle adapter: **Planned**
