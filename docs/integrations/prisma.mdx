@@ -361,39 +361,43 @@ For N:N relationships, configure collections with `type: "reference"`:
 
 ```typescript
 const registry = new EntitySchemaRegistry()
-  .register({
-    entity: "User",
-    table: "user",
-    collections: {
-      posts: { type: "owned" },           // 1:N - User owns Posts
-      followers: { 
-        type: "reference",                 // N:N - User references other Users
-        entity: "User" 
-      },
-    },
-  })
-  .register({
-    entity: "Post",
-    table: "post",
-    parentFk: { field: "authorId", parentEntity: "User" },
-    collections: {
-      comments: { type: "owned" },         // 1:N - Post owns Comments
-      tags: { 
-        type: "reference",                 // N:N - Post references Tags
-        entity: "Tag",
-        // Optional: junction table config (Prisma handles this automatically)
-        junction: {
-          table: "post_tags",
-          sourceKey: "post_id",
-          targetKey: "tag_id",
+    .register({
+      entity: "User",
+      table: "user",
+      collections: {
+        // 'owned': Children entities that belong exclusively to this aggregate
+        // They are created/deleted with the parent
+        posts: {
+          type: "owned",
+          entity: "Post",
         },
       },
-    },
-  })
-  .register({
-    entity: "Tag",
-    table: "tag",
-  });
+    })
+    .register({
+      entity: "Post",
+      table: "post",
+      // Parent foreign key for owned entities
+      parentFk: {
+        field: "authorId",
+        parentEntity: "User",
+      },
+      collections: {
+        // Field name related to the relationship in the domain;
+        // 'posts.tags' <- Domain Relation field name is 'tags'  
+        tags: {
+        // 'reference': Independent entities connected via junction table
+        // They exist independently and are only linked/unlinked
+          type: "reference",
+          entity: "Tag",
+          // Junction config required for manually created pivot tables
+          junction: {
+            table: "tagPost",    // Pivot table name
+            sourceKey: "postId", // FK to Post
+            targetKey: "tagId",  // FK to Tag
+          },
+        },
+      },
+    });
 ```
 
 ### Collection Types
