@@ -10,7 +10,7 @@ TypeScript library for Domain-Driven Design with automatic change tracking and S
 ## Requirements
 
 - Node.js >= 22.12
-- TypeScript >= 4.7
+- TypeScript >= 5.4
 
 ## Ecosystem
 
@@ -67,8 +67,10 @@ class Post extends Entity<z.infer<typeof PostSchema>> {
 ### 3. Define an Aggregate
 
 ```typescript
-import { Aggregate, Id } from "@woltz/rich-domain";
+import { Aggregate, Id, EntityHooks } from "@woltz/rich-domain";
 import { UserCreatedEvent } from "./events"
+import { Email } from "./email";
+
 
 const UserSchema = z.object({
   id: z.custom<Id>(),
@@ -118,8 +120,8 @@ user.addPost("New Post", "Content");
 user.posts[0].publish();
 
 // Get changes automatically
-// We hard recommendly use this 'getTypedChanges' helper pattern to better DX;
-const changes = order.getTypedChanges();
+// We strongly recommend using this `getTypedChanges` helper pattern for better DX
+const changes = user.getTypedChanges();
 // { creates: [...], updates: [...], deletes: [...] }
 
 // After saving
@@ -131,7 +133,8 @@ user.markAsClean();
 ```typescript
 import { Criteria } from "@woltz/rich-domain";
 
-const criteria = Criteria.create<User>()
+// fully type-safe, fields inferred from schema
+const criteria = Criteria.create<User>() 
   .where("status", "equals", "active")
   .whereContains("email", "@company.com")
   .orderBy("createdAt", "desc")

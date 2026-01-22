@@ -86,18 +86,53 @@ const columns: ColumnDef<User>[] = [
 
 Kanban board with drag-and-drop, virtualization, and infinite scroll per column.
 
+### Installation
+
+```bash
+npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
+```
+
+### Features
+
+- Drag and drop between columns with @dnd-kit
+- Virtualized lists for large datasets with @tanstack/react-virtual
+- Infinite scroll per column
+- Horizontal scroll for unlimited columns
+- Optimistic updates with automatic rollback on error
+- Fractional indexing for scalable ordering
+- Prevent drag on specific elements with `data-no-drag`
+
+### Basic Usage
+
 ```typescript
-import { DataKanbanCriteria } from "@woltz/react-rich-domain";
+import { useCriteriaKanban } from "@/hooks/use-criteria-kanban";
+import {
+  DataKanbanCriteria,
+  KanbanCard,
+  KanbanCardHeader,
+  KanbanCardTitle,
+  KanbanCardDescription,
+  KanbanCardContent,
+  KanbanCardFooter,
+  KanbanCardBadge,
+} from "@/components/data-kanban-criteria";
 
 <DataKanbanCriteria
   kanban={kanban}                  // From useCriteriaKanban
 
   // Card rendering
   renderCard={(item, isDragging, isClickable) => (
-    <Card className={isDragging ? "opacity-50 rotate-3" : ""}>
-      <CardHeader>{item.title}</CardHeader>
-      <CardContent>{item.description}</CardContent>
-    </Card>
+    <KanbanCard id={item.id} isDragging={isDragging} isClickable={isClickable}>
+      <KanbanCardHeader>
+        <KanbanCardTitle>{item.title}</KanbanCardTitle>
+      </KanbanCardHeader>
+      <KanbanCardContent>
+        <KanbanCardDescription>{item.description}</KanbanCardDescription>
+      </KanbanCardContent>
+      <KanbanCardFooter>
+        <KanbanCardBadge>{item.priority}</KanbanCardBadge>
+      </KanbanCardFooter>
+    </KanbanCard>
   )}
 
   // Column customization
@@ -145,6 +180,7 @@ import { DataKanbanCriteria } from "@woltz/react-rich-domain";
   className="h-full"
   columnsClassName="gap-4"
   columnClassName="bg-muted rounded-lg"
+  columnsContentScrollClassName="h-[calc(100vh-200px)]"
 />
 ```
 
@@ -156,17 +192,37 @@ renderCard={(item, isDragging, isClickable) => {
   // isClickable: true when onCardClick is provided
 
   return (
-    <div
-      className={cn(
-        "p-4 bg-white rounded shadow",
-        isDragging && "opacity-50 rotate-2 shadow-lg",
-        isClickable && "cursor-pointer hover:shadow-md"
-      )}
-    >
+    <KanbanCard id={item.id} isDragging={isDragging} isClickable={isClickable}>
       {item.title}
-    </div>
+    </KanbanCard>
   );
 }}
+```
+
+### Cursor Styles
+
+The `KanbanCard` component automatically handles cursor styles:
+
+| State | Cursor | When |
+|-------|--------|------|
+| `cursor-grab` | Default draggable state |
+| `cursor-pointer` | Card has `onCardClick` handler |
+| `cursor-grabbing` | Card is being dragged |
+
+### Preventing Drag on Elements
+
+Use `data-no-drag` attribute on elements that should not trigger dragging:
+
+```typescript
+<KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
+  <KanbanCardHeader>
+    <KanbanCardTitle>{task.title}</KanbanCardTitle>
+    {/* Button won't trigger drag when clicked */}
+    <button data-no-drag onClick={() => deleteTask(task.id)}>
+      Delete
+    </button>
+  </KanbanCardHeader>
+</KanbanCard>
 ```
 
 ---

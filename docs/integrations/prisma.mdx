@@ -584,6 +584,49 @@ await executeBatch(context, changes, {
 });
 ```
 
+### Registry Fields vs DataMappers
+
+These are **complementary features** with different responsibilities:
+
+| Aspect | Registry `fields` | BatchExecutor `dataMappers` |
+|--------|-------------------|----------------------------|
+| **Type** | Declarative config | Custom functions |
+| **Scope** | All operations (create, update, delete) | CREATE operations only |
+| **Usage** | Automatic via `mapEntity()`, `mapFields()` | Opt-in (optional override) |
+| **Purpose** | Map field names (domain → database column) | Complex entity transformation |
+| **Reusability** | Defined once, used everywhere | Per-executor instance |
+
+<Tip>
+  **When to use each:**
+
+  **Registry `fields`** - Simple field name conversions applied automatically:
+  ```typescript
+  registry.register({
+    entity: "Post",
+    table: "post",
+    fields: {
+      content: "main_content",
+      createdAt: "created_at",
+    },
+  });
+  ```
+
+  **`dataMappers`** - Custom transformation logic when default mapping isn't enough:
+  ```typescript
+  dataMappers: {
+    Comment: (item) => ({
+      id: item.data.id.value,
+      text: item.data.text,
+      postId: item.parentId,
+      wordCount: item.data.text.split(" ").length, // Computed field
+      status: item.data.approved ? "published" : "draft", // Conditional
+    }),
+  }
+  ```
+
+  If no `dataMapper` is defined, the executor uses the registry's `mapEntity()` as fallback.
+</Tip>
+
 ---
 
 ## Complete Example

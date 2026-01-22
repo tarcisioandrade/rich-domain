@@ -168,6 +168,36 @@ await executor.execute(changes);
 2. Creates (root → leaf, depth ASC)
 3. Updates (any order)
 
+### Registry Fields vs DataMappers
+
+These are **complementary features** with different responsibilities:
+
+| Aspect | Registry `fields` | `dataMappers` |
+|--------|-------------------|---------------|
+| **Type** | Declarative config | Custom functions |
+| **Scope** | All operations | CREATE only |
+| **Usage** | Automatic | Opt-in (optional) |
+| **Purpose** | Map field names | Complex transformation |
+
+**Registry `fields`** - Simple field name conversions:
+```typescript
+fields: { content: "main_content", createdAt: "created_at" }
+```
+
+**`dataMappers`** - Custom transformation when default mapping isn't enough:
+```typescript
+dataMappers: {
+  Comment: (item) => ({
+    id: item.data.id.value,
+    text: item.data.text,
+    postId: item.parentId,
+    wordCount: item.data.text.split(" ").length, // Computed
+  }),
+}
+```
+
+If no `dataMapper` is defined, falls back to registry's `mapEntity()`.
+
 ## Transactions
 
 ### @Transactional Decorator

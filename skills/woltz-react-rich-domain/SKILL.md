@@ -138,15 +138,18 @@ export function TaskBoard() {
 | `DataKanbanCriteria` | Kanban board with drag-and-drop |
 | `DataTimelineCriteria` | Timeline view with grouped items |
 | `DataViewToolbar` | Search, filter, export toolbar |
-| `DataViewFilter` | Filter dropdown UI |
+| `Filter` | Standalone filter dropdown UI |
+| `Sorting` | Sorting UI with drag-and-drop reordering |
 
 ## References
 
 For detailed documentation:
 
-- [Hooks](./references/hooks.md) - useCriteria, useCriteriaQuery, useCriteriaTable, useCriteriaKanban
+- [Hooks](./references/hooks.md) - useCriteria, useCriteriaQuery, useCriteriaTable, useCriteriaKanban, useCriteriaTimeline
 - [Components](./references/components.md) - DataTableCriteria, DataKanbanCriteria, DataTimelineCriteria
-- [Filtering](./references/filtering.md) - Filter fields, operators, and UI integration
+- [Filter Component](./references/filter-component.md) - Standalone filter UI with operators by type
+- [Sorting Component](./references/sorting-component.md) - Sorting UI with drag-and-drop reordering
+- [Filtering](./references/filtering.md) - Filter fields, operators, and programmatic management
 - [State Persistence](./references/state-persistence.md) - URL sync and localStorage
 
 **Load references based on context - don't read all at once.**

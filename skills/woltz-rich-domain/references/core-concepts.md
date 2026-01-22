@@ -248,7 +248,6 @@ class Order extends Aggregate<OrderProps> {
 // Dispatch after persistence
 await orderRepository.save(order);
 await order.dispatchAll(eventBus);
-order.clearEvents();
 
 // Event handler
 class SendConfirmationEmail implements IDomainEventHandler<OrderConfirmedEvent> {
@@ -275,7 +274,7 @@ order.items[0].updateQuantity(5);        // Update
 order.items.splice(1, 1);                // Delete
 
 // Get changes
-// We hard recommendly use this 'getTypedChanges' helper pattern to better DX;
+// We strongly recommend using the `getTypedChanges` helper pattern for better DX
 const changes = order.getTypedChanges();
 
 console.log(changes.hasChanges());  // true
