@@ -5,7 +5,7 @@
 A comprehensive TypeScript monorepo for Domain-Driven Design, providing enterprise-ready tools for building maintainable, scalable applications with clean architecture patterns.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.12-brightgreen)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4%2B-blue)](https://www.typescriptlang.org/)
 </div>
 
@@ -148,7 +148,7 @@ rich-domain/
 
 ### Prerequisites
 
-- Node.js >= 20.0.0
+- Node.js >= 22.12.0
 - npm, pnpm, yarn, or bun
 
 ### Setup
