@@ -1,16 +1,7 @@
 ---
 title: "Lifecycle Hooks"
 description: "Custom validation rules and lifecycle callbacks"
-keywords:
-  [
-    "lifecycle-hooks",
-    "hooks",
-    "callbacks",
-    "validation",
-    "business-rules",
-    "ddd",
-    "typescript",
-  ]
+keywords: ["lifecycle-hooks","hooks","callbacks","validation","business-rules","ddd","typescript"]
 ---
 
 ## Overview
@@ -76,12 +67,7 @@ Use `onBeforeCreate` with optional input properties to generate values internall
 
 ```typescript
 import { z } from "zod";
-import {
-  Aggregate,
-  Id,
-  EntityValidation,
-  EntityHooks,
-} from "@woltz/rich-domain";
+import { Aggregate, Id, EntityValidation, EntityHooks } from "@woltz/rich-domain";
 
 const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
@@ -94,10 +80,7 @@ const userSchema = z.object({
 type UserProps = z.infer<typeof userSchema>;
 
 // Mark fields as optional at input
-class User extends Aggregate<
-  UserProps,
-  "password" | "passwordResetToken" | "createdAt"
-> {
+class User extends Aggregate<UserProps, "password" | "passwordResetToken" | "createdAt"> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
   };
@@ -140,9 +123,7 @@ const userWithPassword = new User({
 ```
 
 <Note>
-  Values generated in `onBeforeCreate` are still validated by the schema. If
-  generation fails to meet schema requirements, a `ValidationError` will be
-  thrown.
+  Values generated in `onBeforeCreate` are still validated by the schema. If generation fails to meet schema requirements, a `ValidationError` will be thrown.
 </Note>
 
 ### onCreate

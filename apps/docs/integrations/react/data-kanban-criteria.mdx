@@ -22,9 +22,11 @@ keywords:
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
 ```
 
+
 ```bash pnpm
 pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
 ```
+
 
 ```bash yarn
 yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/data-kanban-criteria.json"
@@ -129,11 +131,7 @@ function TaskKanban() {
     <DataKanbanCriteria
       kanban={kanban}
       renderCard={(task, isDragging, isClickable) => (
-        <KanbanCard
-          id={task.id}
-          isDragging={isDragging}
-          isClickable={isClickable}
-        >
+        <KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
           <KanbanCardHeader>
             <KanbanCardTitle>{task.title}</KanbanCardTitle>
           </KanbanCardHeader>
@@ -197,11 +195,10 @@ interface KanbanColumnDefinition<T> {
 ```
 
 <Note>
-  The `value` property is used when the column `id` differs from the actual
-  value stored in your data. For example, if your column has `id: "in-progress"`
-  but your database stores `status: "DOING"`, set `value: "DOING"`. When a card
-  is moved to this column, the hook will use `value` for optimistic updates. If
-  `value` is omitted, the column `id` is used instead.
+The `value` property is used when the column `id` differs from the actual value stored in your data.
+For example, if your column has `id: "in-progress"` but your database stores `status: "DOING"`,
+set `value: "DOING"`. When a card is moved to this column, the hook will use `value` for optimistic updates.
+If `value` is omitted, the column `id` is used instead.
 </Note>
 
 #### Card Move Parameters
@@ -220,7 +217,6 @@ interface CardMoveParams<T> {
 ```
 
 The `insertAfterId` pattern is designed for scalability:
-
 - Frontend sends only the reference ID (not the order)
 - Backend queries the real neighbors to calculate the correct order
 - Works correctly even with filters applied
@@ -279,11 +275,7 @@ async function moveTask(
 ```tsx
 interface DataKanbanCriteriaProps<T> {
   kanban: UseCriteriaKanbanReturn<T>; // From useCriteriaKanban
-  renderCard: (
-    item: T,
-    isDragging: boolean,
-    isClickable: boolean
-  ) => React.ReactNode;
+  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
   renderColumnHeader?: (column, itemCount) => React.ReactNode;
   renderColumnFooter?: (column) => React.ReactNode;
   renderEmptyState?: (column) => React.ReactNode; // Custom empty state
@@ -370,7 +362,7 @@ import {
       {task.priority}
     </KanbanCardBadge>
   </KanbanCardFooter>
-</KanbanCard>;
+</KanbanCard>
 ```
 
 #### Custom Empty State
@@ -384,7 +376,9 @@ Customize what's shown when a column has no items:
   renderEmptyState={(column) => (
     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
       <p className="text-sm">No tasks in {column.title}</p>
-      <button className="mt-2 text-primary text-sm">+ Add task</button>
+      <button className="mt-2 text-primary text-sm">
+        + Add task
+      </button>
     </div>
   )}
 />
@@ -414,12 +408,12 @@ This is useful for interactive elements inside cards like buttons, inputs, or dr
 
 The `KanbanCard` component automatically handles cursor styles based on state:
 
-| State                | Cursor | When                                |
-| -------------------- | ------ | ----------------------------------- |
-| `cursor-grab`        | ✋     | Card is draggable, no `onCardClick` |
-| `cursor-pointer`     | 👆     | Card has `onCardClick` handler      |
-| `cursor-grabbing`    | ✊     | Card is being dragged               |
-| `cursor-not-allowed` | 🚫     | Card is disabled                    |
+| State | Cursor | When |
+|-------|--------|------|
+| `cursor-grab` | ✋ | Card is draggable, no `onCardClick` |
+| `cursor-pointer` | 👆 | Card has `onCardClick` handler |
+| `cursor-grabbing` | ✊ | Card is being dragged |
+| `cursor-not-allowed` | 🚫 | Card is disabled |
 
 The `isClickable` parameter in `renderCard` determines if the card should show `cursor-pointer`:
 
@@ -430,12 +424,12 @@ The `isClickable` parameter in `renderCard` determines if the card should show `
     <KanbanCard
       id={task.id}
       isDragging={isDragging}
-      isClickable={isClickable} // Pass this to get correct cursor
+      isClickable={isClickable}  // Pass this to get correct cursor
     >
       {/* ... */}
     </KanbanCard>
   )}
-  onCardClick={(task) => openTaskModal(task)} // When set, isClickable=true
+  onCardClick={(task) => openTaskModal(task)}  // When set, isClickable=true
 />
 ```
 

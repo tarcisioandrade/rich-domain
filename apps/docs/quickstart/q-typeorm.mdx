@@ -1,18 +1,7 @@
 ---
 title: "With TypeORM"
 description: "Complete guide to using Rich Domain with TypeORM"
-keywords:
-  [
-    "quickstart",
-    "getting-started",
-    "tutorial",
-    "setup",
-    "installation",
-    "ddd",
-    "typescript",
-    "guide",
-    "typeorm",
-  ]
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","typeorm"]
 ---
 
 ## Installation
@@ -25,9 +14,11 @@ Install the TypeORM adapter:
 npm install @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
 ```
 
+
 ```bash pnpm
 pnpm add @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
 ```
+
 
 ```bash yarn
 yarn add @woltz/rich-domain @woltz/rich-domain-typeorm typeorm reflect-metadata
@@ -185,10 +176,10 @@ Maps from Domain to TypeORM using `TypeORMToPersistence`:
 
 ```typescript
 import { EntityManager } from "typeorm";
-import {
-  TypeORMToPersistence,
+import { 
+  TypeORMToPersistence, 
   TypeORMUnitOfWork,
-  Transactional,
+  Transactional 
 } from "@woltz/rich-domain-typeorm";
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 
@@ -219,10 +210,10 @@ export class ProductToPersistenceMapper extends TypeORMToPersistence<Product> {
 ```
 
 <Note>
-  - `onCreate` receives `EntityManager` as second parameter - Use
-  `@Transactional()` decorator for automatic transaction management -
-  `entityClasses` Map is required for the BatchExecutor - `onUpdate` is handled
-  automatically by `TypeORMBatchExecutor` - no need to override
+  - `onCreate` receives `EntityManager` as second parameter
+  - Use `@Transactional()` decorator for automatic transaction management
+  - `entityClasses` Map is required for the BatchExecutor
+  - `onUpdate` is handled automatically by `TypeORMBatchExecutor` - no need to override
 </Note>
 
 ## Create Repository
@@ -230,10 +221,10 @@ export class ProductToPersistenceMapper extends TypeORMToPersistence<Product> {
 Implement the repository:
 
 ```typescript
-import {
-  TypeORMRepository,
+import { 
+  TypeORMRepository, 
   TypeORMUnitOfWork,
-  SearchableField,
+  SearchableField 
 } from "@woltz/rich-domain-typeorm";
 import { AppDataSource } from "./data-source";
 import { Repository } from "typeorm";
@@ -251,7 +242,7 @@ class ProductRepository
 {
   constructor() {
     const typeormRepo = AppDataSource.getRepository(ProductEntity);
-
+    
     super({
       typeormRepository: typeormRepo,
       toDomainMapper: new ProductToDomainMapper(),
@@ -283,11 +274,11 @@ class ProductRepository
 <Tip>
   **Key points:**
 
-- ToPersistenceMapper receives `uow` in constructor
-- Use `getSearchableFields()` to define which fields support search
-- Use `getDefaultRelations()` to eagerly load relations
-- `typeormRepo` is available from the base class for custom queries
-  </Tip>
+  - ToPersistenceMapper receives `uow` in constructor
+  - Use `getSearchableFields()` to define which fields support search
+  - Use `getDefaultRelations()` to eagerly load relations
+  - `typeormRepo` is available from the base class for custom queries
+</Tip>
 
 ````
 
@@ -349,7 +340,7 @@ export class UserEntity {
   @Column()
   name!: string;
 
-  @OneToMany(() => PostEntity, (post) => post.author)
+  @OneToMany(() => PostEntity, post => post.author)
   posts!: PostEntity[];
 }
 
@@ -361,7 +352,7 @@ export class PostEntity {
   @Column()
   authorId!: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.posts)
+  @ManyToOne(() => UserEntity, user => user.posts)
   author!: UserEntity;
 }
 
@@ -522,7 +513,7 @@ class ProductService {
 
     await this.repository.save(from);
     await this.repository.save(to);
-
+    
     // Commits on success, rolls back on error
   }
 }
@@ -561,7 +552,7 @@ class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
       .orderBy("product.stock", "ASC")
       .getMany();
 
-    return entities.map((e) => this.toDomainMapper.map(e));
+    return entities.map(e => this.toDomainMapper.map(e));
   }
 
   async findByPriceRange(min: number, max: number): Promise<Product[]> {
@@ -570,7 +561,7 @@ class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
       .where("product.price BETWEEN :min AND :max", { min, max })
       .getMany();
 
-    return entities.map((e) => this.toDomainMapper.map(e));
+    return entities.map(e => this.toDomainMapper.map(e));
   }
 }
 ```
@@ -584,18 +575,10 @@ class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
   </Card>
-  <Card
-    title="Change Tracking"
-    icon="clock-rotate-left"
-    href="/core/change-tracking"
-  >
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
     Understand how changes are tracked
   </Card>
-  <Card
-    title="Transactions"
-    icon="arrows-rotate"
-    href="/integrations/typeorm#transactions"
-  >
+  <Card title="Transactions" icon="arrows-rotate" href="/integrations/typeorm#transactions">
     Advanced transaction management
   </Card>
 </CardGroup>

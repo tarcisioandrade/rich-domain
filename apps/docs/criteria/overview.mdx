@@ -1,16 +1,7 @@
 ---
 title: "Overview"
 description: "Type-safe, fluent query builder for filtering, ordering, and paginating data"
-keywords:
-  [
-    "criteria",
-    "query-builder",
-    "filtering",
-    "querying",
-    "type-safe",
-    "fluent-api",
-    "typescript",
-  ]
+keywords: ["criteria","query-builder","filtering","querying","type-safe","fluent-api","typescript"]
 ---
 
 ## What is Criteria?
@@ -294,7 +285,9 @@ class UserRepository extends Repository<User> {
   }
 
   async search(query: string): Promise<PaginatedResult<User>> {
-    const criteria = Criteria.create<User>().search(query).limit(50);
+    const criteria = Criteria.create<User>()
+      .search(query)
+      .limit(50);
 
     return this.find(criteria);
   }

@@ -1,16 +1,7 @@
 ---
 title: "Query Params & Adapters"
 description: "API integration, field mapping adapters, and advanced features"
-keywords:
-  [
-    "query-params",
-    "adapters",
-    "api-integration",
-    "field-mapping",
-    "rest-api",
-    "http",
-    "typescript",
-  ]
+keywords: ["query-params","adapters","api-integration","field-mapping","rest-api","http","typescript"]
 ---
 
 ## Query Params Integration
@@ -55,7 +46,7 @@ const criteria = Criteria.fromQueryParams<User>({
 | Multiple orders | `orderBy=field1:dir,field2:dir` | `orderBy=featured:desc,price:asc` |
 | Page            | `page=number`                   | `page=2`                          |
 | Limit           | `limit=number`                  | `limit=20`                        |
-| Search          | `search=query`                  | `search=laptop`                   |
+| Search          | `search=query`                  | `search=laptop`                 
 
 ### Complete URL Example
 
@@ -281,7 +272,7 @@ Result:
     "limit": 20,
     "offset": 20
   },
-  "search": "john"
+  "search": 'john'
 }
 ```
 
@@ -344,7 +335,10 @@ const recentUsers = baseCriteria
   .where("createdAt", "greaterThan", lastWeek)
   .paginate(1, 50);
 
-const searchResults = baseCriteria.clone().search(searchQuery).limit(20);
+const searchResults = baseCriteria
+  .clone()
+  .search(searchQuery)
+  .limit(20);
 
 // Original is unchanged
 console.log(baseCriteria.getFilters().length); // 2 (status, email)

@@ -2,7 +2,14 @@
 title: "useCriteriaInfiniteQuery"
 description: "A specialized hook for infinite scroll patterns using React Query's `useInfiniteQuery`."
 keywords:
-  ["react", "hooks", "react-query", "criteria", "frontend", "compoenent"]
+  [
+    "react",
+    "hooks",
+    "react-query",
+    "criteria",
+    "frontend",
+    "compoenent"
+  ]
 ---
 
 ## Instalation
@@ -13,9 +20,11 @@ keywords:
 npx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
 ```
 
+
 ```bash pnpm
 pnpm dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
 ```
+
 
 ```bash yarn
 yarn dlx shadcn add "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria-infinite-query.json"
@@ -37,10 +46,14 @@ function InfiniteList() {
     hasNextPage,
     isFetchingNextPage,
     // ... all useCriteria methods
-  } = useCriteriaInfiniteQuery<User>(["users"], getUsers, {
-    pageSize: 20,
-    enabled: true,
-  });
+  } = useCriteriaInfiniteQuery<User>(
+    ["users"],
+    getUsers,
+    {
+      pageSize: 20,
+      enabled: true,
+    }
+  );
 
   return (
     <div>
@@ -49,7 +62,10 @@ function InfiniteList() {
       ))}
 
       {hasNextPage && (
-        <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
           {isFetchingNextPage ? "Loading..." : "Load More"}
         </button>
       )}

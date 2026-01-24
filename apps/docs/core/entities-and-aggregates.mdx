@@ -1,16 +1,7 @@
 ---
 title: "Entities & Aggregates"
 description: "Domain objects with identity that form the core building blocks of your domain model"
-keywords:
-  [
-    "entity",
-    "aggregate",
-    "aggregate-root",
-    "ddd",
-    "domain-driven-design",
-    "identity",
-    "typescript",
-  ]
+keywords: ["entity","aggregate","aggregate-root","ddd","domain-driven-design","identity","typescript"]
 ---
 
 ## What are Entities and Aggregates?
@@ -24,12 +15,10 @@ The main difference lies in their architectural role:
 
 <CardGroup cols={2}>
   <Card title="Entity" icon="cube">
-    Objects with identity that live inside Aggregates. Not accessed directly
-    through repositories.
+    Objects with identity that live inside Aggregates. Not accessed directly through repositories.
   </Card>
   <Card title="Aggregate" icon="cubes">
-    Root of a cluster of related entities. Defines transactional and consistency
-    boundaries.
+    Root of a cluster of related entities. Defines transactional and consistency boundaries.
   </Card>
 </CardGroup>
 
@@ -48,7 +37,6 @@ The main difference lies in their architectural role:
 ## Creating Entities
 
 Entities are simpler objects, typically used as part of an Aggregate:
-
 ```typescript
 import { Entity, Id, DomainError } from "@woltz/rich-domain";
 
@@ -103,7 +91,6 @@ console.log(existingItem.isNew()); // false
 ## Creating Aggregates
 
 Aggregates are the root of a cluster of entities and define consistency boundaries:
-
 ```typescript
 import { Aggregate, Id, DomainError } from "@woltz/rich-domain";
 
@@ -168,7 +155,6 @@ class Order extends Aggregate<OrderProps> {
 ## Identity & Equality
 
 Both Entities and Aggregates are compared by ID, not by attributes:
-
 ```typescript
 const item1 = new OrderItem({
   id: Id.from("item-1"),
@@ -200,7 +186,6 @@ item1.equals(Id.from("item-1")); // true - can compare with Id
 ## Validation
 
 Both support validation with Zod schemas:
-
 ```typescript
 import { z } from "zod";
 import { EntityValidation, EntityHooks } from "@woltz/rich-domain";
@@ -265,12 +250,7 @@ Sometimes you need properties that are required in the entity but optional when 
 
 ```typescript
 import { z } from "zod";
-import {
-  Aggregate,
-  Id,
-  EntityValidation,
-  EntityHooks,
-} from "@woltz/rich-domain";
+import { Aggregate, Id, EntityValidation, EntityHooks } from "@woltz/rich-domain";
 
 const userSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
@@ -325,9 +305,7 @@ const userWithPassword = new User({
 ```
 
 <Note>
-  Fields marked as optional input are still **required in the entity** and
-  validated by the schema. The difference is they're optional when calling `new
-  User()` because they'll be generated in `onBeforeCreate`.
+  Fields marked as optional input are still **required in the entity** and validated by the schema. The difference is they're optional when calling `new User()` because they'll be generated in `onBeforeCreate`.
 </Note>
 
 **Common Use Cases:**
@@ -341,8 +319,7 @@ const userWithPassword = new User({
 
 <CardGroup cols={2}>
   <Card title="Immediate Consistency" icon="shield">
-    All invariants within an Aggregate are enforced immediately within a single
-    transaction.
+    All invariants within an Aggregate are enforced immediately within a single transaction.
   </Card>
   <Card title="Eventual Consistency" icon="arrows-rotate">
     Changes to other Aggregates happen asynchronously through domain events.
@@ -352,7 +329,6 @@ const userWithPassword = new User({
 ### Change Tracking
 
 Aggregates automatically track changes to all nested entities and collections:
-
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -402,7 +378,6 @@ const batch = changes.toBatchOperations();
 ### Domain Events
 
 Aggregates can emit domain events for cross-aggregate communication:
-
 ```typescript
 import { DomainEvent } from "@woltz/rich-domain";
 
@@ -446,7 +421,6 @@ See more in [Domain Events](/core/domain-events)
 ## Serialization
 
 Both can be converted to JSON for APIs or persistence:
-
 ```typescript
 const item = new OrderItem({
   id: Id.from("item-123"),

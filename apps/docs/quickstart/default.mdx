@@ -13,9 +13,11 @@ Only the core library is needed:
 npm install @woltz/rich-domain zod
 ```
 
+
 ```bash pnpm
 pnpm add @woltz/rich-domain zod
 ```
+
 
 ```bash yarn
 yarn add @woltz/rich-domain zod
@@ -147,9 +149,10 @@ class PostgresProductRepository implements IProductRepository {
   }
 
   async findById(id: string): Promise<Product | null> {
-    const result = await pool.query("SELECT * FROM products WHERE id = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [id]
+    );
 
     if (result.rows.length === 0) return null;
 
@@ -164,9 +167,10 @@ class PostgresProductRepository implements IProductRepository {
   }
 
   async findByName(name: string): Promise<Product | null> {
-    const result = await pool.query("SELECT * FROM products WHERE name = $1", [
-      name,
-    ]);
+    const result = await pool.query(
+      "SELECT * FROM products WHERE name = $1",
+      [name]
+    );
 
     if (result.rows.length === 0) return null;
 
@@ -398,21 +402,13 @@ product.decreaseStock(100); // stock becomes negative
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
   </Card>
-  <Card
-    title="Change Tracking"
-    icon="clock-rotate-left"
-    href="/core/change-tracking"
-  >
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
     Understand how changes are tracked
   </Card>
   <Card title="Criteria API" icon="filter" href="/criteria/overview">
     Type-safe query building
   </Card>
-  <Card
-    title="Entities & Aggregates"
-    icon="cube"
-    href="/core/entities-and-aggregates"
-  >
+  <Card title="Entities & Aggregates" icon="cube" href="/core/entities-and-aggregates">
     Core DDD concepts
   </Card>
 </CardGroup>

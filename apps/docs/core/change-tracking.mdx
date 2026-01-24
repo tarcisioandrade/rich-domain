@@ -1,22 +1,12 @@
 ---
 title: "Change Tracking"
 description: "Automatically track and persist all changes across your aggregate hierarchy"
-keywords:
-  [
-    "change-tracking",
-    "proxy",
-    "audit",
-    "history",
-    "state-management",
-    "ddd",
-    "typescript",
-  ]
+keywords: ["change-tracking","proxy","audit","history","state-management","ddd","typescript"]
 ---
 
 ## What is Change Tracking?
 
 Change Tracking automatically monitors all modifications made to an Aggregate and its nested entities. Instead of manually tracking changes, the library uses JavaScript Proxies to intercept property assignments and maintain a complete history.
-
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -56,23 +46,21 @@ console.log(changes.hasCreates()); // true - new item added
 ## Basic Usage
 
 ### Getting Changes
-
 ```typescript
 const changes = order.getChanges();
 
 // Check what changed
-changes.hasCreates(); // Any new entities?
-changes.hasUpdates(); // Any modified entities?
-changes.hasDeletes(); // Any deleted entities?
-changes.hasChanges(); // Any changes at all?
-changes.isEmpty(); // No changes?
+changes.hasCreates();  // Any new entities?
+changes.hasUpdates();  // Any modified entities?
+changes.hasDeletes();  // Any deleted entities?
+changes.hasChanges();  // Any changes at all?
+changes.isEmpty();     // No changes?
 
 // Get count
-changes.count; // Total number of operations
+changes.count;  // Total number of operations
 ```
 
 ### Accessing Operations
-
 ```typescript
 // Get all creates (ordered root → leaf)
 const creates = changes.creates();
@@ -95,19 +83,18 @@ for (const op of changes.operations()) {
 ### Filtering by Entity
 
 Get changes for a specific entity type:
-
 ```typescript
 const itemChanges = changes.for("OrderItem");
 
 // Access entities directly
-itemChanges.creates; // OrderItem[] - new items
-itemChanges.deletes; // OrderItem[] - deleted items
-itemChanges.updates; // Array<{ entity: OrderItem, changed: {...} }>
+itemChanges.creates;   // OrderItem[] - new items
+itemChanges.deletes;   // OrderItem[] - deleted items
+itemChanges.updates;   // Array<{ entity: OrderItem, changed: {...} }>
 
 // Get IDs
-itemChanges.createIds; // string[]
-itemChanges.updateIds; // string[]
-itemChanges.deleteIds; // string[]
+itemChanges.createIds;  // string[]
+itemChanges.updateIds;  // string[]
+itemChanges.deleteIds;  // string[]
 
 // Check for changes
 itemChanges.hasCreates();
@@ -121,7 +108,6 @@ itemChanges.count;
 ### Clearing Changes
 
 After persisting, mark the aggregate as clean:
-
 ```typescript
 await repository.save(order);
 
@@ -134,8 +120,7 @@ console.log(changes.isEmpty()); // true
 ```
 
 <Warning>
-  Always call `markAsClean()` after successfully persisting. Otherwise, the same
-  changes will be detected again.
+Always call `markAsClean()` after successfully persisting. Otherwise, the same changes will be detected again.
 </Warning>
 
 ## Batch Operations
@@ -143,7 +128,7 @@ console.log(changes.isEmpty()); // true
 For efficient database persistence, use `toBatchOperations()` to group changes by entity:
 
 <Info>
-  Prisma ORM is being used in the example due to our high compatibility.
+Prisma ORM is being used in the example due to our high compatibility.
 </Info>
 
 ```typescript
@@ -181,9 +166,10 @@ for (const update of batch.updates) {
 ```
 
 <Note>
-  Operations are automatically ordered to prevent foreign key violations: -
-  **Deletes**: Children first, then parents - **Creates**: Parents first, then
-  children - **Updates**: Any order (no FK impact)
+Operations are automatically ordered to prevent foreign key violations:
+- **Deletes**: Children first, then parents
+- **Creates**: Parents first, then children
+- **Updates**: Any order (no FK impact)
 </Note>
 
 ## Operation Ordering
@@ -228,10 +214,10 @@ const updates = changes.updates();
 // Order not guaranteed - apply in any order
 ```
 
+
 ## Working with Collections
 
 ### Adding Items
-
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -246,7 +232,6 @@ console.log(itemChanges.creates.length); // 2
 ```
 
 ### Removing Items
-
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -263,7 +248,6 @@ console.log(itemChanges.deleteIds); // ["item-1"]
 ```
 
 ### Updating Items
-
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -279,12 +263,11 @@ console.log(itemChanges.updates[0].changed); // { quantity: 5 }
 ```
 
 ### Mixed Operations
-
 ```typescript
 // Create, update, and delete in the same transaction
-order.addItem("prod-new", 1, 39.99); // Create
-order.items[0].updateQuantity(10); // Update
-order.removeItem(Id.from("item-old")); // Delete
+order.addItem("prod-new", 1, 39.99);        // Create
+order.items[0].updateQuantity(10);          // Update
+order.removeItem(Id.from("item-old"));      // Delete
 
 const itemChanges = order.getChanges().for("OrderItem");
 console.log(itemChanges.creates.length); // 1
@@ -295,26 +278,22 @@ console.log(itemChanges.deletes.length); // 1
 ## Working with Single Entities (1:1)
 
 ### Setting an Entity
-
 ```typescript
 const user = new User({
   id: Id.from("user-1"),
   address: null,
 });
 
-user.setAddress(
-  new Address({
-    street: "123 Main St",
-    city: "New York",
-  })
-);
+user.setAddress(new Address({
+  street: "123 Main St",
+  city: "New York",
+}));
 
 const addressChanges = user.getChanges().for("Address");
 console.log(addressChanges.hasCreates()); // true
 ```
 
 ### Removing an Entity
-
 ```typescript
 const user = new User({
   id: Id.from("user-1"),
@@ -328,7 +307,6 @@ console.log(addressChanges.deleteIds); // ["addr-1"]
 ```
 
 ### Updating an Entity
-
 ```typescript
 const user = new User({
   id: Id.from("user-1"),
@@ -342,7 +320,6 @@ console.log(addressChanges.updates[0].changed); // { street: "New Street" }
 ```
 
 ### Replacing an Entity
-
 ```typescript
 const user = new User({
   id: Id.from("user-1"),
@@ -363,7 +340,6 @@ console.log(addressChanges.hasCreates()); // true - new address
 ## Deeply Nested Changes
 
 Change tracking works at any depth automatically:
-
 ```typescript
 // Structure: User → Post → Comment → Like
 const user = new User({
@@ -399,7 +375,6 @@ console.log(changes.for("Like").hasCreates());    // true
 ### Cascading Deletes
 
 When you delete a parent entity, all children are automatically tracked as deletes:
-
 ```typescript
 const user = new User({
   posts: [
@@ -429,7 +404,6 @@ const batch = changes.toBatchOperations();
 ### Cascading Creates
 
 When you create a parent with children, all are tracked:
-
 ```typescript
 user.addPost(new Post({
   title: "New Post",
@@ -460,12 +434,8 @@ For tracking changes in collections of complex objects, use Entities instead of 
 
 ```typescript
 class TagReference extends Entity<{ id: Id; tagId: string; name: string }> {
-  get tagId() {
-    return this.props.tagId;
-  }
-  get name() {
-    return this.props.name;
-  }
+  get tagId() { return this.props.tagId; }
+  get name() { return this.props.name; }
 }
 
 class Like extends Entity<{
@@ -474,12 +444,8 @@ class Like extends Entity<{
   userId: string;
   createdAt: Date;
 }> {
-  get postId() {
-    return this.props.postId;
-  }
-  get userId() {
-    return this.props.userId;
-  }
+  get postId() { return this.props.postId; }
+  get userId() { return this.props.userId; }
 }
 ```
 
@@ -494,12 +460,12 @@ const user = new User({
     new TagReference({
       id: new Id(),
       tagId: "tag-1",
-      name: "JavaScript",
+      name: "JavaScript"
     }),
     new TagReference({
       id: new Id(),
       tagId: "tag-2",
-      name: "TypeScript",
+      name: "TypeScript"
     }),
   ],
 });
@@ -508,13 +474,11 @@ const user = new User({
 user.removeTag("tag-1");
 
 // Add a new tag
-user.addTag(
-  new TagReference({
-    id: new Id(),
-    tagId: "tag-3",
-    name: "Node.js",
-  })
-);
+user.addTag(new TagReference({
+  id: new Id(),
+  tagId: "tag-3",
+  name: "Node.js"
+}));
 
 const changes = user.getChanges();
 const tagChanges = changes.for("TagReference");
@@ -534,13 +498,13 @@ const comment = new Comment({
       id: new Id(),
       postId: "post-1",
       userId: "user-1",
-      createdAt: new Date(),
+      createdAt: new Date()
     }),
     new Like({
       id: new Id(),
       postId: "post-1",
       userId: "user-2",
-      createdAt: new Date(),
+      createdAt: new Date()
     }),
   ],
 });
@@ -557,7 +521,6 @@ console.log(likeChanges.deletes.length); // 1
 ## Type-Safe Changes
 
 For better TypeScript support, define an entity map:
-
 ```typescript
 type OrderEntities = {
   Order: Order;
@@ -580,7 +543,6 @@ itemChanges.creates.forEach((item) => {
 ```
 
 ### Helper Method Pattern
-
 ```typescript
 class Order extends Aggregate<OrderProps> {
   getTypedChanges() {
@@ -599,7 +561,6 @@ const items = changes.for("OrderItem"); // Fully typed!
 ```
 
 ## Complete Example with Prisma
-
 ```typescript
 class OrderService {
   constructor(
@@ -696,42 +657,41 @@ class OrderService {
 
 ### AggregateChanges
 
-| Method                  | Returns             | Description                       |
-| ----------------------- | ------------------- | --------------------------------- |
-| `creates()`             | `CreateOperation[]` | All creates, ordered root → leaf  |
-| `updates()`             | `UpdateOperation[]` | All updates                       |
-| `deletes()`             | `DeleteOperation[]` | All deletes, ordered leaf → root  |
-| `for(entity)`           | `EntityChanges<T>`  | Filter changes by entity name     |
-| `toBatchOperations()`   | `BatchOperations`   | Group changes for bulk operations |
-| `hasCreates()`          | `boolean`           | Has any creates                   |
-| `hasUpdates()`          | `boolean`           | Has any updates                   |
-| `hasDeletes()`          | `boolean`           | Has any deletes                   |
-| `hasChanges()`          | `boolean`           | Has any operations                |
-| `isEmpty()`             | `boolean`           | No operations                     |
-| `getAffectedEntities()` | `string[]`          | List of entity names with changes |
-| `operations()`          | `Generator`         | Iterate all operations in order   |
-| `toArray()`             | `Operation[]`       | All operations as array           |
-| `count`                 | `number`            | Total number of operations        |
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `creates()` | `CreateOperation[]` | All creates, ordered root → leaf |
+| `updates()` | `UpdateOperation[]` | All updates |
+| `deletes()` | `DeleteOperation[]` | All deletes, ordered leaf → root |
+| `for(entity)` | `EntityChanges<T>` | Filter changes by entity name |
+| `toBatchOperations()` | `BatchOperations` | Group changes for bulk operations |
+| `hasCreates()` | `boolean` | Has any creates |
+| `hasUpdates()` | `boolean` | Has any updates |
+| `hasDeletes()` | `boolean` | Has any deletes |
+| `hasChanges()` | `boolean` | Has any operations |
+| `isEmpty()` | `boolean` | No operations |
+| `getAffectedEntities()` | `string[]` | List of entity names with changes |
+| `operations()` | `Generator` | Iterate all operations in order |
+| `toArray()` | `Operation[]` | All operations as array |
+| `count` | `number` | Total number of operations |
 
 ### EntityChanges
 
-| Property/Method | Returns                               | Description                   |
-| --------------- | ------------------------------------- | ----------------------------- |
-| `creates`       | `T[]`                                 | Created entities              |
-| `updates`       | `Array<{entity: T, changed: Record}>` | Updated entities with changes |
-| `deletes`       | `T[]`                                 | Deleted entities              |
-| `createIds`     | `string[]`                            | IDs of created entities       |
-| `updateIds`     | `string[]`                            | IDs of updated entities       |
-| `deleteIds`     | `string[]`                            | IDs of deleted entities       |
-| `hasCreates()`  | `boolean`                             | Has any creates               |
-| `hasUpdates()`  | `boolean`                             | Has any updates               |
-| `hasDeletes()`  | `boolean`                             | Has any deletes               |
-| `hasChanges()`  | `boolean`                             | Has any operations            |
-| `isEmpty()`     | `boolean`                             | No operations                 |
-| `count`         | `number`                              | Total operations              |
+| Property/Method | Returns | Description |
+|----------------|---------|-------------|
+| `creates` | `T[]` | Created entities |
+| `updates` | `Array<{entity: T, changed: Record}>` | Updated entities with changes |
+| `deletes` | `T[]` | Deleted entities |
+| `createIds` | `string[]` | IDs of created entities |
+| `updateIds` | `string[]` | IDs of updated entities |
+| `deleteIds` | `string[]` | IDs of deleted entities |
+| `hasCreates()` | `boolean` | Has any creates |
+| `hasUpdates()` | `boolean` | Has any updates |
+| `hasDeletes()` | `boolean` | Has any deletes |
+| `hasChanges()` | `boolean` | Has any operations |
+| `isEmpty()` | `boolean` | No operations |
+| `count` | `number` | Total operations |
 
 ### BatchOperations
-
 ```typescript
 interface BatchOperations {
   deletes: Array<{

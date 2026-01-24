@@ -1,16 +1,7 @@
 ---
 title: "Mappers"
 description: "Transform data between domain models and persistence layer"
-keywords:
-  [
-    "mapper",
-    "data-mapper",
-    "transformation",
-    "dto",
-    "persistence",
-    "domain-model",
-    "typescript",
-  ]
+keywords: ["mapper","data-mapper","transformation","dto","persistence","domain-model","typescript"]
 ---
 
 ## Overview
@@ -30,19 +21,19 @@ const user = userToDomainMapper.build(record);
 <CardGroup cols={2}>
 
 <Card title="Separation of Concerns" icon="arrows-split-up-and-left">
-  Domain models stay focused on business logic, not database schema
+Domain models stay focused on business logic, not database schema
 </Card>
 
 <Card title="Schema Independence" icon="database">
-  Change database schema without touching domain code
+Change database schema without touching domain code
 </Card>
 
 <Card title="Data Transformation" icon="shuffle">
-  Handle type conversions, naming conventions, and structure differences
+Handle type conversions, naming conventions, and structure differences
 </Card>
 
 <Card title="Testability" icon="flask-vial">
-  Test domain logic without database dependencies
+Test domain logic without database dependencies
 </Card>
 
 </CardGroup>
@@ -79,8 +70,8 @@ interface UserRecord {
 class UserToPersistenceMapper extends Mapper<User, UserRecord> {
   build(user: User): UserRecord {
     return {
-      id: user.id.value, // Id → string
-      user_name: user.name, // camelCase → snake_case
+      id: user.id.value,            // Id → string
+      user_name: user.name,         // camelCase → snake_case
       user_email: user.email,
       status: user.status,
       is_verified: user.isVerified,
@@ -99,8 +90,8 @@ Transform database records to domain entities:
 class UserToDomainMapper extends Mapper<UserRecord, User> {
   build(record: UserRecord): User {
     return new User({
-      id: Id.from(record.id), // string → Id
-      name: record.user_name, // snake_case → camelCase
+      id: Id.from(record.id),       // string → Id
+      name: record.user_name,       // snake_case → camelCase
       email: record.user_email,
       status: record.status as "active" | "inactive",
       isVerified: record.is_verified,
@@ -255,7 +246,7 @@ class OrderToDomainMapper extends Mapper<OrderRecord, Order> {
   async build(record: OrderRecord): Promise<Order> {
     // Load related entities
     const customer = await this.customerRepository.findById(record.customer_id);
-
+    
     const items = await Promise.all(
       record.items.map(async (item) => {
         const product = await this.productRepository.findById(item.product_id);
@@ -279,8 +270,7 @@ class OrderToDomainMapper extends Mapper<OrderRecord, Order> {
 ```
 
 <Warning>
-  Async mappers can lead to N+1 query problems. Consider eager loading relations
-  in your repository query instead of lazy loading in mappers.
+Async mappers can lead to N+1 query problems. Consider eager loading relations in your repository query instead of lazy loading in mappers.
 </Warning>
 
 ## Type Conversions
@@ -291,10 +281,10 @@ Common conversions between domain and persistence:
 
 ```typescript
 // Domain → Persistence
-id: user.id.value; // Id → string
+id: user.id.value  // Id → string
 
 // Persistence → Domain
-id: Id.from(record.id); // string → Id
+id: Id.from(record.id)  // string → Id
 ```
 
 ### Enum ↔ String
@@ -304,20 +294,20 @@ id: Id.from(record.id); // string → Id
 type OrderStatus = "draft" | "confirmed" | "shipped" | "delivered";
 
 // Domain → Persistence
-status: order.status; // Already a string
+status: order.status  // Already a string
 
 // Persistence → Domain
-status: record.status as OrderStatus; // Cast to union type
+status: record.status as OrderStatus  // Cast to union type
 ```
 
 ### Date Handling
 
 ```typescript
 // Domain → Persistence
-createdAt: user.createdAt; // Date stays as Date for most ORMs
+createdAt: user.createdAt  // Date stays as Date for most ORMs
 
 // Persistence → Domain
-createdAt: new Date(record.created_at); // If stored as string/timestamp
+createdAt: new Date(record.created_at)  // If stored as string/timestamp
 ```
 
 ### JSON Fields
@@ -330,22 +320,22 @@ interface UserSettings {
 }
 
 // Domain → Persistence (JSON column)
-settings: JSON.stringify(user.settings);
+settings: JSON.stringify(user.settings)
 
 // Persistence → Domain
-settings: JSON.parse(record.settings) as UserSettings;
+settings: JSON.parse(record.settings) as UserSettings
 ```
 
 ### Nullable Relations
 
 ```typescript
 // Domain → Persistence
-addressId: user.address?.id.value ?? null;
+addressId: user.address?.id.value ?? null
 
 // Persistence → Domain
-address: record.address_id
+address: record.address_id 
   ? await this.addressRepository.findById(record.address_id)
-  : null;
+  : null
 ```
 
 ## Mapper Composition

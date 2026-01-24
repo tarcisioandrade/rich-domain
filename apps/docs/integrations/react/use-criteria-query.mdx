@@ -1,7 +1,14 @@
 ---
 title: "useCriteriaQuery"
 description: "A powerful hook that combines Criteria for filter/sort/pagination management with React Query for data fetching, caching, and state management."
-keywords: ["react", "hooks", "react-query", "criteria", "frontend"]
+keywords:
+  [
+    "react",
+    "hooks",
+    "react-query",
+    "criteria",
+    "frontend",
+  ]
 ---
 
 ## Instalation
@@ -118,10 +125,8 @@ function UserList() {
 ### Options
 
 ```tsx
-interface UseCriteriaQueryOptions<
-  TData,
-  TError = Error,
-> extends UseCriteriaOptions<TData> {
+interface UseCriteriaQueryOptions<TData, TError = Error>
+  extends UseCriteriaOptions<TData> {
   // React Query options
   enabled?: boolean; // Enable/disable query
   staleTime?: number; // Time before data is considered stale

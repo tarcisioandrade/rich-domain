@@ -1,16 +1,7 @@
 ---
 title: "Domain Events"
 description: "Communicate changes across aggregates with domain events"
-keywords:
-  [
-    "domain-events",
-    "event-driven",
-    "messaging",
-    "pub-sub",
-    "ddd",
-    "event-sourcing",
-    "typescript",
-  ]
+keywords: ["domain-events","event-driven","messaging","pub-sub","ddd","event-sourcing","typescript"]
 ---
 
 ## What are Domain Events?
@@ -64,23 +55,23 @@ export class SendEmailNotification extends DomainEvent<SendEmailPayload> {
 
 Every domain event automatically has these properties:
 
-| Property     | Type     | Description                                 |
-| ------------ | -------- | ------------------------------------------- |
-| `eventId`    | `string` | Unique identifier for this event occurrence |
-| `eventName`  | `string` | Name of the event (class name)              |
-| `occurredOn` | `Date`   | When the event occurred                     |
-| `payload`    | `P`      | The event data (typed)                      |
-| `queueName`  | `string` | Optional queue name (static property)       |
+| Property      | Type     | Description                                 |
+| ------------- | -------- | ------------------------------------------- |
+| `eventId`     | `string` | Unique identifier for this event occurrence |
+| `eventName`   | `string` | Name of the event (class name)              |
+| `occurredOn`  | `Date`   | When the event occurred                     |
+| `payload`     | `P`      | The event data (typed)                      |
+| `queueName`   | `string` | Optional queue name (static property)       |
 
 ```typescript
 const event = new UserCreatedEvent({
   email: "john@example.com",
 });
 
-console.log(event.eventId); // "1699876543210-abc123def"
-console.log(event.eventName); // "UserCreatedEvent"
-console.log(event.occurredOn); // 2024-12-27T10:30:00.000Z
-console.log(event.payload); // { email: "john@example.com" }
+console.log(event.eventId);     // "1699876543210-abc123def"
+console.log(event.eventName);   // "UserCreatedEvent"
+console.log(event.occurredOn);  // 2024-12-27T10:30:00.000Z
+console.log(event.payload);     // { email: "john@example.com" }
 ```
 
 ## Raising Events from Aggregates
@@ -109,14 +100,18 @@ class User extends Aggregate<UserProps> {
 
     this.props.status = "active";
 
-    this.addDomainEvent(new UserActivatedEvent({ userId: this.id.value }));
+    this.addDomainEvent(
+      new UserActivatedEvent({ userId: this.id.value })
+    );
   }
 
   changeEmail(newEmail: string) {
     const oldEmail = this.props.email;
     this.props.email = newEmail;
 
-    this.addDomainEvent(new UserEmailChangedEvent({ oldEmail, newEmail }));
+    this.addDomainEvent(
+      new UserEmailChangedEvent({ oldEmail, newEmail })
+    );
   }
 }
 ```
@@ -160,7 +155,7 @@ async function createUser(data: CreateUserInput) {
 
   // 3. Publish all uncommitted events
   await user.dispatchAll(eventBus);
-
+  
   // 4. Clear events from aggregate
   user.clearEvents();
 
