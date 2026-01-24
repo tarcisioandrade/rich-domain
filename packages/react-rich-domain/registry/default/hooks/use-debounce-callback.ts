@@ -11,7 +11,7 @@ export function useDebounceCallback<T extends AnyFn>(
   {
     cancel: () => void;
     flush: (...args: Parameters<T>) => void;
-  }
+  },
 ] {
   const callbackRef = useRef(callback);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

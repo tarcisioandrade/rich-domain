@@ -1,7 +1,17 @@
 ---
 title: "CLI"
 description: "Initialize projects and generate domain entities from Prisma schemas"
-keywords: ["cli","command-line","scaffolding","code-generation","prisma","generator","typescript","ddd"]
+keywords:
+  [
+    "cli",
+    "command-line",
+    "scaffolding",
+    "code-generation",
+    "prisma",
+    "generator",
+    "typescript",
+    "ddd",
+  ]
 ---
 
 ## Overview
@@ -149,7 +159,8 @@ Detected packages:
 | None                        | Generates TypeScript interfaces only |
 
 <Warning>
-  Repository and mapper files are only generated when `@woltz/rich-domain-prisma` is installed.
+  Repository and mapper files are only generated when
+  `@woltz/rich-domain-prisma` is installed.
 </Warning>
 
 ### Generated Structure
@@ -277,9 +288,7 @@ export interface UserProps {
 - After adding new models
 - Use `--models` flag to regenerate specific models only
 
-<Tip>
-  Use `--dry-run` first to preview changes before overwriting files.
-</Tip>
+<Tip>Use `--dry-run` first to preview changes before overwriting files.</Tip>
 
 ### Manual Adjustments
 
@@ -409,7 +418,7 @@ The `add` command automatically detects:
 2. **Prisma Adapter**: Detects `@woltz/rich-domain-prisma` for repository/mapper generation
 3. **Output Directory**: Looks for existing `src/domain` or `src` directories
 
-
 <Note>
-  If `@woltz/rich-domain-prisma` is not installed, generic implementations are generated that you'll need to customize for your database.
+  If `@woltz/rich-domain-prisma` is not installed, generic implementations are
+  generated that you'll need to customize for your database.
 </Note>

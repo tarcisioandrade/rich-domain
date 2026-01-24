@@ -19,8 +19,10 @@ import type { UseCriteriaOptions } from "../types/use-criteria.type";
 /**
  * Options for useCriteriaInfiniteQuery hook
  */
-export interface UseCriteriaInfiniteQueryOptions<TData, TError = Error>
-  extends UseCriteriaOptions<TData> {
+export interface UseCriteriaInfiniteQueryOptions<
+  TData,
+  TError = Error,
+> extends UseCriteriaOptions<TData> {
   enabled?: boolean;
   staleTime?: number;
   gcTime?: number;

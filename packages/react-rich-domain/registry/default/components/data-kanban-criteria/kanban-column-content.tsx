@@ -112,20 +112,25 @@ function KanbanColumnContent<T>({
   );
 
   if (items.length === 0) {
-    return <Content className={columnsContentScrollClassName}>
-      {renderEmptyState ? (
-        renderEmptyState()
-      ) : (
-        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-          <p className="text-sm">No items</p>
-        </div>
-      )}
-    </Content>
+    return (
+      <Content className={columnsContentScrollClassName}>
+        {renderEmptyState ? (
+          renderEmptyState()
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <p className="text-sm">No items</p>
+          </div>
+        )}
+      </Content>
+    );
   }
 
   if (items.length < 20) {
     return (
-      <Content ref={parentRef} className={cn("space-y-2", columnsContentScrollClassName)}>
+      <Content
+        ref={parentRef}
+        className={cn("space-y-2", columnsContentScrollClassName)}
+      >
         {items.map((item) => {
           const itemId = getItemId(item);
           const isDragging = activeId ? String(activeId) === itemId : false;
@@ -173,10 +178,7 @@ function KanbanColumnContent<T>({
               }}
               data-item-id={itemId}
               data-index={virtualItem.index}
-              className={cn(
-                "absolute top-0 left-0 w-full",
-                "pb-2"
-              )}
+              className={cn("absolute top-0 left-0 w-full", "pb-2")}
               style={{
                 transform: `translateY(${virtualItem.start}px)`,
               }}
@@ -253,10 +255,12 @@ function LoadingSpinner() {
 }
 
 function Content({ className, ...props }: React.ComponentProps<"div">) {
-  return <div
-    className={cn("p-2 overflow-y-auto kanban-scrollbar", className)}
-    {...props}
-  />
+  return (
+    <div
+      className={cn("p-2 overflow-y-auto kanban-scrollbar", className)}
+      {...props}
+    />
+  );
 }
 
 export { KanbanColumnContent };

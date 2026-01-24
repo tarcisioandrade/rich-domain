@@ -45,7 +45,7 @@ function UserSorting() {
 
 ```typescript
 interface SortingField {
-  field: string;      // Field path in the entity (e.g., "name", "profile.bio")
+  field: string; // Field path in the entity (e.g., "name", "profile.bio")
   fieldLabel: string; // Display label for the field
 }
 ```
@@ -156,7 +156,8 @@ function UserManagement() {
 Use criteria methods directly:
 
 ```typescript
-const { addSort, removeSort, removeSortByField, clearSort, sorting } = useCriteria<User>();
+const { addSort, removeSort, removeSortByField, clearSort, sorting } =
+  useCriteria<User>();
 
 // Add sort
 addSort("createdAt", "desc");
@@ -179,10 +180,10 @@ console.log(sorting);
 
 ## Sorting Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fields` | `SortingField[]` | Yes | Available fields for sorting |
-| `criteria` | `UseCriteriaReturn` | Yes | Criteria instance from useCriteria |
+| Prop       | Type                | Required | Description                        |
+| ---------- | ------------------- | -------- | ---------------------------------- |
+| `fields`   | `SortingField[]`    | Yes      | Available fields for sorting       |
+| `criteria` | `UseCriteriaReturn` | Yes      | Criteria instance from useCriteria |
 
 ---
 

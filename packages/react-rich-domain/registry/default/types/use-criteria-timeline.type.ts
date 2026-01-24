@@ -40,8 +40,9 @@ export interface TimelineGroup<T> {
 /**
  * Configuration options for useCriteriaTimeline hook
  */
-export interface UseCriteriaTimelineOptions<T>
-  extends UseCriteriaInfiniteQueryOptions<T> {
+export interface UseCriteriaTimelineOptions<
+  T,
+> extends UseCriteriaInfiniteQueryOptions<T> {
   /**
    * Field path to the date property in T
    */
@@ -74,8 +75,10 @@ export interface UseCriteriaTimelineOptions<T>
 /**
  * Return type for useCriteriaTimeline hook
  */
-export interface UseCriteriaTimelineReturn<T>
-  extends Omit<UseCriteriaQueryReturn<T>, "data"> {
+export interface UseCriteriaTimelineReturn<T> extends Omit<
+  UseCriteriaQueryReturn<T>,
+  "data"
+> {
   /**
    * Raw data array (ungrouped)
    */

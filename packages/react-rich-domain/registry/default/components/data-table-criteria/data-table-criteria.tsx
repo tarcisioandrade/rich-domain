@@ -13,7 +13,10 @@ import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-column-toggle";
 import type { PaginatedResult } from "@/hooks/use-criteria-query";
 import type { FilterIntegrationProps } from "../data-view-criteria/data-view-filter/data-view-filter";
-import { DataViewToolbar, type FileFormat } from "../data-view-criteria/data-view-toolbar";
+import {
+  DataViewToolbar,
+  type FileFormat,
+} from "../data-view-criteria/data-view-toolbar";
 
 interface DataTableCriteriaProps<TData> {
   table: TableType<TData>;

@@ -14,13 +14,13 @@ TypeScript library for Domain-Driven Design with automatic change tracking and S
 
 ## Ecosystem
 
-| Package | Purpose |
-|---------|---------|
-| `@woltz/rich-domain` | Core DDD building blocks |
-| `@woltz/rich-domain-prisma` | Prisma ORM adapter |
-| `@woltz/rich-domain-typeorm` | TypeORM adapter |
+| Package                           | Purpose                      |
+| --------------------------------- | ---------------------------- |
+| `@woltz/rich-domain`              | Core DDD building blocks     |
+| `@woltz/rich-domain-prisma`       | Prisma ORM adapter           |
+| `@woltz/rich-domain-typeorm`      | TypeORM adapter              |
 | `@woltz/rich-domain-criteria-zod` | Zod schemas for Criteria API |
-| `@woltz/rich-domain-export` | Multi-format data export |
+| `@woltz/rich-domain-export`       | Multi-format data export     |
 
 ## Quick Start
 
@@ -60,7 +60,9 @@ class Post extends Entity<z.infer<typeof PostSchema>> {
     this.props.published = true;
   }
 
-  get title() { return this.props.title; }
+  get title() {
+    return this.props.title;
+  }
 }
 ```
 
@@ -68,9 +70,8 @@ class Post extends Entity<z.infer<typeof PostSchema>> {
 
 ```typescript
 import { Aggregate, Id, EntityHooks } from "@woltz/rich-domain";
-import { UserCreatedEvent } from "./events"
+import { UserCreatedEvent } from "./events";
 import { Email } from "./email";
-
 
 const UserSchema = z.object({
   id: z.custom<Id>(),
@@ -89,15 +90,15 @@ class User extends Aggregate<UserProps, "createdAt"> {
     },
     onCreate: (entity) => {
       if (entity.isNew()) {
-        entity.addDomainEvent(new UserCreatedEvent({ id: entity.id.value }))
+        entity.addDomainEvent(new UserCreatedEvent({ id: entity.id.value }));
       }
-    }
-  }
+    },
+  };
 
   getTypedChanges() {
     interface Entities {
-      Post: Post
-    };
+      Post: Post;
+    }
     return this.getChanges<Entities>();
   }
 
@@ -105,8 +106,12 @@ class User extends Aggregate<UserProps, "createdAt"> {
     this.props.posts.push(new Post({ title, content, published: false }));
   }
 
-  get email() { return this.props.email.value; }
-  get posts() { return this.props.posts; }
+  get email() {
+    return this.props.email.value;
+  }
+  get posts() {
+    return this.props.posts;
+  }
 }
 ```
 
@@ -134,7 +139,7 @@ user.markAsClean();
 import { Criteria } from "@woltz/rich-domain";
 
 // fully type-safe, fields inferred from schema
-const criteria = Criteria.create<User>() 
+const criteria = Criteria.create<User>()
   .where("status", "equals", "active")
   .whereContains("email", "@company.com")
   .orderBy("createdAt", "desc")

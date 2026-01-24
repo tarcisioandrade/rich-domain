@@ -345,8 +345,8 @@ function generateValibotSchemaLines(
       const tsType = field.isList
         ? `${field.type}[]`
         : field.isRequired
-        ? field.type
-        : `${field.type} | null`;
+          ? field.type
+          : `${field.type} | null`;
       lines.push(`  ${field.name}: ${tsType};`);
     }
 
@@ -395,8 +395,8 @@ function generateArktypeSchemaLines(
       const tsType = field.isList
         ? `${field.type}[]`
         : field.isRequired
-        ? field.type
-        : `${field.type} | null`;
+          ? field.type
+          : `${field.type} | null`;
       lines.push(`  ${field.name}: ${tsType};`);
     }
 
@@ -430,8 +430,8 @@ function generateInterfaceLines(
     const tsType = field.isList
       ? `${field.type}[]`
       : field.isRequired
-      ? field.type
-      : `${field.type} | null`;
+        ? field.type
+        : `${field.type} | null`;
     lines.push(`  ${field.name}: ${tsType};`);
   }
 
@@ -499,8 +499,8 @@ function generatePrismaSchema(model: PrismaModel): string {
       const relationType = field.isList
         ? `Prisma${field.type}[]`
         : field.isRequired
-        ? `Prisma${field.type}`
-        : `Prisma${field.type} | null`;
+          ? `Prisma${field.type}`
+          : `Prisma${field.type} | null`;
       lines.push(`  ${field.name}?: ${relationType};`);
     }
     lines.push("};");

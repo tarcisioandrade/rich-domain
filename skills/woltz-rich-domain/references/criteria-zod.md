@@ -11,7 +11,11 @@ npm install @woltz/rich-domain-criteria-zod zod
 ## Quick Start
 
 ```typescript
-import { defineFilters, CriteriaQuerySchema, PaginatedResponseSchema } from "@woltz/rich-domain-criteria-zod";
+import {
+  defineFilters,
+  CriteriaQuerySchema,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
 import { z } from "zod";
 
 // 1. Define filterable fields
@@ -66,14 +70,14 @@ const filters = defineFilters((f) => ({
 
 ### Field Types and Operators
 
-| Method | Operators |
-|--------|-----------|
-| `f.string()` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `f.email()` | Same as string (with email validation) |
-| `f.number()` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
-| `f.date()` | Same as number |
-| `f.boolean()` | equals, notEquals, isNull, isNotNull |
-| `f.array.*` | in, notIn, isNull, isNotNull |
+| Method        | Operators                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `f.string()`  | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `f.email()`   | Same as string (with email validation)                                                                               |
+| `f.number()`  | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
+| `f.date()`    | Same as number                                                                                                       |
+| `f.boolean()` | equals, notEquals, isNull, isNotNull                                                                                 |
+| `f.array.*`   | in, notIn, isNull, isNotNull                                                                                         |
 
 ## CriteriaQuerySchema Options
 
@@ -84,14 +88,15 @@ const querySchema = CriteriaQuerySchema(filters, {
 
   // Pagination options
   pagination: {
-    defaultPage: 1,      // Default: 1
-    defaultLimit: 20,    // Default: 10
-    maxLimit: 100,       // Default: 100
+    defaultPage: 1, // Default: 1
+    defaultLimit: 20, // Default: 10
+    maxLimit: 100, // Default: 100
   },
 });
 ```
 
 **Why whitelist orderBy?**
+
 - Array fields can't be ordered
 - Nested relations may not support ordering
 - Non-indexed fields could cause performance issues
@@ -207,16 +212,12 @@ import { Criteria } from "@woltz/rich-domain";
 
 const app = new Hono();
 
-app.get(
-  "/users",
-  zValidator("query", querySchema),
-  async (c) => {
-    const query = c.req.valid("query");
-    const criteria = Criteria.fromQueryParams(query);
-    const result = await userRepository.find(criteria);
-    return c.json(result.toJSON());
-  }
-);
+app.get("/users", zValidator("query", querySchema), async (c) => {
+  const query = c.req.valid("query");
+  const criteria = Criteria.fromQueryParams(query);
+  const result = await userRepository.find(criteria);
+  return c.json(result.toJSON());
+});
 ```
 
 ### tRPC
@@ -226,12 +227,10 @@ import { router, publicProcedure } from "./trpc";
 import { Criteria } from "@woltz/rich-domain";
 
 export const userRouter = router({
-  list: publicProcedure
-    .input(querySchema)
-    .query(async ({ input }) => {
-      const criteria = Criteria.fromQueryParams(input);
-      return userRepository.find(criteria);
-    }),
+  list: publicProcedure.input(querySchema).query(async ({ input }) => {
+    const criteria = Criteria.fromQueryParams(input);
+    return userRepository.find(criteria);
+  }),
 });
 ```
 
@@ -252,7 +251,11 @@ type UserOrder = OrderEnum<["name", "createdAt"]>;
 
 ```typescript
 // schemas/user-query.ts
-import { defineFilters, CriteriaQuerySchema, PaginatedResponseSchema } from "@woltz/rich-domain-criteria-zod";
+import {
+  defineFilters,
+  CriteriaQuerySchema,
+  PaginatedResponseSchema,
+} from "@woltz/rich-domain-criteria-zod";
 import { z } from "zod";
 
 const userFilters = defineFilters((f) => ({

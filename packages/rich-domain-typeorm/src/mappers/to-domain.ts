@@ -35,10 +35,7 @@ import { ObjectLiteral } from "typeorm";
  * }
  * ```
  */
-export abstract class TypeORMToDomain<
-  TEntity extends ObjectLiteral,
-  TDomain
-> {
+export abstract class TypeORMToDomain<TEntity extends ObjectLiteral, TDomain> {
   /**
    * Map TypeORM entity to domain entity.
    *

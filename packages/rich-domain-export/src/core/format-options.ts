@@ -9,8 +9,9 @@ import type { BaseExportOptions, PropsOf } from "./types.js";
  *
  * @template T - Aggregate type being exported
  */
-export interface CsvExportOptions<T extends Aggregate<any>>
-  extends BaseExportOptions {
+export interface CsvExportOptions<
+  T extends Aggregate<any>,
+> extends BaseExportOptions {
   /**
    * Format discriminator for type-safe format selection
    */
@@ -64,8 +65,9 @@ export interface CsvExportOptions<T extends Aggregate<any>>
  *
  * @template T - Aggregate type being exported
  */
-export interface JsonExportOptions<T extends Aggregate<any>>
-  extends BaseExportOptions {
+export interface JsonExportOptions<
+  T extends Aggregate<any>,
+> extends BaseExportOptions {
   /**
    * Format discriminator for type-safe format selection
    */
@@ -183,5 +185,5 @@ export type ExportOptions<T extends Aggregate<any>> =
  */
 export type OptionsForFormat<
   T extends Aggregate<any>,
-  F extends ExportOptions<T>["format"]
+  F extends ExportOptions<T>["format"],
 > = Extract<ExportOptions<T>, { format: F }>;

@@ -5,7 +5,10 @@ import type { ExportOptions } from "../core/format-options.js";
 import type { ExportResult, ExportProgressCallback } from "../core/types.js";
 import { ValidationError } from "../core/errors.js";
 import { FormatRegistry } from "./format-registry.js";
-import { entitiesToRecords, createRecordIterator } from "../utils/entity-converter.js";
+import {
+  entitiesToRecords,
+  createRecordIterator,
+} from "../utils/entity-converter.js";
 
 /**
  * Universal export service supporting multiple formats

@@ -214,7 +214,10 @@ abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
 #### Complete Example
 
 ```typescript
-import { PrismaToPersistence, PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
+import {
+  PrismaToPersistence,
+  PrismaBatchExecutor,
+} from "@woltz/rich-domain-prisma";
 import { EntitySchemaRegistry, AggregateChanges } from "@woltz/rich-domain";
 
 const schemaRegistry = new EntitySchemaRegistry()

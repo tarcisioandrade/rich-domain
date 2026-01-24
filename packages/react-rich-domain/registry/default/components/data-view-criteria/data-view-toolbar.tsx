@@ -9,7 +9,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Code, FileBarChart, FileIcon, Loader2, Search } from "lucide-react";
-import { DataViewFilter, type FilterIntegrationProps, type SearchIntegrationProps } from "./data-view-filter/data-view-filter";
+import {
+  DataViewFilter,
+  type FilterIntegrationProps,
+  type SearchIntegrationProps,
+} from "./data-view-filter/data-view-filter";
 
 import { useTransition } from "react";
 

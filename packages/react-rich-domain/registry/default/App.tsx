@@ -21,8 +21,7 @@ function clearParams() {
 }
 
 export default function App() {
-  const defaultTab =
-    (window.location.hash as DemoTab | undefined) || "#table";
+  const defaultTab = (window.location.hash as DemoTab | undefined) || "#table";
   const [activeTab, setActiveTab] = useState<DemoTab>(
     defaultTab.replace("#", "") as DemoTab
   );
@@ -138,7 +137,8 @@ export default function App() {
                       Kanban Board
                     </h2>
                     <p className="text-muted-foreground">
-                      Drag and drop cards between columns with optimistic updates
+                      Drag and drop cards between columns with optimistic
+                      updates
                     </p>
                   </div>
                   <TaskKanban />

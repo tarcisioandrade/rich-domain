@@ -15,8 +15,8 @@ import type { Aggregate } from "@woltz/rich-domain";
 export type PropsOf<T> = T extends { toJSON(): infer R }
   ? keyof R
   : T extends Aggregate<infer P>
-  ? keyof P
-  : never;
+    ? keyof P
+    : never;
 
 /**
  * Base export options shared across all export formats
@@ -92,7 +92,7 @@ export interface BaseExportStats {
  * @template TStats - Format-specific statistics type
  */
 export interface ExportResult<
-  TStats extends BaseExportStats = BaseExportStats
+  TStats extends BaseExportStats = BaseExportStats,
 > {
   /**
    * The exported data as string or buffer
@@ -123,10 +123,7 @@ export interface ExportResult<
  * };
  * ```
  */
-export type ExportProgressCallback = (
-  processed: number,
-  total: number
-) => void;
+export type ExportProgressCallback = (processed: number, total: number) => void;
 
 /**
  * Result of export options validation

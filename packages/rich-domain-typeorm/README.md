@@ -83,7 +83,7 @@ export class UserEntity {
   @Column()
   name!: string;
 
-  @OneToMany(() => PostEntity, post => post.author)
+  @OneToMany(() => PostEntity, (post) => post.author)
   posts!: PostEntity[];
 
   @Column()
@@ -97,7 +97,10 @@ export class UserEntity {
 ### 4. Create Persistence Mapper
 
 ```typescript
-import { TypeORMToPersistence, EntitySchemaRegistry } from "@woltz/rich-domain-typeorm";
+import {
+  TypeORMToPersistence,
+  EntitySchemaRegistry,
+} from "@woltz/rich-domain-typeorm";
 
 export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
   protected readonly registry = new EntitySchemaRegistry()
@@ -106,26 +109,26 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
       table: "users",
       collections: {
         posts: {
-          type: "owned",  // 1:N - Posts are owned by User
-          entity: "Post"
-        }
-      }
+          type: "owned", // 1:N - Posts are owned by User
+          entity: "Post",
+        },
+      },
     })
     .register({
       entity: "Post",
       table: "posts",
       fields: {
-        content: "main_content"  // Map domain field to DB column
+        content: "main_content", // Map domain field to DB column
       },
       parentFk: {
         field: "authorId",
-        parentEntity: "User"
-      }
+        parentEntity: "User",
+      },
     });
 
   protected readonly entityClasses = new Map<string, new () => any>([
     ["User", UserEntity],
-    ["Post", PostEntity]
+    ["Post", PostEntity],
   ]);
 
   protected async onCreate(aggregate: User, em: EntityManager): Promise<void> {
@@ -176,9 +179,9 @@ export class TypeORMUserRepository extends TypeORMRepository<User, UserEntity> {
   // Enable case-insensitive search
   protected getSearchableFields(): SearchableField<UserEntity>[] {
     return [
-      "name",           // Case-insensitive by default
-      "email",          // Case-insensitive by default
-      "posts.title"     // Nested relation search
+      "name", // Case-insensitive by default
+      "email", // Case-insensitive by default
+      "posts.title", // Nested relation search
     ];
   }
 }
@@ -195,7 +198,7 @@ export class UserService {
     private readonly uow: TypeORMUnitOfWork
   ) {}
 
-  @Transactional()  // Automatic transaction management
+  @Transactional() // Automatic transaction management
   async createUser(data: CreateUserInput): Promise<User> {
     const user = new User({
       id: new Id(),
@@ -203,10 +206,10 @@ export class UserService {
       name: data.name,
       posts: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
-    await this.userRepo.save(user);  // Automatic change tracking!
+    await this.userRepo.save(user); // Automatic change tracking!
     return user;
   }
 
@@ -223,11 +226,11 @@ export class UserService {
       tags: [],
       published: false,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     user.addPost(post);
-    await this.userRepo.save(user);  // BatchExecutor handles the Post creation!
+    await this.userRepo.save(user); // BatchExecutor handles the Post creation!
   }
 }
 ```
@@ -308,7 +311,7 @@ Usage with Criteria:
 
 ```typescript
 const criteria = Criteria.create<Post>()
-  .search("hello")  // Searches in title, mainContent, and author.name (case-insensitive)
+  .search("hello") // Searches in title, mainContent, and author.name (case-insensitive)
   .where("published", "eq", true)
   .orderBy("createdAt", "desc")
   .paginate(1, 20);
@@ -399,19 +402,21 @@ async methodB() {
 
 ### Collection Types
 
-| Type | Description | Example | Behavior |
-|------|-------------|---------|----------|
-| **owned** | Parent owns children (1:N) | User has Posts | Create/Delete entities |
-| **reference** | References existing entities (N:N) | Post has Tags | Connect/Disconnect via junction |
+| Type          | Description                        | Example        | Behavior                        |
+| ------------- | ---------------------------------- | -------------- | ------------------------------- |
+| **owned**     | Parent owns children (1:N)         | User has Posts | Create/Delete entities          |
+| **reference** | References existing entities (N:N) | Post has Tags  | Connect/Disconnect via junction |
 
 ### onCreate vs BatchExecutor
 
 For **new aggregates** (`isNew() === true`):
+
 - `onCreate()` is called to create the root entity
 - You must manually create all child entities in `onCreate()`
 - BatchExecutor is NOT used for initial creation
 
 For **existing aggregates** with changes:
+
 - `onCreate()` is NOT called
 - BatchExecutor automatically handles all changes
 - Optimized bulk operations
@@ -441,21 +446,21 @@ For **existing aggregates** with changes:
 ```typescript
 class TypeORMRepository<TDomain, TEntity> extends Repository<TDomain> {
   // Query methods
-  async findById(id: string): Promise<TDomain | null>
-  async find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>
-  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null>
-  async count(criteria?: Criteria<TDomain>): Promise<number>
-  async exists(id: string): Promise<boolean>
-  async findAll(): Promise<TDomain[]>
+  async findById(id: string): Promise<TDomain | null>;
+  async find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null>;
+  async count(criteria?: Criteria<TDomain>): Promise<number>;
+  async exists(id: string): Promise<boolean>;
+  async findAll(): Promise<TDomain[]>;
 
   // Persistence methods
-  async save(aggregate: TDomain): Promise<void>
-  async delete(aggregate: TDomain): Promise<void>
-  async deleteById(id: string): Promise<void>
+  async save(aggregate: TDomain): Promise<void>;
+  async delete(aggregate: TDomain): Promise<void>;
+  async deleteById(id: string): Promise<void>;
 
   // Configuration hooks
-  protected getDefaultRelations(): string[]
-  protected getSearchableFields(): SearchableField<TEntity>[]
+  protected getDefaultRelations(): string[];
+  protected getSearchableFields(): SearchableField<TEntity>[];
 }
 ```
 
@@ -467,15 +472,18 @@ interface EntitySchemaRegistry {
     entity: string;
     table?: string;
     fields?: Record<string, string>;
-    collections?: Record<string, {
-      type: "owned" | "reference";
-      entity: string;
-      junction?: {
-        table: string;
-        sourceKey: string;
-        targetKey: string;
-      };
-    }>;
+    collections?: Record<
+      string,
+      {
+        type: "owned" | "reference";
+        entity: string;
+        junction?: {
+          table: string;
+          sourceKey: string;
+          targetKey: string;
+        };
+      }
+    >;
     parentFk?: {
       field: string;
       parentEntity: string;
@@ -489,10 +497,10 @@ interface EntitySchemaRegistry {
 ```typescript
 type SearchableField<T> =
   | keyof T
-  | `${string}.${string}`  // Nested fields
+  | `${string}.${string}` // Nested fields
   | {
       field: string;
-      caseSensitive?: boolean;  // Default: false
+      caseSensitive?: boolean; // Default: false
     };
 ```
 

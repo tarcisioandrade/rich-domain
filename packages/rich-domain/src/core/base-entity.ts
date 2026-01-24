@@ -21,7 +21,7 @@ function getStaticProperty<T>(
 
 export abstract class BaseEntity<
   T extends BaseProps,
-  TOptionalInput extends keyof T = never
+  TOptionalInput extends keyof T = never,
 > {
   private _props: T;
   private tracker: ChangeTracker;
@@ -36,8 +36,7 @@ export abstract class BaseEntity<
 
   constructor(
     props: Omit<T, TOptionalInput | "id"> &
-      Partial<Pick<T, TOptionalInput>> &
-      { id?: Id }
+      Partial<Pick<T, TOptionalInput>> & { id?: Id }
   ) {
     const validation = getStaticProperty<EntityValidation<T>>(
       this,
@@ -337,7 +336,6 @@ export abstract class BaseEntity<
     return this.tracker.getChanges<TEntityMap>();
   }
 
-
   /**
    * Returns the change history (for debugging).
    */
@@ -371,7 +369,9 @@ export abstract class BaseEntity<
    * Iterates over all nested entities (direct children only) and executes a callback.
    * This includes entities in arrays and single entity properties.
    */
-  private forEachNestedEntity(callback: (entity: BaseEntity<any>) => void): void {
+  private forEachNestedEntity(
+    callback: (entity: BaseEntity<any>) => void
+  ): void {
     for (const value of Object.values(this._props)) {
       if (value instanceof BaseEntity) {
         callback(value);
@@ -384,8 +384,6 @@ export abstract class BaseEntity<
       }
     }
   }
-
-
 
   toJSON(): DeepJsonResult<T> {
     return this.deepToJson(this._props) as DeepJsonResult<T>;

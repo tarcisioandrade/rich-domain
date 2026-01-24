@@ -1,8 +1,8 @@
 import {
-    BaseTemplate,
-    TemplateMetadata,
-    TemplateOptions,
-    TemplateFile,
+  BaseTemplate,
+  TemplateMetadata,
+  TemplateOptions,
+  TemplateFile,
 } from "../base.template.js";
 
 /**

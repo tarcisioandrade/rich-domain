@@ -1,4 +1,8 @@
-import { Task, TaskStatus, TaskStatus as TaskStatusType } from "../../domain/task/task.entity";
+import {
+  Task,
+  TaskStatus,
+  TaskStatus as TaskStatusType,
+} from "../../domain/task/task.entity";
 import { TaskRepository } from "../../domain/task/task.repository";
 import { Criteria, Id, IDomainEventBus } from "@woltz/rich-domain";
 import { Transactional } from "@woltz/rich-domain-prisma";
@@ -174,17 +178,20 @@ export class TaskService {
     task.updateOrder(newOrder);
 
     if (process.env.NODE_ENV === "development") {
-      console.dir({
-        moveTask: {
-          taskId,
-          newStatus,
-          insertAfterId,
-          prevOrder,
-          nextOrder,
-          calculatedOrder: newOrder,
-          changes: task.getTypedChanges()
-        }
-      }, { depth: null });
+      console.dir(
+        {
+          moveTask: {
+            taskId,
+            newStatus,
+            insertAfterId,
+            prevOrder,
+            nextOrder,
+            calculatedOrder: newOrder,
+            changes: task.getTypedChanges(),
+          },
+        },
+        { depth: null }
+      );
     }
 
     await this.taskRepository.save(task);

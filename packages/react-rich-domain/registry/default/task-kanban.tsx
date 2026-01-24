@@ -1,7 +1,10 @@
 "use client";
 
 import { useCriteriaKanban } from "./hooks/use-criteria-kanban";
-import { DataKanbanCriteria, KanbanCardAction } from "./components/data-kanban-criteria";
+import {
+  DataKanbanCriteria,
+  KanbanCardAction,
+} from "./components/data-kanban-criteria";
 import {
   KanbanCard,
   KanbanCardHeader,
@@ -14,7 +17,18 @@ import {
 import { getTasks, moveTask, type Task } from "./service/get-tasks";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
-import { Circle, Clock, CheckCircle2, User, AlertTriangle, X, Archive, Plus, PlusCircle, Edit } from "lucide-react";
+import {
+  Circle,
+  Clock,
+  CheckCircle2,
+  User,
+  AlertTriangle,
+  X,
+  Archive,
+  Plus,
+  PlusCircle,
+  Edit,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./components/ui/button";
 
@@ -126,7 +140,15 @@ const labelColors: Record<string, string> = {
 /**
  * Renders a task card for the Kanban board
  */
-function TaskCard({ task, isDragging, isClickable }: { task: Task; isDragging: boolean; isClickable: boolean }) {
+function TaskCard({
+  task,
+  isDragging,
+  isClickable,
+}: {
+  task: Task;
+  isDragging: boolean;
+  isClickable: boolean;
+}) {
   return (
     <KanbanCard id={task.id} isDragging={isDragging} isClickable={isClickable}>
       <KanbanCardHeader>
@@ -142,8 +164,9 @@ function TaskCard({ task, isDragging, isClickable }: { task: Task; isDragging: b
             {task.labels.map((label) => (
               <span
                 key={label}
-                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${labelColors[label] || labelColors.default
-                  }`}
+                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                  labelColors[label] || labelColors.default
+                }`}
               >
                 {label}
               </span>
@@ -151,9 +174,14 @@ function TaskCard({ task, isDragging, isClickable }: { task: Task; isDragging: b
           </div>
         )}
         <KanbanCardAction>
-          <Button data-no-drag variant="ghost" size="icon" onClick={() => {
-            console.log(task.id);
-          }}>
+          <Button
+            data-no-drag
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              console.log(task.id);
+            }}
+          >
             <Edit className="h-4 w-4" />
           </Button>
         </KanbanCardAction>
@@ -209,7 +237,11 @@ export function TaskKanban() {
       <DataKanbanCriteria
         kanban={kanban}
         renderCard={(task, isDragging, isClickable) => (
-          <TaskCard task={task} isDragging={isDragging} isClickable={isClickable} />
+          <TaskCard
+            task={task}
+            isDragging={isDragging}
+            isClickable={isClickable}
+          />
         )}
         renderColumnHeader={(column, total) => (
           <div className="flex items-center justify-between p-2">
@@ -223,9 +255,14 @@ export function TaskKanban() {
               <h3 className="font-semibold">{column.title}</h3>
               <div className="ml-2 border p-1 rounded text-xs">{total}</div>
             </div>
-            <Button className="cursor-pointer" variant="ghost" size="icon" onClick={() => {
-              console.log(column.id);
-            }}>
+            <Button
+              className="cursor-pointer"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                console.log(column.id);
+              }}
+            >
               <PlusCircle className="h-4 w-4" />
             </Button>
           </div>
@@ -233,9 +270,14 @@ export function TaskKanban() {
         renderEmptyState={(column) => (
           <div className="space-y-4 mt-4">
             <p className="text-muted-foreground text-sm">No task added here.</p>
-            <Button variant="outline" size="sm" className="w-full" onClick={() => {
-              console.log(column.id);
-            }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                console.log(column.id);
+              }}
+            >
               <Plus className="h-4 w-4" />
               Add Task
             </Button>

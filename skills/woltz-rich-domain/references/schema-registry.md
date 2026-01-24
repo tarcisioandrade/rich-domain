@@ -51,7 +51,7 @@ const registry = new EntitySchemaRegistry()
   collections: {
     posts: { type: "owned", entity: "Post" },
     // Field name related to the relationship in the domain;
-    // 'posts.tags' <- Domain Relation field name is 'tags' 
+    // 'posts.tags' <- Domain Relation field name is 'tags'
     tags: {
       type: "reference",
       entity: "Tag",
@@ -90,6 +90,7 @@ Parent owns children. Children are created/deleted with parent.
 ```
 
 **Behavior:**
+
 - Adding post to user → INSERT into posts
 - Removing post from user → DELETE from posts
 - BatchExecutor handles create/delete automatically
@@ -122,6 +123,7 @@ Entities exist independently. Junction table manages relationships.
 ```
 
 **Behavior:**
+
 - Adding tag to post → INSERT into junction table
 - Removing tag from post → DELETE from junction table
 - Tag entity itself is NOT deleted
@@ -214,7 +216,10 @@ const schemaRegistry = new EntitySchemaRegistry()
 class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   protected readonly registry = schemaRegistry;
 
-  protected async onUpdate(order: Order, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(
+    order: Order,
+    changes: AggregateChanges
+  ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: order.id.value,
@@ -223,7 +228,7 @@ class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
           id: item.data.id.value,
           productId: item.data.productId,
           quantity: item.data.quantity,
-          unit_price: item.data.unitPrice,  // Uses field mapping
+          unit_price: item.data.unitPrice, // Uses field mapping
           orderId: item.parentId,
         }),
         OrderItemAddon: (item) => ({
@@ -267,6 +272,7 @@ Order (depth: 0)
 ```
 
 **BatchExecutor uses depth for:**
+
 - Deletes: leaf → root (depth DESC) - delete children first
 - Creates: root → leaf (depth ASC) - create parent first
 - Updates: any order

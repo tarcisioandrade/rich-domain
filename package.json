@@ -18,6 +18,8 @@
     "check": "npm run check --workspaces",
     "coverage": "npm run coverage --workspace=@woltz/rich-domain && npm run coverage --workspace=@woltz/react-rich-domain && npm run coverage --workspace=@woltz/rich-domain-export && npm run coverage --workspace=@woltz/rich-domain-cli",
     "lint": "npm run lint --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "clean": "npm run clean --workspaces && rm -rf node_modules",
     "prepare": "husky",
     "publish:rich-domain": "npm publish --workspace=@woltz/rich-domain"
@@ -32,6 +34,7 @@
     "eslint": "^9.39.1",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "prettier": "^3.8.1",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.4.3"

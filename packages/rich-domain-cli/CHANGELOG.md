@@ -4,11 +4,10 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [0.4.1](https://github.com/tarcisioandrade/rich-domain/compare/v1.7.1...v0.4.1) (2026-01-02)
 
-
 ### Features
 
-* add export functionality to DataTableCriteria ([63ec61c](https://github.com/tarcisioandrade/rich-domain/commit/63ec61c5aad0c457f7a7c9580d925c0c6c27e421))
-* add use-criteria-query hook for paginated data fetching with React Query ([379e76d](https://github.com/tarcisioandrade/rich-domain/commit/379e76d27e3a41df7b1c64bdfce3e85171288967))
+- add export functionality to DataTableCriteria ([63ec61c](https://github.com/tarcisioandrade/rich-domain/commit/63ec61c5aad0c457f7a7c9580d925c0c6c27e421))
+- add use-criteria-query hook for paginated data fetching with React Query ([379e76d](https://github.com/tarcisioandrade/rich-domain/commit/379e76d27e3a41df7b1c64bdfce3e85171288967))
 
 ## [0.4.0](https://github.com/tarcisioandrade/rich-domain/compare/v1.6.0...v0.4.0) (2025-12-27)
 

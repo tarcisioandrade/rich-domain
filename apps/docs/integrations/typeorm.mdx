@@ -1,7 +1,16 @@
 ---
 title: "TypeORM"
 description: "TypeORM adapter with change tracking, batch operations, and transaction management"
-keywords: ["typeorm","orm","adapter","database","integration","transactions","typescript"]
+keywords:
+  [
+    "typeorm",
+    "orm",
+    "adapter",
+    "database",
+    "integration",
+    "transactions",
+    "typescript",
+  ]
 ---
 
 ## Overview
@@ -33,7 +42,9 @@ npm install @woltz/rich-domain-typeorm @woltz/rich-domain typeorm
 </CardGroup>
 
 <Note>
-  For a complete working example, see the [fastify-with-typeorm example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-typeorm) in the repository.
+  For a complete working example, see the [fastify-with-typeorm
+  example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-typeorm)
+  in the repository.
 </Note>
 
 ---
@@ -83,16 +94,22 @@ export class User extends Aggregate<UserProps> {
     schema: userSchema,
   };
 
-  get email() { return this.props.email; }
-  get name() { return this.props.name; }
-  get posts() { return this.props.posts; }
+  get email() {
+    return this.props.email;
+  }
+  get name() {
+    return this.props.name;
+  }
+  get posts() {
+    return this.props.posts;
+  }
 
   addPost(post: Post): void {
     this.props.posts.push(post);
   }
 
   removePost(postId: Id): void {
-    const index = this.props.posts.findIndex(p => p.id.equals(postId));
+    const index = this.props.posts.findIndex((p) => p.id.equals(postId));
     if (index !== -1) {
       this.props.posts.splice(index, 1);
     }
@@ -116,7 +133,7 @@ export class UserEntity {
   @Column()
   name!: string;
 
-  @OneToMany(() => PostEntity, post => post.author)
+  @OneToMany(() => PostEntity, (post) => post.author)
   posts!: PostEntity[];
 
   @Column()
@@ -144,7 +161,7 @@ export class UserToDomainMapper extends Mapper<UserEntity, User> {
       id: Id.from(entity.id),
       email: entity.email,
       name: entity.name,
-      posts: entity.posts?.map(p => this.mapPost(p)) ?? [],
+      posts: entity.posts?.map((p) => this.mapPost(p)) ?? [],
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });
@@ -208,10 +225,7 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
 ### 5. Create Repository
 
 ```typescript
-import {
-  TypeORMRepository,
-  SearchableField,
-} from "@woltz/rich-domain-typeorm";
+import { TypeORMRepository, SearchableField } from "@woltz/rich-domain-typeorm";
 
 export class UserRepository extends TypeORMRepository<User, UserEntity> {
   constructor(
@@ -323,13 +337,13 @@ app.get("/users/:id", async (req, res) => {
 
 ### API Reference
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `transaction(fn)` | `Promise<T>` | Execute function in transaction |
-| `isInTransaction()` | `boolean` | Check if in active transaction |
-| `getCurrentContext()` | `TypeORMTransactionContext \| null` | Get current context |
-| `getCurrentEntityManager()` | `EntityManager` | Get current or default manager |
-| `getDataSource()` | `DataSource` | Get underlying DataSource |
+| Method                      | Returns                             | Description                     |
+| --------------------------- | ----------------------------------- | ------------------------------- |
+| `transaction(fn)`           | `Promise<T>`                        | Execute function in transaction |
+| `isInTransaction()`         | `boolean`                           | Check if in active transaction  |
+| `getCurrentContext()`       | `TypeORMTransactionContext \| null` | Get current context             |
+| `getCurrentEntityManager()` | `EntityManager`                     | Get current or default manager  |
+| `getDataSource()`           | `DataSource`                        | Get underlying DataSource       |
 
 ---
 
@@ -410,10 +424,10 @@ export class UserRepository extends TypeORMRepository<User, UserEntity> {
   // Override for searchable fields
   protected getSearchableFields(): SearchableField<UserEntity>[] {
     return [
-      "name",                                  // Case-insensitive (default)
+      "name", // Case-insensitive (default)
       "email",
       { field: "code", caseSensitive: true }, // Case-sensitive
-      "posts.title",                           // Nested relation
+      "posts.title", // Nested relation
     ];
   }
 }
@@ -421,15 +435,15 @@ export class UserRepository extends TypeORMRepository<User, UserEntity> {
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `find(criteria?)` | `Promise<PaginatedResult<T>>` | Find with criteria |
-| `findById(id)` | `Promise<T \| null>` | Find by ID |
-| `findOne(criteria)` | `Promise<T \| null>` | Find first match |
-| `count(criteria?)` | `Promise<number>` | Count matching entities |
-| `exists(id)` | `Promise<boolean>` | Check if exists |
-| `save(entity)` | `Promise<void>` | Save (create or update) |
-| `delete(entity)` | `Promise<void>` | Delete entity |
+| Method              | Returns                       | Description             |
+| ------------------- | ----------------------------- | ----------------------- |
+| `find(criteria?)`   | `Promise<PaginatedResult<T>>` | Find with criteria      |
+| `findById(id)`      | `Promise<T \| null>`          | Find by ID              |
+| `findOne(criteria)` | `Promise<T \| null>`          | Find first match        |
+| `count(criteria?)`  | `Promise<number>`             | Count matching entities |
+| `exists(id)`        | `Promise<boolean>`            | Check if exists         |
+| `save(entity)`      | `Promise<void>`               | Save (create or update) |
+| `delete(entity)`    | `Promise<void>`               | Delete entity           |
 
 ### Criteria Queries
 
@@ -536,10 +550,10 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
 
 ### Collection Types
 
-| Type | Behavior | Use Case |
-|------|----------|----------|
-| `owned` | Creates/deletes child entities | 1:N relationships (User → Posts) |
-| `reference` | Connects/disconnects via junction | N:N relationships (Post ↔ Tags) |
+| Type        | Behavior                          | Use Case                         |
+| ----------- | --------------------------------- | -------------------------------- |
+| `owned`     | Creates/deletes child entities    | 1:N relationships (User → Posts) |
+| `reference` | Connects/disconnects via junction | N:N relationships (Post ↔ Tags)  |
 
 ---
 
@@ -728,8 +742,8 @@ interface TypeORMRepositoryConfig<TDomain, TEntity> {
 
 ```typescript
 type SearchableField<T> =
-  | keyof T                    // Simple field
-  | `${string}.${string}`      // Nested field
+  | keyof T // Simple field
+  | `${string}.${string}` // Nested field
   | {
       field: string;
       caseSensitive?: boolean; // Default: false
@@ -743,15 +757,18 @@ interface SchemaConfig {
   entity: string;
   table: string;
   fields?: Record<string, string>;
-  collections?: Record<string, {
-    type: "owned" | "reference";
-    entity: string;
-    junction?: {
-      table: string;
-      sourceKey: string;
-      targetKey: string;
-    };
-  }>;
+  collections?: Record<
+    string,
+    {
+      type: "owned" | "reference";
+      entity: string;
+      junction?: {
+        table: string;
+        sourceKey: string;
+        targetKey: string;
+      };
+    }
+  >;
   parentFk?: {
     field: string;
     parentEntity: string;

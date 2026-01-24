@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { Aggregate, DomainError, Entity, EntityValidation, Id } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  DomainError,
+  Entity,
+  EntityValidation,
+  Id,
+} from "@woltz/rich-domain";
 import { User } from "../user/user.entity";
 import { Tag } from "../tag/tags";
 

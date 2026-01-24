@@ -11,7 +11,10 @@ export class ExportError extends Error {
    * @param message - Error message
    * @param cause - Optional underlying error that caused this error
    */
-  constructor(message: string, public readonly cause?: Error) {
+  constructor(
+    message: string,
+    public readonly cause?: Error
+  ) {
     super(message);
     this.name = "ExportError";
 

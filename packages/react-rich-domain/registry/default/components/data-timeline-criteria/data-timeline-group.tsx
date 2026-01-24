@@ -37,9 +37,7 @@ export function DataTimelineGroup<T>({
     <div className={cn("space-y-4", className)}>
       {/* Group header */}
       <div className="flex items-center gap-3 sticky top-0 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 z-10 py-2">
-        <h3 className="text-sm font-semibold text-foreground">
-          {group.label}
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
         {showRelativeLabel && group.relativeLabel && (
           <Badge variant="secondary" className="text-xs">
             {group.relativeLabel}

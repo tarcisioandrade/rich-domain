@@ -38,12 +38,6 @@ export interface BatchExecutorConfig {
    * ```
    */
   dataMappers?: Record<string, EntityDataMapper>;
-
-  /**
-   * Root entity ID (used as default parentId for direct children).
-   * @deprecated Use parentId from operations instead. Kept for backwards compatibility.
-   */
-  rootId?: string;
 }
 
 /**
@@ -268,16 +262,13 @@ export class PrismaBatchExecutor {
       if (dataMapper) {
         return dataMapper({
           ...item,
-          parentId: item.parentId || this.config.rootId,
+          parentId: item.parentId,
         });
       }
 
       return {
         ...this.config.registry.mapEntity(entity, item.data),
-        ...this.config.registry.getParentFk(
-          entity,
-          (item.parentId || this.config.rootId) ?? ""
-        ),
+        ...this.config.registry.getParentFk(entity, item.parentId ?? ""),
       };
     });
 
@@ -389,10 +380,7 @@ export class PrismaBatchExecutor {
     const junctionModel = (this.context as any)[junction.table];
 
     if (!junctionModel) {
-      throw new TableNotFoundError(
-        junction.table,
-        this.getRegisteredTables()
-      );
+      throw new TableNotFoundError(junction.table, this.getRegisteredTables());
     }
 
     try {
@@ -470,10 +458,7 @@ export class PrismaBatchExecutor {
     const junctionModel = (this.context as any)[junction.table];
 
     if (!junctionModel) {
-      throw new TableNotFoundError(
-        junction.table,
-        this.getRegisteredTables()
-      );
+      throw new TableNotFoundError(junction.table, this.getRegisteredTables());
     }
 
     try {

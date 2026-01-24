@@ -22,7 +22,11 @@ export function DataViewSkeleton({
   );
 }
 
-function SkeletonItem({ variant }: { variant: DataViewSkeletonProps["variant"] }) {
+function SkeletonItem({
+  variant,
+}: {
+  variant: DataViewSkeletonProps["variant"];
+}) {
   switch (variant) {
     case "card":
       return (

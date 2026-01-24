@@ -23,7 +23,7 @@ export interface PrismaRepositoryConfig {
 export abstract class PrismaRepository<
   TDomain extends Aggregate<any>,
   TPersistence,
-  TContext = PrismaClientLike
+  TContext = PrismaClientLike,
 > extends Repository<TDomain> {
   constructor(
     protected readonly toPersistenceMapper: Mapper<TDomain, void>,
@@ -152,8 +152,8 @@ export abstract class PrismaRepository<
     if (result instanceof Aggregate) {
       result.markAsClean();
     }
-    
-    return result
+
+    return result;
   }
 
   async findManyByIds(ids: string[]): Promise<TDomain[]> {
@@ -161,7 +161,7 @@ export abstract class PrismaRepository<
       where: { id: { in: ids } },
       include: this.includes,
     });
-    
+
     const toDomain: TDomain[] = data.map((item: TPersistence) =>
       this.toDomainMapper.build(item)
     );

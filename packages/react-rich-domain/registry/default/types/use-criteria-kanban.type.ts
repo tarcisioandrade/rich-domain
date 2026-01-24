@@ -1,6 +1,13 @@
-import type { Criteria, FieldPath, PaginatedJsonResult } from "@woltz/rich-domain";
+import type {
+  Criteria,
+  FieldPath,
+  PaginatedJsonResult,
+} from "@woltz/rich-domain";
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "./use-criteria.type";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "./use-criteria.type";
 import type {
   FilterIntegrationProps,
   SearchIntegrationProps,
@@ -215,8 +222,14 @@ export interface UseCriteriaKanbanOptions<T> extends UseCriteriaOptions<T> {
    */
   announcements?: {
     onDragStart?: (activeId: UniqueIdentifier) => string;
-    onDragOver?: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => string;
-    onDragEnd?: (activeId: UniqueIdentifier, overId: UniqueIdentifier) => string;
+    onDragOver?: (
+      activeId: UniqueIdentifier,
+      overId: UniqueIdentifier
+    ) => string;
+    onDragEnd?: (
+      activeId: UniqueIdentifier,
+      overId: UniqueIdentifier
+    ) => string;
     onDragCancel?: (activeId: UniqueIdentifier) => string;
   };
 }
@@ -343,12 +356,19 @@ export interface DataKanbanCriteriaProps<T> {
    * @param isDragging - Whether the card is currently being dragged
    * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
+  renderCard: (
+    item: T,
+    isDragging: boolean,
+    isClickable: boolean
+  ) => React.ReactNode;
 
   /**
    * Optional render function for column header
    */
-  renderColumnHeader?: (column: KanbanColumnDefinition<T>, itemCount: number) => React.ReactNode;
+  renderColumnHeader?: (
+    column: KanbanColumnDefinition<T>,
+    itemCount: number
+  ) => React.ReactNode;
 
   /**
    * Optional render function for column footer
@@ -436,12 +456,19 @@ export interface KanbanColumnProps<T> {
    * @param isDragging - Whether the card is currently being dragged
    * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
+  renderCard: (
+    item: T,
+    isDragging: boolean,
+    isClickable: boolean
+  ) => React.ReactNode;
 
   /**
    * Optional render function for column header
    */
-  renderHeader?: (column: KanbanColumnDefinition<T>, itemCount: number) => React.ReactNode;
+  renderHeader?: (
+    column: KanbanColumnDefinition<T>,
+    itemCount: number
+  ) => React.ReactNode;
 
   /**
    * Optional render function for column footer
@@ -550,7 +577,11 @@ export interface KanbanColumnContentProps<T> {
    * @param isDragging - Whether the card is currently being dragged
    * @param isClickable - Whether the card has a click handler (from onCardClick)
    */
-  renderCard: (item: T, isDragging: boolean, isClickable: boolean) => React.ReactNode;
+  renderCard: (
+    item: T,
+    isDragging: boolean,
+    isClickable: boolean
+  ) => React.ReactNode;
 
   /**
    * Estimated card height for virtualization

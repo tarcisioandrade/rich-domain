@@ -38,26 +38,31 @@ src/
 ## Configuração
 
 1. Instalar dependências:
+
 ```bash
 npm install
 ```
 
 2. Copiar o arquivo de ambiente:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Iniciar o banco de dados PostgreSQL:
+
 ```bash
 docker-compose up -d
 ```
 
 4. Gerar o Prisma Client:
+
 ```bash
 npm run prisma:generate
 ```
 
 5. Executar as migrations:
+
 ```bash
 npm run prisma:migrate
 ```
@@ -65,11 +70,13 @@ npm run prisma:migrate
 ## Executar o Projeto
 
 Desenvolvimento:
+
 ```bash
 npm run dev
 ```
 
 Build:
+
 ```bash
 npm run build
 npm start

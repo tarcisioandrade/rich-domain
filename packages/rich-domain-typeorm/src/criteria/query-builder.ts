@@ -1,4 +1,9 @@
-import { SelectQueryBuilder, Brackets, ObjectLiteral, WhereExpressionBuilder } from "typeorm";
+import {
+  SelectQueryBuilder,
+  Brackets,
+  ObjectLiteral,
+  WhereExpressionBuilder,
+} from "typeorm";
 import { Criteria } from "@woltz/rich-domain";
 
 /**
@@ -94,7 +99,11 @@ export class TypeORMQueryBuilder {
     const filters = criteria.getFilters();
     this.applyFilters(qb, filters, alias);
 
-    if (criteria.hasSearch() && searchableFields && searchableFields.length > 0) {
+    if (
+      criteria.hasSearch() &&
+      searchableFields &&
+      searchableFields.length > 0
+    ) {
       const search = criteria.getSearch()!;
       this.applySearch(qb, search, searchableFields, alias);
     }
@@ -184,15 +193,15 @@ export class TypeORMQueryBuilder {
     const joinedRelations = new Set<string>();
 
     const normalizedFields = searchableFields.map((field) => {
-      if (typeof field === 'string') {
+      if (typeof field === "string") {
         return { field, caseSensitive: false };
       }
       return { ...field, caseSensitive: field.caseSensitive ?? false };
     });
 
     normalizedFields.forEach((config) => {
-      if (config.field.includes('.')) {
-        const [relation] = config.field.split('.');
+      if (config.field.includes(".")) {
+        const [relation] = config.field.split(".");
         if (!joinedRelations.has(relation)) {
           qb.leftJoin(`${alias}.${relation}`, relation);
           joinedRelations.add(relation);
@@ -203,8 +212,8 @@ export class TypeORMQueryBuilder {
     qb.andWhere(
       new Brackets((subQb: WhereExpressionBuilder) => {
         normalizedFields.forEach((config, index) => {
-          const paramName = `search_${config.field.replace(/\./g, '_')}_${index}`;
-          const fieldPath = config.field.includes('.')
+          const paramName = `search_${config.field.replace(/\./g, "_")}_${index}`;
+          const fieldPath = config.field.includes(".")
             ? config.field
             : `${alias}.${config.field}`;
           let condition: string;
@@ -284,11 +293,13 @@ export class TypeORMQueryBuilder {
 
     if (operator === "between") {
       if (!Array.isArray(value) || value.length !== 2) {
-        throw new Error("Between operator requires an array with exactly two values [min, max]");
+        throw new Error(
+          "Between operator requires an array with exactly two values [min, max]"
+        );
       }
       return {
         [paramName]: value[0],
-        [`${paramName}1`]: value[1]
+        [`${paramName}1`]: value[1],
       };
     }
 

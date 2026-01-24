@@ -8,8 +8,8 @@ export type TestUser = {
   user: {
     lead: {
       title: string;
-    }
-  }[]
+    };
+  }[];
   status: "active" | "inactive";
 };
 

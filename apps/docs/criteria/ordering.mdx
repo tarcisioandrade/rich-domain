@@ -1,7 +1,17 @@
 ---
 title: "Ordering, Pagination & Search"
 description: "Sort results, paginate data, and perform multi-field searches"
-keywords: ["ordering","sorting","pagination","search","orderby","limit","offset","typescript"]
+keywords:
+  [
+    "ordering",
+    "sorting",
+    "pagination",
+    "search",
+    "orderby",
+    "limit",
+    "offset",
+    "typescript",
+  ]
 ---
 
 ## Ordering
@@ -12,19 +22,19 @@ Sort results by one or more fields:
 
 ```typescript
 const criteria = Criteria.create<User>()
-  .orderBy("name", "asc")        // Ascending (A-Z)
-  .orderByDesc("createdAt");     // Descending (newest first)
+  .orderBy("name", "asc") // Ascending (A-Z)
+  .orderByDesc("createdAt"); // Descending (newest first)
 ```
 
 ### Order Methods
 
 ```typescript
 // Generic method with direction
-criteria.orderBy("field", "asc");   // or "desc"
+criteria.orderBy("field", "asc"); // or "desc"
 
 // Shorthand methods
-criteria.orderByAsc("name");        // Ascending
-criteria.orderByDesc("createdAt");  // Descending
+criteria.orderByAsc("name"); // Ascending
+criteria.orderByDesc("createdAt"); // Descending
 ```
 
 ### Multiple Orders
@@ -33,9 +43,9 @@ Orders are applied in the sequence they're added:
 
 ```typescript
 const criteria = Criteria.create<Product>()
-  .orderByDesc("featured")     // First: featured items first
-  .orderByAsc("price")         // Then: lowest price
-  .orderByDesc("rating");      // Finally: highest rating
+  .orderByDesc("featured") // First: featured items first
+  .orderByAsc("price") // Then: lowest price
+  .orderByDesc("rating"); // Finally: highest rating
 
 // SQL equivalent:
 // ORDER BY featured DESC, price ASC, rating DESC
@@ -66,9 +76,9 @@ Only valid field paths are allowed:
 
 ```typescript
 const criteria = Criteria.create<User>()
-  .orderBy("name", "asc")           // ✅ Valid
-  .orderBy("profile.bio", "desc")   // ✅ Valid nested path
-  .orderBy("invalid", "asc");       // ❌ TypeScript error
+  .orderBy("name", "asc") // ✅ Valid
+  .orderBy("profile.bio", "desc") // ✅ Valid nested path
+  .orderBy("invalid", "asc"); // ❌ TypeScript error
 ```
 
 ## Pagination
@@ -76,11 +86,9 @@ const criteria = Criteria.create<User>()
 ### Basic Pagination
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .paginate(1, 20);  // Page 1, 20 items per page
+const criteria = Criteria.create<User>().paginate(1, 20); // Page 1, 20 items per page
 
-const criteria = Criteria.create<User>()
-  .paginate(3, 10);  // Page 3, 10 items per page (offset: 20)
+const criteria = Criteria.create<User>().paginate(3, 10); // Page 3, 10 items per page (offset: 20)
 ```
 
 ### Limit Only
@@ -88,8 +96,7 @@ const criteria = Criteria.create<User>()
 When you just want to limit results without full pagination:
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .limit(5);  // First 5 results
+const criteria = Criteria.create<User>().limit(5); // First 5 results
 
 // Equivalent to:
 criteria.paginate(1, 5);
@@ -112,13 +119,12 @@ The `getPagination()` method returns:
 
 ```typescript
 interface Pagination {
-  page: number;   // Current page (1-based)
-  limit: number;  // Items per page
+  page: number; // Current page (1-based)
+  limit: number; // Items per page
   offset: number; // Calculated offset for SQL
 }
 
-const criteria = Criteria.create<User>()
-  .paginate(3, 25);
+const criteria = Criteria.create<User>().paginate(3, 25);
 
 criteria.getPagination();
 // { page: 3, limit: 25, offset: 50 }
@@ -127,10 +133,9 @@ criteria.getPagination();
 ### Checking Pagination State
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .paginate(1, 20);
+const criteria = Criteria.create<User>().paginate(1, 20);
 
-criteria.hasPagination();  // true (always true due to defaults)
+criteria.hasPagination(); // true (always true due to defaults)
 ```
 
 ## Search
@@ -140,8 +145,7 @@ criteria.hasPagination();  // true (always true due to defaults)
 Search across multiple fields with a single query:
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .search("john");
+const criteria = Criteria.create<User>().search("john");
 
 // Matches users where:
 // name contains "john" OR email contains "john" OR bio contains "john"
@@ -163,10 +167,9 @@ const criteria = Criteria.create<Product>()
 ### Checking Search State
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .search("john");
+const criteria = Criteria.create<User>().search("john");
 
-criteria.hasSearch();  // true
+criteria.hasSearch(); // true
 
 const search = criteria.getSearch();
 // "john"
@@ -175,18 +178,15 @@ const search = criteria.getSearch();
 ### Search Behavior
 
 <Note>
-When search is applied with `PaginatedResult.fromArray()`, it:
-1. Searches across **all** items (ignoring pagination initially)
-2. Returns matching items
-3. Updates the total count based on matches
-4. Then applies pagination to the filtered results
+  When search is applied with `PaginatedResult.fromArray()`, it: 1. Searches
+  across **all** items (ignoring pagination initially) 2. Returns matching items
+  3. Updates the total count based on matches 4. Then applies pagination to the
+  filtered results
 </Note>
 
 ```typescript
 // 1000 users in database
-const criteria = Criteria.create<User>()
-  .search("john")
-  .paginate(1, 10);
+const criteria = Criteria.create<User>().search("john").paginate(1, 10);
 
 const result = PaginatedResult.fromArray(users, criteria);
 // result.meta.total = 50 (only matching users)
@@ -204,14 +204,14 @@ const criteria = Criteria.create<Product>()
   .where("price", "lessThanOrEqual", 100)
   .whereIn("category", ["electronics", "accessories"])
   .whereNotNull("stock")
-  
+
   // Search
   .search(searchQuery)
-  
+
   // Ordering
   .orderByDesc("featured")
   .orderByAsc("price")
-  
+
   // Pagination
   .paginate(page, 24);
 ```
@@ -220,8 +220,7 @@ const criteria = Criteria.create<Product>()
 
 ```typescript
 function buildProductQuery(filters: ProductFilters): Criteria<Product> {
-  let criteria = Criteria.create<Product>()
-    .whereEquals("status", "active");
+  let criteria = Criteria.create<Product>().whereEquals("status", "active");
 
   // Conditional filters
   if (filters.category) {
@@ -283,7 +282,7 @@ const orders = criteria.getOrders();
 //   { field: "name", direction: "asc" }
 // ]
 
-criteria.hasOrders();  // true
+criteria.hasOrders(); // true
 ```
 
 ## Order Interface
@@ -345,9 +344,9 @@ const criteria = Criteria.fromQueryParams<Product>({
 const criteria = Criteria.fromQueryParams<Product>({
   "status:equals": "active",
   "price:lessThan": "100",
-  "search": "laptop",
-  "orderBy": "price:asc",
-  "page": "1",
-  "limit": "20",
+  search: "laptop",
+  orderBy: "price:asc",
+  page: "1",
+  limit: "20",
 });
 ```

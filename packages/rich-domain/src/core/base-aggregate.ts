@@ -8,7 +8,7 @@ import { BaseProps, IDomainEvent, IDomainEventBus } from "../types/index.js";
  */
 export abstract class BaseAggregate<
   T extends BaseProps,
-  TOptionalInput extends keyof T = never
+  TOptionalInput extends keyof T = never,
 > extends BaseEntity<T, TOptionalInput> {
   private domainEvents: IDomainEvent[] = [];
 

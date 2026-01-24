@@ -1,7 +1,16 @@
 ---
 title: "Overview"
 description: "Abstract persistence layer for domain aggregates"
-keywords: ["repository","persistence","data-access","orm","database","ddd","typescript"]
+keywords:
+  [
+    "repository",
+    "persistence",
+    "data-access",
+    "orm",
+    "database",
+    "ddd",
+    "typescript",
+  ]
 ---
 
 ## What is a Repository?
@@ -16,7 +25,7 @@ await userRepository.save(user);
 
 // The domain code doesn't know about:
 // - Database connections
-// - SQL/ORM queries  
+// - SQL/ORM queries
 // - Data mapping
 // - Which database is being used
 ```
@@ -47,10 +56,17 @@ The library provides several base classes for different use cases:
 Complete read and write operations:
 
 ```typescript
-import { Repository, Aggregate, Criteria, PaginatedResult } from "@woltz/rich-domain";
+import {
+  Repository,
+  Aggregate,
+  Criteria,
+  PaginatedResult,
+} from "@woltz/rich-domain";
 
 abstract class Repository<TDomain extends Aggregate<any>> {
-  abstract find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  abstract find(
+    criteria?: Criteria<TDomain>
+  ): Promise<PaginatedResult<TDomain>>;
   abstract findById(id: string): Promise<TDomain | null>;
   abstract save(entity: TDomain): Promise<void>;
   abstract delete(entity: TDomain): Promise<void>;
@@ -65,7 +81,9 @@ Read-only operations (useful for CQRS read models):
 
 ```typescript
 abstract class ReadRepository<TDomain extends Aggregate<any>> {
-  abstract find(criteria?: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  abstract find(
+    criteria?: Criteria<TDomain>
+  ): Promise<PaginatedResult<TDomain>>;
   abstract findById(id: string): Promise<TDomain | null>;
   abstract count(criteria?: Criteria<TDomain>): Promise<number>;
   abstract exists(id: string): Promise<boolean>;
@@ -98,9 +116,15 @@ interface UserProps {
 }
 
 class User extends Aggregate<UserProps> {
-  get name() { return this.props.name; }
-  get email() { return this.props.email; }
-  get status() { return this.props.status; }
+  get name() {
+    return this.props.name;
+  }
+  get email() {
+    return this.props.email;
+  }
+  get status() {
+    return this.props.status;
+  }
 
   changeName(name: string) {
     this.props.name = name;
@@ -155,7 +179,7 @@ import { Repository, Criteria, PaginatedResult } from "@woltz/rich-domain";
 
 class UserRepository extends Repository<User> {
   constructor(
-    private db: YourDatabaseClient,  // Any database client
+    private db: YourDatabaseClient, // Any database client
     private mapperToDomain: UserToDomainMapper,
     private mapperToPersistence: UserToPersistenceMapper
   ) {
@@ -184,7 +208,7 @@ class UserRepository extends Repository<User> {
 
   async save(user: User): Promise<void> {
     const data = this.mapperToPersistence.build(user);
-    
+
     if (user.isNew()) {
       await this.db.insert("users", data);
     } else {
@@ -215,10 +239,10 @@ class UserRepository extends Repository<User> {
 <Note>
   For complete implementations with specific ORMs, see:
 
-  - [Prisma Integration](/integrations/prisma) - Full-featured adapter with change tracking
-  - [TypeORM Integration](/integrations/typeorm) - Full-featured adapter with change tracking
-  - [Drizzle Integration](/integrations/drizzle) - Coming soon
-</Note>
+- [Prisma Integration](/integrations/prisma) - Full-featured adapter with change tracking
+- [TypeORM Integration](/integrations/typeorm) - Full-featured adapter with change tracking
+- [Drizzle Integration](/integrations/drizzle) - Coming soon
+  </Note>
 
 ## Using the Repository
 
@@ -254,12 +278,12 @@ const user = new User({
   email: "john@example.com",
   status: "active",
 });
-await userRepository.save(user);  // INSERT
+await userRepository.save(user); // INSERT
 
 // Update existing entity
 const user = await userRepository.findById("user-123");
 user.changeName("Jane Doe");
-await userRepository.save(user);  // UPDATE
+await userRepository.save(user); // UPDATE
 ```
 
 ### Deleting Entities
@@ -282,7 +306,10 @@ class UserRepository extends Repository<User> {
     return record ? this.mapperToDomain.build(record) : null;
   }
 
-  async findActiveUsers(page: number, limit: number): Promise<PaginatedResult<User>> {
+  async findActiveUsers(
+    page: number,
+    limit: number
+  ): Promise<PaginatedResult<User>> {
     return this.find(
       Criteria.create<User>()
         .whereEquals("status", "active")
@@ -305,9 +332,7 @@ class UserRepository extends Repository<User> {
   }
 
   async countByStatus(status: "active" | "inactive"): Promise<number> {
-    return this.count(
-      Criteria.create<User>().whereEquals("status", status)
-    );
+    return this.count(Criteria.create<User>().whereEquals("status", status));
   }
 }
 ```
@@ -364,7 +389,8 @@ class OrderRepository extends Repository<Order> {
 ```
 
 <Tip>
-  The [Prisma Adapter](/integrations/prisma) provides `PrismaBatchExecutor` that handles all this automatically.
+  The [Prisma Adapter](/integrations/prisma) provides `PrismaBatchExecutor` that
+  handles all this automatically.
 </Tip>
 
 ## Testing with Repositories
@@ -445,7 +471,9 @@ describe("UserService", () => {
   it("should find active users", async () => {
     // Setup
     await userRepository.save(new User({ name: "Active", status: "active" }));
-    await userRepository.save(new User({ name: "Inactive", status: "inactive" }));
+    await userRepository.save(
+      new User({ name: "Inactive", status: "inactive" })
+    );
 
     // Test
     const result = await userRepository.find(
@@ -467,7 +495,11 @@ describe("UserService", () => {
   <Card title="Mappers" icon="right-left" href="/repository/mappers">
     Domain ↔ persistence data transformation
   </Card>
-  <Card title="Schema Registry" icon="sitemap" href="/repository/schema-registry">
+  <Card
+    title="Schema Registry"
+    icon="sitemap"
+    href="/repository/schema-registry"
+  >
     Map entities to database tables
   </Card>
   <Card title="Prisma Integration" icon="database" href="/integrations/prisma">

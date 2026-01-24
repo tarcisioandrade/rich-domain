@@ -26,7 +26,9 @@ export function validateJsonExportOptions<T extends Aggregate<any>>(
     } else if (options.indent < 0) {
       errors.push("Indent must be non-negative");
     } else if (options.indent > 10) {
-      warnings.push("Large indent values (>10) may significantly increase file size");
+      warnings.push(
+        "Large indent values (>10) may significantly increase file size"
+      );
     }
   }
 
@@ -73,7 +75,8 @@ export function validateJsonExportOptions<T extends Aggregate<any>>(
         );
       }
 
-      const transformer = options.transformers[field as keyof typeof options.transformers];
+      const transformer =
+        options.transformers[field as keyof typeof options.transformers];
       if (typeof transformer !== "function") {
         errors.push(`Transformer for field "${field}" must be a function`);
       }

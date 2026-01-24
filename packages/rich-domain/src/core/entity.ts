@@ -4,10 +4,10 @@ import { BaseProps } from "../types/index.js";
 
 export class Entity<
   T extends BaseProps,
-  TOptionalInput extends keyof T = never
+  TOptionalInput extends keyof T = never,
 > extends BaseEntity<T, TOptionalInput> {}
 
 export class Aggregate<
   T extends BaseProps,
-  TOptionalInput extends keyof T = never
+  TOptionalInput extends keyof T = never,
 > extends BaseAggregate<T, TOptionalInput> {}

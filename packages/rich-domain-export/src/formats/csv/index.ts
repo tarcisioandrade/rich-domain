@@ -1,5 +1,5 @@
 export { CsvFormatStrategy } from "./csv-strategy.js";
-export type { CsvExportStats, CsvValidationResult } from "./csv-types.js";
+export type { CsvExportStats } from "./csv-types.js";
 
 export {
   escapeCsvValue,

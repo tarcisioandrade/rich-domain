@@ -69,7 +69,7 @@ export abstract class WriteAndRead<Agg extends Aggregate<any>> {
 }
 
 export abstract class Repository<
-  TDomain extends Aggregate<any>
+  TDomain extends Aggregate<any>,
 > extends WriteAndRead<TDomain> {
   protected abstract readonly toDomainMapper: Mapper<unknown, TDomain>;
   protected abstract readonly toPersistenceMapper: Mapper<TDomain, unknown>;

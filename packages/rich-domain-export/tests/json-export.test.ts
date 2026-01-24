@@ -235,11 +235,7 @@ describe("ExportService - JSON Format", () => {
     });
 
     it("should filter with criteria", async () => {
-      const criteria = Criteria.create<User>().where(
-        "active",
-        "equals",
-        true
-      );
+      const criteria = Criteria.create<User>().where("active", "equals", true);
 
       const result = await service.export(repository, criteria, {
         format: "json",
@@ -510,8 +506,11 @@ describe("ExportService - JSON Format", () => {
         transformers: {
           name: (name) => name.toUpperCase(),
           email: (email) => email.split("@")[0],
-          age: (age) => ({ years: age, category: age >= 30 ? "senior" : "junior" }),
-          active: (active) => active ? "yes" : "no",
+          age: (age) => ({
+            years: age,
+            category: age >= 30 ? "senior" : "junior",
+          }),
+          active: (active) => (active ? "yes" : "no"),
         },
       });
 

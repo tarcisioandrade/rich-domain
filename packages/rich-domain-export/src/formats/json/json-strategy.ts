@@ -18,10 +18,9 @@ import { validateJsonExportOptions } from "./json-validator.js";
  *
  * @template T - Aggregate type being exported
  */
-export class JsonFormatStrategy<T extends Aggregate<any>>
-  implements
-    ExportFormatStrategy<JsonExportOptions<T>, JsonExportStats>
-{
+export class JsonFormatStrategy<
+  T extends Aggregate<any>,
+> implements ExportFormatStrategy<JsonExportOptions<T>, JsonExportStats> {
   /**
    * Export entities to JSON format (in-memory)
    *
@@ -61,7 +60,9 @@ export class JsonFormatStrategy<T extends Aggregate<any>>
 
     if (jsonLines) {
       // JSON Lines format: one JSON object per line
-      data = processedRecords.map((record) => JSON.stringify(record)).join("\n");
+      data = processedRecords
+        .map((record) => JSON.stringify(record))
+        .join("\n");
     } else {
       // Standard JSON array format
       const output = rootKey
@@ -76,7 +77,9 @@ export class JsonFormatStrategy<T extends Aggregate<any>>
     // Calculate total fields from first record (or 0 if no records)
     const totalFields =
       fields?.length ??
-      (processedRecords.length > 0 ? Object.keys(processedRecords[0]).length : 0);
+      (processedRecords.length > 0
+        ? Object.keys(processedRecords[0]).length
+        : 0);
 
     return {
       data,
@@ -104,7 +107,14 @@ export class JsonFormatStrategy<T extends Aggregate<any>>
     recordsIterator: AsyncIterable<any[]>,
     options: JsonExportOptions<T>
   ): Promise<Readable> {
-    const { jsonLines = false, pretty = false, indent = 2, fields, transformers, rootKey } = options;
+    const {
+      jsonLines = false,
+      pretty = false,
+      indent = 2,
+      fields,
+      transformers,
+      rootKey,
+    } = options;
 
     let isFirstBatch = true;
     let isFirstItem = true;
@@ -237,16 +247,10 @@ export class JsonFormatStrategy<T extends Aggregate<any>>
    * @param transformers - Optional field transformers
    * @returns Processed record
    */
-  private processRecord(
-    record: any,
-    fields?: any[],
-    transformers?: any
-  ): any {
+  private processRecord(record: any, fields?: any[], transformers?: any): any {
     // Apply field filtering
     let processed = fields
-      ? Object.fromEntries(
-          fields.map((field) => [field, record[field]])
-        )
+      ? Object.fromEntries(fields.map((field) => [field, record[field]]))
       : { ...record };
 
     // Apply transformers

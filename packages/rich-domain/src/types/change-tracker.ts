@@ -187,11 +187,8 @@ export interface FieldChange<T = any> {
 /**
  * Extracts the props type from an Entity or ValueObject.
  */
-export type ExtractProps<T> = T extends Entity<infer P>
-  ? P
-  : T extends ValueObject<infer P>
-  ? P
-  : never;
+export type ExtractProps<T> =
+  T extends Entity<infer P> ? P : T extends ValueObject<infer P> ? P : never;
 
 /**
  * Keys of primitive properties (not Entity, ValueObject or Array).

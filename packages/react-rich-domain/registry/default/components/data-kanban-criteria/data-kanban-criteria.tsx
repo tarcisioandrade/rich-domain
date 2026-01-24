@@ -129,10 +129,7 @@ function DataKanbanCriteria<T>({
   const boardContent = (
     <>
       {isLoading && showSkeleton && (
-        <KanbanSkeleton
-          columnCount={columns.length}
-          cardCount={6}
-        />
+        <KanbanSkeleton columnCount={columns.length} cardCount={6} />
       )}
 
       {!isLoading && (
@@ -145,10 +142,7 @@ function DataKanbanCriteria<T>({
           )}
         >
           {columns.map((columnData) => (
-            <div
-              key={columnData.column.id}
-              className="w-80 min-w-80 shrink-0"
-            >
+            <div key={columnData.column.id} className="w-80 min-w-80 shrink-0">
               <KanbanColumn
                 columnData={columnData}
                 getItemId={getItemId}
@@ -161,7 +155,11 @@ function DataKanbanCriteria<T>({
                 activeId={activeId}
                 onCardClick={onCardClick}
                 columnsContentScrollClassName={columnsContentScrollClassName}
-                renderEmptyState={renderEmptyState ? () => renderEmptyState(columnData.column) : undefined}
+                renderEmptyState={
+                  renderEmptyState
+                    ? () => renderEmptyState(columnData.column)
+                    : undefined
+                }
               />
             </div>
           ))}
@@ -169,9 +167,7 @@ function DataKanbanCriteria<T>({
       )}
 
       <DragOverlay dropAnimation={null}>
-        {activeItem ? (
-          renderCard(activeItem, true, !!onCardClick)
-        ) : null}
+        {activeItem ? renderCard(activeItem, true, !!onCardClick) : null}
       </DragOverlay>
     </>
   );

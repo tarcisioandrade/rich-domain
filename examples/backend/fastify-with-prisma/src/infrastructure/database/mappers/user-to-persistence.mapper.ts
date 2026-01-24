@@ -78,7 +78,6 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
     console.dir({ changes }, { depth: null });
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: user.id.value,
     });
 
     await executor.execute(changes);

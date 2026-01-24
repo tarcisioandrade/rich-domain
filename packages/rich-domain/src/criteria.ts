@@ -389,7 +389,7 @@ export class Criteria<T = any> {
                 "between" as OperatorsForType<PathValue<T, FieldPath<T>>>,
                 [parsedValue[0], parsedValue[1]] as [
                   PathValue<T, FieldPath<T>>,
-                  PathValue<T, FieldPath<T>>
+                  PathValue<T, FieldPath<T>>,
                 ],
                 options
               );

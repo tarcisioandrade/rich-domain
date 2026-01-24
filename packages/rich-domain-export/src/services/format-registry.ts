@@ -81,9 +81,7 @@ export class FormatRegistry {
    * const result = await strategy.export(records, options);
    * ```
    */
-  static getStrategy(
-    format: string
-  ): ExportFormatStrategy<any, any> {
+  static getStrategy(format: string): ExportFormatStrategy<any, any> {
     const StrategyClass = this.strategies.get(format.toLowerCase());
 
     if (!StrategyClass) {

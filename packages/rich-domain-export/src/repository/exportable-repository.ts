@@ -33,7 +33,7 @@ import { ExportService } from "../services/export-service.js";
  * ```
  */
 export abstract class ExportableRepository<
-  TDomain extends Aggregate<any>
+  TDomain extends Aggregate<any>,
 > extends Repository<TDomain> {
   /**
    * Export service instance (composition pattern)

@@ -21,11 +21,7 @@ export class ModelNotFoundError extends PrismaRepositoryError {
 }
 
 export class TableNotFoundError extends PrismaRepositoryError {
-  constructor(
-    entityName: string,
-    registeredTables?: string[],
-    cause?: Error
-  ) {
+  constructor(entityName: string, registeredTables?: string[], cause?: Error) {
     const registeredList = registeredTables?.length
       ? `Registered tables: ${registeredTables.join(", ")}`
       : "";

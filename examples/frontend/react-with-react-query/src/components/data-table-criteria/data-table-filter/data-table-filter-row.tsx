@@ -40,8 +40,6 @@ export function DataTableFilterRow({
 
   const usedFields = filters.map((filter) => filter.field);
 
- 
-
   const handleUpdateFilter = (index: number, newValue: FilterValue) => {
     const prevFilter = filterValues[index];
     if (!prevFilter) return;
@@ -86,10 +84,12 @@ export function DataTableFilterRow({
     });
   };
 
-  const [handleUpdateFilterDebounced] = useDebounceCallback((index: number, newValue: FilterValue) => {
-    handleUpdateFilter(index, newValue);
-  }, 300);
-
+  const [handleUpdateFilterDebounced] = useDebounceCallback(
+    (index: number, newValue: FilterValue) => {
+      handleUpdateFilter(index, newValue);
+    },
+    300
+  );
 
   const handleSelectField = (index: number, newValue: FilterValue) => {
     const filterToUpdate = filters[index];

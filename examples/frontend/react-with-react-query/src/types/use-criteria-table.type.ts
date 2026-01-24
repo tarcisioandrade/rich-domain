@@ -5,7 +5,10 @@ import type {
   Table,
 } from "@tanstack/react-table";
 import type { Criteria, PaginatedResult } from "@woltz/rich-domain";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "./use-criteria.type";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "./use-criteria.type";
 import type { QueryFilter } from "../lib/filter-utils";
 import type { QueryKey, UseQueryResult } from "@tanstack/react-query";
 

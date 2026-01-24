@@ -237,7 +237,7 @@ export function FilterValueSelector({
   }
 
   // Simple input for non-array values
-  const simpleValue = Array.isArray(value) ? "" : value ?? "";
+  const simpleValue = Array.isArray(value) ? "" : (value ?? "");
 
   return (
     <Input

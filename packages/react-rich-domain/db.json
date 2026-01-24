@@ -7,10 +7,7 @@
       "status": "doing",
       "priority": "high",
       "assignee": "Alice Johnson",
-      "labels": [
-        "architecture",
-        "design"
-      ],
+      "labels": ["architecture", "design"],
       "order": "ZW",
       "createdAt": "2024-01-15T10:00:00Z",
       "updatedAt": "2026-01-17T23:51:01.241Z",
@@ -23,10 +20,7 @@
       "status": "doing",
       "priority": "high",
       "assignee": "Dave Brown",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yza",
       "createdAt": "2024-01-14T11:00:00Z",
       "updatedAt": "2026-01-18T01:36:49.689Z",
@@ -39,10 +33,7 @@
       "status": "done",
       "priority": "high",
       "assignee": "Jack Thomas",
-      "labels": [
-        "testing",
-        "quality"
-      ],
+      "labels": ["testing", "quality"],
       "order": "a0",
       "createdAt": "2024-01-13T16:00:00Z",
       "updatedAt": "2026-01-18T01:51:45.033Z",
@@ -55,10 +46,7 @@
       "status": "done",
       "priority": "high",
       "assignee": "Leo Garcia",
-      "labels": [
-        "backend",
-        "database"
-      ],
+      "labels": ["backend", "database"],
       "order": "Zx",
       "createdAt": "2024-01-12T14:30:00Z",
       "updatedAt": "2026-01-18T01:37:38.074Z",
@@ -71,10 +59,7 @@
       "status": "doing",
       "priority": "low",
       "assignee": "Bob Smith",
-      "labels": [
-        "design",
-        "email"
-      ],
+      "labels": ["design", "email"],
       "order": "Zy",
       "createdAt": "2024-01-11T14:00:00Z",
       "updatedAt": "2026-01-17T23:49:36.755Z",
@@ -87,10 +72,7 @@
       "status": "done",
       "priority": "high",
       "assignee": "Bob Smith",
-      "labels": [
-        "auth",
-        "security"
-      ],
+      "labels": ["auth", "security"],
       "order": "Zv",
       "createdAt": "2024-01-16T09:30:00Z",
       "updatedAt": "2026-01-18T01:51:46.731Z",
@@ -103,10 +85,7 @@
       "status": "doing",
       "priority": "medium",
       "assignee": "Eve Davis",
-      "labels": [
-        "documentation",
-        "api"
-      ],
+      "labels": ["documentation", "api"],
       "order": "Zi",
       "createdAt": "2024-01-18T08:00:00Z",
       "updatedAt": "2026-01-17T23:50:54.079Z",
@@ -119,10 +98,7 @@
       "status": "todo",
       "priority": "high",
       "assignee": "Grace Wilson",
-      "labels": [
-        "performance",
-        "optimization"
-      ],
+      "labels": ["performance", "optimization"],
       "order": "Zx",
       "createdAt": "2024-01-20T09:00:00Z",
       "updatedAt": "2026-01-18T01:37:30.854Z",
@@ -135,10 +111,7 @@
       "status": "doing",
       "priority": "medium",
       "assignee": "Henry Taylor",
-      "labels": [
-        "frontend",
-        "mobile"
-      ],
+      "labels": ["frontend", "mobile"],
       "order": "ZUV",
       "createdAt": "2024-01-21T10:30:00Z",
       "updatedAt": "2026-01-18T01:31:52.183Z",
@@ -151,10 +124,7 @@
       "status": "done",
       "priority": "medium",
       "assignee": "Kate Martinez",
-      "labels": [
-        "frontend",
-        "ux"
-      ],
+      "labels": ["frontend", "ux"],
       "order": "Zz",
       "createdAt": "2024-01-23T11:00:00Z",
       "updatedAt": "2026-01-18T01:37:28.510Z",
@@ -167,10 +137,7 @@
       "status": "done",
       "priority": "high",
       "assignee": "Olivia White",
-      "labels": [
-        "backend",
-        "security"
-      ],
+      "labels": ["backend", "security"],
       "order": "Zt",
       "createdAt": "2024-01-26T15:00:00Z",
       "updatedAt": "2026-01-18T01:51:48.036Z",
@@ -183,10 +150,7 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Carol Williams",
-      "labels": [
-        "analytics",
-        "tracking"
-      ],
+      "labels": ["analytics", "tracking"],
       "order": "Yzr",
       "createdAt": "2024-01-28T10:00:00Z",
       "updatedAt": "2026-01-18T01:51:39.973Z",
@@ -199,10 +163,7 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Carol Williams",
-      "labels": [
-        "frontend",
-        "dashboard"
-      ],
+      "labels": ["frontend", "dashboard"],
       "order": "Zv",
       "createdAt": "2024-01-17T14:00:00Z",
       "updatedAt": "2026-01-18T01:37:33.805Z",
@@ -215,10 +176,7 @@
       "status": "doing",
       "priority": "low",
       "assignee": "Frank Miller",
-      "labels": [
-        "frontend",
-        "ux"
-      ],
+      "labels": ["frontend", "ux"],
       "order": "Yzx",
       "createdAt": "2024-01-19T15:30:00Z",
       "updatedAt": "2026-01-18T01:36:36.105Z",
@@ -231,10 +189,7 @@
       "status": "doing",
       "priority": "medium",
       "assignee": "Ivy Anderson",
-      "labels": [
-        "a11y",
-        "compliance"
-      ],
+      "labels": ["a11y", "compliance"],
       "order": "ZV",
       "createdAt": "2024-01-22T13:00:00Z",
       "updatedAt": "2026-01-17T23:51:01.590Z",
@@ -247,10 +202,7 @@
       "status": "doing",
       "priority": "medium",
       "assignee": "Mia Rodriguez",
-      "labels": [
-        "backend",
-        "realtime"
-      ],
+      "labels": ["backend", "realtime"],
       "order": "ZY",
       "createdAt": "2024-01-24T09:30:00Z",
       "updatedAt": "2026-01-17T23:50:56.905Z",
@@ -263,10 +215,7 @@
       "status": "doing",
       "priority": "low",
       "assignee": "Noah Lee",
-      "labels": [
-        "backend",
-        "search"
-      ],
+      "labels": ["backend", "search"],
       "order": "Yzh",
       "createdAt": "2024-01-25T10:00:00Z",
       "updatedAt": "2026-01-18T01:55:49.267Z",
@@ -279,10 +228,7 @@
       "status": "doing",
       "priority": "medium",
       "assignee": "Alice Johnson",
-      "labels": [
-        "frontend",
-        "user"
-      ],
+      "labels": ["frontend", "user"],
       "order": "ZUl",
       "createdAt": "2024-01-27T09:00:00Z",
       "updatedAt": "2026-01-18T01:31:57.304Z",
@@ -295,10 +241,7 @@
       "status": "doing",
       "priority": "low",
       "assignee": "Dave Brown",
-      "labels": [
-        "frontend",
-        "export"
-      ],
+      "labels": ["frontend", "export"],
       "order": "a0",
       "createdAt": "2024-01-29T11:00:00Z",
       "updatedAt": "2026-01-17T23:50:51.905Z",
@@ -311,10 +254,7 @@
       "status": "todo",
       "priority": "low",
       "assignee": "Eve Davis",
-      "labels": [
-        "frontend",
-        "ux"
-      ],
+      "labels": ["frontend", "ux"],
       "order": "Zz",
       "createdAt": "2024-01-30T08:30:00Z",
       "updatedAt": "2026-01-18T01:37:29.626Z",
@@ -327,10 +267,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Magee Cabrera",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzc",
       "createdAt": "2024-12-14T20:25:51.000Z",
       "updatedAt": "2026-01-18T01:36:49.131Z",
@@ -343,10 +280,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Yuli Watson",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZT",
       "createdAt": "2025-04-07T19:05:47.000Z",
       "updatedAt": "2026-01-18T01:35:53.847Z",
@@ -359,10 +293,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Cora Horne",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-05-21T05:08:46.000Z",
       "updatedAt": "2025-12-04T19:56:07.000Z",
@@ -375,10 +306,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Karleigh Brennan",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-01-11T06:26:50.000Z",
       "updatedAt": "2026-12-03T15:03:21.000Z",
@@ -391,10 +319,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Melinda Hart",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z3",
       "createdAt": "2025-09-09T06:17:12.000Z",
       "updatedAt": "2026-01-18T01:51:33.372Z",
@@ -407,10 +332,7 @@
       "status": "doing",
       "priority": "high",
       "assigne": "Beatrice Larsen",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "YzL",
       "createdAt": "2024-11-12T03:23:21.000Z",
       "updatedAt": "2026-01-18T01:36:58.152Z",
@@ -423,10 +345,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Kessie Langley",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yze",
       "createdAt": "2025-07-02T05:15:21.000Z",
       "updatedAt": "2026-01-18T01:36:48.313Z",
@@ -439,10 +358,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Lionel Mejia",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZR",
       "createdAt": "2025-04-18T06:56:26.000Z",
       "updatedAt": "2026-01-18T01:35:54.719Z",
@@ -455,10 +371,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Keane Olsen",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-01-06T14:46:48.000Z",
       "updatedAt": "2025-08-12T05:10:54.000Z",
@@ -471,10 +384,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Chester Barnes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-02-19T07:38:54.000Z",
       "updatedAt": "2026-10-20T16:39:45.000Z",
@@ -487,10 +397,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Lamar Gross",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z5",
       "createdAt": "2025-05-16T14:33:03.000Z",
       "updatedAt": "2026-01-18T01:51:32.370Z",
@@ -503,10 +410,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Nigel Navarro",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZB",
       "createdAt": "2025-01-19T19:15:48.000Z",
       "updatedAt": "2026-01-18T01:50:03.274Z",
@@ -519,10 +423,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Paula Pacheco",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZP",
       "createdAt": "2025-06-16T22:06:42.000Z",
       "updatedAt": "2026-01-18T01:35:55.251Z",
@@ -535,10 +436,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Kaye Melton",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZN",
       "createdAt": "2024-11-10T10:26:23.000Z",
       "updatedAt": "2026-01-18T01:35:56.722Z",
@@ -551,10 +449,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Cameron Bentley",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-10-03T05:39:11.000Z",
       "updatedAt": "2026-04-18T02:51:29.000Z",
@@ -567,10 +462,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Ella Haynes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-10-03T18:46:51.000Z",
       "updatedAt": "2025-05-05T13:21:11.000Z",
@@ -583,10 +475,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Reece Oneil",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZD",
       "createdAt": "2025-03-27T04:30:11.000Z",
       "updatedAt": "2026-01-18T01:50:02.766Z",
@@ -599,10 +488,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Sharon Estes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZO",
       "createdAt": "2025-03-04T11:03:01.000Z",
       "updatedAt": "2026-01-18T01:49:57.429Z",
@@ -615,10 +501,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Isabella Webb",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZL",
       "createdAt": "2025-04-25T18:56:57.000Z",
       "updatedAt": "2026-01-18T01:35:57.380Z",
@@ -631,10 +514,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Malachi Wagner",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZK",
       "createdAt": "2025-03-14T01:16:28.000Z",
       "updatedAt": "2026-01-18T01:35:57.931Z",
@@ -647,10 +527,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Ali Lindsey",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-05-13T15:01:14.000Z",
       "updatedAt": "2026-08-07T05:14:11.000Z",
@@ -663,10 +540,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Keiko Mckee",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-08-07T04:39:24.000Z",
       "updatedAt": "2025-08-23T22:17:33.000Z",
@@ -679,10 +553,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Josephine Barron",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZQ",
       "createdAt": "2025-02-17T22:22:23.000Z",
       "updatedAt": "2026-01-18T01:49:56.129Z",
@@ -695,10 +566,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Lydia Lancaster",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZE",
       "createdAt": "2024-11-14T01:55:23.000Z",
       "updatedAt": "2026-01-18T01:50:02.255Z",
@@ -711,10 +579,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Wayne Barnes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZJ",
       "createdAt": "2025-02-13T07:20:54.000Z",
       "updatedAt": "2026-01-18T01:35:58.357Z",
@@ -727,10 +592,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Wade Vang",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZH",
       "createdAt": "2025-04-14T17:31:36.000Z",
       "updatedAt": "2026-01-18T01:35:58.867Z",
@@ -743,10 +605,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Marny Weeks",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-07-01T05:52:04.000Z",
       "updatedAt": "2025-01-19T12:45:45.000Z",
@@ -759,10 +618,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Ivy Campos",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-05-20T03:13:49.000Z",
       "updatedAt": "2026-12-22T20:55:49.000Z",
@@ -775,10 +631,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Heidi Hutchinson",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZU",
       "createdAt": "2025-07-10T23:05:28.000Z",
       "updatedAt": "2026-01-18T01:49:54.983Z",
@@ -791,10 +644,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Unity Fernandez",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZG",
       "createdAt": "2025-09-06T22:02:35.000Z",
       "updatedAt": "2026-01-18T01:50:01.683Z",
@@ -807,10 +657,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Kiayada Ingram",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZG",
       "createdAt": "2025-07-25T01:12:56.000Z",
       "updatedAt": "2026-01-18T01:35:59.287Z",
@@ -823,10 +670,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Tallulah Irwin",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZF",
       "createdAt": "2025-05-10T22:20:26.000Z",
       "updatedAt": "2026-01-18T01:35:59.798Z",
@@ -839,10 +683,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Kyle Trevino",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-08-03T13:49:40.000Z",
       "updatedAt": "2025-09-23T17:16:35.000Z",
@@ -855,10 +696,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Tucker Owen",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-04-28T03:36:16.000Z",
       "updatedAt": "2026-12-07T03:31:06.000Z",
@@ -871,10 +709,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Serena Gomez",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZI",
       "createdAt": "2025-05-07T21:34:32.000Z",
       "updatedAt": "2026-01-18T01:50:01.106Z",
@@ -887,10 +722,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Kirk Sampson",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZM",
       "createdAt": "2025-05-26T05:31:55.000Z",
       "updatedAt": "2026-01-18T01:49:59.495Z",
@@ -903,10 +735,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Levi Hampton",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZE",
       "createdAt": "2024-11-12T18:57:47.000Z",
       "updatedAt": "2026-01-18T01:36:00.143Z",
@@ -919,10 +748,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Meghan Dixon",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZD",
       "createdAt": "2024-11-29T18:08:24.000Z",
       "updatedAt": "2026-01-18T01:36:00.595Z",
@@ -935,10 +761,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Tatiana Dyer",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-01-07T20:37:14.000Z",
       "updatedAt": "2026-04-19T12:26:11.000Z",
@@ -951,10 +774,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Teegan Garcia",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-06-19T04:11:55.000Z",
       "updatedAt": "2026-12-12T03:25:50.000Z",
@@ -967,10 +787,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Jackson Mclean",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZK",
       "createdAt": "2025-05-05T10:50:08.000Z",
       "updatedAt": "2026-01-18T01:50:00.411Z",
@@ -983,10 +800,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Amy Green",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZS",
       "createdAt": "2025-06-05T10:59:13.000Z",
       "updatedAt": "2026-01-18T01:49:55.488Z",
@@ -999,10 +813,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Anjolie Fuentes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZB",
       "createdAt": "2025-08-15T14:23:22.000Z",
       "updatedAt": "2026-01-18T01:36:01.254Z",
@@ -1015,10 +826,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Hunter Aguirre",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "a1",
       "createdAt": "2024-12-05T01:33:04.000Z",
       "updatedAt": "2026-01-18T01:36:54.004Z",
@@ -1031,10 +839,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Quinlan Lane",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-09-03T03:07:58.000Z",
       "updatedAt": "2025-10-03T08:42:30.000Z",
@@ -1047,10 +852,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Kadeem Montgomery",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-10-06T06:30:00.000Z",
       "updatedAt": "2026-07-01T18:42:29.000Z",
@@ -1063,10 +865,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Cailin Barnes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZW",
       "createdAt": "2025-05-08T00:14:09.000Z",
       "updatedAt": "2026-01-18T01:49:52.306Z",
@@ -1079,10 +878,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Damian Berger",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zt",
       "createdAt": "2025-04-08T05:28:32.000Z",
       "updatedAt": "2026-01-18T01:37:47.703Z",
@@ -1095,10 +891,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Stella Poole",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzg",
       "createdAt": "2025-09-29T22:31:15.000Z",
       "updatedAt": "2026-01-18T01:36:47.345Z",
@@ -1111,10 +904,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Gisela Kirkland",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z9",
       "createdAt": "2025-01-16T02:51:13.000Z",
       "updatedAt": "2026-01-18T01:36:02.859Z",
@@ -1127,10 +917,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Kathleen Morris",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-12-03T18:11:25.000Z",
       "updatedAt": "2026-11-22T17:35:09.000Z",
@@ -1143,10 +930,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Amir Rivera",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-09-11T09:56:45.000Z",
       "updatedAt": "2025-11-09T04:09:26.000Z",
@@ -1159,10 +943,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Leah Mosley",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZX",
       "createdAt": "2025-08-15T08:29:31.000Z",
       "updatedAt": "2026-01-18T01:49:51.844Z",
@@ -1175,10 +956,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Sandra Hunt",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "ZY",
       "createdAt": "2025-04-13T16:36:26.000Z",
       "updatedAt": "2026-01-18T01:49:51.423Z",
@@ -1191,10 +969,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Meredith Higgins",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z7",
       "createdAt": "2025-03-28T08:54:25.000Z",
       "updatedAt": "2026-01-18T01:36:03.650Z",
@@ -1207,10 +982,7 @@
       "status": "todo",
       "priority": "low",
       "assigne": "Miriam Lucas",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzx",
       "createdAt": "2025-07-18T18:27:41.000Z",
       "updatedAt": "2026-01-18T01:51:35.985Z",
@@ -1223,10 +995,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Rosalyn Garner",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-11-30T08:18:24.000Z",
       "updatedAt": "2026-07-26T12:28:28.000Z",
@@ -1239,10 +1008,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Fredericka Madden",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-01-26T09:52:47.000Z",
       "updatedAt": "2026-10-08T14:58:13.000Z",
@@ -1255,10 +1021,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Burke Ramirez",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zj",
       "createdAt": "2025-02-07T11:01:47.000Z",
       "updatedAt": "2026-01-18T01:49:47.826Z",
@@ -1271,10 +1034,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Sylvester Guthrie",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zh",
       "createdAt": "2025-08-16T01:10:23.000Z",
       "updatedAt": "2026-01-18T01:49:48.476Z",
@@ -1287,10 +1047,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Reuben Morrison",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z5",
       "createdAt": "2025-07-25T20:42:49.000Z",
       "updatedAt": "2026-01-18T01:36:04.762Z",
@@ -1303,10 +1060,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Ira Moreno",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z3",
       "createdAt": "2024-10-13T03:23:35.000Z",
       "updatedAt": "2026-01-18T01:36:07.315Z",
@@ -1319,10 +1073,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Ivor Moreno",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-04-07T14:03:49.000Z",
       "updatedAt": "2026-07-26T13:21:50.000Z",
@@ -1335,10 +1086,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Phoebe Horn",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-03-10T04:16:28.000Z",
       "updatedAt": "2026-10-28T00:10:47.000Z",
@@ -1351,10 +1099,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Simone Charles",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zo",
       "createdAt": "2025-01-07T00:28:55.000Z",
       "updatedAt": "2026-01-18T01:49:47.207Z",
@@ -1367,10 +1112,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Kylee Goff",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Za",
       "createdAt": "2025-06-26T17:31:06.000Z",
       "updatedAt": "2026-01-18T01:49:50.962Z",
@@ -1383,10 +1125,7 @@
       "status": "todo",
       "priority": "low",
       "assigne": "Odessa Mccoy",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzz",
       "createdAt": "2024-11-18T22:02:07.000Z",
       "updatedAt": "2026-01-18T01:51:34.662Z",
@@ -1399,10 +1138,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Curran Ayers",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z1",
       "createdAt": "2025-03-13T17:44:35.000Z",
       "updatedAt": "2026-01-18T01:36:13.393Z",
@@ -1415,10 +1151,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Chelsea Sampson",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-01-29T08:56:33.000Z",
       "updatedAt": "2026-03-29T22:13:41.000Z",
@@ -1431,10 +1164,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Kirestin House",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-08-16T14:40:31.000Z",
       "updatedAt": "2026-07-13T00:12:49.000Z",
@@ -1447,10 +1177,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Hasad Matthews",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zb",
       "createdAt": "2024-12-22T00:20:23.000Z",
       "updatedAt": "2026-01-18T01:49:50.495Z",
@@ -1463,10 +1190,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Lev Newman",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zd",
       "createdAt": "2025-07-08T15:54:26.000Z",
       "updatedAt": "2026-01-18T01:49:49.987Z",
@@ -1479,10 +1203,7 @@
       "status": "todo",
       "priority": "low",
       "assigne": "Odysseus Hill",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z1",
       "createdAt": "2025-06-04T11:51:04.000Z",
       "updatedAt": "2026-01-18T01:51:34.051Z",
@@ -1495,10 +1216,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Cecilia Simmons",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzz",
       "createdAt": "2025-04-25T07:59:40.000Z",
       "updatedAt": "2026-01-18T01:36:14.160Z",
@@ -1511,10 +1229,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Lyle Herman",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-12-17T03:28:48.000Z",
       "updatedAt": "2025-09-03T11:40:53.000Z",
@@ -1527,10 +1242,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Anthony Cantrell",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-08-27T20:39:57.000Z",
       "updatedAt": "2025-07-01T19:13:59.000Z",
@@ -1543,10 +1255,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Jaime Parsons",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zg",
       "createdAt": "2024-11-20T12:34:31.000Z",
       "updatedAt": "2026-01-18T01:49:48.987Z",
@@ -1559,10 +1268,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Remedios Harvey",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Ze",
       "createdAt": "2025-03-15T07:35:12.000Z",
       "updatedAt": "2026-01-18T01:49:49.526Z",
@@ -1575,10 +1281,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Ashton Richards",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzi",
       "createdAt": "2025-08-11T09:28:03.000Z",
       "updatedAt": "2026-01-18T01:36:45.618Z",
@@ -1591,10 +1294,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Baker Poole",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzt",
       "createdAt": "2025-03-03T23:17:47.000Z",
       "updatedAt": "2026-01-18T01:36:39.031Z",
@@ -1607,10 +1307,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Yolanda Mccarthy",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-02-08T08:22:45.000Z",
       "updatedAt": "2026-12-19T23:27:40.000Z",
@@ -1623,10 +1320,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Hakeem Arnold",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-09-12T13:30:57.000Z",
       "updatedAt": "2026-04-21T22:08:17.000Z",
@@ -1639,10 +1333,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Sonya Hensley",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zl",
       "createdAt": "2025-02-27T19:15:04.000Z",
       "updatedAt": "2026-01-18T01:45:58.281Z",
@@ -1655,10 +1346,7 @@
       "status": "doing",
       "priority": "high",
       "assigne": "Timon Barlow",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "a4",
       "createdAt": "2024-12-10T15:18:48.000Z",
       "updatedAt": "2026-01-18T01:43:56.101Z",
@@ -1671,10 +1359,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Yvonne Benjamin",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzv",
       "createdAt": "2025-07-20T23:46:04.000Z",
       "updatedAt": "2026-01-18T01:36:37.173Z",
@@ -1687,10 +1372,7 @@
       "status": "todo",
       "priority": "low",
       "assigne": "Jemima Reeves",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z7",
       "createdAt": "2025-04-23T04:32:57.000Z",
       "updatedAt": "2026-01-18T01:51:28.053Z",
@@ -1703,10 +1385,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Melanie Rosa",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-05-26T22:58:54.000Z",
       "updatedAt": "2026-04-15T23:16:31.000Z",
@@ -1719,10 +1398,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Tyrone Carver",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-03-17T16:27:39.000Z",
       "updatedAt": "2026-01-09T04:20:36.000Z",
@@ -1735,10 +1411,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Beatrice Richard",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zn",
       "createdAt": "2024-11-27T12:16:20.000Z",
       "updatedAt": "2026-01-18T01:45:57.412Z",
@@ -1751,10 +1424,7 @@
       "status": "doing",
       "priority": "high",
       "assigne": "Medge Dean",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "a3",
       "createdAt": "2025-08-10T01:37:03.000Z",
       "updatedAt": "2026-01-18T01:43:53.132Z",
@@ -1767,10 +1437,7 @@
       "status": "todo",
       "priority": "low",
       "assigne": "Felix Mckenzie",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Z9",
       "createdAt": "2025-04-18T20:10:26.000Z",
       "updatedAt": "2026-01-18T01:51:26.487Z",
@@ -1783,10 +1450,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Sheila Vargas",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzo",
       "createdAt": "2025-02-16T09:25:09.000Z",
       "updatedAt": "2026-01-18T01:36:41.333Z",
@@ -1799,10 +1463,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Lacy Ruiz",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-04-12T01:38:27.000Z",
       "updatedAt": "2025-12-26T20:26:15.000Z",
@@ -1815,10 +1476,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Frances Mcdonald",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2024-11-24T12:08:05.000Z",
       "updatedAt": "2026-09-06T10:01:19.000Z",
@@ -1831,10 +1489,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Calvin Huff",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zp",
       "createdAt": "2025-06-14T13:06:34.000Z",
       "updatedAt": "2026-01-18T01:37:59.232Z",
@@ -1847,10 +1502,7 @@
       "status": "todo",
       "priority": "high",
       "assigne": "Hamilton Wagner",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Zr",
       "createdAt": "2024-10-09T14:32:09.000Z",
       "updatedAt": "2026-01-18T01:37:56.969Z",
@@ -1863,10 +1515,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Leroy Hodge",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzm",
       "createdAt": "2025-05-09T11:51:07.000Z",
       "updatedAt": "2026-01-18T01:36:43.105Z",
@@ -1879,10 +1528,7 @@
       "status": "doing",
       "priority": "low",
       "assigne": "Cameran Reyes",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "Yzk",
       "createdAt": "2025-03-18T03:24:41.000Z",
       "updatedAt": "2026-01-18T01:36:45.026Z",
@@ -1895,10 +1541,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Nissim Avila",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-04-10T22:05:23.000Z",
       "updatedAt": "2026-06-10T18:04:28.000Z",
@@ -1911,10 +1554,7 @@
       "status": "doing",
       "priority": "medium",
       "assigne": "Zahir Holman",
-      "labels": [
-        "devops",
-        "automation"
-      ],
+      "labels": ["devops", "automation"],
       "order": "",
       "createdAt": "2025-08-26T12:45:50.000Z",
       "updatedAt": "2026-11-06T01:16:29.000Z",

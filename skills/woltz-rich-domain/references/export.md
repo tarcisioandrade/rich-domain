@@ -45,11 +45,10 @@ import { ExportService } from "@woltz/rich-domain-export";
 
 const exportService = new ExportService();
 
-const { data, stats } = await exportService.export(
-  userRepository,
-  criteria,
-  { format: "csv", columns: ["name", "email"] }
-);
+const { data, stats } = await exportService.export(userRepository, criteria, {
+  format: "csv",
+  columns: ["name", "email"],
+});
 ```
 
 ## CSV Export
@@ -201,26 +200,26 @@ const { data } = await repository.export(criteria, {
   columns: ["name", "price", "createdAt", "isActive", "tags"],
   formatters: {
     // Numbers
-    price: commonFormatters.currencyUSD,     // $1,234.56
-    discount: commonFormatters.decimal2,     // 12.34
+    price: commonFormatters.currencyUSD, // $1,234.56
+    discount: commonFormatters.decimal2, // 12.34
 
     // Dates
-    createdAt: commonFormatters.isoDate,     // 2024-01-15
-    updatedAt: commonFormatters.localeDate,  // 1/15/2024
+    createdAt: commonFormatters.isoDate, // 2024-01-15
+    updatedAt: commonFormatters.localeDate, // 1/15/2024
     timestamp: commonFormatters.localeDateTime, // 1/15/2024, 10:30 AM
 
     // Booleans
-    isActive: commonFormatters.yesNo,        // Yes / No
-    verified: commonFormatters.trueFalse,    // True / False
+    isActive: commonFormatters.yesNo, // Yes / No
+    verified: commonFormatters.trueFalse, // True / False
 
     // Collections
-    tags: commonFormatters.array,            // tag1, tag2, tag3
-    metadata: commonFormatters.json,         // {"key": "value"}
+    tags: commonFormatters.array, // tag1, tag2, tag3
+    metadata: commonFormatters.json, // {"key": "value"}
 
     // Text
-    name: commonFormatters.uppercase,        // JOHN DOE
-    email: commonFormatters.lowercase,       // john@example.com
-    bio: commonFormatters.trim,              // Trimmed text
+    name: commonFormatters.uppercase, // JOHN DOE
+    email: commonFormatters.lowercase, // john@example.com
+    bio: commonFormatters.trim, // Trimmed text
   },
 });
 ```
@@ -228,7 +227,10 @@ const { data } = await repository.export(criteria, {
 ## Custom Format Strategy
 
 ```typescript
-import { ExportFormatStrategy, FormatRegistry } from "@woltz/rich-domain-export";
+import {
+  ExportFormatStrategy,
+  FormatRegistry,
+} from "@woltz/rich-domain-export";
 
 class ExcelFormatStrategy implements ExportFormatStrategy {
   async export(records, options) {
@@ -294,12 +296,13 @@ try {
 
 ## Performance Guide
 
-| Dataset Size | Method | Memory |
-|--------------|--------|--------|
-| < 10,000 | `export()` | ~5-50 MB |
-| > 10,000 | `exportStream()` | ~10-20 MB constant |
+| Dataset Size | Method           | Memory             |
+| ------------ | ---------------- | ------------------ |
+| < 10,000     | `export()`       | ~5-50 MB           |
+| > 10,000     | `exportStream()` | ~10-20 MB constant |
 
 **Tips:**
+
 - Use `exportStream()` for 10k+ records
 - Use JSON Lines for streaming large JSON
 - Adjust `batchSize` (default: 1000) for memory/performance

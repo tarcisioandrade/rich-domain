@@ -1,7 +1,17 @@
 ---
 title: "Multi-Format Export"
 description: "Export your domain entities to CSV, JSON, JSONL and custom formats with type-safe columns, transformers, and streaming support"
-keywords: ["export","csv","json","jsonl","data-export","typescript","streaming","repository"]
+keywords:
+  [
+    "export",
+    "csv",
+    "json",
+    "jsonl",
+    "data-export",
+    "typescript",
+    "streaming",
+    "repository",
+  ]
 ---
 
 ## Overview
@@ -30,7 +40,8 @@ npm install @woltz/rich-domain-export
 ```
 
 <Warning>
-  This is a **backend-only** package (Node.js). For frontend exports, use API endpoints.
+  This is a **backend-only** package (Node.js). For frontend exports, use API
+  endpoints.
 </Warning>
 
 ## Quick Start
@@ -58,8 +69,8 @@ const { data, stats } = await userRepository.export(
     headers: {
       name: "Full Name",
       email: "Email Address",
-      createdAt: "Registration Date"
-    }
+      createdAt: "Registration Date",
+    },
   }
 );
 
@@ -76,11 +87,10 @@ import { ExportService } from "@woltz/rich-domain-export";
 const exportService = new ExportService();
 
 // Export from any repository
-const { data, stats } = await exportService.export(
-  userRepository,
-  criteria,
-  { format: "csv", columns: ["name", "email"] }
-);
+const { data, stats } = await exportService.export(userRepository, criteria, {
+  format: "csv",
+  columns: ["name", "email"],
+});
 ```
 
 ## Supported Formats
@@ -96,13 +106,13 @@ const { data, stats } = await repository.export(criteria, {
   headers: {
     name: "Full Name",
     email: "Email Address",
-    age: "Age"
+    age: "Age",
   },
   delimiter: ",",
   includeHeaders: true,
   formatters: {
-    age: (value) => `${value} years old`
-  }
+    age: (value) => `${value} years old`,
+  },
 });
 
 // Output:
@@ -113,15 +123,15 @@ const { data, stats } = await repository.export(criteria, {
 
 **CSV Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `format` | `"csv"` | - | Format discriminator (required) |
-| `columns?` | `string[]` | all fields | Fields to include |
-| `headers?` | `Record<string, string>` | - | Custom header labels |
-| `delimiter?` | `string` | `","` | Delimiter character |
-| `includeHeaders?` | `boolean` | `true` | Include header row |
-| `formatters?` | `Record<string, Function>` | - | Custom formatters (returns string) |
-| `batchSize?` | `number` | `1000` | Batch size for streaming |
+| Option            | Type                       | Default    | Description                        |
+| ----------------- | -------------------------- | ---------- | ---------------------------------- |
+| `format`          | `"csv"`                    | -          | Format discriminator (required)    |
+| `columns?`        | `string[]`                 | all fields | Fields to include                  |
+| `headers?`        | `Record<string, string>`   | -          | Custom header labels               |
+| `delimiter?`      | `string`                   | `","`      | Delimiter character                |
+| `includeHeaders?` | `boolean`                  | `true`     | Include header row                 |
+| `formatters?`     | `Record<string, Function>` | -          | Custom formatters (returns string) |
+| `batchSize?`      | `number`                   | `1000`     | Batch size for streaming           |
 
 ### JSON Format
 
@@ -135,8 +145,8 @@ const { data, stats } = await repository.export(criteria, {
   fields: ["name", "email"],
   rootKey: "users",
   transformers: {
-    email: (email) => email.toLowerCase()
-  }
+    email: (email) => email.toLowerCase(),
+  },
 });
 
 // Output:
@@ -150,16 +160,16 @@ const { data, stats } = await repository.export(criteria, {
 
 **JSON Options:**
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `format` | `"json"` | - | Format discriminator (required) |
-| `pretty?` | `boolean` | `false` | Pretty print with indentation |
-| `indent?` | `number` | `2` | Number of spaces for indentation |
-| `jsonLines?` | `boolean` | `false` | Use JSON Lines format |
-| `fields?` | `string[]` | all fields | Fields to include |
-| `transformers?` | `Record<string, Function>` | - | Custom transformers (returns any type) |
-| `rootKey?` | `string` | - | Wrap output in root key |
-| `batchSize?` | `number` | `1000` | Batch size for streaming |
+| Option          | Type                       | Default    | Description                            |
+| --------------- | -------------------------- | ---------- | -------------------------------------- |
+| `format`        | `"json"`                   | -          | Format discriminator (required)        |
+| `pretty?`       | `boolean`                  | `false`    | Pretty print with indentation          |
+| `indent?`       | `number`                   | `2`        | Number of spaces for indentation       |
+| `jsonLines?`    | `boolean`                  | `false`    | Use JSON Lines format                  |
+| `fields?`       | `string[]`                 | all fields | Fields to include                      |
+| `transformers?` | `Record<string, Function>` | -          | Custom transformers (returns any type) |
+| `rootKey?`      | `string`                   | -          | Wrap output in root key                |
+| `batchSize?`    | `number`                   | `1000`     | Batch size for streaming               |
 
 ### JSON Lines (JSONL) Format
 
@@ -169,7 +179,7 @@ Export entities to newline-delimited JSON (streaming-friendly):
 const { data, stats } = await repository.export(criteria, {
   format: "json",
   jsonLines: true,
-  fields: ["name", "email"]
+  fields: ["name", "email"],
 });
 
 // Output (each line is a valid JSON object):
@@ -178,7 +188,8 @@ const { data, stats } = await repository.export(criteria, {
 ```
 
 <Info>
-  JSON Lines is ideal for streaming large datasets and is supported by many data processing tools. Learn more at [jsonlines.org](https://jsonlines.org/).
+  JSON Lines is ideal for streaming large datasets and is supported by many data
+  processing tools. Learn more at [jsonlines.org](https://jsonlines.org/).
 </Info>
 
 ## Common Use Cases
@@ -197,7 +208,7 @@ const criteria = Criteria.create<User>()
 
 const { data } = await repository.export(criteria, {
   format: "csv",
-  columns: ["name", "email", "age"]
+  columns: ["name", "email", "age"],
 });
 ```
 
@@ -212,8 +223,8 @@ const { data } = await repository.export(criteria, {
   formatters: {
     createdAt: (date) => new Date(date).toLocaleDateString("en-US"),
     balance: (value) => `$${value.toFixed(2)}`,
-    status: (value) => value.toUpperCase()
-  }
+    status: (value) => value.toUpperCase(),
+  },
 });
 ```
 
@@ -228,8 +239,8 @@ const { data } = await repository.export(criteria, {
   transformers: {
     tags: (tags) => tags.join(", "),
     metadata: (meta) => ({ ...meta, exported: true }),
-    amount: (num) => Number(num.toFixed(2))
-  }
+    amount: (num) => Number(num.toFixed(2)),
+  },
 });
 ```
 
@@ -247,8 +258,8 @@ const { data } = await repository.export(criteria, {
     amount: commonFormatters.currencyUSD,
     createdAt: commonFormatters.isoDate,
     active: commonFormatters.yesNo,
-    tags: commonFormatters.array
-  }
+    tags: commonFormatters.array,
+  },
 });
 ```
 
@@ -261,20 +272,19 @@ const { data } = await repository.export(criteria, {
     - `localeDateTime` - Locale datetime string
   </Accordion>
 
-  <Accordion title="Number Formatters">
-    - `decimal2` - Number with 2 decimal places
-    - `currencyUSD` - USD currency format ($X.XX)
-  </Accordion>
+<Accordion title="Number Formatters">
+  - `decimal2` - Number with 2 decimal places - `currencyUSD` - USD currency
+  format ($X.XX)
+</Accordion>
 
-  <Accordion title="Boolean Formatters">
-    - `yesNo` - Boolean as "Yes" or "No"
-    - `trueFalse` - Boolean as "True" or "False"
-  </Accordion>
+<Accordion title="Boolean Formatters">
+  - `yesNo` - Boolean as "Yes" or "No" - `trueFalse` - Boolean as "True" or
+  "False"
+</Accordion>
 
-  <Accordion title="Collection Formatters">
-    - `array` - Array as comma-separated string
-    - `json` - Object as JSON string
-  </Accordion>
+<Accordion title="Collection Formatters">
+  - `array` - Array as comma-separated string - `json` - Object as JSON string
+</Accordion>
 
   <Accordion title="Text Formatters">
     - `uppercase` - Convert to uppercase
@@ -310,7 +320,7 @@ import * as fs from "fs";
 const stream = await repository.exportStream(criteria, {
   format: "csv",
   columns: ["name", "email"],
-  batchSize: 1000 // Process 1000 records at a time
+  batchSize: 1000, // Process 1000 records at a time
 });
 
 stream.pipe(fs.createWriteStream("users.csv"));
@@ -322,7 +332,7 @@ stream.pipe(fs.createWriteStream("users.csv"));
 const stream = await repository.exportStream(criteria, {
   format: "json",
   jsonLines: true,
-  batchSize: 500
+  batchSize: 500,
 });
 
 stream.pipe(fs.createWriteStream("users.jsonl"));
@@ -334,7 +344,7 @@ stream.pipe(fs.createWriteStream("users.jsonl"));
 // CSV download
 const stream = await repository.exportStream(criteria, {
   format: "csv",
-  columns: ["name", "email"]
+  columns: ["name", "email"],
 });
 
 reply
@@ -345,7 +355,7 @@ reply
 // JSON Lines download
 const stream = await repository.exportStream(criteria, {
   format: "json",
-  jsonLines: true
+  jsonLines: true,
 });
 
 reply
@@ -359,7 +369,7 @@ reply
 ```typescript
 const stream = await repository.exportStream(criteria, {
   format: "json",
-  pretty: true
+  pretty: true,
 });
 
 res.setHeader("Content-Type", "application/json");
@@ -369,14 +379,15 @@ stream.pipe(res);
 
 ## Performance Considerations
 
-| Dataset Size | Recommended Method | Memory Usage |
-|--------------|-------------------|--------------|
-| < 1,000 records | `export()` | ~1-5 MB |
-| 1,000 - 10,000 | `export()` | ~5-50 MB |
-| 10,000 - 100,000 | `exportStream()` | ~10-20 MB (constant) |
-| > 100,000 | `exportStream()` | ~10-20 MB (constant) |
+| Dataset Size     | Recommended Method | Memory Usage         |
+| ---------------- | ------------------ | -------------------- |
+| < 1,000 records  | `export()`         | ~1-5 MB              |
+| 1,000 - 10,000   | `export()`         | ~5-50 MB             |
+| 10,000 - 100,000 | `exportStream()`   | ~10-20 MB (constant) |
+| > 100,000        | `exportStream()`   | ~10-20 MB (constant) |
 
 **Tips:**
+
 - Use `exportStream()` for datasets > 10,000 records
 - Use JSON Lines (`jsonLines: true`) for streaming large JSON exports
 - Adjust `batchSize` option to control memory usage (default: 1000)
@@ -390,7 +401,7 @@ import {
   ExportFormatStrategy,
   FormatRegistry,
   ExportResult,
-  ValidationResult
+  ValidationResult,
 } from "@woltz/rich-domain-export";
 import type { Readable } from "stream";
 
@@ -402,8 +413,14 @@ interface ExcelExportOptions extends BaseExportOptions {
 }
 
 // Implement the strategy
-class ExcelFormatStrategy implements ExportFormatStrategy<any, ExcelExportOptions> {
-  async export(records: any[], options: ExcelExportOptions): Promise<ExportResult> {
+class ExcelFormatStrategy implements ExportFormatStrategy<
+  any,
+  ExcelExportOptions
+> {
+  async export(
+    records: any[],
+    options: ExcelExportOptions
+  ): Promise<ExportResult> {
     // Your Excel export logic
     const data = this.generateExcel(records, options);
 
@@ -414,7 +431,7 @@ class ExcelFormatStrategy implements ExportFormatStrategy<any, ExcelExportOption
         sizeInBytes: data.length,
         durationMs: 0,
         // ... other stats
-      }
+      },
     };
   }
 
@@ -436,7 +453,7 @@ class ExcelFormatStrategy implements ExportFormatStrategy<any, ExcelExportOption
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -472,7 +489,7 @@ FormatRegistry.register("excel", new ExcelFormatStrategy());
 const { data } = await repository.export(criteria, {
   format: "excel",
   sheetName: "Users",
-  columns: ["name", "email"]
+  columns: ["name", "email"],
 });
 ```
 
@@ -483,13 +500,13 @@ Get detailed statistics about the export operation:
 ```typescript
 const { data, stats } = await repository.export(criteria, {
   format: "csv",
-  columns: ["name", "email"]
+  columns: ["name", "email"],
 });
 
 console.log({
-  totalRecords: stats.totalRecords,     // Number of records exported
-  sizeInBytes: stats.sizeInBytes,       // Data size in bytes
-  durationMs: stats.durationMs,         // Export duration
+  totalRecords: stats.totalRecords, // Number of records exported
+  sizeInBytes: stats.sizeInBytes, // Data size in bytes
+  durationMs: stats.durationMs, // Export duration
 });
 
 // CSV-specific stats
@@ -506,15 +523,15 @@ The library provides full type safety with discriminated unions:
 // TypeScript enforces valid options for each format
 const csvExport = await repository.export(criteria, {
   format: "csv",
-  columns: ["name"],  // ✓ Valid for CSV
-  delimiter: ","      // ✓ Valid for CSV
+  columns: ["name"], // ✓ Valid for CSV
+  delimiter: ",", // ✓ Valid for CSV
   // pretty: true     // ✗ Error: 'pretty' doesn't exist on CSV options
 });
 
 const jsonExport = await repository.export(criteria, {
   format: "json",
-  pretty: true,       // ✓ Valid for JSON
-  fields: ["name"]    // ✓ Valid for JSON
+  pretty: true, // ✓ Valid for JSON
+  fields: ["name"], // ✓ Valid for JSON
   // delimiter: ","   // ✗ Error: 'delimiter' doesn't exist on JSON options
 });
 ```
@@ -527,13 +544,13 @@ The library provides specific error types:
 import {
   ValidationError,
   FormatterError,
-  ExportOperationError
+  ExportOperationError,
 } from "@woltz/rich-domain-export";
 
 try {
   const { data } = await repository.export(criteria, {
     format: "csv",
-    columns: ["name", "email"]
+    columns: ["name", "email"],
   });
 } catch (error) {
   if (error instanceof ValidationError) {
@@ -551,7 +568,7 @@ try {
 ```typescript
 import {
   ExportableRepository,
-  commonFormatters
+  commonFormatters,
 } from "@woltz/rich-domain-export";
 import { Criteria } from "@woltz/rich-domain";
 
@@ -579,12 +596,12 @@ async function exportActiveUsers() {
         email: "Email Address",
         age: "Age",
         createdAt: "Registered",
-        balance: "Account Balance"
+        balance: "Account Balance",
       },
       formatters: {
         createdAt: commonFormatters.localeDate,
-        balance: commonFormatters.currencyUSD
-      }
+        balance: commonFormatters.currencyUSD,
+      },
     },
     (processed, total) => {
       const percentage = Math.round((processed / total) * 100);
@@ -592,7 +609,9 @@ async function exportActiveUsers() {
     }
   );
 
-  console.log(`✅ CSV: ${csvStats.totalRecords} users in ${csvStats.durationMs}ms`);
+  console.log(
+    `✅ CSV: ${csvStats.totalRecords} users in ${csvStats.durationMs}ms`
+  );
 
   // Export as JSON
   const { data: json, stats: jsonStats } = await userRepository.export(
@@ -603,18 +622,20 @@ async function exportActiveUsers() {
       fields: ["name", "email", "age"],
       rootKey: "users",
       transformers: {
-        email: (email) => email.toLowerCase()
-      }
+        email: (email) => email.toLowerCase(),
+      },
     }
   );
 
-  console.log(`✅ JSON: ${jsonStats.totalRecords} users in ${jsonStats.durationMs}ms`);
+  console.log(
+    `✅ JSON: ${jsonStats.totalRecords} users in ${jsonStats.durationMs}ms`
+  );
 
   // Export as JSON Lines for streaming
   const stream = await userRepository.exportStream(criteria, {
     format: "json",
     jsonLines: true,
-    batchSize: 500
+    batchSize: 500,
   });
 
   stream.pipe(fs.createWriteStream("users.jsonl"));
@@ -666,10 +687,7 @@ class ExportService {
 
 ```typescript
 class FormatRegistry {
-  static register(
-    format: string,
-    strategyInstance: ExportFormatStrategy
-  ): void;
+  static register(format: string, strategyInstance: ExportFormatStrategy): void;
 
   static getStrategy(format: string): ExportFormatStrategy;
   static hasFormat(format: string): boolean;
@@ -728,4 +746,5 @@ interface JsonExportStats extends BaseExportStats {
   // JSON-specific stats can be added here
 }
 ```
+
 ---

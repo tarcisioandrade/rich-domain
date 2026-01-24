@@ -32,7 +32,15 @@ const uow = new TypeORMUnitOfWork(dataSource);
 ## TypeORM Entity Definitions
 
 ```typescript
-import { Entity, PrimaryColumn, Column, OneToMany, ManyToOne, ManyToMany, JoinTable } from "typeorm";
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+} from "typeorm";
 
 @Entity("users")
 export class UserEntity {
@@ -45,7 +53,7 @@ export class UserEntity {
   @Column()
   name!: string;
 
-  @OneToMany(() => PostEntity, post => post.author)
+  @OneToMany(() => PostEntity, (post) => post.author)
   posts!: PostEntity[];
 
   @Column()
@@ -69,7 +77,7 @@ export class PostEntity {
   @Column()
   authorId!: string;
 
-  @ManyToOne(() => UserEntity, user => user.posts)
+  @ManyToOne(() => UserEntity, (user) => user.posts)
   author!: UserEntity;
 
   @ManyToMany(() => TagEntity)
@@ -115,10 +123,10 @@ class UserRepository extends TypeORMRepository<User, UserEntity> {
   // Searchable fields for Criteria.search()
   protected getSearchableFields(): SearchableField<UserEntity>[] {
     return [
-      "name",                                 // case-insensitive (default)
-      "email",                                // case-insensitive
+      "name", // case-insensitive (default)
+      "email", // case-insensitive
       { field: "code", caseSensitive: true }, // case-sensitive
-      "posts.title",                          // nested relation
+      "posts.title", // nested relation
     ];
   }
 
@@ -152,7 +160,10 @@ interface TypeORMRepository<TDomain, TEntity> {
 ## TypeORMToPersistence Mapper
 
 ```typescript
-import { TypeORMToPersistence, EntitySchemaRegistry } from "@woltz/rich-domain-typeorm";
+import {
+  TypeORMToPersistence,
+  EntitySchemaRegistry,
+} from "@woltz/rich-domain-typeorm";
 import { EntityManager } from "typeorm";
 
 class UserToPersistenceMapper extends TypeORMToPersistence<User> {
@@ -233,7 +244,7 @@ Usage with Criteria:
 
 ```typescript
 const criteria = Criteria.create<Post>()
-  .search("hello")  // Searches title, mainContent, author.name
+  .search("hello") // Searches title, mainContent, author.name
   .where("published", "equals", true)
   .orderBy("createdAt", "desc");
 
@@ -338,16 +349,24 @@ class UserToDomainMapper extends Mapper<UserEntity, User> {
       id: Id.from(entity.id),
       email: entity.email,
       name: entity.name,
-      posts: entity.posts?.map(p => new Post({
-        id: Id.from(p.id),
-        title: p.title,
-        content: p.mainContent,
-        published: p.published,
-        tags: p.tags?.map(t => new Tag({
-          id: Id.from(t.id),
-          name: t.name,
-        })) ?? [],
-      })) ?? [],
+      posts:
+        entity.posts?.map(
+          (p) =>
+            new Post({
+              id: Id.from(p.id),
+              title: p.title,
+              content: p.mainContent,
+              published: p.published,
+              tags:
+                p.tags?.map(
+                  (t) =>
+                    new Tag({
+                      id: Id.from(t.id),
+                      name: t.name,
+                    })
+                ) ?? [],
+            })
+        ) ?? [],
       createdAt: entity.createdAt,
     });
   }
@@ -356,10 +375,10 @@ class UserToDomainMapper extends Mapper<UserEntity, User> {
 
 ## Collection Types
 
-| Type | Relationship | Behavior |
-|------|--------------|----------|
-| `owned` | 1:N | Creates/deletes child entities |
-| `reference` | N:N | Connect/disconnect via junction table |
+| Type        | Relationship | Behavior                              |
+| ----------- | ------------ | ------------------------------------- |
+| `owned`     | 1:N          | Creates/deletes child entities        |
+| `reference` | N:N          | Connect/disconnect via junction table |
 
 ## Change Tracking Flow
 

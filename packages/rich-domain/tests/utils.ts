@@ -225,7 +225,7 @@ export class User extends Entity<{
 }
 
 export class InMemoryRepository<
-  TDomain extends Aggregate<any>
+  TDomain extends Aggregate<any>,
 > extends Repository<TDomain> {
   protected items: Map<string, TDomain> = new Map();
   readonly uow: UnitOfWork;

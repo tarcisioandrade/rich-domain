@@ -21,8 +21,8 @@ class Order extends Aggregate<z.infer<typeof OrderSchema>> {
 
   getTypedChanges() {
     interface Entities {
-      OrderItem: OrderItem
-    };
+      OrderItem: OrderItem;
+    }
     return this.getChanges<Entities>();
   }
 
@@ -41,9 +41,15 @@ class Order extends Aggregate<z.infer<typeof OrderSchema>> {
     this.addDomainEvent(new OrderConfirmedEvent(this.id, this.total));
   }
 
-  get items() { return this.props.items; }
-  get status() { return this.props.status; }
-  get total() { return this.items.reduce((sum, i) => sum + i.subtotal, 0); }
+  get items() {
+    return this.props.items;
+  }
+  get status() {
+    return this.props.status;
+  }
+  get total() {
+    return this.items.reduce((sum, i) => sum + i.subtotal, 0);
+  }
 }
 ```
 
@@ -87,7 +93,9 @@ class OrderItem extends Entity<z.infer<typeof OrderItemSchema>> {
     this.props.quantity = quantity;
   }
 
-  get subtotal() { return this.props.quantity * this.props.price; }
+  get subtotal() {
+    return this.props.quantity * this.props.price;
+  }
 }
 ```
 
@@ -148,7 +156,7 @@ class Money extends ValueObject<{ amount: number; currency: string }> {
 
 // Usage
 const price = new Money({ amount: 99.99, currency: "USD" });
-const withTax = price.add(new Money({ amount: 8.00, currency: "USD" }));
+const withTax = price.add(new Money({ amount: 8.0, currency: "USD" }));
 console.log(withTax.format()); // "$107.99"
 ```
 
@@ -161,8 +169,8 @@ import { Id } from "@woltz/rich-domain";
 
 // New entity (will INSERT)
 const newId = new Id();
-console.log(newId.isNew);   // true
-console.log(newId.value);   // "550e8400-e29b-..." (UUID v4)
+console.log(newId.isNew); // true
+console.log(newId.value); // "550e8400-e29b-..." (UUID v4)
 
 // Existing entity (will UPDATE)
 const existingId = Id.from("user-123");
@@ -269,18 +277,18 @@ Changes are tracked automatically via Proxies.
 const order = await orderRepository.findById(orderId);
 
 // Make changes
-order.addItem("prod-1", 2, 29.99);      // Create
-order.items[0].updateQuantity(5);        // Update
-order.items.splice(1, 1);                // Delete
+order.addItem("prod-1", 2, 29.99); // Create
+order.items[0].updateQuantity(5); // Update
+order.items.splice(1, 1); // Delete
 
 // Get changes
 // We strongly recommend using the `getTypedChanges` helper pattern for better DX
 const changes = order.getTypedChanges();
 
-console.log(changes.hasChanges());  // true
-console.log(changes.hasCreates());  // true
-console.log(changes.hasUpdates());  // true
-console.log(changes.hasDeletes());  // true
+console.log(changes.hasChanges()); // true
+console.log(changes.hasCreates()); // true
+console.log(changes.hasUpdates()); // true
+console.log(changes.hasDeletes()); // true
 
 // Iterate changes
 for (const create of changes.creates()) {
@@ -311,11 +319,15 @@ class UserToDomainMapper extends Mapper<UserRecord, User> {
       id: Id.from(record.id),
       email: new Email(record.email),
       name: record.user_name,
-      posts: record.posts?.map(p => new Post({
-        id: Id.from(p.id),
-        title: p.title,
-        content: p.main_content,
-      })) ?? [],
+      posts:
+        record.posts?.map(
+          (p) =>
+            new Post({
+              id: Id.from(p.id),
+              title: p.title,
+              content: p.main_content,
+            })
+        ) ?? [],
       createdAt: record.created_at,
     });
   }

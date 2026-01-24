@@ -23,7 +23,10 @@ export interface SortingIntegrationProps<T = unknown> {
   criteria: UseCriteriaReturn<T>;
 }
 
-export function Sorting<T = unknown>({ fields, criteria }: SortingIntegrationProps<T>) {
+export function Sorting<T = unknown>({
+  fields,
+  criteria,
+}: SortingIntegrationProps<T>) {
   const { updateSort, reorderSort } = useSortingAdapter(criteria);
 
   const sortingCount = criteria.sorting.length;

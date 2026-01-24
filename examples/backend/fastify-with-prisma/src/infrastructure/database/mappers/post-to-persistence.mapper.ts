@@ -57,12 +57,11 @@ export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
   }
 
   protected async onUpdate(
-    post: Post,
+    _post: Post,
     changes: AggregateChanges
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: post.id.value,
     });
 
     await executor.execute(changes);

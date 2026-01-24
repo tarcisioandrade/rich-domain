@@ -156,7 +156,6 @@ describe("ExportService - CSV Format", () => {
         },
       });
 
-
       expect(result.data).toContain("ACTIVE");
       expect(result.data).toContain("INACTIVE");
     });

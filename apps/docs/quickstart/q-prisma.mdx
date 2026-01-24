@@ -1,11 +1,24 @@
 ---
 title: "With Prisma"
 description: "Complete guide to using Rich Domain with Prisma ORM"
-keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","prisma"]
+keywords:
+  [
+    "quickstart",
+    "getting-started",
+    "tutorial",
+    "setup",
+    "installation",
+    "ddd",
+    "typescript",
+    "guide",
+    "prisma",
+  ]
 ---
 
 <Note>
-  For a complete working example, see the [fastify-with-prisma example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-prisma) in the repository.
+  For a complete working example, see the [fastify-with-prisma
+  example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-prisma)
+  in the repository.
 </Note>
 
 ## Installation
@@ -17,12 +30,10 @@ npm install @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 npm install -D prisma
 ```
 
-
 ```bash pnpm
 pnpm add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 pnpm add -D prisma
 ```
-
 
 ```bash yarn
 yarn add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
@@ -115,7 +126,13 @@ export const uow = new PrismaUnitOfWork(prisma);
 
 ```typescript
 import { z } from "zod";
-import { Aggregate, Entity, ValueObject, EntityValidation, Id } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  Entity,
+  ValueObject,
+  EntityValidation,
+  Id,
+} from "@woltz/rich-domain";
 
 // Tag (Value Object - shared, immutable reference)
 const tagSchema = z.object({
@@ -171,13 +188,13 @@ export class Post extends Entity<PostProps> {
   }
 
   addTag(tag: Tag) {
-    if (!this.props.tags.some(t => t.id.equals(tag.id))) {
+    if (!this.props.tags.some((t) => t.id.equals(tag.id))) {
       this.props.tags.push(tag);
     }
   }
 
   removeTag(tagId: Id) {
-    const index = this.props.tags.findIndex(t => t.id.equals(tagId));
+    const index = this.props.tags.findIndex((t) => t.id.equals(tagId));
     if (index !== -1) {
       this.props.tags.splice(index, 1);
     }
@@ -223,7 +240,7 @@ export class User extends Aggregate<UserProps> {
   }
 
   removePost(postId: Id) {
-    const index = this.props.posts.findIndex(p => p.id.equals(postId));
+    const index = this.props.posts.findIndex((p) => p.id.equals(postId));
     if (index !== -1) {
       this.props.posts.splice(index, 1);
     }
@@ -269,14 +286,14 @@ export class UserToDomainMapper extends Mapper<UserSchema, User> {
       id: Id.from(raw.id),
       email: raw.email,
       name: raw.name,
-      posts: raw.posts.map(post =>
+      posts: raw.posts.map((post) =>
         Post.restore({
           id: Id.from(post.id),
           title: post.title,
           content: post.content,
           published: post.published,
           authorId: post.authorId,
-          tags: post.tagPosts.map(tp => new Tag({ id: Id.from(tp.tag.id) })),
+          tags: post.tagPosts.map((tp) => new Tag({ id: Id.from(tp.tag.id) })),
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
         })
@@ -319,7 +336,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
       },
       collections: {
         // Field name related to the relationship in the domain;
-        // 'posts.tags' <- Domain Relation field name is 'tags'  
+        // 'posts.tags' <- Domain Relation field name is 'tags'
         tags: {
         // 'reference': Independent entities connected via junction table
         // They exist independently and are only linked/unlinked
@@ -399,46 +416,49 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
 <Tip>
   **Registry Fields vs DataMappers - When to use each?**
 
-  These are complementary features with different responsibilities:
+These are complementary features with different responsibilities:
 
-  | Aspect | Registry `fields` | BatchExecutor `dataMappers` |
-  |--------|-------------------|----------------------------|
-  | **Type** | Declarative config | Custom functions |
-  | **Scope** | All operations (create, update, delete) | CREATE operations only |
-  | **Usage** | Automatic | Opt-in (optional) |
-  | **Purpose** | Map field names (domain → database column) | Complex entity transformation |
+| Aspect      | Registry `fields`                          | BatchExecutor `dataMappers`   |
+| ----------- | ------------------------------------------ | ----------------------------- |
+| **Type**    | Declarative config                         | Custom functions              |
+| **Scope**   | All operations (create, update, delete)    | CREATE operations only        |
+| **Usage**   | Automatic                                  | Opt-in (optional)             |
+| **Purpose** | Map field names (domain → database column) | Complex entity transformation |
 
-  **Use Registry `fields`** for simple field name conversions:
-  ```typescript
-  fields: { content: "main_content", createdAt: "created_at" }
-  ```
+**Use Registry `fields`** for simple field name conversions:
 
-  **Use `dataMappers`** when you need custom transformation logic:
-  ```typescript
-  dataMappers: {
-    Comment: (item) => ({
-      id: item.data.id.value,
-      text: item.data.text,
-      postId: item.parentId,
-      wordCount: item.data.text.split(" ").length, // Computed field
-    }),
-  }
-  ```
+```typescript
+fields: { content: "main_content", createdAt: "created_at" }
+```
 
-  If no `dataMapper` is defined for an entity, the executor falls back to the registry's `mapEntity()` method.
+**Use `dataMappers`** when you need custom transformation logic:
+
+```typescript
+dataMappers: {
+  Comment: (item) => ({
+    id: item.data.id.value,
+    text: item.data.text,
+    postId: item.parentId,
+    wordCount: item.data.text.split(" ").length, // Computed field
+  }),
+}
+```
+
+If no `dataMapper` is defined for an entity, the executor falls back to the registry's `mapEntity()` method.
+
 </Tip>
 
 <Note>
   **Collection Types:**
 
-  - **`owned`**: Entity belongs to and is lifecycle-managed by the aggregate (e.g., User → Posts). Created and deleted with the parent.
-  - **`reference`**: Independent entity that exists separately (e.g., Post ↔ Tags). Only the relationship is managed via junction table.
+- **`owned`**: Entity belongs to and is lifecycle-managed by the aggregate (e.g., User → Posts). Created and deleted with the parent.
+- **`reference`**: Independent entity that exists separately (e.g., Post ↔ Tags). Only the relationship is managed via junction table.
 
-  **Junction Table:**
+**Junction Table:**
 
-  - Only needed when you manually create the pivot table (like `TagPost`)
-  - If using Prisma's implicit many-to-many (`@relation`), no junction config needed
-</Note>
+- Only needed when you manually create the pivot table (like `TagPost`)
+- If using Prisma's implicit many-to-many (`@relation`), no junction config needed
+  </Note>
 
 ## Create Repository
 
@@ -518,10 +538,7 @@ const post = Post.restore({
   content: "Hello World",
   published: false,
   authorId: user.id.value,
-  tags: [
-    new Tag({ id: Id.from("tag-1") }),
-    new Tag({ id: Id.from("tag-2") }),
-  ],
+  tags: [new Tag({ id: Id.from("tag-1") }), new Tag({ id: Id.from("tag-2") })],
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -571,7 +588,8 @@ This creates:
 - ✅ Mappers (ToDomain & ToPersistence)
 
 <Tip>
-  The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
+  The CLI analyzes your Prisma schema relationships and generates proper DDD
+  aggregates. See the [CLI documentation](/CLI) for more details.
 </Tip>
 
 ## Next Steps
@@ -583,7 +601,11 @@ This creates:
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
   </Card>
-  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
+  <Card
+    title="Change Tracking"
+    icon="clock-rotate-left"
+    href="/core/change-tracking"
+  >
     Understand how changes are tracked
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/CLI">

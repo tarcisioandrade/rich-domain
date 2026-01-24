@@ -4,19 +4,19 @@ import type { ValidationResult, PropsOf } from "../../core/types.js";
 
 /**
  * Validates CSV export options before export operation
- * 
+ *
  * @param options - Export configuration to validate
  * @param sampleData - Optional sample entity to validate column existence
  * @returns Validation result with errors and warnings
- * 
+ *
  * @example
  * ```typescript
  * const validation = validateCsvExportOptions(options, users[0]);
- * 
+ *
  * if (!validation.isValid) {
  *   throw new Error(validation.errors.join(", "));
  * }
- * 
+ *
  * if (validation.warnings?.length) {
  *   console.warn("Export warnings:", validation.warnings);
  * }
@@ -104,13 +104,15 @@ export function validateCsvExportOptions<T extends Aggregate<any>>(
  * @param formatter - Formatter function to validate
  * @returns True if formatter is valid
  */
-export function isValidFormatter(formatter: any): formatter is (value: any) => string {
+export function isValidFormatter(
+  formatter: any
+): formatter is (value: any) => string {
   return typeof formatter === "function";
 }
 
 /**
  * Validates delimiter character
- * 
+ *
  * @param delimiter - Delimiter to validate
  * @returns True if delimiter is valid
  */

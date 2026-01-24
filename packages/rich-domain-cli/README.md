@@ -78,14 +78,14 @@ rich-domain generate [options]
 
 #### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-s, --schema <path>` | Path to Prisma schema file | `prisma/schema.prisma` |
-| `-o, --output <path>` | Output directory | `src/domain` |
-| `-v, --validation <type>` | Validation library (`zod`, `valibot`, `arktype`) | `zod` |
-| `-m, --models <names>` | Comma-separated list of models to generate | All models |
-| `--dry-run` | Preview without writing files | `false` |
-| `-f, --force` | Skip confirmation prompts | `false` |
+| Option                    | Description                                      | Default                |
+| ------------------------- | ------------------------------------------------ | ---------------------- |
+| `-s, --schema <path>`     | Path to Prisma schema file                       | `prisma/schema.prisma` |
+| `-o, --output <path>`     | Output directory                                 | `src/domain`           |
+| `-v, --validation <type>` | Validation library (`zod`, `valibot`, `arktype`) | `zod`                  |
+| `-m, --models <names>`    | Comma-separated list of models to generate       | All models             |
+| `--dry-run`               | Preview without writing files                    | `false`                |
+| `-f, --force`             | Skip confirmation prompts                        | `false`                |
 
 ## Example Output
 

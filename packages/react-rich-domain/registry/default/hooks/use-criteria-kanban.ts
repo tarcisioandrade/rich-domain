@@ -26,9 +26,7 @@ import {
   type PaginatedJsonResult,
 } from "@woltz/rich-domain";
 import { useCriteria } from "./use-criteria";
-import {
-  generateIndexForMove,
-} from "../utils/fractional-index";
+import { generateIndexForMove } from "../utils/fractional-index";
 import type {
   UseCriteriaKanbanOptions,
   UseCriteriaKanbanReturn,
@@ -70,7 +68,10 @@ class NoDragPointerSensor extends PointerSensor {
   static activators = [
     {
       eventName: "onPointerDown" as const,
-      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }, { onActivation }: PointerSensorOptions) => {
+      handler: (
+        { nativeEvent: event }: { nativeEvent: PointerEvent },
+        { onActivation }: PointerSensorOptions
+      ) => {
         if (
           !event.isPrimary ||
           event.button !== 0 ||
@@ -283,7 +284,8 @@ export function useCriteriaKanban<T>(
   const columns: KanbanColumnData<T>[] = useMemo(() => {
     return columnDefs.map((columnDef, index) => {
       const query = firstPageQueries[index];
-      const allItems = query.data?.pages.flatMap((page) => page.data as T[]) ?? [];
+      const allItems =
+        query.data?.pages.flatMap((page) => page.data as T[]) ?? [];
 
       // Deduplicate items by ID to prevent duplicates from infinite scroll merge issues
       const uniqueItemsMap = new Map<string, T>();
@@ -368,7 +370,9 @@ export function useCriteriaKanban<T>(
     previousData: Record<string, InfiniteColumnData<T> | undefined>;
   };
 
-  const getItemsFromInfiniteData = (data: InfiniteColumnData<T> | undefined): T[] => {
+  const getItemsFromInfiniteData = (
+    data: InfiniteColumnData<T> | undefined
+  ): T[] => {
     if (!data) return [];
     return data.pages.flatMap((page) => page.data as T[]);
   };
@@ -433,7 +437,10 @@ export function useCriteriaKanban<T>(
           // If toIndex > 0, insertAfterId is the ID of the item at position (toIndex - 1)
           // If toIndex === 0, insertAfterId is null (insert at top)
           if (toIndex > 0 && sortedItems.length > 0) {
-            const insertAfterIndex = Math.min(toIndex - 1, sortedItems.length - 1);
+            const insertAfterIndex = Math.min(
+              toIndex - 1,
+              sortedItems.length - 1
+            );
             insertAfterId = getItemId(sortedItems[insertAfterIndex] as T);
           }
         }
@@ -728,7 +735,10 @@ export function useCriteriaKanban<T>(
               let itemIndex = 0;
               const updatedPages = toData.pages.map((page) => {
                 const pageSize = (page.data as T[]).length;
-                const pageItems = reorderedItems.slice(itemIndex, itemIndex + pageSize);
+                const pageItems = reorderedItems.slice(
+                  itemIndex,
+                  itemIndex + pageSize
+                );
                 itemIndex += pageSize;
                 return { ...page, data: pageItems as typeof page.data };
               });
@@ -766,18 +776,26 @@ export function useCriteriaKanban<T>(
             const updatedFromPages = fromData.pages.map((page, idx) => {
               const pageSize = (page.data as T[]).length;
               // Last page may have one less item now
-              const adjustedSize = idx === fromData.pages.length - 1
-                ? Math.max(0, pageSize - 1)
-                : pageSize;
-              const pageItems = sortedFromItems.slice(fromItemIndex, fromItemIndex + adjustedSize);
+              const adjustedSize =
+                idx === fromData.pages.length - 1
+                  ? Math.max(0, pageSize - 1)
+                  : pageSize;
+              const pageItems = sortedFromItems.slice(
+                fromItemIndex,
+                fromItemIndex + adjustedSize
+              );
               fromItemIndex += adjustedSize;
 
               return {
                 ...page,
                 data: pageItems as typeof page.data,
-                meta: idx === fromData.pages.length - 1
-                  ? { ...lastFromPage.meta, total: lastFromPage.meta.total - 1 }
-                  : page.meta,
+                meta:
+                  idx === fromData.pages.length - 1
+                    ? {
+                        ...lastFromPage.meta,
+                        total: lastFromPage.meta.total - 1,
+                      }
+                    : page.meta,
               };
             });
 
@@ -793,15 +811,19 @@ export function useCriteriaKanban<T>(
               const pageSize = (page.data as T[]).length;
               // First page gets one more item
               const adjustedSize = idx === 0 ? pageSize + 1 : pageSize;
-              const pageItems = sortedToItems.slice(toItemIndex, toItemIndex + adjustedSize);
+              const pageItems = sortedToItems.slice(
+                toItemIndex,
+                toItemIndex + adjustedSize
+              );
               toItemIndex += adjustedSize;
 
               return {
                 ...page,
                 data: pageItems as typeof page.data,
-                meta: idx === toData.pages.length - 1
-                  ? { ...lastToPage.meta, total: lastToPage.meta.total + 1 }
-                  : page.meta,
+                meta:
+                  idx === toData.pages.length - 1
+                    ? { ...lastToPage.meta, total: lastToPage.meta.total + 1 }
+                    : page.meta,
               };
             });
 

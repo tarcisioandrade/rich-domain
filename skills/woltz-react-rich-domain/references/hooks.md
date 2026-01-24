@@ -14,8 +14,8 @@ const criteria = useCriteria<User>({
   initialSort: [],
   initialSearch: "",
   onChange: (criteria) => console.log(criteria),
-  persistKey: "userList",      // localStorage key
-  syncWithUrl: true,           // URL query params sync
+  persistKey: "userList", // localStorage key
+  syncWithUrl: true, // URL query params sync
 });
 ```
 
@@ -43,8 +43,8 @@ criteria.setSearch("john");
 criteria.clearSearch();
 
 // Reset
-criteria.reset();       // Reset to initial values
-criteria.clearAll();    // Clear everything
+criteria.reset(); // Reset to initial values
+criteria.clearAll(); // Clear everything
 
 // Export
 const json = criteria.toJSON();
@@ -54,14 +54,14 @@ const copy = criteria.clone();
 ### Getters
 
 ```typescript
-criteria.filters;      // Filter[]
-criteria.orders;       // Order[]
-criteria.page;         // number
-criteria.pageSize;     // number
-criteria.search;       // string | undefined
-criteria.hasFilters;   // boolean
-criteria.hasOrders;    // boolean
-criteria.hasSearch;    // boolean
+criteria.filters; // Filter[]
+criteria.orders; // Order[]
+criteria.page; // number
+criteria.pageSize; // number
+criteria.search; // string | undefined
+criteria.hasFilters; // boolean
+criteria.hasOrders; // boolean
+criteria.hasSearch; // boolean
 ```
 
 ---
@@ -81,7 +81,7 @@ const {
   isError,
   error,
   refetch,
-  meta,           // { page, limit, total, totalPages }
+  meta, // { page, limit, total, totalPages }
 
   // Criteria methods
   addFilter,
@@ -221,7 +221,10 @@ const {
 Advanced Kanban board with drag-and-drop.
 
 ```typescript
-import { useCriteriaKanban, KanbanColumnDefinition } from "@woltz/react-rich-domain";
+import {
+  useCriteriaKanban,
+  KanbanColumnDefinition,
+} from "@woltz/react-rich-domain";
 
 interface Task {
   id: string;
@@ -235,7 +238,7 @@ const columns: KanbanColumnDefinition<Task>[] = [
     id: "todo",
     title: "To Do",
     criteria: (c) => c.where("status", "equals", "todo"),
-    limit: 10,  // WIP limit (optional)
+    limit: 10, // WIP limit (optional)
   },
   {
     id: "doing",
@@ -269,9 +272,7 @@ const kanban = useCriteriaKanban<Task>("tasks", fetchTasks, {
   searchDebounceMs: 300,
 
   // Filter fields (optional)
-  filterFields: [
-    { field: "priority", type: "string", fieldLabel: "Priority" },
-  ],
+  filterFields: [{ field: "priority", type: "string", fieldLabel: "Priority" }],
 });
 ```
 
@@ -280,20 +281,20 @@ const kanban = useCriteriaKanban<Task>("tasks", fetchTasks, {
 ```typescript
 const {
   // Column data
-  columns,           // KanbanColumnData[] with items and loading state
-  getColumn,         // (id) => KanbanColumnData
-  getColumnItems,    // (id) => T[]
+  columns, // KanbanColumnData[] with items and loading state
+  getColumn, // (id) => KanbanColumnData
+  getColumnItems, // (id) => T[]
 
   // Card operations
-  moveCard,          // (cardId, fromColId, toColId, index) => void
-  moveMutation,      // Mutation result
+  moveCard, // (cardId, fromColId, toColId, index) => void
+  moveMutation, // Mutation result
 
   // Filters
   filterProps,
   searchProps,
 
   // DnD
-  dndContextProps,   // Pass to DndContext
+  dndContextProps, // Pass to DndContext
 
   // State
   isLoading,
@@ -321,11 +322,9 @@ const timeline = useCriteriaTimeline(
   async (criteria) => fetchActivities(criteria),
   {
     dateField: "createdAt",
-    groupBy: "day",           // "hour" | "day" | "week" | "month" | "year"
+    groupBy: "day", // "hour" | "day" | "week" | "month" | "year"
     sortDirection: "desc",
-    filterFields: [
-      { field: "type", type: "string", fieldLabel: "Type" },
-    ],
+    filterFields: [{ field: "type", type: "string", fieldLabel: "Type" }],
   }
 );
 ```
@@ -335,8 +334,8 @@ const timeline = useCriteriaTimeline(
 ```typescript
 const {
   // Grouped data
-  groupedData,       // TimelineGroup<T>[] with relative labels
-  data,              // Raw ungrouped data
+  groupedData, // TimelineGroup<T>[] with relative labels
+  data, // Raw ungrouped data
 
   // Infinite scroll
   loadMore,
@@ -353,7 +352,7 @@ const {
 
 // TimelineGroup structure
 interface TimelineGroup<T> {
-  label: string;      // "Today", "Yesterday", "Last Week", etc.
+  label: string; // "Today", "Yesterday", "Last Week", etc.
   date: Date;
   items: T[];
 }

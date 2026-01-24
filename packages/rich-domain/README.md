@@ -188,17 +188,17 @@ class UserRepository implements IUserRepository {
   async save(user: User): Promise<void> {
     // Your persistence logic
     const changes = user.getChanges();
-    
+
     // Handle deletes (deepest first)
     for (const deletion of changes.toBatchOperations().deletes) {
       // Delete by entity and IDs
     }
-    
+
     // Handle creates (root first)
     for (const creation of changes.toBatchOperations().creates) {
       // Create new entities
     }
-    
+
     // Handle updates
     for (const update of changes.toBatchOperations().updates) {
       // Update only changed fields
@@ -214,14 +214,13 @@ class UserRepository implements IUserRepository {
     const filters = criteria.getFilters();
     const ordering = criteria.getOrdering();
     const pagination = criteria.getPagination();
-    
+
     // Execute query and return paginated result
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const criteria = Criteria.create<User>()
-      .where("email", "equals", email);
-    
+    const criteria = Criteria.create<User>().where("email", "equals", email);
+
     const result = await this.find(criteria);
     return result.data[0] ?? null;
   }
@@ -262,10 +261,12 @@ class Product extends Aggregate<ProductProps> {
 
     rules: (entity) => {
       if (entity.price > 1000 && entity.stock === 0) {
-        throw new ValidationError([{
-          path: ["stock"],
-          message: "Premium products must have stock available"
-        }]);
+        throw new ValidationError([
+          {
+            path: ["stock"],
+            message: "Premium products must have stock available",
+          },
+        ]);
       }
     },
   };
@@ -347,7 +348,7 @@ class Order extends Aggregate<OrderProps> {
     }
 
     this.props.status = "confirmed";
-    
+
     // Emit event
     this.addDomainEvent(
       new OrderConfirmedEvent(this.id, this.customerId, this.total)
@@ -417,7 +418,10 @@ npm install @woltz/rich-domain-prisma
 ```
 
 ```typescript
-import { PrismaRepository, PrismaToPersistence } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaToPersistence,
+} from "@woltz/rich-domain-prisma";
 
 class UserToPersistence extends PrismaToPersistence<User> {
   protected readonly registry = schemaRegistry;
@@ -432,7 +436,10 @@ class UserToPersistence extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(
+    user: User,
+    changes: AggregateChanges
+  ): Promise<void> {
     // Automatic batch operations handling
   }
 }
@@ -506,7 +513,7 @@ Root entity with change tracking:
 ```typescript
 abstract class Aggregate<T extends { id: Id }> extends Entity<T> {
   getChanges(): AggregateChanges;
-  
+
   // Domain Events
   protected addDomainEvent(event: IDomainEvent): void;
   getUncommittedEvents(): IDomainEvent[];
@@ -522,7 +529,7 @@ Immutable object compared by value:
 ```typescript
 abstract class ValueObject<T> {
   protected readonly props: T;
-  
+
   equals(other: ValueObject<T>): boolean;
   toJSON(): T;
   protected clone(updates: Partial<T>): this;
@@ -534,28 +541,25 @@ abstract class ValueObject<T> {
 ```typescript
 class Criteria<T> {
   static create<T>(): Criteria<T>;
-  
+
   // Filters
   where<K extends FieldPath<T>>(
     field: K,
     operator: FilterOperator,
     value: any
   ): this;
-  
+
   // Ordering
-  orderBy<K extends FieldPath<T>>(
-    field: K,
-    direction: "asc" | "desc"
-  ): this;
-  
+  orderBy<K extends FieldPath<T>>(field: K, direction: "asc" | "desc"): this;
+
   // Pagination
   limit(limit: number): this;
   offset(offset: number): this;
   paginate(page: number, pageSize: number): this;
-  
+
   // Search
   search(term: string): this;
-  
+
   // Getters
   getFilters(): Filter<T>[];
   getOrdering(): Order<T> | null;
@@ -569,17 +573,19 @@ class Criteria<T> {
 Rich Domain provides comprehensive exception types:
 
 ```typescript
-import { 
+import {
   ValidationError,
   DomainError,
   EntityNotFoundError,
   DuplicateEntityError,
   ConcurrencyError,
-  RepositoryError
+  RepositoryError,
 } from "@woltz/rich-domain";
 
 try {
-  const user = new User({ /* invalid props */ });
+  const user = new User({
+    /* invalid props */
+  });
 } catch (error) {
   if (error instanceof ValidationError) {
     console.log(error.entity); // "User"
@@ -595,13 +601,14 @@ This library is published as a **dual package** supporting both CommonJS and ES 
 
 ```javascript
 // CommonJS
-const { Id, Entity, Aggregate } = require('@woltz/rich-domain');
+const { Id, Entity, Aggregate } = require("@woltz/rich-domain");
 
 // ES Modules
-import { Id, Entity, Aggregate } from '@woltz/rich-domain';
+import { Id, Entity, Aggregate } from "@woltz/rich-domain";
 ```
 
 Benefits:
+
 - ✅ Universal compatibility (Node.js, Vite, Webpack, etc.)
 - ✅ Tree-shaking support for modern bundlers
 - ✅ Full TypeScript support with type definitions
@@ -627,13 +634,13 @@ Check out the [examples directory](./examples) for complete implementations:
 
 ## Ecosystem
 
-| Package | Description | Version |
-|---------|-------------|---------|
-| [@woltz/rich-domain](https://www.npmjs.com/package/@woltz/rich-domain) | Core library | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain) |
-| [@woltz/rich-domain-prisma](https://www.npmjs.com/package/@woltz/rich-domain-prisma) | Prisma adapter | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg)](https://www.npmjs.com/package/@woltz/rich-domain-prisma) |
-| [@woltz/rich-domain-typeorm](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) | TypeORM adapter | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) |
+| Package                                                                                          | Description          | Version                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| [@woltz/rich-domain](https://www.npmjs.com/package/@woltz/rich-domain)                           | Core library         | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain)                           |
+| [@woltz/rich-domain-prisma](https://www.npmjs.com/package/@woltz/rich-domain-prisma)             | Prisma adapter       | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg)](https://www.npmjs.com/package/@woltz/rich-domain-prisma)             |
+| [@woltz/rich-domain-typeorm](https://www.npmjs.com/package/@woltz/rich-domain-typeorm)           | TypeORM adapter      | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm)           |
 | [@woltz/rich-domain-criteria-zod](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod criteria builder | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) |
-| [@woltz/rich-domain-cli](https://www.npmjs.com/package/@woltz/rich-domain-cli) | CLI tool | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli) |
+| [@woltz/rich-domain-cli](https://www.npmjs.com/package/@woltz/rich-domain-cli)                   | CLI tool             | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli)                   |
 
 ## Contributing
 

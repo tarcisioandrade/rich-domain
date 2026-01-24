@@ -7,7 +7,13 @@ import {
 import { z } from "zod";
 import { TaskCreatedEvent } from "./events/task-create.event";
 
-export const TaskStatus = z.enum(["todo", "doing", "done", "archived", "cancelled"]);
+export const TaskStatus = z.enum([
+  "todo",
+  "doing",
+  "done",
+  "archived",
+  "cancelled",
+]);
 
 export const TaskSchema = z.object({
   id: z.custom<Id>(),
@@ -23,7 +29,7 @@ export const TaskSchema = z.object({
   updatedStageAt: z.date().nullable(),
 });
 
-export type TaskProps = z.infer<typeof TaskSchema>
+export type TaskProps = z.infer<typeof TaskSchema>;
 export type TaskStatus = z.infer<typeof TaskStatus>;
 export type TaskEntities = {
   Task: Task;

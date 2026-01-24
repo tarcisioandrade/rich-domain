@@ -64,14 +64,14 @@ export type ArrayOperators = "in" | "notIn" | "isNull" | "isNotNull";
 export type OperatorsForType<T> = T extends string
   ? StringOperators
   : T extends number
-  ? NumberOperators
-  : T extends Date
-  ? DateOperators
-  : T extends boolean
-  ? BooleanOperators
-  : T extends Array<any>
-  ? ArrayOperators
-  : FilterOperator;
+    ? NumberOperators
+    : T extends Date
+      ? DateOperators
+      : T extends boolean
+        ? BooleanOperators
+        : T extends Array<any>
+          ? ArrayOperators
+          : FilterOperator;
 
 export type FilterValueFor<T> =
   | T
@@ -88,7 +88,7 @@ type ExtractPlainType<T> = T extends { toJSON(): infer R } ? R : T;
 
 export type PathValue<
   T,
-  P extends string
+  P extends string,
 > = P extends `${infer K}.${infer Rest}`
   ? K extends keyof ExtractPlainType<T>
     ? ExtractPlainType<T>[K] extends Array<infer U>
@@ -96,8 +96,8 @@ export type PathValue<
       : PathValue<ExtractPlainType<T>[K], Rest>
     : never
   : P extends keyof ExtractPlainType<T>
-  ? ExtractPlainType<T>[P]
-  : never;
+    ? ExtractPlainType<T>[P]
+    : never;
 
 export interface Filter<TField = string, TValue = unknown> {
   field: TField;
@@ -154,16 +154,17 @@ export interface CriteriaOptions {
 
 type ExcludeBuiltInKeys<T> = Exclude<keyof T, keyof any[] | number | symbol>;
 
-export type FieldPath<T> = ExtractPlainType<T> extends Primitive
-  ? never
-  : {
-      [K in ExcludeBuiltInKeys<ExtractPlainType<T>> & string]: NonNullable<
-        ExtractPlainType<T>[K]
-      > extends Primitive
-        ? K
-        : NonNullable<ExtractPlainType<T>[K]> extends Array<infer U>
-        ? U extends Primitive
+export type FieldPath<T> =
+  ExtractPlainType<T> extends Primitive
+    ? never
+    : {
+        [K in ExcludeBuiltInKeys<ExtractPlainType<T>> & string]: NonNullable<
+          ExtractPlainType<T>[K]
+        > extends Primitive
           ? K
-          : K | `${K}.${FieldPath<U>}`
-        : `${K}.${FieldPath<NonNullable<ExtractPlainType<T>[K]>>}`;
-    }[ExcludeBuiltInKeys<ExtractPlainType<T>> & string];
+          : NonNullable<ExtractPlainType<T>[K]> extends Array<infer U>
+            ? U extends Primitive
+              ? K
+              : K | `${K}.${FieldPath<U>}`
+            : `${K}.${FieldPath<NonNullable<ExtractPlainType<T>[K]>>}`;
+      }[ExcludeBuiltInKeys<ExtractPlainType<T>> & string];

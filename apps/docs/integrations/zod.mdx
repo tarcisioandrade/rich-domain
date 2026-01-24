@@ -1,7 +1,16 @@
 ---
 title: "Zod Criteria"
 description: "Type-safe Zod schemas for Criteria query parameters validation"
-keywords: ["zod","validation","schema","criteria","query-params","type-safe","typescript"]
+keywords:
+  [
+    "zod",
+    "validation",
+    "schema",
+    "criteria",
+    "query-params",
+    "type-safe",
+    "typescript",
+  ]
 ---
 
 ## Overview
@@ -123,7 +132,7 @@ const filters = defineFilters((f) => ({
   role: f.enum(["ADMIN", "COMMON"]),
   // Only allow exact match and list
   status: f.string({ operators: ["equals", "in"] }),
-  
+
   // Only allow comparison operators
   price: f.number({ operators: ["greaterThan", "lessThan", "between"] }),
 }));
@@ -161,9 +170,9 @@ Not all filterable fields should be orderable:
 
 ```typescript
 const filters = defineFilters((f) => ({
-  name: f.string(),           // ✅ Can order
-  tags: f.array.string(),     // ❌ Can't order arrays
-  ["author.name"]: f.string() // ⚠️ May not support ordering
+  name: f.string(), // ✅ Can order
+  tags: f.array.string(), // ❌ Can't order arrays
+  ["author.name"]: f.string(), // ⚠️ May not support ordering
 }));
 
 const querySchema = CriteriaQuerySchema(filters, {
@@ -264,13 +273,13 @@ const app = express();
 
 app.get("/users", (req, res) => {
   const result = querySchema.safeParse(req.query);
-  
+
   if (!result.success) {
-    return res.status(400).json({ 
-      errors: result.error.flatten() 
+    return res.status(400).json({
+      errors: result.error.flatten(),
     });
   }
-  
+
   const criteria = Criteria.fromQueryParams(result.data);
   const users = await userService.list(criteria);
   res.json(users);
@@ -286,16 +295,12 @@ import { Criteria } from "@woltz/rich-domain";
 
 const app = new Hono();
 
-app.get(
-  "/users",
-  zValidator("query", querySchema),
-  async (c) => {
-    const query = c.req.valid("query");
-    const criteria = Criteria.fromQueryParams(query);
-    const users = await userService.list(criteria);
-    return c.json(users);
-  }
-);
+app.get("/users", zValidator("query", querySchema), async (c) => {
+  const query = c.req.valid("query");
+  const criteria = Criteria.fromQueryParams(query);
+  const users = await userService.list(criteria);
+  return c.json(users);
+});
 ```
 
 ### tRPC
@@ -334,28 +339,30 @@ const userFilters = defineFilters((f) => ({
   // Basic fields
   name: f.string(),
   email: f.string(),
-  
+
   // Numeric
   age: f.number(),
   balance: f.number(),
-  
+
   // Dates
   createdAt: f.date(),
   lastLoginAt: f.date(),
-  
+
   // Boolean
   isVerified: f.boolean(),
-  
+
   // Arrays
   roles: f.array.enum(["admin", "user", "moderator"]),
   tags: f.array.string(),
-  
+
   // Nested
   ["profile.country"]: f.string(),
   ["company.name"]: f.string(),
 
   // Enum
-  status: f.enum(["active", "inactive", "pending"],{ operators: ["equals", "in"] }),
+  status: f.enum(["active", "inactive", "pending"], {
+    operators: ["equals", "in"],
+  }),
 }));
 
 const userQuerySchema = CriteriaQuerySchema(userFilters, {
@@ -392,9 +399,9 @@ app.route({
   },
   handler: async (request, reply) => {
     const criteria = Criteria.fromQueryParams<User>(request.query);
-    
+
     const result = await userRepository.find(criteria);
-    
+
     return result.toJSON();
   },
 });
@@ -465,7 +472,7 @@ function CriteriaQuerySchema<F, O extends readonly string[]>(
       maxLimit?: number;
     };
   }
-): ZodType<CriteriaQueryResult<F, O>>
+): ZodType<CriteriaQueryResult<F, O>>;
 ```
 
 ### PaginatedResponseSchema
@@ -481,7 +488,7 @@ function PaginatedResponseSchema<T extends ZodObject<any>>(
     total: ZodNumber;
     totalPages: ZodNumber;
   }>;
-}>
+}>;
 ```
 
 ### QueryBuilder Methods

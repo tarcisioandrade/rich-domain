@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  Aggregate,
-  Entity,
-  EntityValidation,
-  Id,
-} from "../../src";
+import { Aggregate, Entity, EntityValidation, Id } from "../../src";
 
 const DateSchema = z.union([z.date(), z.string().datetime()]);
 

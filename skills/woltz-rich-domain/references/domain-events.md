@@ -171,16 +171,22 @@ export class BullMQEventBus implements IDomainEventBus {
     });
   }
 
-  async publishAll(events: IDomainEvent[], options?: JobsOptions): Promise<void> {
+  async publishAll(
+    events: IDomainEvent[],
+    options?: JobsOptions
+  ): Promise<void> {
     // Group events by queue
-    const eventsByQueue = events.reduce((acc, event) => {
-      const queueName = this.getQueueNameForEvent(event);
-      if (!acc[queueName]) {
-        acc[queueName] = [];
-      }
-      acc[queueName].push(event);
-      return acc;
-    }, {} as Record<string, IDomainEvent[]>);
+    const eventsByQueue = events.reduce(
+      (acc, event) => {
+        const queueName = this.getQueueNameForEvent(event);
+        if (!acc[queueName]) {
+          acc[queueName] = [];
+        }
+        acc[queueName].push(event);
+        return acc;
+      },
+      {} as Record<string, IDomainEvent[]>
+    );
 
     // Bulk add to each queue
     await Promise.all(

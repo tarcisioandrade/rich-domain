@@ -1,7 +1,16 @@
 ---
 title: "Filters & Operators"
 description: "Complete guide to all filter operators and their type-safe usage"
-keywords: ["filters","operators","where","querying","comparison","type-safe","typescript"]
+keywords:
+  [
+    "filters",
+    "operators",
+    "where",
+    "querying",
+    "comparison",
+    "type-safe",
+    "typescript",
+  ]
 ---
 
 ## Overview
@@ -9,10 +18,9 @@ keywords: ["filters","operators","where","querying","comparison","type-safe","ty
 Filters are the core of Criteria. They define conditions that records must match. Each filter consists of a field, an operator, and (usually) a value.
 
 ```typescript
-const criteria = Criteria.create<User>()
-  .where("age", "greaterThan", 18)
-  //      ↑         ↑           ↑
-  //    field    operator     value
+const criteria = Criteria.create<User>().where("age", "greaterThan", 18);
+//      ↑         ↑           ↑
+//    field    operator     value
 ```
 
 ## Filter Methods
@@ -58,17 +66,17 @@ criteria.whereNotNull("email");
 
 ### String Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `equals` | Exact match | `where("name", "equals", "John")` |
-| `notEquals` | Not equal | `where("status", "notEquals", "deleted")` |
-| `contains` | Contains substring (case-insensitive) | `where("bio", "contains", "developer")` |
-| `startsWith` | Starts with prefix | `where("email", "startsWith", "admin")` |
-| `endsWith` | Ends with suffix | `where("email", "endsWith", "@gmail.com")` |
-| `in` | In array of values | `where("status", "in", ["active", "pending"])` |
-| `notIn` | Not in array | `where("role", "notIn", ["banned", "suspended"])` |
-| `isNull` | Is null/undefined | `where("nickname", "isNull")` |
-| `isNotNull` | Is not null | `where("email", "isNotNull")` |
+| Operator     | Description                           | Example                                           |
+| ------------ | ------------------------------------- | ------------------------------------------------- |
+| `equals`     | Exact match                           | `where("name", "equals", "John")`                 |
+| `notEquals`  | Not equal                             | `where("status", "notEquals", "deleted")`         |
+| `contains`   | Contains substring (case-insensitive) | `where("bio", "contains", "developer")`           |
+| `startsWith` | Starts with prefix                    | `where("email", "startsWith", "admin")`           |
+| `endsWith`   | Ends with suffix                      | `where("email", "endsWith", "@gmail.com")`        |
+| `in`         | In array of values                    | `where("status", "in", ["active", "pending"])`    |
+| `notIn`      | Not in array                          | `where("role", "notIn", ["banned", "suspended"])` |
+| `isNull`     | Is null/undefined                     | `where("nickname", "isNull")`                     |
+| `isNotNull`  | Is not null                           | `where("email", "isNotNull")`                     |
 
 ```typescript
 const criteria = Criteria.create<User>()
@@ -80,19 +88,19 @@ const criteria = Criteria.create<User>()
 
 ### Number Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `equals` | Exact match | `where("age", "equals", 25)` |
-| `notEquals` | Not equal | `where("score", "notEquals", 0)` |
-| `greaterThan` | Greater than | `where("age", "greaterThan", 18)` |
-| `greaterThanOrEqual` | Greater than or equal | `where("price", "greaterThanOrEqual", 100)` |
-| `lessThan` | Less than | `where("quantity", "lessThan", 10)` |
-| `lessThanOrEqual` | Less than or equal | `where("discount", "lessThanOrEqual", 50)` |
-| `between` | Between two values (inclusive) | `where("age", "between", [18, 65])` |
-| `in` | In array of values | `where("status", "in", [1, 2, 3])` |
-| `notIn` | Not in array | `where("priority", "notIn", [0, -1])` |
-| `isNull` | Is null | `where("score", "isNull")` |
-| `isNotNull` | Is not null | `where("rating", "isNotNull")` |
+| Operator             | Description                    | Example                                     |
+| -------------------- | ------------------------------ | ------------------------------------------- |
+| `equals`             | Exact match                    | `where("age", "equals", 25)`                |
+| `notEquals`          | Not equal                      | `where("score", "notEquals", 0)`            |
+| `greaterThan`        | Greater than                   | `where("age", "greaterThan", 18)`           |
+| `greaterThanOrEqual` | Greater than or equal          | `where("price", "greaterThanOrEqual", 100)` |
+| `lessThan`           | Less than                      | `where("quantity", "lessThan", 10)`         |
+| `lessThanOrEqual`    | Less than or equal             | `where("discount", "lessThanOrEqual", 50)`  |
+| `between`            | Between two values (inclusive) | `where("age", "between", [18, 65])`         |
+| `in`                 | In array of values             | `where("status", "in", [1, 2, 3])`          |
+| `notIn`              | Not in array                   | `where("priority", "notIn", [0, -1])`       |
+| `isNull`             | Is null                        | `where("score", "isNull")`                  |
+| `isNotNull`          | Is not null                    | `where("rating", "isNotNull")`              |
 
 ```typescript
 const criteria = Criteria.create<Product>()
@@ -104,17 +112,17 @@ const criteria = Criteria.create<Product>()
 
 ### Date Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `equals` | Exact match | `where("date", "equals", specificDate)` |
-| `notEquals` | Not equal | `where("updatedAt", "notEquals", oldDate)` |
-| `greaterThan` | After date | `where("createdAt", "greaterThan", lastWeek)` |
-| `greaterThanOrEqual` | On or after | `where("startDate", "greaterThanOrEqual", today)` |
-| `lessThan` | Before date | `where("expiresAt", "lessThan", now)` |
-| `lessThanOrEqual` | On or before | `where("deadline", "lessThanOrEqual", endOfMonth)` |
-| `between` | Within date range | `where("createdAt", "between", [startDate, endDate])` |
-| `isNull` | Is null | `where("deletedAt", "isNull")` |
-| `isNotNull` | Is not null | `where("publishedAt", "isNotNull")` |
+| Operator             | Description       | Example                                               |
+| -------------------- | ----------------- | ----------------------------------------------------- |
+| `equals`             | Exact match       | `where("date", "equals", specificDate)`               |
+| `notEquals`          | Not equal         | `where("updatedAt", "notEquals", oldDate)`            |
+| `greaterThan`        | After date        | `where("createdAt", "greaterThan", lastWeek)`         |
+| `greaterThanOrEqual` | On or after       | `where("startDate", "greaterThanOrEqual", today)`     |
+| `lessThan`           | Before date       | `where("expiresAt", "lessThan", now)`                 |
+| `lessThanOrEqual`    | On or before      | `where("deadline", "lessThanOrEqual", endOfMonth)`    |
+| `between`            | Within date range | `where("createdAt", "between", [startDate, endDate])` |
+| `isNull`             | Is null           | `where("deletedAt", "isNull")`                        |
+| `isNotNull`          | Is not null       | `where("publishedAt", "isNotNull")`                   |
 
 ```typescript
 const now = new Date();
@@ -129,12 +137,12 @@ const criteria = Criteria.create<Article>()
 
 ### Boolean Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `equals` | Is true/false | `where("isActive", "equals", true)` |
+| Operator    | Description    | Example                                 |
+| ----------- | -------------- | --------------------------------------- |
+| `equals`    | Is true/false  | `where("isActive", "equals", true)`     |
 | `notEquals` | Opposite value | `where("isDeleted", "notEquals", true)` |
-| `isNull` | Is null | `where("isVerified", "isNull")` |
-| `isNotNull` | Is not null | `where("isAdmin", "isNotNull")` |
+| `isNull`    | Is null        | `where("isVerified", "isNull")`         |
+| `isNotNull` | Is not null    | `where("isAdmin", "isNotNull")`         |
 
 ```typescript
 const criteria = Criteria.create<User>()
@@ -147,12 +155,12 @@ const criteria = Criteria.create<User>()
 
 For array fields in your entity:
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `in` | Array contains any of values | `where("tags", "in", ["featured", "popular"])` |
-| `notIn` | Array doesn't contain any | `where("categories", "notIn", ["archived"])` |
-| `isNull` | Is null/empty | `where("permissions", "isNull")` |
-| `isNotNull` | Is not null/empty | `where("roles", "isNotNull")` |
+| Operator    | Description                  | Example                                        |
+| ----------- | ---------------------------- | ---------------------------------------------- |
+| `in`        | Array contains any of values | `where("tags", "in", ["featured", "popular"])` |
+| `notIn`     | Array doesn't contain any    | `where("categories", "notIn", ["archived"])`   |
+| `isNull`    | Is null/empty                | `where("permissions", "isNull")`               |
+| `isNotNull` | Is not null/empty            | `where("roles", "isNotNull")`                  |
 
 ```typescript
 const criteria = Criteria.create<Article>()
@@ -212,7 +220,9 @@ const criteria = Criteria.create<User>()
 ```
 
 <Note>
-When filtering on array item properties, the filter matches if **any** item in the array matches the condition. For more control, see [Quantifiers](#quantifiers).
+  When filtering on array item properties, the filter matches if **any** item in
+  the array matches the condition. For more control, see
+  [Quantifiers](#quantifiers).
 </Note>
 
 ## Combining Multiple Filters
@@ -221,9 +231,9 @@ All filters are combined with AND logic:
 
 ```typescript
 const criteria = Criteria.create<User>()
-  .whereEquals("status", "active")         // AND
-  .where("age", "greaterThanOrEqual", 18)  // AND
-  .whereNotNull("email")                   // AND
+  .whereEquals("status", "active") // AND
+  .where("age", "greaterThanOrEqual", 18) // AND
+  .whereNotNull("email") // AND
   .whereContains("name", "john");
 
 // Matches users where:
@@ -239,8 +249,7 @@ The library validates filters at runtime:
 
 ```typescript
 // Invalid operator for type
-const criteria = Criteria.create<User>()
-  .where("age", "contains", "18");
+const criteria = Criteria.create<User>().where("age", "contains", "18");
 // Throws: InvalidCriteriaError: Operator "contains" is not valid for type "number"
 
 // This helps catch configuration errors early
@@ -281,7 +290,8 @@ const criteria = Criteria.fromQueryParams<User>({
 ```
 
 <Note>
-Quantifier support depends on your ORM/database. See the integration guides for specific implementations.
+  Quantifier support depends on your ORM/database. See the integration guides
+  for specific implementations.
 </Note>
 
 ## Real-World Examples

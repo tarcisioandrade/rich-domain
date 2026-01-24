@@ -104,7 +104,7 @@ export function DataTimelineCriteria<T>({
       loadMore();
     }
   }, [inView, hasMore, isLoadingMore, loadMore]);
-  
+
   // Reset the fetching ref when element goes out of view
   useEffect(() => {
     if (!inView && !isLoadingMore) {

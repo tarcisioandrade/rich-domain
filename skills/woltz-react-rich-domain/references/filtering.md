@@ -4,12 +4,12 @@
 
 ```typescript
 type QueryFilter = {
-  field: string;                    // Field path (e.g., "status", "user.name")
+  field: string; // Field path (e.g., "status", "user.name")
   type: "string" | "number" | "boolean" | "date";
-  fieldLabel: string;               // Display label
-  isNullable?: boolean;             // Allow isNull/isNotNull operators
-  multiSelect?: boolean;            // Allow multiple values for "in" operator
-  options?: FilterOption[];         // Predefined options for select
+  fieldLabel: string; // Display label
+  isNullable?: boolean; // Allow isNull/isNotNull operators
+  multiSelect?: boolean; // Allow multiple values for "in" operator
+  options?: FilterOption[]; // Predefined options for select
 };
 
 type FilterOption = {
@@ -133,8 +133,8 @@ addFilter("createdAt", "between", [startDate, endDate]);
 addFilter("status", "equals", "active", { replace: true }); // Replace existing
 
 // Remove filter
-removeFilter(0);                    // By index
-removeFilterByField("status");      // By field name
+removeFilter(0); // By index
+removeFilterByField("status"); // By field name
 
 // Clear all
 clearFilters();

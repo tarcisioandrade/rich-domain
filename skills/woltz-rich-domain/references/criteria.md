@@ -198,7 +198,9 @@ const json = criteria.toJSON();
 ### From JSON
 
 ```typescript
-const json = { /* ... */ };
+const json = {
+  /* ... */
+};
 const criteria = Criteria.fromObject<User>(json);
 ```
 
@@ -222,7 +224,7 @@ const adapter = {
 
 const criteria = Criteria.create<User>()
   .useAdapter(adapter)
-  .where("firstName", "equals", "John");  // Maps to first_name
+  .where("firstName", "equals", "John"); // Maps to first_name
 ```
 
 ## Getters
@@ -255,10 +257,10 @@ const search = criteria.getSearch();
 const result = await userRepository.find(criteria);
 
 // Access data
-result.data;        // User[]
-result.meta.page;       // 1
-result.meta.limit;      // 20
-result.meta.total;      // 150
+result.data; // User[]
+result.meta.page; // 1
+result.meta.limit; // 20
+result.meta.total; // 150
 result.meta.totalPages; // 8
 
 // Serialize for API

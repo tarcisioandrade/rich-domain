@@ -20,10 +20,9 @@ import { validateCsvExportOptions } from "./csv-validator.js";
  *
  * @template T - Aggregate type being exported
  */
-export class CsvFormatStrategy<T extends Aggregate<any>>
-  implements
-    ExportFormatStrategy<CsvExportOptions<T>, CsvExportStats>
-{
+export class CsvFormatStrategy<
+  T extends Aggregate<any>,
+> implements ExportFormatStrategy<CsvExportOptions<T>, CsvExportStats> {
   /**
    * Export entities to CSV format (in-memory)
    *
@@ -43,9 +42,7 @@ export class CsvFormatStrategy<T extends Aggregate<any>>
 
     // Handle empty records
     if (records.length === 0) {
-      const data = includeHeaders
-        ? buildHeaderRow([], options, delimiter)
-        : "";
+      const data = includeHeaders ? buildHeaderRow([], options, delimiter) : "";
 
       return {
         data,

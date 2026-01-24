@@ -31,7 +31,7 @@ import type {
  */
 export interface ExportFormatStrategy<
   TOptions extends BaseExportOptions = BaseExportOptions,
-  TStats extends BaseExportStats = BaseExportStats
+  TStats extends BaseExportStats = BaseExportStats,
 > {
   /**
    * Export entities to the format as a string/buffer

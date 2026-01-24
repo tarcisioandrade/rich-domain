@@ -217,8 +217,8 @@ export function Filter({
       selectedFieldForAdd.type === "date"
         ? defaultDateRange
         : selectedFieldForAdd.type === "number"
-        ? [0, 0]
-        : ["", ""];
+          ? [0, 0]
+          : ["", ""];
 
     const prevOperatorIsBetween = operatorIsBetween(tempOperator);
     const newOperatorIsBetween = operatorIsBetween(op);

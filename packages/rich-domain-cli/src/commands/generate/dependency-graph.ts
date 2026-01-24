@@ -24,9 +24,10 @@ export interface DependencyAnalysis {
 /**
  * Detect cycles in the dependency graph using DFS
  */
-function detectCycles(
-  nodes: Map<string, DependencyNode>
-): { hasCycles: boolean; cycles: string[][] } {
+function detectCycles(nodes: Map<string, DependencyNode>): {
+  hasCycles: boolean;
+  cycles: string[][];
+} {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
   const cycles: string[][] = [];

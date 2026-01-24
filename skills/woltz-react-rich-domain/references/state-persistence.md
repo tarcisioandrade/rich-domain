@@ -31,7 +31,7 @@ const { table, criteria } = useCriteriaTable({
   queryKey: ["users"],
   queryFn: fetchUsers,
   filterFields,
-  syncWithUrl: true,  // Enable URL sync
+  syncWithUrl: true, // Enable URL sync
 });
 
 // Navigating to /users?filters=status:equals:active
@@ -46,7 +46,7 @@ Persist criteria state across page refreshes.
 
 ```typescript
 const criteria = useCriteria<User>({
-  persistKey: "userListCriteria",  // localStorage key
+  persistKey: "userListCriteria", // localStorage key
 });
 
 // State is saved to localStorage on every change
@@ -93,7 +93,9 @@ useEffect(() => {
   if (saved) {
     const parsed = JSON.parse(saved);
     // Apply saved state
-    parsed.filters.forEach(f => criteria.addFilter(f.field, f.operator, f.value));
+    parsed.filters.forEach((f) =>
+      criteria.addFilter(f.field, f.operator, f.value)
+    );
     if (parsed.search) criteria.setSearch(parsed.search);
   }
 }, []);

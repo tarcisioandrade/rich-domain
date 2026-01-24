@@ -20,7 +20,7 @@ import { TypeORMToPersistence } from "./mappers/to-persistence";
  */
 export interface TypeORMRepositoryConfig<
   TDomain,
-  TEntity extends ObjectLiteral
+  TEntity extends ObjectLiteral,
 > {
   /**
    * TypeORM repository instance.
@@ -79,7 +79,7 @@ export interface TypeORMRepositoryConfig<
  */
 export abstract class TypeORMRepository<
   TDomain extends Aggregate<any>,
-  TEntity extends ObjectLiteral
+  TEntity extends ObjectLiteral,
 > extends Repository<TDomain> {
   protected readonly typeormRepo: TypeORMRepositoryBase<TEntity>;
   protected readonly toDomainMapper: Mapper<TEntity, TDomain>;

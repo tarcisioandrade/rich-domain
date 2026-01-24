@@ -30,7 +30,7 @@ export { CsvFormatStrategy } from "./formats/csv/csv-strategy.js";
 export { JsonFormatStrategy } from "./formats/json/json-strategy.js";
 
 // Format-specific types
-export type { CsvExportStats, CsvValidationResult } from "./formats/csv/csv-types.js";
+export type { CsvExportStats } from "./formats/csv/csv-types.js";
 export type { JsonExportStats } from "./formats/json/json-types.js";
 
 // CSV utilities
@@ -61,4 +61,7 @@ export { FormatRegistry } from "./services/format-registry.js";
 export { ExportableRepository } from "./repository/exportable-repository.js";
 
 // Utilities
-export { entitiesToRecords, createRecordIterator } from "./utils/entity-converter.js";
+export {
+  entitiesToRecords,
+  createRecordIterator,
+} from "./utils/entity-converter.js";

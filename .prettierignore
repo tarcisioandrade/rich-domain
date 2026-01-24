@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Generated files
+*.gen.ts
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage
+
+# IDE
+.idea
+.vscode
+
+# Misc
+*.min.js
+*.min.css

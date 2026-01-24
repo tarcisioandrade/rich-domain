@@ -448,7 +448,6 @@ describe("ChangeTracker.getChanges()", () => {
   });
 });
 
-
 describe("Primitive Arrays", () => {
   const TestStringSchema = z.object({
     id: z.custom<Id>(),
@@ -456,7 +455,9 @@ describe("Primitive Arrays", () => {
     strings: z.array(z.string()),
   });
   class TestString extends Aggregate<z.infer<typeof TestStringSchema>> {
-    protected static validation: EntityValidation<z.infer<typeof TestStringSchema>> = {
+    protected static validation: EntityValidation<
+      z.infer<typeof TestStringSchema>
+    > = {
       schema: TestStringSchema,
     };
   }
@@ -465,7 +466,7 @@ describe("Primitive Arrays", () => {
     const test = new TestString({
       id: new Id("121212121"),
       name: "Test User",
-      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+      strings: ["Teste 1", "Teste 2", "Teste 3"],
     });
 
     const changes = test.getChanges();
@@ -479,14 +480,14 @@ describe("Primitive Arrays", () => {
     const test = new TestString({
       id: new Id("121212121"),
       name: "Test User",
-      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+      strings: ["Teste 1", "Teste 2", "Teste 3"],
     });
 
     // Simulate data from database (clear initial state)
     test.markAsClean();
 
     // Now modify the array
-    test.props.strings.push('Teste 4');
+    test.props.strings.push("Teste 4");
 
     const changes = test.getChanges();
 
@@ -495,16 +496,21 @@ describe("Primitive Arrays", () => {
 
     const updates = changes.updates();
     expect(updates.length).toBe(1);
-    expect(updates[0].entity).toBe('TestString');
-    expect(updates[0].changedFields).toHaveProperty('strings');
-    expect(updates[0].changedFields.strings).toEqual(['Teste 1', 'Teste 2', 'Teste 3', 'Teste 4']);
+    expect(updates[0].entity).toBe("TestString");
+    expect(updates[0].changedFields).toHaveProperty("strings");
+    expect(updates[0].changedFields.strings).toEqual([
+      "Teste 1",
+      "Teste 2",
+      "Teste 3",
+      "Teste 4",
+    ]);
   });
 
   it("should detect primitive array removal as property update", () => {
     const test = new TestString({
       id: new Id("121212121"),
       name: "Test User",
-      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+      strings: ["Teste 1", "Teste 2", "Teste 3"],
     });
 
     test.markAsClean();
@@ -516,35 +522,35 @@ describe("Primitive Arrays", () => {
 
     expect(changes.hasUpdates()).toBe(true);
     const updates = changes.updates();
-    expect(updates[0].changedFields.strings).toEqual(['Teste 1', 'Teste 3']);
+    expect(updates[0].changedFields.strings).toEqual(["Teste 1", "Teste 3"]);
   });
 
   it("should detect primitive array replacement as property update", () => {
     const test = new TestString({
       id: new Id("121212121"),
       name: "Test User",
-      strings: ['Teste 1', 'Teste 2', 'Teste 3'],
+      strings: ["Teste 1", "Teste 2", "Teste 3"],
     });
 
     test.markAsClean();
 
     // Replace entire array
-    test.props.strings = ['New 1', 'New 2'];
+    test.props.strings = ["New 1", "New 2"];
 
     const changes = test.getChanges();
 
     expect(changes.hasUpdates()).toBe(true);
     const updates = changes.updates();
-    expect(updates[0].changedFields.strings).toEqual(['New 1', 'New 2']);
+    expect(updates[0].changedFields.strings).toEqual(["New 1", "New 2"]);
   });
-})
+});
 
 describe("Recursive markAsClean and markAsPersisted", () => {
   it("markAsClean should recursively clean nested entities", () => {
     const comment = createComment({ text: "Original comment" });
     const post = createPost({
       title: "Original title",
-      comments: [comment]
+      comments: [comment],
     });
     const user = createUser({ posts: [post] });
 
@@ -642,4 +648,4 @@ describe("Recursive markAsClean and markAsPersisted", () => {
     // Address should also be clean
     expect(address.getChanges().isEmpty()).toBe(true);
   });
-})
+});

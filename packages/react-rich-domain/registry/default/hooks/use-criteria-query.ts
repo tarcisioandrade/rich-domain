@@ -28,8 +28,10 @@ export interface PaginatedResult<T> {
 /**
  * Options for useCriteriaQuery hook
  */
-export interface UseCriteriaQueryOptions<TData, TError = Error>
-  extends UseCriteriaOptions<TData> {
+export interface UseCriteriaQueryOptions<
+  TData,
+  TError = Error,
+> extends UseCriteriaOptions<TData> {
   enabled?: boolean;
   staleTime?: number;
   gcTime?: number;

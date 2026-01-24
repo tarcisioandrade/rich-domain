@@ -121,25 +121,25 @@ export function TaskBoard() {
 
 ## Available Hooks
 
-| Hook | Purpose |
-|------|---------|
-| `useCriteria` | Manage filter, sort, pagination state |
-| `useCriteriaQuery` | Criteria + React Query for paginated data |
-| `useCriteriaInfiniteQuery` | Infinite scroll with Criteria |
-| `useCriteriaTable` | TanStack Table + Criteria integration |
-| `useCriteriaKanban` | Kanban board with drag-and-drop |
-| `useCriteriaTimeline` | Timeline view with date grouping |
+| Hook                       | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `useCriteria`              | Manage filter, sort, pagination state     |
+| `useCriteriaQuery`         | Criteria + React Query for paginated data |
+| `useCriteriaInfiniteQuery` | Infinite scroll with Criteria             |
+| `useCriteriaTable`         | TanStack Table + Criteria integration     |
+| `useCriteriaKanban`        | Kanban board with drag-and-drop           |
+| `useCriteriaTimeline`      | Timeline view with date grouping          |
 
 ## Available Components
 
-| Component | Purpose |
-|-----------|---------|
-| `DataTableCriteria` | Full-featured data table with filtering |
-| `DataKanbanCriteria` | Kanban board with drag-and-drop |
-| `DataTimelineCriteria` | Timeline view with grouped items |
-| `DataViewToolbar` | Search, filter, export toolbar |
-| `Filter` | Standalone filter dropdown UI |
-| `Sorting` | Sorting UI with drag-and-drop reordering |
+| Component              | Purpose                                  |
+| ---------------------- | ---------------------------------------- |
+| `DataTableCriteria`    | Full-featured data table with filtering  |
+| `DataKanbanCriteria`   | Kanban board with drag-and-drop          |
+| `DataTimelineCriteria` | Timeline view with grouped items         |
+| `DataViewToolbar`      | Search, filter, export toolbar           |
+| `Filter`               | Standalone filter dropdown UI            |
+| `Sorting`              | Sorting UI with drag-and-drop reordering |
 
 ## References
 

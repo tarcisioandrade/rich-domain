@@ -11,7 +11,6 @@ function Home() {
     <main className="min-h-[calc(100vh-64px)] bg-background">
       <Hero />
       <Packages />
-      
     </main>
   );
 }

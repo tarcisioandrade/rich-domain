@@ -153,4 +153,4 @@ export const postRoutes: FastifyPluginAsync = async (app) => {
       }
     },
   });
-}
+};

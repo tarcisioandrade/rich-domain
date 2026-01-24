@@ -1,7 +1,16 @@
 ---
 title: "Schema Registry"
 description: "Map domain entities to database tables and fields"
-keywords: ["schema-registry","mapping","database-schema","table-mapping","field-mapping","orm","typescript"]
+keywords:
+  [
+    "schema-registry",
+    "mapping",
+    "database-schema",
+    "table-mapping",
+    "field-mapping",
+    "orm",
+    "typescript",
+  ]
 ---
 
 ## Overview
@@ -67,7 +76,7 @@ registry.register({
   entity: "User",
   table: "users",
   fields: {
-    firstName: "first_name",  // domain → database
+    firstName: "first_name", // domain → database
     lastName: "last_name",
     createdAt: "created_at",
   },
@@ -111,7 +120,7 @@ registry.register({
 
 // Get mapped field name
 registry.mapFieldName("User", "firstName"); // "first_name"
-registry.mapFieldName("User", "status");    // "status" (unchanged)
+registry.mapFieldName("User", "status"); // "status" (unchanged)
 
 // Get all field mappings
 registry.getFieldsMap("User");
@@ -164,8 +173,8 @@ registry
     entity: "Post",
     table: "posts",
     parentFk: {
-      field: "author_id",      // FK column name in database
-      parentEntity: "User",    // Parent entity name
+      field: "author_id", // FK column name in database
+      parentEntity: "User", // Parent entity name
     },
   })
   .register({
@@ -182,12 +191,12 @@ registry
 
 ```typescript
 // Get parent entity name
-registry.getParentEntity("Post");    // "User"
+registry.getParentEntity("Post"); // "User"
 registry.getParentEntity("Comment"); // "Post"
-registry.getParentEntity("User");    // null (root entity)
+registry.getParentEntity("User"); // null (root entity)
 
 // Get FK field name
-registry.getParentFkField("Post");    // "author_id"
+registry.getParentFkField("Post"); // "author_id"
 registry.getParentFkField("Comment"); // "post_id"
 
 // Get FK object for insert
@@ -210,12 +219,12 @@ registry.register({
   collections: {
     // 1:N owned relationship - comments belong to post
     comments: { type: "owned" },
-    
+
     // Field name related to the relationship in the domain;
-    // 'posts.tags' <- Domain Relation field name is 'tags' 
-    tags: { 
-    // N:N reference relationship - tags exist independently
-      type: "reference", 
+    // 'posts.tags' <- Domain Relation field name is 'tags'
+    tags: {
+      // N:N reference relationship - tags exist independently
+      type: "reference",
       entity: "Tag",
       // Optional: junction table config (for ORMs that need it)
       junction: {
@@ -230,21 +239,21 @@ registry.register({
 
 ### Collection Types
 
-| Type | Relationship | Behavior |
-|------|--------------|----------|
-| `owned` | 1:N | Children are created/deleted with parent |
-| `reference` | N:N | Only links are created/removed, entities persist |
+| Type        | Relationship | Behavior                                         |
+| ----------- | ------------ | ------------------------------------------------ |
+| `owned`     | 1:N          | Children are created/deleted with parent         |
+| `reference` | N:N          | Only links are created/removed, entities persist |
 
 ### Checking Collection Types
 
 ```typescript
 // Check if it's a reference (N:N) collection
-registry.isReferenceCollection("Post", "tags");      // true
-registry.isReferenceCollection("Post", "comments");  // false
+registry.isReferenceCollection("Post", "tags"); // true
+registry.isReferenceCollection("Post", "comments"); // false
 
 // Check if it's an owned (1:N) collection
-registry.isOwnedCollection("Post", "comments");      // true
-registry.isOwnedCollection("Post", "tags");          // false
+registry.isOwnedCollection("Post", "comments"); // true
+registry.isOwnedCollection("Post", "tags"); // false
 
 // Get full collection config
 const tagConfig = registry.getCollectionConfig("Post", "tags");
@@ -255,7 +264,7 @@ const tagConfig = registry.getCollectionConfig("Post", "tags");
 
 ```typescript
 // Check if entity is registered
-registry.has("User");  // true
+registry.has("User"); // true
 registry.has("Order"); // false
 
 // Get schema (throws if not found)
@@ -292,7 +301,7 @@ class UserToPersistenceMapper extends Mapper<User, UserRecord> {
   build(user: User): UserRecord {
     // Use registry to map the entity
     const data = this.registry.mapEntity("User", user);
-    
+
     return {
       ...data,
       // Add any custom transformations
@@ -357,8 +366,8 @@ export const schemaRegistry = new EntitySchemaRegistry()
     },
     collections: {
       comments: { type: "owned" },
-      tags: { 
-        type: "reference", 
+      tags: {
+        type: "reference",
         entity: "Tag",
         junction: {
           table: "post_tags",
@@ -396,7 +405,10 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(
+    user: User,
+    changes: AggregateChanges
+  ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,
@@ -413,47 +425,47 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
 
 ```typescript
 interface EntitySchema {
-  entity: string;                           // Domain entity name
-  table: string;                            // Database table name
-  fields?: Record<string, string>;          // Field name mappings
+  entity: string; // Domain entity name
+  table: string; // Database table name
+  fields?: Record<string, string>; // Field name mappings
   parentFk?: {
-    field: string;                          // FK column name
-    parentEntity: string;                   // Parent entity name
+    field: string; // FK column name
+    parentEntity: string; // Parent entity name
   };
   collections?: Record<string, CollectionConfig>;
 }
 
 interface CollectionConfig {
   type: "owned" | "reference";
-  entity?: string;                          // Target entity (for reference)
+  entity?: string; // Target entity (for reference)
   junction?: {
-    table: string;                          // Junction table name
-    sourceKey: string;                      // FK to source entity
-    targetKey: string;                      // FK to target entity
+    table: string; // Junction table name
+    sourceKey: string; // FK to source entity
+    targetKey: string; // FK to target entity
   };
 }
 ```
 
 ### Registry Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `register(schema)` | `this` | Register an entity schema |
-| `registerAll(schemas)` | `this` | Register multiple schemas |
-| `has(entity)` | `boolean` | Check if entity is registered |
-| `getSchema(entity)` | `EntitySchema` | Get schema (throws if not found) |
-| `tryGetSchema(entity)` | `EntitySchema \| null` | Get schema or null |
-| `getTable(entity)` | `string` | Get table name |
-| `getFieldsMap(entity)` | `Record<string, string>` | Get field mappings |
-| `mapFieldName(entity, field)` | `string` | Map single field name |
-| `mapFields(entity, data)` | `object` | Map partial fields |
-| `mapEntity(entity, domainEntity)` | `object` | Map complete entity |
-| `getParentEntity(entity)` | `string \| null` | Get parent entity name |
-| `getParentFkField(entity)` | `string \| null` | Get FK field name |
-| `getParentFk(entity, parentId)` | `object \| null` | Get FK object |
-| `getCollectionConfig(entity, field)` | `CollectionConfig \| null` | Get collection config |
-| `isReferenceCollection(entity, field)` | `boolean` | Check if N:N relation |
-| `isOwnedCollection(entity, field)` | `boolean` | Check if 1:N relation |
-| `getRegisteredEntities()` | `string[]` | Get all entity names |
-| `getAllSchemas()` | `EntitySchema[]` | Get all schemas |
-| `clear()` | `void` | Remove all registrations |
+| Method                                 | Returns                    | Description                      |
+| -------------------------------------- | -------------------------- | -------------------------------- |
+| `register(schema)`                     | `this`                     | Register an entity schema        |
+| `registerAll(schemas)`                 | `this`                     | Register multiple schemas        |
+| `has(entity)`                          | `boolean`                  | Check if entity is registered    |
+| `getSchema(entity)`                    | `EntitySchema`             | Get schema (throws if not found) |
+| `tryGetSchema(entity)`                 | `EntitySchema \| null`     | Get schema or null               |
+| `getTable(entity)`                     | `string`                   | Get table name                   |
+| `getFieldsMap(entity)`                 | `Record<string, string>`   | Get field mappings               |
+| `mapFieldName(entity, field)`          | `string`                   | Map single field name            |
+| `mapFields(entity, data)`              | `object`                   | Map partial fields               |
+| `mapEntity(entity, domainEntity)`      | `object`                   | Map complete entity              |
+| `getParentEntity(entity)`              | `string \| null`           | Get parent entity name           |
+| `getParentFkField(entity)`             | `string \| null`           | Get FK field name                |
+| `getParentFk(entity, parentId)`        | `object \| null`           | Get FK object                    |
+| `getCollectionConfig(entity, field)`   | `CollectionConfig \| null` | Get collection config            |
+| `isReferenceCollection(entity, field)` | `boolean`                  | Check if N:N relation            |
+| `isOwnedCollection(entity, field)`     | `boolean`                  | Check if 1:N relation            |
+| `getRegisteredEntities()`              | `string[]`                 | Get all entity names             |
+| `getAllSchemas()`                      | `EntitySchema[]`           | Get all schemas                  |
+| `clear()`                              | `void`                     | Remove all registrations         |

@@ -39,8 +39,8 @@ export async function getTasks(
   }
 
   const data: PaginatedJsonResult<Task> = await response.json();
-  
-  return data
+
+  return data;
 }
 
 /**

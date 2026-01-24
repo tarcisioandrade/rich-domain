@@ -46,24 +46,27 @@ const flagBoolean = () =>
   }, z.boolean());
 
 const betweenTuple = (coerce: z.ZodTypeAny) =>
-  z.preprocess((v) => {
-    if (v === undefined || v === null) return v;
+  z.preprocess(
+    (v) => {
+      if (v === undefined || v === null) return v;
 
-    if (Array.isArray(v)) return v.slice(0, 2);
-    if (typeof v === "string") {
-      const s = v.trim();
-      const parts = s.includes("..") ? s.split("..") : s.split(",");
-      return parts
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .slice(0, 2);
-    }
-    return v;
-  }, z.tuple([coerce, coerce]));
+      if (Array.isArray(v)) return v.slice(0, 2);
+      if (typeof v === "string") {
+        const s = v.trim();
+        const parts = s.includes("..") ? s.split("..") : s.split(",");
+        return parts
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .slice(0, 2);
+      }
+      return v;
+    },
+    z.tuple([coerce, coerce])
+  );
 
 export const q = {
   string: (opts?: { operators?: readonly string[] }) =>
-    ({ kind: "string", base: z.string(), operators: opts?.operators } as const),
+    ({ kind: "string", base: z.string(), operators: opts?.operators }) as const,
 
   enum: <const T extends readonly [string, ...string[]]>(
     values: T,
@@ -73,28 +76,28 @@ export const q = {
       kind: "string",
       base: z.enum(values),
       operators: opts?.operators,
-    } as const),
+    }) as const,
 
   number: (opts?: { operators?: readonly string[] }) =>
     ({
       kind: "number",
       base: z.coerce.number(),
       operators: opts?.operators,
-    } as const),
+    }) as const,
 
   boolean: (opts?: { operators?: readonly string[] }) =>
     ({
       kind: "boolean",
       base: z.coerce.boolean(),
       operators: opts?.operators,
-    } as const),
+    }) as const,
 
   date: (opts?: { operators?: readonly string[] }) =>
     ({
       kind: "date",
       base: z.coerce.date(),
       operators: opts?.operators,
-    } as const),
+    }) as const,
 
   array: {
     string: (opts?: { operators?: readonly string[] }) =>
@@ -103,7 +106,7 @@ export const q = {
         base: z.string(),
         item: z.string(),
         operators: opts?.operators,
-      } as const),
+      }) as const,
 
     number: (opts?: { operators?: readonly string[] }) =>
       ({
@@ -111,7 +114,7 @@ export const q = {
         base: z.coerce.number(),
         item: z.coerce.number(),
         operators: opts?.operators,
-      } as const),
+      }) as const,
 
     boolean: (opts?: { operators?: readonly string[] }) =>
       ({
@@ -119,7 +122,7 @@ export const q = {
         base: z.coerce.boolean(),
         item: z.coerce.boolean(),
         operators: opts?.operators,
-      } as const),
+      }) as const,
 
     date: (opts?: { operators?: readonly string[] }) =>
       ({
@@ -127,7 +130,7 @@ export const q = {
         base: z.coerce.date(),
         item: z.coerce.date(),
         operators: opts?.operators,
-      } as const),
+      }) as const,
 
     enum: <const T extends readonly [string, ...string[]]>(
       values: T,
@@ -138,7 +141,7 @@ export const q = {
         base: z.enum(values),
         item: z.enum(values),
         operators: opts?.operators,
-      } as const),
+      }) as const,
 
     of: <T extends z.ZodTypeAny>(
       item: T,
@@ -149,7 +152,7 @@ export const q = {
         base: item,
         item,
         operators: opts?.operators,
-      } as const),
+      }) as const,
   },
 } satisfies Record<string, unknown>;
 
@@ -287,10 +290,9 @@ function parseQueryInput(val: any) {
   return result;
 }
 
-
 type CriteriaQueryResult<
   F extends ZodObject<ZodRawShape>,
-  O extends readonly string[]
+  O extends readonly string[],
 > = {
   filters?: F extends { _fields: infer Fields } ? Fields : z.infer<F>;
   orderBy?: O extends readonly []
@@ -326,7 +328,7 @@ type CriteriaQueryResult<
  */
 export function CriteriaQuerySchema<
   F extends ZodObject<ZodRawShape>,
-  const O extends readonly string[] = readonly []
+  const O extends readonly string[] = readonly [],
 >(
   filterSchema: F,
   options?: CriteriaQueryOptions<O>

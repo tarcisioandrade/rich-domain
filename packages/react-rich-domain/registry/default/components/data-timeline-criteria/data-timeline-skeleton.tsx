@@ -10,9 +10,7 @@ interface DataTimelineSkeletonProps {
   count?: number;
 }
 
-export function DataTimelineSkeleton({
-  count = 3,
-}: DataTimelineSkeletonProps) {
+export function DataTimelineSkeleton({ count = 3 }: DataTimelineSkeletonProps) {
   return (
     <div className="space-y-8">
       {Array.from({ length: count }).map((_, groupIndex) => (

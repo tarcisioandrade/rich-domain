@@ -112,10 +112,7 @@ function KanbanCardHeader({
   return (
     <div
       data-slot="kanban-card-header"
-      className={cn(
-        "flex items-start justify-between gap-2",
-        className
-      )}
+      className={cn("flex items-start justify-between gap-2", className)}
       {...props}
     />
   );
@@ -124,10 +121,7 @@ function KanbanCardHeader({
 /**
  * Title element for KanbanCard
  */
-function KanbanCardTitle({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function KanbanCardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="kanban-card-title"
@@ -150,10 +144,7 @@ function KanbanCardDescription({
   return (
     <div
       data-slot="kanban-card-description"
-      className={cn(
-        "text-muted-foreground text-xs line-clamp-2",
-        className
-      )}
+      className={cn("text-muted-foreground text-xs line-clamp-2", className)}
       {...props}
     />
   );

@@ -8,10 +8,15 @@ export class ValidationError extends Error {
   public readonly __isValidationError = true;
   public readonly entityName?: string;
 
-  constructor(issues: ValidationIssue[], options?: { message?: string; entityName?: string }) {
-    const errorMessage = options?.message || ValidationError.formatMessage(issues, options?.entityName);
+  constructor(
+    issues: ValidationIssue[],
+    options?: { message?: string; entityName?: string }
+  ) {
+    const errorMessage =
+      options?.message ||
+      ValidationError.formatMessage(issues, options?.entityName);
     super(errorMessage);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
     this.issues = issues;
     this.entityName = options?.entityName;
 
@@ -20,8 +25,11 @@ export class ValidationError extends Error {
     }
   }
 
-  private static formatMessage(issues: ValidationIssue[], entityName?: string): string {
-    const entityPrefix = entityName ? `[${entityName}] ` : '';
+  private static formatMessage(
+    issues: ValidationIssue[],
+    entityName?: string
+  ): string {
+    const entityPrefix = entityName ? `[${entityName}] ` : "";
 
     if (issues.length === 0) {
       return `${entityPrefix}Validation failed`;
@@ -29,14 +37,18 @@ export class ValidationError extends Error {
 
     if (issues.length === 1) {
       const issue = issues[0];
-      const pathStr = issue.path.length > 0 ? ` at "${issue.path.join('.')}"` : '';
+      const pathStr =
+        issue.path.length > 0 ? ` at "${issue.path.join(".")}"` : "";
       return `${entityPrefix}Validation failed${pathStr}: ${issue.message}`;
     }
 
-    const errorLines = issues.map((issue, index) => {
-      const pathStr = issue.path.length > 0 ? ` at "${issue.path.join('.')}"` : '';
-      return `  ${index + 1}. ${issue.message}${pathStr}`;
-    }).join('\n');
+    const errorLines = issues
+      .map((issue, index) => {
+        const pathStr =
+          issue.path.length > 0 ? ` at "${issue.path.join(".")}"` : "";
+        return `  ${index + 1}. ${issue.message}${pathStr}`;
+      })
+      .join("\n");
 
     return `${entityPrefix}Validation failed with ${issues.length} error(s):\n${errorLines}`;
   }
@@ -50,8 +62,8 @@ export class ValidationError extends Error {
     }
     return (
       error instanceof Error &&
-      error.name === 'ValidationError' &&
-      'issues' in error &&
+      error.name === "ValidationError" &&
+      "issues" in error &&
       Array.isArray((error as any).issues)
     );
   }
@@ -60,14 +72,14 @@ export class ValidationError extends Error {
    * Get all error messages as a simple array
    */
   getMessages(): string[] {
-    return this.issues.map(i => i.message);
+    return this.issues.map((i) => i.message);
   }
 
   /**
    * Get errors for a specific field path
    */
   getErrorsForPath(path: string): ValidationIssue[] {
-    return this.issues.filter(i => i.path.join('.') === path);
+    return this.issues.filter((i) => i.path.join(".") === path);
   }
 
   /**
@@ -80,7 +92,12 @@ export class ValidationError extends Error {
   /**
    * Convert to a plain object for serialization
    */
-  toJSON(): { name: string; message: string; issues: ValidationIssue[]; entityName?: string } {
+  toJSON(): {
+    name: string;
+    message: string;
+    issues: ValidationIssue[];
+    entityName?: string;
+  } {
     return {
       name: this.name,
       message: this.message,
@@ -93,27 +110,30 @@ export class ValidationError extends Error {
    * Get a formatted string with all validation errors
    */
   getFormattedErrors(): string {
-    return this.issues.map((issue) => {
-      const pathStr = issue.path.length > 0 ? ` [${issue.path.join('.')}]` : '';
-      return `${pathStr} ${issue.message}`;
-    }).join('\n');
+    return this.issues
+      .map((issue) => {
+        const pathStr =
+          issue.path.length > 0 ? ` [${issue.path.join(".")}]` : "";
+        return `${pathStr} ${issue.message}`;
+      })
+      .join("\n");
   }
 
   /**
    * Get a summary of the error for logging
    */
   getSummary(): string {
-    const entityPrefix = this.entityName ? `[${this.entityName}] ` : '';
+    const entityPrefix = this.entityName ? `[${this.entityName}] ` : "";
     const paths = this.issues
-      .filter(i => i.path.length > 0)
-      .map(i => i.path.join('.'));
+      .filter((i) => i.path.length > 0)
+      .map((i) => i.path.join("."));
 
     if (paths.length === 0) {
       return `${entityPrefix}Validation failed with ${this.issues.length} error(s)`;
     }
 
     const uniquePaths = Array.from(new Set(paths));
-    return `${entityPrefix}Validation failed on: ${uniquePaths.join(', ')} (${this.issues.length} error(s))`;
+    return `${entityPrefix}Validation failed on: ${uniquePaths.join(", ")} (${this.issues.length} error(s))`;
   }
 }
 
@@ -125,7 +145,7 @@ export function createValidationIssue(
   message: string
 ): ValidationIssue {
   return {
-    path: Array.isArray(path) ? path : path.split('.'),
+    path: Array.isArray(path) ? path : path.split("."),
     message,
   };
 }

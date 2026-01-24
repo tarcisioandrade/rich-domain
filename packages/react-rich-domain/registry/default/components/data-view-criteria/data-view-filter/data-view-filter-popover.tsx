@@ -97,8 +97,8 @@ export function DataViewFilterPopover({
       ? field.type === "number"
         ? [0, 0]
         : field.type === "date"
-        ? defaultDateRange
-        : ["", ""]
+          ? defaultDateRange
+          : ["", ""]
       : defineDefaultFilterValue(field.type, defaultOp);
 
     console.log("defaultValue", defaultValue);
@@ -118,8 +118,8 @@ export function DataViewFilterPopover({
       selectedFieldForAdd.type === "date"
         ? defaultDateRange
         : selectedFieldForAdd.type === "number"
-        ? [0, 0]
-        : ["", ""];
+          ? [0, 0]
+          : ["", ""];
 
     const prevOperatorIsBetween = operatorIsBetween(tempOperator);
     const newOperatorIsBetween = operatorIsBetween(op);

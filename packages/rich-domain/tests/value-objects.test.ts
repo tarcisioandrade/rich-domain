@@ -67,7 +67,6 @@ describe("Value Object", () => {
     }).toThrow();
   });
 
-
   it("should not throw on invalid email", () => {
     const email = new EmailSafe("invalid");
     expect(email.hasValidationErrors).toBe(true);

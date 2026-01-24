@@ -7,18 +7,19 @@ A comprehensive TypeScript monorepo for Domain-Driven Design, providing enterpri
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.12-brightgreen)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4%2B-blue)](https://www.typescriptlang.org/)
+
 </div>
 
 ## 📦 Packages
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| [@woltz/rich-domain](./packages/rich-domain) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain) | Core DDD library with entities, aggregates, value objects, and automatic change tracking |
-| [@woltz/rich-domain-prisma](./packages/rich-domain-prisma) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg)](https://www.npmjs.com/package/@woltz/rich-domain-prisma) | Prisma adapter with Unit of Work and batch operations |
-| [@woltz/rich-domain-typeorm](./packages/rich-domain-typeorm) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) | TypeORM adapter with transaction support |
-| [@woltz/rich-domain-criteria-zod](./packages/rich-domain-criteria-zod) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod-based criteria builder for type-safe queries |
-| [@woltz/rich-domain-cli](./packages/rich-domain-cli) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli) | CLI for project scaffolding and code generation |
-| [@woltz/rich-domain-export](./packages/rich-domain-export) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg)](https://www.npmjs.com/package/@woltz/rich-domain-export) | Export data to @woltz/rich-domain repository
+| Package                                                                | Version                                                                                                                                   | Description                                                                              |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [@woltz/rich-domain](./packages/rich-domain)                           | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg)](https://www.npmjs.com/package/@woltz/rich-domain)                           | Core DDD library with entities, aggregates, value objects, and automatic change tracking |
+| [@woltz/rich-domain-prisma](./packages/rich-domain-prisma)             | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg)](https://www.npmjs.com/package/@woltz/rich-domain-prisma)             | Prisma adapter with Unit of Work and batch operations                                    |
+| [@woltz/rich-domain-typeorm](./packages/rich-domain-typeorm)           | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm)           | TypeORM adapter with transaction support                                                 |
+| [@woltz/rich-domain-criteria-zod](./packages/rich-domain-criteria-zod) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod-based criteria builder for type-safe queries                                         |
+| [@woltz/rich-domain-cli](./packages/rich-domain-cli)                   | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-cli.svg)](https://www.npmjs.com/package/@woltz/rich-domain-cli)                   | CLI for project scaffolding and code generation                                          |
+| [@woltz/rich-domain-export](./packages/rich-domain-export)             | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg)](https://www.npmjs.com/package/@woltz/rich-domain-export)             | Export data to @woltz/rich-domain repository                                             |
 
 ## 🚀 Quick Start
 
@@ -75,7 +76,9 @@ class User extends Aggregate<UserProps> {
 }
 
 // Automatic change tracking
-const user = new User({ /* ... */ });
+const user = new User({
+  /* ... */
+});
 user.addPost("First Post", "Content");
 
 const changes = user.getChanges();
@@ -206,6 +209,7 @@ Visit our [complete documentation](https://woltz.mintlify.app) for:
 #### Fastify with Prisma
 
 Complete REST API with:
+
 - Domain-Driven Design architecture
 - Prisma ORM integration
 - BullMQ for background jobs
@@ -225,6 +229,7 @@ npm run dev
 #### React with React Query
 
 Full-stack application with:
+
 - React + Vite
 - React Query integration
 - shadcn/ui components
@@ -285,16 +290,14 @@ The repository uses npm workspaces for package management:
 
 ```json
 {
-  "workspaces": [
-    "packages/*",
-    "examples/**/*"
-  ]
+  "workspaces": ["packages/*", "examples/**/*"]
 }
 ```
 
 ### TypeScript Configuration
 
 All packages use:
+
 - TypeScript 5.4+
 - Strict mode enabled
 - Dual module format (ESM + CommonJS)
@@ -356,6 +359,7 @@ MIT © [Tarcisio Andrade](https://github.com/tarcisioandrade)
 ## 🙏 Acknowledgments
 
 This project is inspired by:
+
 - Domain-Driven Design by Eric Evans
 - Implementing Domain-Driven Design by Vaughn Vernon
 - Standard Schema specification

@@ -83,7 +83,6 @@ function KanbanColumn<T>({
     </KanbanColumnHeader>
   );
 
-
   return (
     <div
       ref={setNodeRef}
@@ -103,29 +102,26 @@ function KanbanColumn<T>({
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {isLoading ? (
             <KanbanColumnSkeleton count={3} />
-          )
-            : (
-              <KanbanColumnContent
-                items={items}
-                getItemId={getItemId}
-                renderCard={renderCard}
-                estimatedCardHeight={estimatedCardHeight}
-                activeId={activeId}
-                onCardClick={onCardClick}
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-                onLoadMore={fetchNextPage}
-                columnsContentScrollClassName={columnsContentScrollClassName}
-                renderEmptyState={renderEmptyState}
-              />
-            )}
+          ) : (
+            <KanbanColumnContent
+              items={items}
+              getItemId={getItemId}
+              renderCard={renderCard}
+              estimatedCardHeight={estimatedCardHeight}
+              activeId={activeId}
+              onCardClick={onCardClick}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onLoadMore={fetchNextPage}
+              columnsContentScrollClassName={columnsContentScrollClassName}
+              renderEmptyState={renderEmptyState}
+            />
+          )}
         </SortableContext>
       </div>
 
       {renderFooter && (
-        <KanbanColumnFooter>
-          {renderFooter(column)}
-        </KanbanColumnFooter>
+        <KanbanColumnFooter>{renderFooter(column)}</KanbanColumnFooter>
       )}
     </div>
   );
@@ -160,10 +156,7 @@ function KanbanColumnTitle({
   return (
     <h3
       data-slot="kanban-column-title"
-      className={cn(
-        "font-semibold text-sm flex items-center",
-        className
-      )}
+      className={cn("font-semibold text-sm flex items-center", className)}
       {...props}
     />
   );
@@ -200,10 +193,7 @@ function KanbanColumnFooter({
   return (
     <div
       data-slot="kanban-column-footer"
-      className={cn(
-        "px-3 py-2 border-t bg-background/50",
-        className
-      )}
+      className={cn("px-3 py-2 border-t bg-background/50", className)}
       {...props}
     />
   );
@@ -216,10 +206,7 @@ function KanbanColumnSkeleton({ count = 3 }: { count?: number }) {
   return (
     <div className="p-2 space-y-2">
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className="bg-card rounded-lg border p-3 animate-pulse"
-        >
+        <div key={i} className="bg-card rounded-lg border p-3 animate-pulse">
           <div className="h-4 bg-muted rounded w-3/4 mb-2" />
           <div className="h-3 bg-muted rounded w-1/2" />
         </div>

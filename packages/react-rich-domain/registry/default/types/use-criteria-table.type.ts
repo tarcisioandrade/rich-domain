@@ -5,10 +5,16 @@ import type {
   Table,
 } from "@tanstack/react-table";
 import type { Criteria, PaginatedJsonResult } from "@woltz/rich-domain";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "./use-criteria.type";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "./use-criteria.type";
 import type { QueryFilter } from "../lib/filter-utils";
 import type { QueryKey, UseQueryResult } from "@tanstack/react-query";
-import type { FilterIntegrationProps, SearchIntegrationProps } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
+import type {
+  FilterIntegrationProps,
+  SearchIntegrationProps,
+} from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 
 /**
  * Configuration options for useCriteriaTable hook
@@ -60,8 +66,6 @@ export interface UseCriteriaTableOptions<T> {
    */
   searchDebounceMs?: number;
 }
-
-
 
 /**
  * Return type for useCriteriaTable hook

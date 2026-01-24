@@ -36,12 +36,11 @@ export class PrismaTaskToPersistenceMapper extends PrismaToPersistence<
   }
 
   protected async onUpdate(
-    task: Task,
+    _task: Task,
     changes: AggregateChanges
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: task.id.value,
     });
 
     await executor.execute(changes);

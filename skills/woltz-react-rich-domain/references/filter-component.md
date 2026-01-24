@@ -63,16 +63,16 @@ function UserFilters() {
 
 ```typescript
 interface QueryFilter {
-  field: string;           // Field path (e.g., "name", "profile.bio")
-  fieldLabel: string;      // Display label
+  field: string; // Field path (e.g., "name", "profile.bio")
+  fieldLabel: string; // Display label
   type: "string" | "number" | "date" | "boolean";
   options?: Array<{
     value: string;
     label: string;
     icon?: React.ReactNode;
   }>;
-  multiSelect?: boolean;   // Allow multiple values for "in" operator
-  isNullable?: boolean;    // Allow isNull/isNotNull operators
+  multiSelect?: boolean; // Allow multiple values for "in" operator
+  isNullable?: boolean; // Allow isNull/isNotNull operators
 }
 ```
 
@@ -80,12 +80,12 @@ interface QueryFilter {
 
 ## Operators by Field Type
 
-| Type | Operators |
-|------|-----------|
-| `string` | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull |
-| `number` | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
-| `date` | equals, notEquals, greaterThan, lessThan, between, isNull, isNotNull |
-| `boolean` | equals, notEquals, isNull, isNotNull |
+| Type      | Operators                                                                                                            |
+| --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `string`  | equals, notEquals, contains, startsWith, endsWith, in, notIn, isNull, isNotNull                                      |
+| `number`  | equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual, between, in, notIn, isNull, isNotNull |
+| `date`    | equals, notEquals, greaterThan, lessThan, between, isNull, isNotNull                                                 |
+| `boolean` | equals, notEquals, isNull, isNotNull                                                                                 |
 
 ---
 
@@ -201,10 +201,10 @@ function CustomFilterBar() {
 
 ## Filter Props
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fields` | `QueryFilter[]` | Yes | Available fields for filtering |
-| `filters` | `Filter[]` | Yes | Current active filters |
-| `addOrReplaceByIndex` | `function` | Yes | Add or update a filter |
-| `removeFilter` | `function` | Yes | Remove a filter by index |
-| `clearFilters` | `function` | Yes | Clear all filters |
+| Prop                  | Type            | Required | Description                    |
+| --------------------- | --------------- | -------- | ------------------------------ |
+| `fields`              | `QueryFilter[]` | Yes      | Available fields for filtering |
+| `filters`             | `Filter[]`      | Yes      | Current active filters         |
+| `addOrReplaceByIndex` | `function`      | Yes      | Add or update a filter         |
+| `removeFilter`        | `function`      | Yes      | Remove a filter by index       |
+| `clearFilters`        | `function`      | Yes      | Clear all filters              |

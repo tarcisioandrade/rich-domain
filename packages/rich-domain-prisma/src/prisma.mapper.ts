@@ -36,7 +36,7 @@ import {
  */
 export abstract class PrismaToPersistence<
   TDomain,
-  PrismaClient = PrismaClientLike
+  PrismaClient = PrismaClientLike,
 > extends Mapper<TDomain, void> {
   constructor(
     public readonly prisma: PrismaClient,

@@ -47,14 +47,17 @@ export class BullMQEventBus implements IDomainEventBus {
     events: IDomainEvent[],
     options?: JobsOptions
   ): Promise<void> {
-    const eventsByQueue = events.reduce((acc, event) => {
-      const queueName = this.getQueueNameForEvent(event);
-      if (!acc[queueName]) {
-        acc[queueName] = [];
-      }
-      acc[queueName].push(event);
-      return acc;
-    }, {} as Record<string, IDomainEvent[]>);
+    const eventsByQueue = events.reduce(
+      (acc, event) => {
+        const queueName = this.getQueueNameForEvent(event);
+        if (!acc[queueName]) {
+          acc[queueName] = [];
+        }
+        acc[queueName].push(event);
+        return acc;
+      },
+      {} as Record<string, IDomainEvent[]>
+    );
 
     await Promise.all(
       Object.entries(eventsByQueue).map(([queueName, queueEvents]) => {

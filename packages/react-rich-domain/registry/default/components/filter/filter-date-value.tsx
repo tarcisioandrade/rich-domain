@@ -46,11 +46,11 @@ export function FilterDateValue({
           {singleDate
             ? format(singleDate, "MMM d, yyyy")
             : dateRange
-            ? `${format(new Date(dateRange[0]), "MMM d")} - ${format(
-                new Date(dateRange[1]),
-                "MMM d"
-              )}`
-            : "Pick a date"}
+              ? `${format(new Date(dateRange[0]), "MMM d")} - ${format(
+                  new Date(dateRange[1]),
+                  "MMM d"
+                )}`
+              : "Pick a date"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

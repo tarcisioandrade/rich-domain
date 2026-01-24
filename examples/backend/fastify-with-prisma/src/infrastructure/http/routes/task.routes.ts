@@ -37,7 +37,6 @@ const moveTaskSchema = z.object({
   insertAfterId: z.string().uuid().nullable(),
 });
 
-
 const TaskResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -180,5 +179,4 @@ export const taskRoutes: FastifyPluginAsync = async (app) => {
       });
     }
   });
-
 };

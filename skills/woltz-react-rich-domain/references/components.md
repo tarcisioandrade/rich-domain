@@ -203,11 +203,11 @@ renderCard={(item, isDragging, isClickable) => {
 
 The `KanbanCard` component automatically handles cursor styles:
 
-| State | Cursor | When |
-|-------|--------|------|
-| `cursor-grab` | Default draggable state |
-| `cursor-pointer` | Card has `onCardClick` handler |
-| `cursor-grabbing` | Card is being dragged |
+| State             | Cursor                         | When |
+| ----------------- | ------------------------------ | ---- |
+| `cursor-grab`     | Default draggable state        |
+| `cursor-pointer`  | Card has `onCardClick` handler |
+| `cursor-grabbing` | Card is being dragged          |
 
 ### Preventing Drag on Elements
 

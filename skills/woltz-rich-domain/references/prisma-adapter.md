@@ -77,7 +77,11 @@ interface PrismaRepository<T> {
 ## PrismaToPersistence Mapper
 
 ```typescript
-import { PrismaToPersistence, PrismaBatchExecutor, EntitySchemaRegistry } from "@woltz/rich-domain-prisma";
+import {
+  PrismaToPersistence,
+  PrismaBatchExecutor,
+  EntitySchemaRegistry,
+} from "@woltz/rich-domain-prisma";
 
 const schemaRegistry = new EntitySchemaRegistry()
   .register({ entity: "User", table: "user" })
@@ -99,22 +103,27 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
         email: user.email,
         name: user.name,
         createdAt: user.createdAt,
-        posts: user.posts.length ? {
-          createMany: {
-            data: user.posts.map((post) => ({
-              id: post.id.value,
-              title: post.title,
-              main_content: post.content,
-              authorId: user.id.value,
-            })),
-          },
-        } : undefined,
+        posts: user.posts.length
+          ? {
+              createMany: {
+                data: user.posts.map((post) => ({
+                  id: post.id.value,
+                  title: post.title,
+                  main_content: post.content,
+                  authorId: user.id.value,
+                })),
+              },
+            }
+          : undefined,
       },
     });
   }
 
   // Handle existing aggregate updates
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(
+    user: User,
+    changes: AggregateChanges
+  ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
       rootId: user.id.value,
@@ -164,6 +173,7 @@ await executor.execute(changes);
 ```
 
 **Execution Order:**
+
 1. Deletes (leaf → root, depth DESC)
 2. Creates (root → leaf, depth ASC)
 3. Updates (any order)
@@ -172,19 +182,21 @@ await executor.execute(changes);
 
 These are **complementary features** with different responsibilities:
 
-| Aspect | Registry `fields` | `dataMappers` |
-|--------|-------------------|---------------|
-| **Type** | Declarative config | Custom functions |
-| **Scope** | All operations | CREATE only |
-| **Usage** | Automatic | Opt-in (optional) |
-| **Purpose** | Map field names | Complex transformation |
+| Aspect      | Registry `fields`  | `dataMappers`          |
+| ----------- | ------------------ | ---------------------- |
+| **Type**    | Declarative config | Custom functions       |
+| **Scope**   | All operations     | CREATE only            |
+| **Usage**   | Automatic          | Opt-in (optional)      |
+| **Purpose** | Map field names    | Complex transformation |
 
 **Registry `fields`** - Simple field name conversions:
+
 ```typescript
 fields: { content: "main_content", createdAt: "created_at" }
 ```
 
 **`dataMappers`** - Custom transformation when default mapping isn't enough:
+
 ```typescript
 dataMappers: {
   Comment: (item) => ({
@@ -270,11 +282,15 @@ class UserToDomainMapper extends Mapper<UserRecord, User> {
       id: Id.from(record.id),
       email: record.email,
       name: record.name,
-      posts: record.posts?.map(p => new Post({
-        id: Id.from(p.id),
-        title: p.title,
-        content: p.main_content,  // Map column back to domain
-      })) ?? [],
+      posts:
+        record.posts?.map(
+          (p) =>
+            new Post({
+              id: Id.from(p.id),
+              title: p.title,
+              content: p.main_content, // Map column back to domain
+            })
+        ) ?? [],
       createdAt: record.createdAt,
     });
   }

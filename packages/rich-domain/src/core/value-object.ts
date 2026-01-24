@@ -126,7 +126,6 @@ export abstract class ValueObject<T extends Primitive> {
     return this.value === other.value;
   }
 
-
   /**
    * Creates a new ValueObject with updated value.
    * ValueObjects are immutable, so this returns a new instance.

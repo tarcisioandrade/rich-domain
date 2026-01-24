@@ -17,13 +17,3 @@ export interface CsvExportStats extends BaseExportStats {
    */
   format: "csv";
 }
-
-/**
- * Legacy type alias for CSV validation result
- * @deprecated Use ValidationResult from core/types.ts instead
- */
-export type CsvValidationResult = {
-  isValid: boolean;
-  errors: string[];
-  warnings?: string[];
-};

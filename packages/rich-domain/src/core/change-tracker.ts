@@ -1018,7 +1018,13 @@ export class ChangeTracker {
   private isPrimitiveValue(value: any): boolean {
     if (value === null || value === undefined) return true;
     const type = typeof value;
-    return type === "string" || type === "number" || type === "boolean" || type === "symbol" || type === "bigint";
+    return (
+      type === "string" ||
+      type === "number" ||
+      type === "boolean" ||
+      type === "symbol" ||
+      type === "bigint"
+    );
   }
 
   /**
@@ -1026,7 +1032,7 @@ export class ChangeTracker {
    */
   private isPrimitiveArray(arr: any[]): boolean {
     if (arr.length === 0) return false; // Empty arrays are not treated as primitive arrays
-    return arr.every(item => this.isPrimitiveValue(item));
+    return arr.every((item) => this.isPrimitiveValue(item));
   }
 
   private isEqual(a: any, b: any): boolean {
