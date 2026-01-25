@@ -116,6 +116,11 @@ export abstract class TypeORMRepository<
           "Direct persistence mapping is not supported. Use save() method instead."
         );
       },
+      buildMany: () => {
+        throw new TypeORMRepositoryError(
+          "Direct persistence mapping is not supported. Use save() method instead."
+        );
+      },
     } as Mapper<TDomain, TEntity>;
   }
 
@@ -263,8 +268,7 @@ export abstract class TypeORMRepository<
 
       if (!entity) return null;
 
-      const result = this.toDomainMapper.build(entity as TEntity);
-      return result instanceof Promise ? await result : result;
+      return this.toDomainMapper.build(entity as TEntity);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find ${this.alias} by ID: ${error.message}`,
@@ -301,12 +305,7 @@ export abstract class TypeORMRepository<
 
       const [entities, total] = await qb.getManyAndCount();
 
-      const items = await Promise.all(
-        entities.map(async (entity) => {
-          const result = this.toDomainMapper.build(entity as TEntity);
-          return result instanceof Promise ? await result : result;
-        })
-      );
+      const items = this.toDomainMapper.buildMany(entities as TEntity[]);
 
       // Extract pagination info from criteria
       const pagination = criteria?.getPagination() ?? {
@@ -378,7 +377,7 @@ export abstract class TypeORMRepository<
         relations: relations.length > 0 ? relations : undefined,
       });
 
-      return await Promise.all(entities.map(this.toDomainMapper.build));
+      return this.toDomainMapper.buildMany(entities as TEntity[]);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find many by IDs ${this.alias}: ${error.message}`,
@@ -483,12 +482,7 @@ export abstract class TypeORMRepository<
         relations: relations.length > 0 ? relations : undefined,
       });
 
-      return await Promise.all(
-        entities.map(async (entity) => {
-          const result = this.toDomainMapper.build(entity as TEntity);
-          return result instanceof Promise ? await result : result;
-        })
-      );
+      return this.toDomainMapper.buildMany(entities as TEntity[]);
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to find all ${this.alias}: ${error.message}`,
