@@ -44,11 +44,15 @@ Test domain logic without database dependencies
 import { Mapper } from "@woltz/rich-domain";
 
 abstract class Mapper<Input, Output> {
-  abstract build(input: Input, ...args: unknown[]): Output | Promise<Output>;
+  abstract build(input: Input, ...args: unknown[]): Output;
+
+  buildMany(inputs: Input[]): Output[] {
+    return inputs.map((input) => this.build(input));
+  }
 }
 ```
 
-The base class is simple - implement `build()` to transform from Input to Output.
+The base class is simple - implement `build()` to transform from Input to Output. Use `buildMany()` to transform arrays.
 
 ## Creating Mappers
 
@@ -230,49 +234,6 @@ class UserToPersistenceMapper extends Mapper<User, UserRecord> {
 }
 ```
 
-## Async Mappers
-
-For cases requiring async operations (e.g., loading related data):
-
-```typescript
-class OrderToDomainMapper extends Mapper<OrderRecord, Order> {
-  constructor(
-    private customerRepository: CustomerRepository,
-    private productRepository: ProductRepository
-  ) {
-    super();
-  }
-
-  async build(record: OrderRecord): Promise<Order> {
-    // Load related entities
-    const customer = await this.customerRepository.findById(record.customer_id);
-    
-    const items = await Promise.all(
-      record.items.map(async (item) => {
-        const product = await this.productRepository.findById(item.product_id);
-        return new OrderItem({
-          id: Id.from(item.id),
-          product: product!,
-          quantity: item.quantity,
-          unitPrice: item.unit_price,
-        });
-      })
-    );
-
-    return new Order({
-      id: Id.from(record.id),
-      customer: customer!,
-      items,
-      status: record.status as OrderStatus,
-    });
-  }
-}
-```
-
-<Warning>
-Async mappers can lead to N+1 query problems. Consider eager loading relations in your repository query instead of lazy loading in mappers.
-</Warning>
-
 ## Type Conversions
 
 Common conversions between domain and persistence:
@@ -332,9 +293,9 @@ settings: JSON.parse(record.settings) as UserSettings
 // Domain → Persistence
 addressId: user.address?.id.value ?? null
 
-// Persistence → Domain
-address: record.address_id 
-  ? await this.addressRepository.findById(record.address_id)
+// Persistence → Domain (load address in repository query, not in mapper)
+address: record.address
+  ? new Address({ street: record.address.street, city: record.address.city })
   : null
 ```
 
@@ -385,6 +346,8 @@ class UserRepository extends Repository<User> {
 
 ## Mapping Lists
 
+The base `Mapper` class includes a `buildMany()` method for transforming arrays:
+
 ```typescript
 class UserToDomainMapper extends Mapper<UserRecord, User> {
   build(record: UserRecord): User {
@@ -393,14 +356,9 @@ class UserToDomainMapper extends Mapper<UserRecord, User> {
       name: record.name,
     });
   }
-
-  // Convenience method for lists
-  buildMany(records: UserRecord[]): User[] {
-    return records.map((record) => this.build(record));
-  }
 }
 
-// Usage
+// Usage - buildMany is inherited from Mapper
 const users = userMapper.buildMany(records);
 ```
 

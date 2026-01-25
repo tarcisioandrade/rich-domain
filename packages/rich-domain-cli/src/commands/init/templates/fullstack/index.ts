@@ -586,7 +586,9 @@ export class User extends Aggregate<UserProps> {
 
   protected static hooks: EntityHooks<UserProps, User> = {
     onCreate: (entity) => {
-      entity.addDomainEvent(new UserCreatedEvent({ email: entity.email }));
+      if (entity.isNew()) {
+        entity.addDomainEvent(new UserCreatedEvent({ email: entity.email }));
+      }
     },
   };
 
