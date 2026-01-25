@@ -14,7 +14,7 @@ import {
   KanbanCardFooter,
   KanbanCardBadge,
 } from "./components/data-kanban-criteria";
-import { getTasks, moveTask, type Task } from "./service/get-tasks";
+import { getTasks, moveTask, type Task } from "./service";
 import type { KanbanColumnDefinition } from "./types/use-criteria-kanban.type";
 import type { QueryFilter } from "./lib/filter-utils";
 import {

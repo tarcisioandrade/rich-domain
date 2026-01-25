@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./theme.provider";
 import { ToggleTheme } from "./components/toggle-theme";
@@ -31,6 +31,15 @@ export default function App() {
     setActiveTab(tab);
     window.history.pushState(null, "", `#${tab}`);
   }
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      const scriptElement = document.createElement("script");
+      scriptElement.src = "https://unpkg.com/react-scan/dist/auto.global.js";
+      scriptElement.setAttribute("crossorigin", "anonymous");
+      document.head.appendChild(scriptElement);
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
