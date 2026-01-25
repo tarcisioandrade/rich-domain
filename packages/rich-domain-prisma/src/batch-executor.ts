@@ -6,13 +6,6 @@ import {
 import { PrismaClientLike, PrismaTransactionClient } from "./unit-of-work";
 import { TableNotFoundError, BatchOperationError } from "./errors";
 
-export type EntityDataMapper<T = any> = (item: {
-  data: T;
-  parentId?: string;
-  parentEntity?: string;
-  relationField?: string;
-}) => Record<string, any>;
-
 /**
  * Configuration for the BatchExecutor.
  */
@@ -21,23 +14,6 @@ export interface BatchExecutorConfig {
    * Schema registry for table/field mapping.
    */
   registry: EntitySchemaRegistry;
-
-  /**
-   * Custom data mappers per entity.
-   * Use this to transform domain objects to persistence format.
-   *
-   * @example
-   * ```typescript
-   * dataMappers: {
-   *   Comment: (item) => ({
-   *     id: item.data.id.value,
-   *     text: item.data.text,
-   *     postId: item.parentId,
-   *   }),
-   * }
-   * ```
-   */
-  dataMappers?: Record<string, EntityDataMapper>;
 }
 
 /**
@@ -56,13 +32,6 @@ export interface BatchExecutorConfig {
  * ```typescript
  * const executor = new PrismaBatchExecutor(prisma, {
  *   registry: schemaRegistry,
- *   dataMappers: {
- *     Comment: (item) => ({
- *       id: item.data.id.value,
- *       text: item.data.text,
- *       postId: item.parentId,
- *     }),
- *   },
  * });
  *
  * await executor.execute(changes);
@@ -256,16 +225,7 @@ export class PrismaBatchExecutor {
       throw new TableNotFoundError(entity, this.getRegisteredTables());
     }
 
-    const dataMapper = this.config.dataMappers?.[entity];
-
     const records = items.map((item) => {
-      if (dataMapper) {
-        return dataMapper({
-          ...item,
-          parentId: item.parentId,
-        });
-      }
-
       return {
         ...this.config.registry.mapEntity(entity, item.data),
         ...this.config.registry.getParentFk(entity, item.parentId ?? ""),

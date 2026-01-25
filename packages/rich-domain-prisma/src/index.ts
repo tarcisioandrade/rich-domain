@@ -15,7 +15,6 @@ export { PrismaToPersistence } from "./prisma.mapper";
 export {
   PrismaBatchExecutor,
   executeBatch,
-  type EntityDataMapper,
   type BatchExecutorConfig,
 } from "./batch-executor";
 export {

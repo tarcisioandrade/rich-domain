@@ -273,18 +273,6 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: user.id.value,
-      dataMappers: {
-        Post: (item) => ({
-          id: item.data.id.value,
-          title: item.data.title,
-          main_content: item.data.content,
-          published: item.data.published,
-          authorId: item.parentId,
-          createdAt: item.data.createdAt,
-          updatedAt: item.data.updatedAt,
-        }),
-      },
     });
 
     await executor.execute(changes);
@@ -358,18 +346,6 @@ import { PrismaBatchExecutor } from "@woltz/rich-domain-prisma";
 const executor = new PrismaBatchExecutor(context, {
   // Registry for table/field mapping
   registry: schemaRegistry,
-
-  // Aggregate root ID (used as default parentId)
-  rootId: user.id.value,
-
-  // Custom data mappers per entity (optional)
-  dataMappers: {
-    Post: (item) => ({
-      id: item.data.id.value,
-      title: item.data.title,
-      authorId: item.parentId,
-    }),
-  },
 });
 
 await executor.execute(changes);
@@ -382,6 +358,8 @@ The executor respects the correct order for referential integrity:
 1. **Deletes** - Leaf → Root (depth DESC)
 2. **Creates** - Root → Leaf (depth ASC)
 3. **Updates** - Any order
+
+The executor uses the registry's `mapEntity()` for creates and `mapFields()` for updates.
 
 ---
 
@@ -493,11 +471,6 @@ class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   protected async onUpdate(order: Order, changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: order.id.value,
-      dataMappers: {
-        OrderItem: (item) => ({ ... }),
-        OrderItemAddon: (item) => ({ ... }),
-      },
     });
 
     await executor.execute(changes);
