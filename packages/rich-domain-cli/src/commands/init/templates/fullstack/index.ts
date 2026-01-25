@@ -914,7 +914,6 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: entity.id.value,
     });
 
     await executor.execute(changes);
@@ -976,7 +975,6 @@ export class PostToPersistenceMapper extends PrismaToPersistence<Post> {
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: entity.id.value,
     });
 
     await executor.execute(changes);

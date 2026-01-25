@@ -622,7 +622,6 @@ export function generateToPersistenceMapper(
     lines.push("  ): Promise<void> {");
     lines.push("    const executor = new PrismaBatchExecutor(this.context, {");
     lines.push("      registry: this.registry,");
-    lines.push("      rootId: entity.id.value,");
     lines.push("    });");
     lines.push("");
     lines.push("    await executor.execute(changes);");

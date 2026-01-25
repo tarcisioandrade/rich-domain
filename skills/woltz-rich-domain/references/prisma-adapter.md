@@ -126,15 +126,6 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: user.id.value,
-      dataMappers: {
-        Post: (item) => ({
-          id: item.data.id.value,
-          title: item.data.title,
-          main_content: item.data.content,
-          authorId: item.parentId,
-        }),
-      },
     });
 
     await executor.execute(changes);
@@ -150,23 +141,6 @@ Executes batch operations from AggregateChanges:
 const executor = new PrismaBatchExecutor(context, {
   // Schema registry for table/field mapping
   registry: schemaRegistry,
-
-  // Aggregate root ID (used as default parentId)
-  rootId: user.id.value,
-
-  // Data mappers for each entity type
-  dataMappers: {
-    Post: (item) => ({
-      id: item.data.id.value,
-      title: item.data.title,
-      authorId: item.parentId,
-    }),
-    Comment: (item) => ({
-      id: item.data.id.value,
-      text: item.data.text,
-      postId: item.parentId,
-    }),
-  },
 });
 
 await executor.execute(changes);
@@ -178,37 +152,7 @@ await executor.execute(changes);
 2. Creates (root → leaf, depth ASC)
 3. Updates (any order)
 
-### Registry Fields vs DataMappers
-
-These are **complementary features** with different responsibilities:
-
-| Aspect      | Registry `fields`  | `dataMappers`          |
-| ----------- | ------------------ | ---------------------- |
-| **Type**    | Declarative config | Custom functions       |
-| **Scope**   | All operations     | CREATE only            |
-| **Usage**   | Automatic          | Opt-in (optional)      |
-| **Purpose** | Map field names    | Complex transformation |
-
-**Registry `fields`** - Simple field name conversions:
-
-```typescript
-fields: { content: "main_content", createdAt: "created_at" }
-```
-
-**`dataMappers`** - Custom transformation when default mapping isn't enough:
-
-```typescript
-dataMappers: {
-  Comment: (item) => ({
-    id: item.data.id.value,
-    text: item.data.text,
-    postId: item.parentId,
-    wordCount: item.data.text.split(" ").length, // Computed
-  }),
-}
-```
-
-If no `dataMapper` is defined, falls back to registry's `mapEntity()`.
+The executor uses the registry's `mapEntity()` for creates and `mapFields()` for updates.
 
 ## Transactions
 
@@ -374,16 +318,6 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
   protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: user.id.value,
-      dataMappers: {
-        Post: (item) => ({
-          id: item.data.id.value,
-          title: item.data.title,
-          main_content: item.data.content,
-          published: item.data.published,
-          authorId: item.parentId,
-        }),
-      },
     });
     await executor.execute(changes);
   }

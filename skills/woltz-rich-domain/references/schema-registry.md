@@ -222,22 +222,6 @@ class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
-      rootId: order.id.value,
-      dataMappers: {
-        OrderItem: (item) => ({
-          id: item.data.id.value,
-          productId: item.data.productId,
-          quantity: item.data.quantity,
-          unit_price: item.data.unitPrice, // Uses field mapping
-          orderId: item.parentId,
-        }),
-        OrderItemAddon: (item) => ({
-          id: item.data.id.value,
-          name: item.data.name,
-          price: item.data.price,
-          orderItemId: item.parentId,
-        }),
-      },
     });
 
     await executor.execute(changes);
