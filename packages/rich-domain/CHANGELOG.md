@@ -4,55 +4,50 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.8.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.3...v1.8.4) (2026-01-25)
 
-
 ### Features
 
-* add "Archived" and "Cancelled" statuses to task management ([cff53e4](https://github.com/tarcisioandrade/rich-domain/commit/cff53e4a6f84f24e9aefc9d2fde1e82230781b06))
-* add Filter and Sorting components with usage examples and documentation ([e9dc323](https://github.com/tarcisioandrade/rich-domain/commit/e9dc323eae25de5db559d354e6f3ddb64e35501c))
-* add isCollection field to QueryFilter and update filtering logic for collections ([bb9e819](https://github.com/tarcisioandrade/rich-domain/commit/bb9e81955941c33b57cd7cb228559288827573c3))
-* add optional render function for empty column state in Kanban components ([35c4b61](https://github.com/tarcisioandrade/rich-domain/commit/35c4b61d2f8d694fad3ddb3a140f7c5bee588f29))
-* add preview script to package.json and enhance Kanban ([ef26dff](https://github.com/tarcisioandrade/rich-domain/commit/ef26dffe857b6d7b9cb67b17f6078e36e4d76846))
-* add react-intersection-observer dependency and custom scrollbar styles for Kanban board ([136297d](https://github.com/tarcisioandrade/rich-domain/commit/136297dd4eb50bede609a892b689050e3ba55f7c))
-* add skills ([5415a4b](https://github.com/tarcisioandrade/rich-domain/commit/5415a4b5097a9316bc7499dc77f08a5919b3dd30))
-* add task model to use in kanban component example ([8a3c4c1](https://github.com/tarcisioandrade/rich-domain/commit/8a3c4c103511d9ef0fb043d1bd3acfbdb2b51222))
-* enhance Kanban card interactivity with clickable option and custom drag behavior ([e6a0bee](https://github.com/tarcisioandrade/rich-domain/commit/e6a0bee249b9a6e838d5929ae677a7f8cd557a2d))
-* enhance Kanban functionality with new "Archived" and "Cancelled" statuses ([950e40e](https://github.com/tarcisioandrade/rich-domain/commit/950e40e92d36b248f8a797fb8f7e6d555ecd0f53))
-
+- add "Archived" and "Cancelled" statuses to task management ([cff53e4](https://github.com/tarcisioandrade/rich-domain/commit/cff53e4a6f84f24e9aefc9d2fde1e82230781b06))
+- add Filter and Sorting components with usage examples and documentation ([e9dc323](https://github.com/tarcisioandrade/rich-domain/commit/e9dc323eae25de5db559d354e6f3ddb64e35501c))
+- add isCollection field to QueryFilter and update filtering logic for collections ([bb9e819](https://github.com/tarcisioandrade/rich-domain/commit/bb9e81955941c33b57cd7cb228559288827573c3))
+- add optional render function for empty column state in Kanban components ([35c4b61](https://github.com/tarcisioandrade/rich-domain/commit/35c4b61d2f8d694fad3ddb3a140f7c5bee588f29))
+- add preview script to package.json and enhance Kanban ([ef26dff](https://github.com/tarcisioandrade/rich-domain/commit/ef26dffe857b6d7b9cb67b17f6078e36e4d76846))
+- add react-intersection-observer dependency and custom scrollbar styles for Kanban board ([136297d](https://github.com/tarcisioandrade/rich-domain/commit/136297dd4eb50bede609a892b689050e3ba55f7c))
+- add skills ([5415a4b](https://github.com/tarcisioandrade/rich-domain/commit/5415a4b5097a9316bc7499dc77f08a5919b3dd30))
+- add task model to use in kanban component example ([8a3c4c1](https://github.com/tarcisioandrade/rich-domain/commit/8a3c4c103511d9ef0fb043d1bd3acfbdb2b51222))
+- enhance Kanban card interactivity with clickable option and custom drag behavior ([e6a0bee](https://github.com/tarcisioandrade/rich-domain/commit/e6a0bee249b9a6e838d5929ae677a7f8cd557a2d))
+- enhance Kanban functionality with new "Archived" and "Cancelled" statuses ([950e40e](https://github.com/tarcisioandrade/rich-domain/commit/950e40e92d36b248f8a797fb8f7e6d555ecd0f53))
 
 ### Bug Fixes
 
-* enable incremental builds in TypeScript config and improve error handling ([47d7972](https://github.com/tarcisioandrade/rich-domain/commit/47d797242840efa38f8c66d73cf7c9c4adfd6896))
-
+- enable incremental builds in TypeScript config and improve error handling ([47d7972](https://github.com/tarcisioandrade/rich-domain/commit/47d797242840efa38f8c66d73cf7c9c4adfd6896))
 
 ### Chores
 
-* **release:** 0.7.4 ([0613084](https://github.com/tarcisioandrade/rich-domain/commit/06130848e0148c55ebc2ba23f3d5d48057c6a2de))
-* update @woltz/rich-domain and related packages to version 1.8.3 and 0.1.3 ([fd2254b](https://github.com/tarcisioandrade/rich-domain/commit/fd2254b80bd6a11ee244c2d64b9a27f64f64eba8))
-* update Node.js engine requirements to >=22.12.0 and remove package-lock.json ([a7e2a63](https://github.com/tarcisioandrade/rich-domain/commit/a7e2a6395c260d606151caae4a731400871d7616))
-
+- **release:** 0.7.4 ([0613084](https://github.com/tarcisioandrade/rich-domain/commit/06130848e0148c55ebc2ba23f3d5d48057c6a2de))
+- update @woltz/rich-domain and related packages to version 1.8.3 and 0.1.3 ([fd2254b](https://github.com/tarcisioandrade/rich-domain/commit/fd2254b80bd6a11ee244c2d64b9a27f64f64eba8))
+- update Node.js engine requirements to >=22.12.0 and remove package-lock.json ([a7e2a63](https://github.com/tarcisioandrade/rich-domain/commit/a7e2a6395c260d606151caae4a731400871d7616))
 
 ### Documentation
 
-* add custom empty state rendering option to DataKanbanCriteria ([f45ec23](https://github.com/tarcisioandrade/rich-domain/commit/f45ec23cf3853b43c641260f52a3ac7c1a05ef32))
-* add data-kanban-criteria integration to React documentation ([8c0db02](https://github.com/tarcisioandrade/rich-domain/commit/8c0db02e7f11730746946512c453beff5bb76b8b))
-* add DataKanbanCriteria documentation ([11b0602](https://github.com/tarcisioandrade/rich-domain/commit/11b060289b2184f767083296deb0eee9582df542))
-* add keywords to React integration documentation for improved searchability ([83cbfe6](https://github.com/tarcisioandrade/rich-domain/commit/83cbfe6ff0e8d1146ccece57cdedb74ccb555ea7))
-* enhance documentation on Registry Fields and DataMappers with usage examples ([b49ef7a](https://github.com/tarcisioandrade/rich-domain/commit/b49ef7ac632fb411f50aeb91d85108e6edffc8c3))
-* update data-kanban-criteria documentation to replace <Info> with <Note> for clarity ([0d16a69](https://github.com/tarcisioandrade/rich-domain/commit/0d16a6922062a2d87640327151d322408d1638e2))
-* update DataKanbanCriteria documentation with new features ([8e26397](https://github.com/tarcisioandrade/rich-domain/commit/8e26397f55f2f66014ec8002751b7b6fa897afce))
-* update Node.js and TypeScript version requirements in docs ([f8c07d3](https://github.com/tarcisioandrade/rich-domain/commit/f8c07d38f198f91cb823c721f342f13e47b8371c))
-
+- add custom empty state rendering option to DataKanbanCriteria ([f45ec23](https://github.com/tarcisioandrade/rich-domain/commit/f45ec23cf3853b43c641260f52a3ac7c1a05ef32))
+- add data-kanban-criteria integration to React documentation ([8c0db02](https://github.com/tarcisioandrade/rich-domain/commit/8c0db02e7f11730746946512c453beff5bb76b8b))
+- add DataKanbanCriteria documentation ([11b0602](https://github.com/tarcisioandrade/rich-domain/commit/11b060289b2184f767083296deb0eee9582df542))
+- add keywords to React integration documentation for improved searchability ([83cbfe6](https://github.com/tarcisioandrade/rich-domain/commit/83cbfe6ff0e8d1146ccece57cdedb74ccb555ea7))
+- enhance documentation on Registry Fields and DataMappers with usage examples ([b49ef7a](https://github.com/tarcisioandrade/rich-domain/commit/b49ef7ac632fb411f50aeb91d85108e6edffc8c3))
+- update data-kanban-criteria documentation to replace <Info> with <Note> for clarity ([0d16a69](https://github.com/tarcisioandrade/rich-domain/commit/0d16a6922062a2d87640327151d322408d1638e2))
+- update DataKanbanCriteria documentation with new features ([8e26397](https://github.com/tarcisioandrade/rich-domain/commit/8e26397f55f2f66014ec8002751b7b6fa897afce))
+- update Node.js and TypeScript version requirements in docs ([f8c07d3](https://github.com/tarcisioandrade/rich-domain/commit/f8c07d38f198f91cb823c721f342f13e47b8371c))
 
 ### Refactoring
 
-* add buildMany method to Mapper and update TypeORMRepository to utilize it ([bb68dfb](https://github.com/tarcisioandrade/rich-domain/commit/bb68dfb230055dfe9798d9449a4aaaa46e8590c2))
-* enhance Mapper class with buildMany method and update documentation ([0f004d9](https://github.com/tarcisioandrade/rich-domain/commit/0f004d9a7d440478e5d4f70ad10b2710d507ad38))
-* improve Kanban card styling and enhance item ([fe2b851](https://github.com/tarcisioandrade/rich-domain/commit/fe2b85109ed07fa408454d0337ff48fbd6e8bbfe))
-* remove all prisma dataMappers and rootId references ([876c545](https://github.com/tarcisioandrade/rich-domain/commit/876c545c82378750d431d3029ab2f800e8811a38))
-* remove dataMappers ([e7d8d3c](https://github.com/tarcisioandrade/rich-domain/commit/e7d8d3c2cb29aabc143f52bacab2a61872ca21e3))
-* remove unused generateFractionalIndex import from use-criteria-kanban hook ([81b3a1d](https://github.com/tarcisioandrade/rich-domain/commit/81b3a1d34175e1ed41dcb7878efdafcd8caa02c0))
-* simplify task movement logic by implementing "Insert Reference" pattern ([baecd4b](https://github.com/tarcisioandrade/rich-domain/commit/baecd4b158dc2f22b3ca91466277178506401d9d))
-* update task model and database schema, removing deprecated migrations ([d89eca1](https://github.com/tarcisioandrade/rich-domain/commit/d89eca135d886945825b0bee23fcdc327e42ac9d))
+- add buildMany method to Mapper and update TypeORMRepository to utilize it ([bb68dfb](https://github.com/tarcisioandrade/rich-domain/commit/bb68dfb230055dfe9798d9449a4aaaa46e8590c2))
+- enhance Mapper class with buildMany method and update documentation ([0f004d9](https://github.com/tarcisioandrade/rich-domain/commit/0f004d9a7d440478e5d4f70ad10b2710d507ad38))
+- improve Kanban card styling and enhance item ([fe2b851](https://github.com/tarcisioandrade/rich-domain/commit/fe2b85109ed07fa408454d0337ff48fbd6e8bbfe))
+- remove all prisma dataMappers and rootId references ([876c545](https://github.com/tarcisioandrade/rich-domain/commit/876c545c82378750d431d3029ab2f800e8811a38))
+- remove dataMappers ([e7d8d3c](https://github.com/tarcisioandrade/rich-domain/commit/e7d8d3c2cb29aabc143f52bacab2a61872ca21e3))
+- remove unused generateFractionalIndex import from use-criteria-kanban hook ([81b3a1d](https://github.com/tarcisioandrade/rich-domain/commit/81b3a1d34175e1ed41dcb7878efdafcd8caa02c0))
+- simplify task movement logic by implementing "Insert Reference" pattern ([baecd4b](https://github.com/tarcisioandrade/rich-domain/commit/baecd4b158dc2f22b3ca91466277178506401d9d))
+- update task model and database schema, removing deprecated migrations ([d89eca1](https://github.com/tarcisioandrade/rich-domain/commit/d89eca135d886945825b0bee23fcdc327e42ac9d))
 
 ### [1.8.3](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.2...v1.8.3) (2026-01-18)
 
