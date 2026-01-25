@@ -41,6 +41,7 @@ function KanbanColumn<T>({
   estimatedCardHeight,
   showItemCount = true,
   activeId,
+  overColumnId,
   onCardClick,
   columnsContentScrollClassName,
   renderEmptyState,
@@ -56,9 +57,12 @@ function KanbanColumn<T>({
   } = columnData;
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: column.id,
   });
+
+  // Column is hovered when dragging and the overColumnId matches this column
+  const isColumnHovered = activeId !== null && overColumnId === column.id;
 
   const itemIds = React.useMemo(
     () => items.map((item) => getItemId(item)),
@@ -88,11 +92,11 @@ function KanbanColumn<T>({
       ref={setNodeRef}
       data-slot="kanban-column"
       data-column-id={column.id}
-      data-over={isOver || undefined}
+      data-over={isColumnHovered || undefined}
       className={cn(
         "flex flex-col rounded-lg border bg-muted/30",
         "transition-colors duration-200",
-        isOver && "bg-primary/5 border-primary/30",
+        isColumnHovered && "bg-primary/5 border-primary/30",
         className
       )}
     >

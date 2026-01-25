@@ -341,10 +341,6 @@ refactor: refactor code
 test: add tests
 ```
 
-## 📝 Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for details on changes in each version.
-
 ## 📜 License
 
 MIT © [Tarcisio Andrade](https://github.com/tarcisioandrade)

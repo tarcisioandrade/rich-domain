@@ -100,6 +100,7 @@ function DataKanbanCriteria<T>({
     sensors,
     activeItem,
     activeId,
+    overColumnId,
     isLoading,
   } = kanban;
 
@@ -153,6 +154,7 @@ function DataKanbanCriteria<T>({
                 estimatedCardHeight={estimatedCardHeight}
                 showItemCount={showItemCount}
                 activeId={activeId}
+                overColumnId={overColumnId}
                 onCardClick={onCardClick}
                 columnsContentScrollClassName={columnsContentScrollClassName}
                 renderEmptyState={

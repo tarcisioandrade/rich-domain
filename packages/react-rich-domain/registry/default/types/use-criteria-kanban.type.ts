@@ -296,6 +296,12 @@ export interface UseCriteriaKanbanReturn<T> {
   activeId: UniqueIdentifier | null;
 
   /**
+   * ID of the column currently being hovered during drag
+   * This is determined by the item or column under the cursor
+   */
+  overColumnId: string | null;
+
+  /**
    * Move a card programmatically
    */
   moveCard: (
@@ -499,6 +505,11 @@ export interface KanbanColumnProps<T> {
    * Currently active (dragging) item ID
    */
   activeId: UniqueIdentifier | null;
+
+  /**
+   * ID of the column currently being hovered during drag
+   */
+  overColumnId: string | null;
 
   /**
    * Custom class name for the column content scroll container

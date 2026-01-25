@@ -16,6 +16,7 @@ import {
   KeyboardSensor,
   type UniqueIdentifier,
   type DragStartEvent,
+  type DragOverEvent,
   type DragEndEvent,
   type PointerSensorOptions,
 } from "@dnd-kit/core";
@@ -204,6 +205,7 @@ export function useCriteriaKanban<T>(
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [activeItem, setActiveItem] = useState<T | null>(null);
+  const [overColumnId, setOverColumnId] = useState<string | null>(null);
 
   const defaultSensors = useSensors(
     useSensor(NoDragPointerSensor, {
@@ -547,9 +549,37 @@ export function useCriteriaKanban<T>(
     [enableDragDrop, findItem]
   );
 
-  const handleDragOver = useCallback(() => {
-    if (!enableDragDrop) return;
-  }, [enableDragDrop]);
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      if (!enableDragDrop) return;
+
+      const { over } = event;
+
+      if (!over) {
+        setOverColumnId(null);
+        return;
+      }
+
+      const overId = String(over.id);
+
+      // Check if over is a column
+      const overColumn = columnDefs.find((c) => c.id === overId);
+      if (overColumn) {
+        setOverColumnId(overColumn.id);
+        return;
+      }
+
+      // Check if over is a card - find its column
+      const cardColumn = findItemColumn(overId);
+      if (cardColumn) {
+        setOverColumnId(cardColumn.id);
+        return;
+      }
+
+      setOverColumnId(null);
+    },
+    [enableDragDrop, columnDefs, findItemColumn]
+  );
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -561,6 +591,7 @@ export function useCriteriaKanban<T>(
         flushSync(() => {
           setActiveId(null);
           setActiveItem(null);
+          setOverColumnId(null);
         });
         return;
       }
@@ -634,6 +665,7 @@ export function useCriteriaKanban<T>(
         flushSync(() => {
           setActiveId(null);
           setActiveItem(null);
+          setOverColumnId(null);
         });
         return;
       }
@@ -642,6 +674,7 @@ export function useCriteriaKanban<T>(
         flushSync(() => {
           setActiveId(null);
           setActiveItem(null);
+          setOverColumnId(null);
         });
         return;
       }
@@ -651,6 +684,7 @@ export function useCriteriaKanban<T>(
         flushSync(() => {
           setActiveId(null);
           setActiveItem(null);
+          setOverColumnId(null);
         });
         return;
       }
@@ -838,6 +872,7 @@ export function useCriteriaKanban<T>(
       flushSync(() => {
         setActiveId(null);
         setActiveItem(null);
+        setOverColumnId(null);
       });
 
       moveMutation.mutate({
@@ -866,6 +901,7 @@ export function useCriteriaKanban<T>(
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
     setActiveItem(null);
+    setOverColumnId(null);
   }, []);
 
   const dndContextProps: KanbanDndContextProps = {
@@ -905,6 +941,7 @@ export function useCriteriaKanban<T>(
     sensors,
     activeItem,
     activeId,
+    overColumnId,
     moveCard,
     moveMutation: moveMutation as unknown as UseMutationResult<
       void,
