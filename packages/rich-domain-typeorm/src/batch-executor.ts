@@ -1,6 +1,6 @@
 import { EntityManager, ObjectLiteral } from "typeorm";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
-import { EntityClassNotFoundError, BatchOperationError } from "./errors";
+import { EntityClassNotFoundError, BatchOperationError, TypeORMAdapterError } from "./errors";
 
 /**
  * Configuration for the TypeORM Batch Executor.
@@ -61,7 +61,7 @@ export interface TypeORMBatchExecutorConfig {
  * ```
  */
 export class TypeORMBatchExecutor {
-  constructor(private readonly config: TypeORMBatchExecutorConfig) {}
+  constructor(private readonly config: TypeORMBatchExecutorConfig) { }
 
   /**
    * Execute all batch operations.
@@ -206,10 +206,7 @@ export class TypeORMBatchExecutor {
         relations: { [relationField]: true } as any,
       });
       if (!parent) {
-        console.warn(
-          `[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for disconnect`
-        );
-        return;
+        throw new TypeORMAdapterError(`[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for disconnect`);
       }
       parent[relationField] = parent[relationField].filter(
         (item: any) => !idsToRemove.includes(this.extractId(item) ?? "")
@@ -414,10 +411,7 @@ export class TypeORMBatchExecutor {
         relations: { [relationField]: true } as any,
       });
       if (!parent) {
-        console.warn(
-          `[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for connect`
-        );
-        return;
+        throw new TypeORMAdapterError(`[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for connect`);
       }
       const targets = await em.findByIds(TargetClass, entityIds);
       if (!parent[relationField]) {
