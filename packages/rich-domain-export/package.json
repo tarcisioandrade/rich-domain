@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-export",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Multi-format export utilities for Rich Domain repositories (CSV, JSON, and more)",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",
