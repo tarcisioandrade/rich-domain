@@ -113,6 +113,12 @@ interface QueryFilter {
   // Field type determines available operators
   type: "string" | "number" | "date" | "boolean";
 
+  // Optional: mark if field path traverses a collection (1:N or N:N relation)
+  isCollection?: boolean;
+
+  // Optional: mark if field can be null
+  isNullable?: boolean;
+
   // Optional: predefined options for select fields
   options?: Array<{
     value: string;
@@ -190,4 +196,45 @@ const userFields: QueryFilter[] = [
     ],
   },
 ];
+```
+
+### Collection Fields
+
+When filtering through a 1:N or N:N relation (e.g., User has many Posts), use `isCollection: true`:
+
+```tsx
+const userFields: QueryFilter[] = [
+  {
+    field: "name",
+    fieldLabel: "Name",
+    type: "string",
+  },
+  {
+    // Filtering through a collection requires isCollection: true
+    field: "posts.title",
+    fieldLabel: "Post Title",
+    type: "string",
+    isCollection: true, // ✅ Required for collections
+  },
+  {
+    field: "posts.status",
+    fieldLabel: "Post Status",
+    type: "string",
+    isCollection: true,
+    options: [
+      { value: "draft", label: "Draft" },
+      { value: "published", label: "Published" },
+    ],
+  },
+];
+```
+
+When `isCollection: true`, the filter will automatically use `{ quantifier: "some" }` to generate the correct Prisma query:
+
+```typescript
+// Without isCollection (incorrect for collections)
+{ posts: { title: { contains: "hello" } } }  // ❌ Error
+
+// With isCollection: true (correct)
+{ posts: { some: { title: { contains: "hello" } } } }  // ✅ Works
 ```

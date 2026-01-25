@@ -329,9 +329,8 @@ export abstract class PrismaRepository<
     for (let i = parts.length - 1; i >= 0; i--) {
       const parent = parts[i];
 
-      if (this.looksLikeCollection(parent)) {
-        const q = quantifier ?? "some";
-        node = { [parent]: { [q]: node } };
+      if (quantifier) {
+        node = { [parent]: { [quantifier]: node } };
       } else {
         node = { [parent]: node };
       }
@@ -340,7 +339,11 @@ export abstract class PrismaRepository<
     return node;
   }
 
-  protected buildNestedContains(path: string, value: string): any {
+  protected buildNestedContains(
+    path: string,
+    value: string,
+    quantifier?: CriteriaOptions["quantifier"]
+  ): any {
     const parts = path.split(".");
     const lastPart = parts.pop()!;
 
@@ -351,18 +354,14 @@ export abstract class PrismaRepository<
     for (let i = parts.length - 1; i >= 0; i--) {
       const parent = parts[i];
 
-      if (this.looksLikeCollection(parent)) {
-        node = { [parent]: { some: node } };
+      if (quantifier) {
+        node = { [parent]: { [quantifier]: node } };
       } else {
         node = { [parent]: node };
       }
     }
 
     return node;
-  }
-
-  protected looksLikeCollection(field: string): boolean {
-    return field.endsWith("s");
   }
 
   protected mergeDeep(target: any, source: any): void {

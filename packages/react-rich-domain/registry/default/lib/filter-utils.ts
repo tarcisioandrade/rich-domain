@@ -23,6 +23,17 @@ export type QueryFilter = {
   field: string;
   fieldLabel: string;
   isNullable?: boolean;
+  /**
+   * Indicates that this field path traverses a collection (1:N or N:N relation).
+   * When true, the filter will use `{ quantifier: "some" }` to properly query nested arrays.
+   *
+   * @example
+   * ```typescript
+   * // For a User with posts collection:
+   * { field: "posts.title", type: "string", fieldLabel: "Post Title", isCollection: true }
+   * ```
+   */
+  isCollection?: boolean;
   multiSelect?: boolean;
   options?: {
     label: string;
@@ -113,7 +124,7 @@ export function getOperatorsByType(type: FilterType): FilterOperator[] {
 export function getDefaultOperator(type: FilterType): FilterOperator {
   switch (type) {
     case "string":
-      return "contains";
+      return "equals";
     case "number":
       return "equals";
     case "date":

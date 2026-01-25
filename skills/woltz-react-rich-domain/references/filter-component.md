@@ -73,6 +73,7 @@ interface QueryFilter {
   }>;
   multiSelect?: boolean; // Allow multiple values for "in" operator
   isNullable?: boolean; // Allow isNull/isNotNull operators
+  isCollection?: boolean; // Mark if field path traverses a collection (1:N or N:N)
 }
 ```
 
@@ -140,6 +141,37 @@ const userFields: QueryFilter[] = [
   },
 ];
 ```
+
+---
+
+## Collection Fields
+
+When filtering through a 1:N or N:N relation, use `isCollection: true`:
+
+```typescript
+const userFields: QueryFilter[] = [
+  { field: "name", fieldLabel: "Name", type: "string" },
+  // Filtering through User's posts collection
+  {
+    field: "posts.title",
+    fieldLabel: "Post Title",
+    type: "string",
+    isCollection: true, // Required for collections
+  },
+  {
+    field: "posts.status",
+    fieldLabel: "Post Status",
+    type: "string",
+    isCollection: true,
+    options: [
+      { value: "draft", label: "Draft" },
+      { value: "published", label: "Published" },
+    ],
+  },
+];
+```
+
+This ensures the correct Prisma query is generated with `{ some: ... }` quantifier.
 
 ---
 

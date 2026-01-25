@@ -85,7 +85,8 @@ export function useCriteria<T = unknown>(
         criteria.where(
           f.field as FieldPath<T>,
           f.operator as OperatorsForType<PathValue<T, FieldPath<T>>>,
-          f.value as FilterValueFor<PathValue<T, FieldPath<T>>>
+          f.value as FilterValueFor<PathValue<T, FieldPath<T>>>,
+          f.options
         )
       );
       parts.orders.forEach((o) =>

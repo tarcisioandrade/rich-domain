@@ -23,6 +23,11 @@ export type QueryFilter = {
   field: string;
   fieldLabel: string;
   isNullable?: boolean;
+  /**
+   * Indicates that this field path traverses a collection (1:N or N:N relation).
+   * When true, the filter will use `{ quantifier: "some" }` to properly query nested arrays.
+   */
+  isCollection?: boolean;
   multiSelect?: boolean;
   options?: {
     label: string;

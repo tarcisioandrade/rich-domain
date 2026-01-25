@@ -114,6 +114,9 @@ export function Filter({
       field: selectedFieldForAdd.field as FieldPath<unknown>,
       operator: tempOperator as OperatorsForType<never>,
       value: tempValue as FilterValueFor<never>,
+      options: selectedFieldForAdd.isCollection
+        ? { quantifier: "some" }
+        : undefined,
     });
 
     setAddFilterStep(null);
@@ -170,6 +173,7 @@ export function Filter({
       field: newField.field as FieldPath<unknown>,
       operator: operator as OperatorsForType<never>,
       value: value as FilterValueFor<never>,
+      options: newField.isCollection ? { quantifier: "some" } : undefined,
       replaceIndex: index,
     });
   };
@@ -202,6 +206,7 @@ export function Filter({
       field: newValue.field as FieldPath<unknown>,
       operator: operator as OperatorsForType<never>,
       value: value as FilterValueFor<never>,
+      options: newField.isCollection ? { quantifier: "some" } : undefined,
       replaceIndex: index,
     });
   };
