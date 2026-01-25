@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.7.5](https://github.com/tarcisioandrade/rich-domain/compare/v0.4.2...v0.7.5) (2026-01-25)
+
 ### [0.7.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.3...v0.7.4) (2026-01-18)
 
 ### [0.7.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.1...v0.7.4) (2026-01-09)
