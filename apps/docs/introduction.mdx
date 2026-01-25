@@ -23,159 +23,22 @@ keywords: ["ddd","domain-driven-design","entity","aggregate","value-object","val
   </Card>
 </CardGroup>
 
-## Core Concepts
+## Skills
 
-### Entities & Aggregates
+Woltz/rich-domain provides skills that can be added to your AI coding assistant to help it understand rich-domain best practices and implementation patterns.
 
-Entities have identity and lifecycle. Aggregates are consistency boundaries that manage related entities.
-
-```typescript
-class Order extends Aggregate<OrderProps> {
-  addItem(product: Product, quantity: number) {
-    this.props.items.push(new OrderItem({ product, quantity }));
-  }
-
-  get total() {
-    return this.props.items.reduce((sum, item) => sum + item.subtotal, 0);
-  }
-}
+```shellscript
+npx skills add tarcisioandrade/rich-domain 
 ```
 
-### Value Objects
-
-Immutable wrappers for primitive values with domain behavior.
-
-```typescript
-class Email extends ValueObject<string> {
-  getDomain(): string {
-    return this.value.split("@")[1];
-  }
-
-  isBusinessEmail(): boolean {
-    const freeProviders = ["gmail.com", "yahoo.com"];
-    return !freeProviders.includes(this.getDomain());
-  }
-}
-
-const email = new Email("john@company.com");
-console.log(email.isBusinessEmail()); // true
-```
-
-### Change Tracking
-
-Automatically track all changes for efficient persistence.
-
-```typescript
-const order = new Order({ ... });
-
-order.addItem(product, 2);
-order.items[0].updateQuantity(5);
-
-const changes = order.getChanges();
-// { creates: [OrderItem], updates: [OrderItem], deletes: [] }
-```
-
-### Repository & Criteria
-
-Type-safe queries with a fluent API.
-
-```typescript
-const result = await orderRepo.find(
-  Criteria.create<Order>()
-    .whereEquals("status", "pending")
-    .where("total", "greaterThan", 100)
-    .orderByDesc("createdAt")
-    .paginate(1, 20)
-);
-```
-
-## Requirements
-
-- Node.js \>= 22.12
-- TypeScript \>= 5.4
-
-## Installation
-
-<CodeGroup>
-
-```bash npm
-npm install @woltz/rich-domain
-```
-
-
-```bash pnpm
-pnpm add @woltz/rich-domain
-```
-
-
-```bash yarn
-yarn add @woltz/rich-domain
-```
-
-</CodeGroup>
-
-## Quick Example
-
-```typescript
-import { z } from "zod";
-import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
-import { UserCreatedEvent } from "./events/user-create.event";
-
-// Define schema
-// Work with any validation library that implement standart schema
-const userSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(2),
-  email: z.string().email(),
-  status: z.enum(["active", "inactive"]),
-});
-
-type UserProps = z.infer<typeof userSchema>;
-
-// Create aggregate
-class User extends Aggregate<UserProps> {
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-  };
-
-  protected static hooks: EntityHooks<UserProps, User> = {
-    onCreate: (entity) => {
-      if (entity.isNew()) {
-        entity.addDomainEvent(new UserCreatedEvent(entity.id.value));
-      }
-    },
-  };
-
-  get name() {
-    return this.props.name;
-  }
-  get email() {
-    return this.props.email;
-  }
-
-  activate() {
-    this.props.status = "active";
-  }
-  deactivate() {
-    this.props.status = "inactive";
-  }
-}
-
-// Use it
-const user = new User({
-  name: "John Doe",
-  email: "john@example.com",
-  status: "active",
-});
-
-console.log(user.isNew()); // true
-console.log(user.toJSON()); // { id: "...", name: "John Doe", ... }
-```
-
-## Next Steps
-
-<CardGroup cols={1}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Build your first aggregate in 5 minutes
+<CardGroup cols={2}>
+  <Card title="Quickstart without ORM" icon="rocket" href="/quickstart/default">
+    Build your first aggregate from scratch without relying on an ORM.
+  </Card>
+  <Card title="Quickstart with Prisma" icon="rocket" href="/quickstart/q-prisma">
+    Build your first aggregate using we Prisma Adapter.
+  </Card>
+  <Card title="Quickstart with TypeORM" icon="rocket" href="/quickstart/q-typeorm">
+    Build your first aggregate using we TypeORM Adapter.
   </Card>
 </CardGroup>
