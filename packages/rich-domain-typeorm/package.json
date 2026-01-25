@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-typeorm",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "TypeORM integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",
