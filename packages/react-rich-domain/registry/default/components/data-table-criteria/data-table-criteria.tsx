@@ -79,9 +79,9 @@ export function DataTableCriteria<TData>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                     </TableHead>
                   );
                 })}
@@ -138,7 +138,9 @@ export function DataTableCriteria<TData>({
           </TableBody>
         </Table>
       </div>
-      {table.data && <DataTablePagination table={table} meta={table.data.meta} />}
+      {table.data && (
+        <DataTablePagination table={table} meta={table.data.meta} />
+      )}
     </div>
   );
 }

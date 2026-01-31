@@ -70,20 +70,19 @@ const columns: ColumnDef<TestUser>[] = [
 ];
 
 export function UserListCriteria() {
-  const { table, criteria } =
-    useCriteriaTable<TestUser>({
-      filterFields,
-      columns,
-      queryKey: ["users"],
-      queryFn: getUsers,
-      searchOptions: {
-        searchPlaceholder: "Search users...",
-      },
-      criteriaOptions: {
-        pageSize: 10,
-        syncWithUrl: true,
-      },
-    });
+  const { table, criteria } = useCriteriaTable<TestUser>({
+    filterFields,
+    columns,
+    queryKey: ["users"],
+    queryFn: getUsers,
+    searchOptions: {
+      searchPlaceholder: "Search users...",
+    },
+    criteriaOptions: {
+      pageSize: 10,
+      syncWithUrl: true,
+    },
+  });
 
-  return <DataTableCriteria table={table} criteria={criteria} />
+  return <DataTableCriteria table={table} criteria={criteria} />;
 }

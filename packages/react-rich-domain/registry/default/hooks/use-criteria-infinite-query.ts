@@ -1,11 +1,15 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import type {
-  Criteria, PaginatedJsonResult,
-  PaginationMeta
+  Criteria,
+  PaginatedJsonResult,
+  PaginationMeta,
 } from "@woltz/rich-domain";
 import { useCriteria } from "./use-criteria";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "../types/use-criteria.type";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "../types/use-criteria.type";
 
 /**
  * Options for useCriteriaInfiniteQuery hook
@@ -83,7 +87,10 @@ export function useCriteriaInfiniteQuery<TData, TError = Error>(
     queryKey: [...baseKey, criteriaState.criteria.toJSON()],
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       const pageCriteria = criteriaState.criteria.clone();
-      pageCriteria.paginate(pageParam, criteriaState.criteria.getPagination().limit);
+      pageCriteria.paginate(
+        pageParam,
+        criteriaState.criteria.getPagination().limit
+      );
       const result = await fetcher(pageCriteria);
       return result;
     },

@@ -1,11 +1,15 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type {
-  Criteria, PaginatedJsonResult,
-  PaginationMeta
+  Criteria,
+  PaginatedJsonResult,
+  PaginationMeta,
 } from "@woltz/rich-domain";
 import { useCriteria } from "./use-criteria";
-import type { UseCriteriaOptions, UseCriteriaReturn } from "../types/use-criteria.type";
+import type {
+  UseCriteriaOptions,
+  UseCriteriaReturn,
+} from "../types/use-criteria.type";
 
 /**
  * Expected response from the fetcher function (JSON format from API)

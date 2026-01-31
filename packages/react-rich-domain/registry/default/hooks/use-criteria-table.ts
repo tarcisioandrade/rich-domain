@@ -159,7 +159,7 @@ export function useCriteriaTable<T>(
     error: query.error,
     refetch: query.refetch,
     queryFilter: filterFields,
-    searchProps,  
+    searchProps,
     data: query.data,
   });
 

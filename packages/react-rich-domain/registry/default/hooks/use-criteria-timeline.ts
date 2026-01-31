@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useCriteriaInfiniteQuery } from "./use-criteria-infinite-query";
 import type {
-  Criteria, FieldPath, PaginatedJsonResult
+  Criteria,
+  FieldPath,
+  PaginatedJsonResult,
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaTimelineOptions,
