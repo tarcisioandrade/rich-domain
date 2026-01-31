@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useCriteriaInfiniteQuery } from "./use-criteria-infinite-query";
 import type {
-  Criteria,
-  CriteriaOptions,
-  FieldPath,
-  FilterValueFor,
-  OperatorsForType,
-  PaginatedJsonResult,
-  PathValue,
+  Criteria, FieldPath, PaginatedJsonResult
 } from "@woltz/rich-domain";
 import type {
   UseCriteriaTimelineOptions,
@@ -169,13 +163,14 @@ export function useCriteriaTimeline<T>(
     ...queryOptions,
     initialSort: [{ field: dateField, direction: sortDirection }],
   });
+  const { criteria } = queryResult;
 
   useEffect(() => {
     if (
-      queryResult.sorting.length === 0 ||
-      queryResult.sorting[0]?.field !== dateField
+      criteria.sorting.length === 0 ||
+      criteria.sorting[0]?.field !== dateField
     ) {
-      queryResult.addSort(dateField, sortDirection);
+      criteria.addSort(dateField, sortDirection);
     }
     // Do not have sorting button so we don't need to re-add the sort when the sorting changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,7 +181,7 @@ export function useCriteriaTimeline<T>(
   }, [queryResult.data, dateField, groupBy]);
 
   const [debouncedSetSearch] = useDebounceCallback((value: string) => {
-    queryResult.setSearch(value);
+    criteria.setSearch(value);
   }, searchDebounceMs);
 
   const handleSearchChange = useCallback(
@@ -196,39 +191,13 @@ export function useCriteriaTimeline<T>(
     [debouncedSetSearch]
   );
 
-  const filterProps = useMemo(
-    () => ({
-      fields: filterFields,
-      filters: queryResult.filters,
-      addOrReplaceByIndex: (props: {
-        field: FieldPath<T>;
-        operator: OperatorsForType<PathValue<T, FieldPath<T>>>;
-        value?: FilterValueFor<PathValue<T, FieldPath<T>>>;
-        options?: CriteriaOptions;
-        replaceIndex?: number;
-      }) => {
-        const { field, operator, value, replaceIndex } = props;
-        if (
-          replaceIndex !== undefined &&
-          replaceIndex < queryResult.filters.length
-        ) {
-          queryResult.removeFilter(replaceIndex);
-        }
-        queryResult.addFilter(field, operator, value);
-      },
-      removeFilter: queryResult.removeFilter,
-      clearFilters: queryResult.clearFilters,
-    }),
-    [filterFields, queryResult]
-  );
-
   const searchProps = useMemo(
     () => ({
-      searchValue: queryResult.criteria.getSearch() || "",
+      searchValue: criteria.search || "",
       onSearchChange: handleSearchChange,
       showSearch: true,
     }),
-    [queryResult.criteria, handleSearchChange]
+    [criteria.search, handleSearchChange]
   );
 
   const loadMore = useCallback(() => {
@@ -245,7 +214,10 @@ export function useCriteriaTimeline<T>(
     groupedData,
     dateField,
     groupBy,
-    filterProps,
+    filterProps: {
+      queryFilter: filterFields,
+      criteria,
+    },
     searchProps,
     loadMore,
     hasMore,

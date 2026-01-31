@@ -160,11 +160,16 @@ export interface KanbanColumnData<T> {
 /**
  * Configuration options for useCriteriaKanban hook
  */
-export interface UseCriteriaKanbanOptions<T> extends UseCriteriaOptions<T> {
+export interface UseCriteriaKanbanOptions<T> {
   /**
    * Column definitions for the Kanban board
    */
   columns: KanbanColumnDefinition<T>[];
+
+  /**
+   * Options for useCriteria hook
+   */
+  criteriaOptions?: UseCriteriaOptions<T>;
 
   /**
    * Function to extract unique ID from an item
@@ -263,7 +268,7 @@ export interface UseCriteriaKanbanReturn<T> {
   /**
    * All criteria state and methods (for global filters)
    */
-  criteriaState: UseCriteriaReturn<T>;
+  criteria: UseCriteriaReturn<T>;
 
   /**
    * Props for filter integration

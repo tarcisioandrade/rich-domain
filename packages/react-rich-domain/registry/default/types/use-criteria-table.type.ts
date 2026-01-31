@@ -11,10 +11,7 @@ import type {
 } from "./use-criteria.type";
 import type { QueryFilter } from "../lib/filter-utils";
 import type { QueryKey, UseQueryResult } from "@tanstack/react-query";
-import type {
-  FilterIntegrationProps,
-  SearchIntegrationProps,
-} from "@/components/data-view-criteria/data-view-filter/data-view-filter";
+import type { SearchIntegrationProps } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 
 /**
  * Configuration options for useCriteriaTable hook
@@ -59,13 +56,28 @@ export interface UseCriteriaTableOptions<T> {
    * Enable multi-sort
    */
   enableMultiSort?: boolean;
+  searchOptions?: {
+    /**
+     * Debounce delay for search input in milliseconds
+     * @default 300
+     */
+    searchDebounceMs?: number;
 
-  /**
-   * Debounce delay for search input in milliseconds
-   * @default 300
-   */
-  searchDebounceMs?: number;
+    /**
+     * Search placeholder
+     */
+    searchPlaceholder?: string;
+  };
 }
+
+export type CriteriaTable<T> = Table<T> & {
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+  queryFilter: QueryFilter[];
+  searchProps: SearchIntegrationProps;
+  data?: PaginatedJsonResult<T>;
+};
 
 /**
  * Return type for useCriteriaTable hook
@@ -74,7 +86,7 @@ export interface UseCriteriaTableReturn<T> {
   /**
    * TanStack Table instance
    */
-  table: Table<T>;
+  table: CriteriaTable<T>;
 
   /**
    * All criteria state and methods
@@ -85,31 +97,6 @@ export interface UseCriteriaTableReturn<T> {
    * React Query result with paginated data
    */
   query: UseQueryResult<PaginatedJsonResult<T>, Error>;
-
-  /**
-   * Paginated result data (shortcut for query.data)
-   */
-  data?: PaginatedJsonResult<T>;
-
-  /**
-   * Loading state (shortcut for query.isLoading)
-   */
-  isLoading: boolean;
-
-  /**
-   * Error state (shortcut for query.error)
-   */
-  error: Error | null;
-
-  /**
-   * Props to spread into Filter component
-   */
-  filterProps: FilterIntegrationProps;
-
-  /**
-   * Props to spread into DataTableCriteria for search
-   */
-  searchProps: SearchIntegrationProps;
 
   /**
    * Current sorting state

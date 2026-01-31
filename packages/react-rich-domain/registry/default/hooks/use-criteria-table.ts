@@ -14,10 +14,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useCriteria } from "./use-criteria";
 import { useDebounceCallback } from "./use-debounce-callback";
 import type {
+  CriteriaTable,
   UseCriteriaTableOptions,
   UseCriteriaTableReturn,
 } from "../types/use-criteria-table.type";
 import type { FieldPath, OrderDirection } from "@woltz/rich-domain";
+import type { SearchIntegrationProps } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 
 export function useCriteriaTable<T>(
   options: UseCriteriaTableOptions<T>
@@ -31,10 +33,11 @@ export function useCriteriaTable<T>(
     tableOptions = {},
     enableRowSelection = false,
     enableMultiSort = false,
-    searchDebounceMs = 300,
+    searchOptions,
   } = options;
-
   const criteriaState = useCriteria<T>(criteriaOptions);
+  const { searchDebounceMs = 300, searchPlaceholder = "Search..." } =
+    searchOptions ?? {};
 
   const [debouncedSetSearch] = useDebounceCallback((value: string) => {
     criteriaState.setSearch(value);
@@ -141,41 +144,29 @@ export function useCriteriaTable<T>(
     ...tableOptions,
   });
 
-  const filterProps = useMemo(
-    () => ({
-      fields: filterFields,
-      filters: criteriaState.filters,
-      addOrReplaceByIndex: criteriaState.addOrReplaceByIndex,
-      removeFilter: criteriaState.removeFilter,
-      clearFilters: criteriaState.clearFilters,
-    }),
-    [
-      filterFields,
-      criteriaState.filters,
-      criteriaState.addOrReplaceByIndex,
-      criteriaState.removeFilter,
-      criteriaState.clearFilters,
-    ]
-  );
-
-  const searchProps = useMemo(
+  const searchProps: SearchIntegrationProps = useMemo(
     () => ({
       searchValue: criteriaState.search || "",
       onSearchChange: handleSearchChange,
       showSearch: true,
+      searchPlaceholder,
     }),
-    [criteriaState.search, handleSearchChange]
+    [criteriaState.search, handleSearchChange, searchPlaceholder]
   );
 
-  return {
-    table,
-    criteria: criteriaState,
-    query,
-    data: query.data,
+  const newTable: CriteriaTable<T> = Object.assign(table, {
     isLoading: query.isLoading,
     error: query.error,
-    filterProps,
-    searchProps,
+    refetch: query.refetch,
+    queryFilter: filterFields,
+    searchProps,  
+    data: query.data,
+  });
+
+  return {
+    table: newTable,
+    criteria: criteriaState,
+    query,
     sorting,
     setSorting: handleSortingChange,
   };

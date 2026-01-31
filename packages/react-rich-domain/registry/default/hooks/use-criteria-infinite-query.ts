@@ -1,20 +1,11 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import type {
-  Criteria,
-  FieldPath,
-  Filter,
-  FilterValueFor,
-  OperatorsForType,
-  Order,
-  OrderDirection,
-  Pagination,
-  PathValue,
-  PaginatedJsonResult,
-  PaginationMeta,
+  Criteria, PaginatedJsonResult,
+  PaginationMeta
 } from "@woltz/rich-domain";
 import { useCriteria } from "./use-criteria";
-import type { UseCriteriaOptions } from "../types/use-criteria.type";
+import type { UseCriteriaOptions, UseCriteriaReturn } from "../types/use-criteria.type";
 
 /**
  * Options for useCriteriaInfiniteQuery hook
@@ -51,29 +42,7 @@ export interface UseCriteriaInfiniteQueryReturn<TData, TError = Error> {
   hasNextPage: boolean;
   fetchNextPage: () => void;
   refetch: () => Promise<void>;
-  criteria: Criteria<TData>;
-  filters: Filter<string, unknown>[];
-  sorting: Order[];
-  pagination: Pagination;
-  addFilter: <K extends FieldPath<TData>>(
-    field: K,
-    operator: OperatorsForType<PathValue<TData, K>>,
-    value?: FilterValueFor<PathValue<TData, K>>
-  ) => void;
-  removeFilter: (index: number) => void;
-  removeFilterByField: (field: FieldPath<TData>) => void;
-  clearFilters: () => void;
-  addSort: (field: FieldPath<TData>, direction: OrderDirection) => void;
-  removeSort: (index: number) => void;
-  removeSortByField: (field: FieldPath<TData>) => void;
-  clearSort: () => void;
-  setPage: (page: number) => void;
-  setPageSize: (size: number) => void;
-  nextPage: () => void;
-  prevPage: () => void;
-  setSearch: (value: string) => void;
-  clearSearch: () => void;
-  reset: () => void;
+  criteria: UseCriteriaReturn<TData>;
 }
 
 /**
@@ -107,16 +76,14 @@ export function useCriteriaInfiniteQuery<TData, TError = Error>(
   fetcher: (criteria: Criteria<TData>) => Promise<PaginatedJsonResult<TData>>,
   options?: UseCriteriaInfiniteQueryOptions<TData, TError>
 ): UseCriteriaInfiniteQueryReturn<TData, TError> {
-  const criteriaHook = useCriteria<TData>(options);
-  const { criteria } = criteriaHook;
-
+  const criteriaState = useCriteria<TData>(options);
   const baseKey = Array.isArray(queryKey) ? queryKey : [queryKey];
 
   const query = useInfiniteQuery({
-    queryKey: [...baseKey, criteria.toJSON()],
+    queryKey: [...baseKey, criteriaState.criteria.toJSON()],
     queryFn: async ({ pageParam }: { pageParam: number }) => {
-      const pageCriteria = criteria.clone();
-      pageCriteria.paginate(pageParam, criteria.getPagination().limit);
+      const pageCriteria = criteriaState.criteria.clone();
+      pageCriteria.paginate(pageParam, criteriaState.criteria.getPagination().limit);
       const result = await fetcher(pageCriteria);
       return result;
     },
@@ -183,6 +150,6 @@ export function useCriteriaInfiniteQuery<TData, TError = Error>(
     hasNextPage: query.hasNextPage ?? false,
     fetchNextPage,
     refetch,
-    ...criteriaHook,
+    criteria: criteriaState,
   };
 }

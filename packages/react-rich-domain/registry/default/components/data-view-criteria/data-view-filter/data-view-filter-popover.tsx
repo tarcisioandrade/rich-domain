@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/popover";
 import {
   type FieldPath,
-  type Filter,
   type FilterOperator,
   type FilterValueFor,
   type OperatorsForType,
@@ -43,10 +42,7 @@ import {
 
 interface FilterProps {
   fields: QueryFilter[];
-  filters: Filter<string, unknown>[];
-  addOrReplaceByIndex: UseCriteriaReturn<unknown>["addOrReplaceByIndex"];
-  removeFilter: (index: number) => void;
-  clearFilters: () => void;
+  criteria: UseCriteriaReturn<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 const TYPE_ICONS: Record<FilterType, React.ReactNode> = {
@@ -56,12 +52,7 @@ const TYPE_ICONS: Record<FilterType, React.ReactNode> = {
   boolean: <ToggleLeft className="h-4 w-4" />,
 };
 
-export function DataViewFilterPopover({
-  fields,
-  filters,
-  addOrReplaceByIndex,
-  clearFilters,
-}: FilterProps) {
+export function DataViewFilterPopover({ fields, criteria }: FilterProps) {
   const [addFilterStep, setAddFilterStep] = React.useState<
     null | "field" | "value"
   >(null);
@@ -72,7 +63,7 @@ export function DataViewFilterPopover({
     React.useState<FilterValue["operator"]>("equals");
   const [tempValue, setTempValue] = React.useState<FilterValue["value"]>(null);
 
-  const usedFields = filters.map((filter) => filter.field);
+  const usedFields = criteria.filters.map((filter) => filter.field);
   const remainingFields = fields.filter(
     (field) => !usedFields.includes(field.field)
   );
@@ -101,7 +92,6 @@ export function DataViewFilterPopover({
           : ["", ""]
       : defineDefaultFilterValue(field.type, defaultOp);
 
-    console.log("defaultValue", defaultValue);
     setTempValue(defaultValue);
     setSearch("");
     setAddFilterStep("value");
@@ -138,7 +128,7 @@ export function DataViewFilterPopover({
   const handleConfirmAddFilter = () => {
     if (!selectedFieldForAdd || tempValue === null) return;
 
-    addOrReplaceByIndex({
+    criteria.addOrReplaceByIndex({
       field: selectedFieldForAdd.field as FieldPath<unknown>,
       operator: tempOperator as OperatorsForType<never>,
       value: tempValue as FilterValueFor<never>,
@@ -298,7 +288,7 @@ export function DataViewFilterPopover({
         variant="outline"
         size="sm"
         className="h-8 gap-1.5"
-        onClick={clearFilters}
+        onClick={criteria.clearFilters}
       >
         <X className="h-4 w-4" />
         Clear Filters

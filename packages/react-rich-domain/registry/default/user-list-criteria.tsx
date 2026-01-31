@@ -5,7 +5,6 @@ import { DataTableCriteria } from "./components/data-table-criteria/data-table-c
 import type { QueryFilter } from "./lib/filter-utils";
 import { cn } from "./lib/utils";
 import { DataTableColumnHeader } from "./components/data-table-criteria/data-table-column-header";
-import { Button } from "./components/ui/button";
 
 const filterFields: QueryFilter[] = [
   {
@@ -71,34 +70,20 @@ const columns: ColumnDef<TestUser>[] = [
 ];
 
 export function UserListCriteria() {
-  const { table, data, isLoading, filterProps, searchProps } =
+  const { table, criteria } =
     useCriteriaTable<TestUser>({
       filterFields,
       columns,
       queryKey: ["users"],
       queryFn: getUsers,
+      searchOptions: {
+        searchPlaceholder: "Search users...",
+      },
       criteriaOptions: {
         pageSize: 10,
         syncWithUrl: true,
       },
     });
 
-  return (
-    <div className="space-y-4">
-      <DataTableCriteria
-        table={table}
-        data={data}
-        isLoading={isLoading}
-        actionBar={
-          <Button size="sm" className="h-8">
-            Add User
-          </Button>
-        }
-        emptyMessage="No users found."
-        searchPlaceholder="Search users..."
-        filterProps={filterProps}
-        {...searchProps}
-      />
-    </div>
-  );
+  return <DataTableCriteria table={table} criteria={criteria} />
 }

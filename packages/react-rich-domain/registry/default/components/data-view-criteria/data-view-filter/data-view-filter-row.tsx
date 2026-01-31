@@ -11,7 +11,6 @@ import {
 } from "@/lib/filter-utils";
 import {
   type FieldPath,
-  type Filter,
   type FilterValueFor,
   type OperatorsForType,
 } from "@woltz/rich-domain";
@@ -20,25 +19,17 @@ import { useDebounceCallback } from "@/hooks/use-debounce-callback";
 
 interface FilterProps {
   fields: QueryFilter[];
-  filters: Filter<string, unknown>[];
-  addOrReplaceByIndex: UseCriteriaReturn<unknown>["addOrReplaceByIndex"];
-  removeFilter: (index: number) => void;
-  clearFilters: () => void;
+  criteria: UseCriteriaReturn<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-export function DataViewFilterRow({
-  fields,
-  filters,
-  addOrReplaceByIndex,
-  removeFilter,
-}: FilterProps) {
-  const filterValues: FilterValue[] = filters.map((filter) => ({
+export function DataViewFilterRow({ fields, criteria }: FilterProps) {
+  const filterValues: FilterValue[] = criteria.filters.map((filter) => ({
     field: filter.field,
     operator: filter.operator as FilterValue["operator"],
     value: filter.value as FilterValue["value"],
   }));
 
-  const usedFields = filters.map((filter) => filter.field);
+  const usedFields = criteria.filters.map((filter) => filter.field);
 
   const handleUpdateFilter = (index: number, newValue: FilterValue) => {
     const prevFilter = filterValues[index];
@@ -76,7 +67,7 @@ export function DataViewFilterRow({
       value = newField.type === "number" ? [0, 0] : ["", ""];
     }
 
-    addOrReplaceByIndex({
+    criteria.addOrReplaceByIndex({
       field: newField.field as FieldPath<unknown>,
       operator: operator as OperatorsForType<never>,
       value: value as FilterValueFor<never>,
@@ -92,7 +83,7 @@ export function DataViewFilterRow({
   );
 
   const handleSelectField = (index: number, newValue: FilterValue) => {
-    const filterToUpdate = filters[index];
+    const filterToUpdate = criteria.filters[index];
     if (!filterToUpdate) return;
 
     const newField = fields.find((f) => f.field === newValue.field);
@@ -108,7 +99,7 @@ export function DataViewFilterRow({
       value = defineDefaultFilterValue(newField.type);
     }
 
-    addOrReplaceByIndex({
+    criteria.addOrReplaceByIndex({
       field: newValue.field as FieldPath<unknown>,
       operator: operator as OperatorsForType<never>,
       value: value as FilterValueFor<never>,
@@ -117,7 +108,7 @@ export function DataViewFilterRow({
   };
 
   const handleRemoveFilter = (index: number) => {
-    removeFilter(index);
+    criteria.removeFilter(index);
   };
 
   return (

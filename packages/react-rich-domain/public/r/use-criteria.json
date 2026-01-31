@@ -3,7 +3,9 @@
   "name": "use-criteria",
   "title": "Use Criteria",
   "description": "A hook to use criteria from @woltz/rich-domain.",
-  "dependencies": ["@woltz/rich-domain"],
+  "dependencies": [
+    "@woltz/rich-domain"
+  ],
   "files": [
     {
       "path": "registry/default/hooks/use-criteria.ts",

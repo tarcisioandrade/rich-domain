@@ -45,7 +45,7 @@ export function Sorting<T = unknown>({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[450px] p-4" align="start">
+      <DropdownMenuContent className="w-[450px] p-4" align="end">
         {!hasSorting ? (
           <div className="space-y-0.5 mb-4">
             <p className="font-semibold">No sorting applied</p>

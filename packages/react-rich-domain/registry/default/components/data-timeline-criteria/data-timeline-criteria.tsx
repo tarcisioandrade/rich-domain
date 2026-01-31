@@ -71,7 +71,7 @@ export function DataTimelineCriteria<T>({
   timeline,
   renderEvent,
   getIcon,
-  searchPlaceholder = "Search events...",
+  searchPlaceholder = "Search...",
   emptyMessage = "No events found.",
   actionBar,
   onExport,
@@ -170,11 +170,14 @@ export function DataTimelineCriteria<T>({
       <div className={cn("space-y-6", className)}>
         {showToolbar && (
           <DataViewToolbar
-            searchProps={searchProps}
-            searchPlaceholder={searchPlaceholder}
-            filterProps={filterProps}
+            queryFilter={filterProps.queryFilter}
+            criteria={timeline.criteria}
             actionBar={actionBar}
             onExport={onExport}
+            searchProps={{
+              ...searchProps,
+              searchPlaceholder,
+            }}
           />
         )}
         {timelineContent}
@@ -191,11 +194,14 @@ export function DataTimelineCriteria<T>({
         )}
       >
         <DataViewToolbar
-          searchProps={searchProps}
-          searchPlaceholder={searchPlaceholder}
-          filterProps={filterProps}
+          queryFilter={filterProps.queryFilter}
+          criteria={timeline.criteria}
           actionBar={actionBar}
           onExport={onExport}
+          searchProps={{
+            ...searchProps,
+            searchPlaceholder,
+          }}
         />
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { flexRender, type Table as TableType } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -11,60 +11,63 @@ import {
 } from "@/components/ui/table";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-column-toggle";
-import type { PaginatedResult } from "@/hooks/use-criteria-query";
-import type { FilterIntegrationProps } from "../data-view-criteria/data-view-filter/data-view-filter";
 import {
   DataViewToolbar,
   type FileFormat,
 } from "../data-view-criteria/data-view-toolbar";
+import { Sorting, type SortingField } from "../sorting/sorting";
+import type { UseCriteriaReturn } from "@/types/use-criteria.type";
+import { Button } from "../ui/button";
+import { RefreshCcwIcon } from "lucide-react";
+import type { CriteriaTable } from "@/types/use-criteria-table.type";
 
 interface DataTableCriteriaProps<TData> {
-  table: TableType<TData>;
-  isLoading?: boolean;
+  table: CriteriaTable<TData>;
   emptyMessage?: string;
   onExport?: (format: FileFormat) => Promise<string> | string;
-  data?: PaginatedResult<TData>;
   showColumnToggle?: boolean;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  searchPlaceholder?: string;
-  showSearch?: boolean;
   actionBar?: React.ReactNode;
-  filterProps?: FilterIntegrationProps;
+  criteria: UseCriteriaReturn<TData>;
 }
 
 export function DataTableCriteria<TData>({
+  criteria,
   table,
-  isLoading = false,
   emptyMessage = "No results.",
-  data,
   showColumnToggle = true,
   onExport,
-  searchValue = "",
-  onSearchChange,
-  searchPlaceholder = "Search...",
-  showSearch = false,
   actionBar,
-  filterProps,
 }: DataTableCriteriaProps<TData>) {
   const columnCount = table.getAllColumns().length;
 
+  const columsToSort: SortingField[] =
+    table.getAllColumns().map((column) => ({
+      field: column.id,
+      fieldLabel: column.id,
+    })) ?? [];
+
   return (
     <div className="space-y-4">
-      <DataViewToolbar
-        searchProps={{
-          searchValue,
-          onSearchChange: onSearchChange ?? (() => {}),
-          showSearch,
-        }}
-        searchPlaceholder={searchPlaceholder}
-        filterProps={filterProps}
-        actionBar={actionBar}
-        onExport={onExport}
-      >
-        {showColumnToggle && <DataTableViewOptions table={table} />}
-      </DataViewToolbar>
-
+      <div className="flex items-center gap-2">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={table.refetch}
+          className="size-8"
+        >
+          <RefreshCcwIcon className="size-3.5" />
+        </Button>
+        <DataViewToolbar
+          criteria={criteria}
+          searchProps={table.searchProps}
+          queryFilter={table.queryFilter}
+          actionBar={actionBar}
+          onExport={onExport}
+        >
+          <Sorting fields={columsToSort} criteria={criteria} />
+          {showColumnToggle && <DataTableViewOptions table={table} />}
+        </DataViewToolbar>
+      </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
@@ -76,9 +79,9 @@ export function DataTableCriteria<TData>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -86,13 +89,27 @@ export function DataTableCriteria<TData>({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {table.isLoading ? (
               <TableRow>
                 <TableCell colSpan={columnCount} className="h-24 text-center">
                   <div className="flex items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     <span className="ml-2">Loading...</span>
                   </div>
+                </TableCell>
+              </TableRow>
+            ) : table.error ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columnCount}
+                  className="h-24 text-center space-y-2"
+                >
+                  <div className="text-red-500">
+                    {table.error.message || "Error loading data"}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={table.refetch}>
+                    Retry
+                  </Button>
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -121,7 +138,7 @@ export function DataTableCriteria<TData>({
           </TableBody>
         </Table>
       </div>
-      {data && <DataTablePagination table={table} meta={data.meta} />}
+      {table.data && <DataTablePagination table={table} meta={table.data.meta} />}
     </div>
   );
 }

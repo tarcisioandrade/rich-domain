@@ -17,11 +17,8 @@ import type { UseCriteriaReturn } from "@/types/use-criteria.type";
  * Props for Filter component integration
  */
 export interface FilterIntegrationProps {
-  fields: QueryFilter[];
-  filters: UseCriteriaReturn<unknown>["filters"];
-  addOrReplaceByIndex: UseCriteriaReturn<unknown>["addOrReplaceByIndex"];
-  removeFilter: UseCriteriaReturn<unknown>["removeFilter"];
-  clearFilters: UseCriteriaReturn<unknown>["clearFilters"];
+  queryFilter: QueryFilter[];
+  criteria: UseCriteriaReturn<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 /**
@@ -34,8 +31,11 @@ export interface SearchIntegrationProps {
   showSearch: boolean;
 }
 
-export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
-  const filtersCount = filters.length;
+export function DataViewFilter({
+  queryFilter,
+  criteria,
+}: FilterIntegrationProps) {
+  const filtersCount = criteria.filters.length;
   const hasFilters = filtersCount > 0;
 
   return (
@@ -62,10 +62,10 @@ export function DataViewFilter({ filters, ...props }: FilterIntegrationProps) {
         ) : (
           <div className="space-y-4 mb-4">
             <p className="font-semibold">Filters</p>
-            <DataViewFilterRow filters={filters} {...props} />
+            <DataViewFilterRow fields={queryFilter} criteria={criteria} />
           </div>
         )}
-        <DataViewFilterPopover filters={filters} {...props} />
+        <DataViewFilterPopover fields={queryFilter} criteria={criteria} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

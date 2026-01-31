@@ -184,8 +184,8 @@ function DataKanbanCriteria<T>({
         {showToolbar && (
           <DataViewToolbar
             searchProps={searchProps}
-            searchPlaceholder="Search cards..."
-            filterProps={filterProps}
+            queryFilter={filterProps.queryFilter}
+            criteria={kanban.criteria}
             actionBar={actionBar}
           />
         )}

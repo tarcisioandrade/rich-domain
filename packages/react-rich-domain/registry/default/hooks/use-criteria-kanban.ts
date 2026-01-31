@@ -152,7 +152,7 @@ export function useCriteriaKanban<T>(
     columnPageSize = 50,
     onCardMove,
     onMoveError,
-    ...criteriaOptions
+    criteriaOptions
   } = options;
 
   const queryClient = useQueryClient();
@@ -163,7 +163,7 @@ export function useCriteriaKanban<T>(
   );
 
   const criteriaState = useCriteria<T>({
-    ...criteriaOptions,
+    ...criteriaOptions ?? {},
     pageSize: columnPageSize,
   });
 
@@ -425,8 +425,8 @@ export function useCriteriaKanban<T>(
             fromColumn.id === toColumn.id
               ? fromDataItems
               : [...getItemsFromInfiniteData(toData)].filter(
-                  (item) => getItemId(item as T) !== cardId
-                );
+                (item) => getItemId(item as T) !== cardId
+              );
 
           const sortedItems = [...toDataItems].sort((a, b) => {
             const aOrder = (a as T & { order: string }).order || "";
@@ -722,8 +722,8 @@ export function useCriteriaKanban<T>(
             fromColumn.id === toColumn.id
               ? fromDataItems
               : [...getItemsFromInfiniteData(toData)].filter(
-                  (dataItem) => getItemId(dataItem as T) !== activeItemId
-                );
+                (dataItem) => getItemId(dataItem as T) !== activeItemId
+              );
 
           const sortedItems = [...toDataItems].sort((a, b) => {
             const aOrder = (a as T & { order: string }).order || "";
@@ -826,9 +826,9 @@ export function useCriteriaKanban<T>(
                 meta:
                   idx === fromData.pages.length - 1
                     ? {
-                        ...lastFromPage.meta,
-                        total: lastFromPage.meta.total - 1,
-                      }
+                      ...lastFromPage.meta,
+                      total: lastFromPage.meta.total - 1,
+                    }
                     : page.meta,
               };
             });
@@ -912,11 +912,8 @@ export function useCriteriaKanban<T>(
   };
 
   const filterProps: FilterIntegrationProps = {
-    fields: filterFields,
-    filters: criteriaState.filters,
-    addOrReplaceByIndex: criteriaState.addOrReplaceByIndex,
-    removeFilter: criteriaState.removeFilter,
-    clearFilters: criteriaState.clearFilters,
+    queryFilter: filterFields,
+    criteria: criteriaState,
   };
 
   const searchProps: SearchIntegrationProps = {
@@ -934,7 +931,7 @@ export function useCriteriaKanban<T>(
 
   return {
     columns,
-    criteriaState,
+    criteria: criteriaState,
     filterProps,
     searchProps,
     dndContextProps,
