@@ -10,7 +10,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCriteria } from "./use-criteria";
 import { useDebounceCallback } from "./use-debounce-callback";
 import type {
@@ -32,8 +32,8 @@ export function useCriteriaTable<T>(
     criteriaOptions = {},
     tableOptions = {},
     enableRowSelection = false,
-    enableMultiSort = false,
     searchOptions,
+    queryOptions = {},
   } = options;
   const criteriaState = useCriteria<T>(criteriaOptions);
   const { searchDebounceMs = 300, searchPlaceholder = "Search..." } =
@@ -51,6 +51,9 @@ export function useCriteriaTable<T>(
   );
 
   const query = useQuery({
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...queryOptions,
     queryKey: [...queryKey, criteriaState.criteria.toJSON()],
     queryFn: async () => await queryFn(criteriaState.criteria),
   });
@@ -74,11 +77,24 @@ export function useCriteriaTable<T>(
         return;
       }
 
-      const sortItem = newSorting[0];
-      if (!sortItem) return;
+      if (newSorting.length < sorting.length) {
+        const removedSort = sorting.find(
+          (oldSort) => !newSorting.some((newSort) => newSort.id === oldSort.id)
+        );
+        if (removedSort) {
+          criteriaState.removeSortByField(removedSort.id as FieldPath<T>);
+        }
+        return;
+      }
 
-      const direction: OrderDirection = sortItem.desc ? "desc" : "asc";
-      criteriaState.addSort(sortItem.id as FieldPath<T>, direction);
+      for (const newSort of newSorting) {
+        const oldSort = sorting.find((s) => s.id === newSort.id);
+        const direction: OrderDirection = newSort.desc ? "desc" : "asc";
+
+        if (!oldSort || oldSort.desc !== newSort.desc) {
+          criteriaState.addSort(newSort.id as FieldPath<T>, direction);
+        }
+      }
     },
     [sorting, criteriaState]
   );
@@ -137,7 +153,7 @@ export function useCriteriaTable<T>(
 
     // Config
     enableRowSelection,
-    enableMultiSort,
+    enableMultiSort: true,
     pageCount,
 
     // Merge additional table options
@@ -156,6 +172,7 @@ export function useCriteriaTable<T>(
 
   const newTable: CriteriaTable<T> = Object.assign(table, {
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     error: query.error,
     refetch: query.refetch,
     queryFilter: filterFields,

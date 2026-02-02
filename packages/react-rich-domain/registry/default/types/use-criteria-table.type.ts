@@ -10,7 +10,11 @@ import type {
   UseCriteriaReturn,
 } from "./use-criteria.type";
 import type { QueryFilter } from "../lib/filter-utils";
-import type { QueryKey, UseQueryResult } from "@tanstack/react-query";
+import type {
+  QueryKey,
+  UseQueryOptions,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import type { SearchIntegrationProps } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
 
 /**
@@ -52,10 +56,6 @@ export interface UseCriteriaTableOptions<T> {
    */
   enableRowSelection?: boolean;
 
-  /**
-   * Enable multi-sort
-   */
-  enableMultiSort?: boolean;
   searchOptions?: {
     /**
      * Debounce delay for search input in milliseconds
@@ -68,10 +68,21 @@ export interface UseCriteriaTableOptions<T> {
      */
     searchPlaceholder?: string;
   };
+
+  /**
+   * Additional options for React Query's useQuery hook.
+   * queryKey and queryFn are managed internally and will be ignored if provided.
+   * @default { staleTime: 5 * 60 * 1000, placeholderData: keepPreviousData }
+   */
+  queryOptions?: Omit<
+    UseQueryOptions<PaginatedJsonResult<T>, Error>,
+    "queryKey" | "queryFn"
+  >;
 }
 
 export type CriteriaTable<T> = Table<T> & {
   isLoading: boolean;
+  isFetching: boolean;
   error: Error | null;
   refetch: () => void;
   queryFilter: QueryFilter[];

@@ -1,6 +1,12 @@
 import { type Column } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react";
-
+import {
+  ArrowDown,
+  ArrowUp,
+  CheckIcon,
+  ChevronsUpDown,
+  EyeOff,
+  XIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,14 +54,26 @@ export function DataTableColumnHeader<TData, TValue>({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+          <DropdownMenuItem onClick={() => column.toggleSorting(false, true)}>
             <ArrowUp />
             Asc
+            {column.getIsSorted() === "asc" && (
+              <CheckIcon className="ml-auto size-4" />
+            )}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+          <DropdownMenuItem onClick={() => column.toggleSorting(true, true)}>
             <ArrowDown />
             Desc
+            {column.getIsSorted() === "desc" && (
+              <CheckIcon className="ml-auto size-4" />
+            )}
           </DropdownMenuItem>
+          {column.getIsSorted() && (
+            <DropdownMenuItem onClick={() => column.clearSorting()}>
+              <XIcon />
+              Reset
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
             <EyeOff />

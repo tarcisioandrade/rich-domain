@@ -1,4 +1,3 @@
-import { type Table } from "@tanstack/react-table";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,9 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { PaginatedResult } from "@woltz/rich-domain";
+import type { CriteriaTable } from "@/types/use-criteria-table.type";
 
 interface DataTablePaginationProps<TData> {
-  table: Table<TData>;
+  table: CriteriaTable<TData>;
   meta?: PaginatedResult<TData>["meta"];
 }
 
@@ -53,6 +53,7 @@ export function DataTablePagination<TData>({
             onValueChange={(value) => {
               table.setPageSize(Number(value));
             }}
+            disabled={table.isFetching}
           >
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
@@ -75,7 +76,7 @@ export function DataTablePagination<TData>({
             size="icon"
             className="hidden size-8 lg:flex"
             onClick={() => table.setPageIndex(0)}
-            disabled={!hasPrevious}
+            disabled={!hasPrevious || table.isFetching}
           >
             <span className="sr-only">Go to first page</span>
             <ChevronsLeft />
@@ -85,7 +86,7 @@ export function DataTablePagination<TData>({
             size="icon"
             className="size-8"
             onClick={() => table.previousPage()}
-            disabled={!hasPrevious}
+            disabled={!hasPrevious || table.isFetching}
           >
             <span className="sr-only">Go to previous page</span>
             <ChevronLeft />
@@ -95,7 +96,7 @@ export function DataTablePagination<TData>({
             size="icon"
             className="size-8"
             onClick={() => table.nextPage()}
-            disabled={!hasNext}
+            disabled={!hasNext || table.isFetching}
           >
             <span className="sr-only">Go to next page</span>
             <ChevronRight />
@@ -105,7 +106,7 @@ export function DataTablePagination<TData>({
             size="icon"
             className="hidden size-8 lg:flex"
             onClick={() => table.setPageIndex(totalPages - 1)}
-            disabled={!hasNext}
+            disabled={!hasNext || table.isFetching}
           >
             <span className="sr-only">Go to last page</span>
             <ChevronsRight />
