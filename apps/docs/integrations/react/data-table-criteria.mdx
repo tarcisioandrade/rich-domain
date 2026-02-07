@@ -1,20 +1,11 @@
 ---
 title: "DataTableCriteria"
 description: "A complete data table component integrated with React Query and TanStack Table."
-keywords:
-  [
-    "react",
-    "hooks",
-    "react-query",
-    "criteria",
-    "pagination",
-    "data-table",
-    "frontend",
-    "component"
-  ]
+keywords: ["react","hooks","react-query","criteria","pagination","data-table","frontend","component"]
 ---
 
-<a href="https://react-rich-domain.netlify.app/#table" target="_blank">Live Demo</a>
+<a href="https://react-rich-domain.netlify.app/#table" target="_blank">
+Live Demo</a>
 
 ## Instalation
 
@@ -103,29 +94,20 @@ const filterFields: QueryFilter[] = [
 ];
 
 function UserTable() {
-  const { table, data, isLoading, filterProps, searchProps } =
-    useCriteriaTable<User>({
-      columns,
-      filterFields,
-      queryKey: ["users"],
-      queryFn: getUsers,
-      criteriaOptions: {
-        pageSize: 10,
-        syncWithUrl: true,
-      },
-    });
+  const { table, criteria } = useCriteriaTable<User>({
+    filterFields,
+    columns,
+    queryKey: ["users"],
+    queryFn: getUsers,
+    searchOptions: {
+      searchPlaceholder: "Search users...",
+    },
+    criteriaOptions: {
+      pageSize: 10,
+      syncWithUrl: true,
+    },
+  });
 
-  return (
-    <DataTableCriteria
-      table={table}
-      data={data}
-      isLoading={isLoading}
-      filterProps={filterProps}
-      searchProps={searchProps}
-      onExport={getExport}
-      searchPlaceholder="Search users..."
-      emptyMessage="No users found."
-    />
-  );
+  return <DataTableCriteria table={table} criteria={criteria} />;
 }
 ```
