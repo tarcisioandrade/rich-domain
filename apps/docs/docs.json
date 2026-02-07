@@ -106,7 +106,7 @@
   "navbar": {
     "primary": {
       "type": "github",
-      "label": "Get Started",
+      "label": "Github",
       "href": "https://github.com/tarcisioandrade/rich-domain"
     },
     "links": []
