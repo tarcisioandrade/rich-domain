@@ -345,15 +345,19 @@ export function CriteriaQuerySchema<
     z.object({
       filters: filterSchema.optional(),
       orderBy: orderSchema,
-      page: z.coerce
-        .number()
-        .min(1)
-        .default(paginationOpts?.defaultPage ?? 1),
-      limit: z.coerce
-        .number()
-        .min(1)
-        .max(paginationOpts?.maxLimit ?? 100)
-        .default(paginationOpts?.defaultLimit ?? 20),
+      pagination: z
+        .object({
+          page: z.coerce
+            .number()
+            .min(1)
+            .default(paginationOpts?.defaultPage ?? 1),
+          limit: z.coerce
+            .number()
+            .min(1)
+            .max(paginationOpts?.maxLimit ?? 100)
+            .default(paginationOpts?.defaultLimit ?? 20),
+        })
+        .optional(),
       search: z.string().optional(),
     })
   ) as z.ZodType<CriteriaQueryResult<F, O>>;

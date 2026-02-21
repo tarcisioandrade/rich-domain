@@ -18,8 +18,8 @@ import {
 import {
   isValidOperatorForType,
   getValidOperatorsForType,
-  isOperator,
   sanitizeFieldValue,
+  isOperator,
 } from "./utils/criteria-operator-validation.js";
 import { parseQueryValue } from "./utils/helpers.js";
 
@@ -489,6 +489,83 @@ export class Criteria<T = any> {
     }
 
     return criteria;
+  }
+
+  toQueryObject(): {
+    filters?: Record<string, unknown>;
+    pagination?: Pagination;
+    orders?: string[];
+    search?: string;
+  } {
+    const obj: Record<string, unknown> = {};
+    const json = this.toJSON();
+
+    if (json.filters && json.filters.length > 0) {
+      const filtersObj: Record<string, unknown> = {};
+      for (const filter of json.filters) {
+        let filterKey = `${filter.field}:${filter.operator}`;
+        if (filter.options && filter.options.quantifier) {
+          filterKey += `@${filter.options.quantifier}`;
+        }
+        let value: string | undefined;
+        if (filter.value !== undefined) {
+          if (Array.isArray(filter.value)) {
+            value = JSON.stringify(filter.value);
+          } else {
+            if (filter.value instanceof Date) {
+              value = filter.value.toISOString();
+            } else {
+              value = String(filter.value);
+            }
+          }
+        } else {
+          value = "";
+        }
+        filtersObj[filterKey] = value;
+      }
+      obj.filters = filtersObj;
+    }
+
+    if (json.pagination) {
+      obj.pagination = json.pagination;
+    }
+
+    if (json.orders && json.orders.length > 0) {
+      const sortValue = json.orders.map(
+        (order) => `${order.field}:${order.direction}`
+      );
+      obj.orderBy = sortValue;
+    }
+
+    if (json.search) {
+      obj.search = json.search;
+    }
+
+    return obj;
+  }
+
+  toQueryParams() {
+    const params = new URLSearchParams();
+    const object = this.toQueryObject();
+
+    if (object?.filters) {
+      params.set("filters", JSON.stringify(object.filters));
+    }
+
+    if (object?.pagination) {
+      params.set("page", String(object.pagination.page));
+      params.set("limit", String(object.pagination.limit));
+    }
+
+    if (object?.orders) {
+      params.set("orderBy", JSON.stringify(object.orders));
+    }
+
+    if (object?.search) {
+      params.set("search", object.search);
+    }
+
+    return params;
   }
 
   private validateOperator(operator: FilterOperator, value: any): void {

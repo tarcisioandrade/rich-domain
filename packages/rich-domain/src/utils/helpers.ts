@@ -1,8 +1,17 @@
-export function parseQueryValue(value: string): any {
-  if (!isNaN(Number(value))) return Number(value); // number
-  if (value === "true" || value === "false") return value === "true"; // boolean
-  if (!isNaN(Date.parse(value))) return new Date(value); // Date
-  return value; // string
+export function parseQueryValue(value: unknown): any {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value;
+  if (value instanceof Date) return value;
+  if (Array.isArray(value)) return value;
+  if (typeof value === "object") return value;
+
+  const str = String(value);
+  if (str === "true" || str === "false") return str === "true";
+  if (str.trim() !== "" && !isNaN(Number(str))) return Number(str);
+  if (!isNaN(Date.parse(str))) return new Date(str);
+
+  return str;
 }
 
 export function levenshteinDistance(a: string, b: string): number {

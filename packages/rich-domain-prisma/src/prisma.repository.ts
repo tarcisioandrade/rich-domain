@@ -369,7 +369,8 @@ export abstract class PrismaRepository<
       if (
         source[key] &&
         typeof source[key] === "object" &&
-        !Array.isArray(source[key])
+        !Array.isArray(source[key]) &&
+        !(source[key] instanceof Date)
       ) {
         if (!target[key]) target[key] = {};
         this.mergeDeep(target[key], source[key]);

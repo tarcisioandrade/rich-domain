@@ -215,8 +215,8 @@ describe("Criteria", () => {
     it("should filter by between", () => {
       const criteria = Criteria.create<TestUser>().whereBetween(
         "createdAt",
-        "2024-01-01",
-        "2024-02-01"
+        new Date("2024-01-01"),
+        new Date("2024-02-01")
       );
       const result = PaginatedResult.fromArray(testUsers, criteria);
       expect(result.data).toHaveLength(2);
