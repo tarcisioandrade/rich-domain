@@ -57,6 +57,15 @@ export class DomainError extends DomainException {
 }
 
 /**
+ * Thrown for general application errors that don't fit other domain exceptions.
+ */
+export class ApplicationError extends DomainException {
+  constructor(message: string, code?: string) {
+    super(message, code || "APPLICATION_ERROR");
+  }
+}
+
+/**
  * Thrown when an entity or aggregate is not found
  */
 export class EntityNotFoundError extends DomainException {

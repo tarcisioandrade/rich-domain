@@ -83,7 +83,7 @@ export abstract class PrismaRepository<
    * Get model accessor from context.
    * Throws ModelNotFoundError if model doesn't exist.
    */
-  protected get modelAccessor(): any {
+  private get modelAccessor(): any {
     const model = (this.context as any)[this.model];
 
     if (!model) {
