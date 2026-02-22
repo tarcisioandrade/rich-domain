@@ -44,7 +44,7 @@ class Email extends ValueObject<string> {
 ### 2. Define an Entity
 
 ```typescript
-import { Entity, Id } from "@woltz/rich-domain";
+import { Entity, Id, type EntityValidation } from "@woltz/rich-domain";
 
 const PostSchema = z.object({
   id: z.custom<Id>(),
@@ -52,9 +52,12 @@ const PostSchema = z.object({
   content: z.string(),
   published: z.boolean(),
 });
+export type PostProps = z.infer<typeof PostSchema>;
 
-class Post extends Entity<z.infer<typeof PostSchema>> {
-  protected static validation = { schema: PostSchema };
+class Post extends Entity<PostProps> {
+  protected static validation: EntityValidation<PostProps> = {
+    schema: PostSchema,
+  };
 
   publish(): void {
     this.props.published = true;
@@ -69,7 +72,13 @@ class Post extends Entity<z.infer<typeof PostSchema>> {
 ### 3. Define an Aggregate
 
 ```typescript
-import { Aggregate, Id, EntityHooks } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  Id,
+  EntityHooks,
+  type EntityValidation,
+  type EntityHooks,
+} from "@woltz/rich-domain";
 import { UserCreatedEvent } from "./events";
 import { Email } from "./email";
 
@@ -83,7 +92,9 @@ const UserSchema = z.object({
 export type UserProps = z.infer<typeof UserSchema>;
 
 class User extends Aggregate<UserProps, "createdAt"> {
-  protected static validation = { schema: UserSchema };
+  protected static validation: EntityValidation<UserProps> = {
+    schema: UserSchema,
+  };
   protected static hooks: EntityHooks<UserProps, User> = {
     onBeforeCreate: (props) => {
       if (!props.createdAt) props.createdAt = new Date();

@@ -5,7 +5,7 @@
 Root entity that defines consistency boundaries and controls access to child entities.
 
 ```typescript
-import { Aggregate, Id } from "@woltz/rich-domain";
+import { Aggregate, Id, type EntityValidation } from "@woltz/rich-domain";
 import { z } from "zod";
 
 const OrderSchema = z.object({
@@ -16,8 +16,12 @@ const OrderSchema = z.object({
   createdAt: z.date(),
 });
 
-class Order extends Aggregate<z.infer<typeof OrderSchema>> {
-  protected static validation = { schema: OrderSchema };
+export type OrderProps = z.infer<typeof OrderSchema>;
+
+class Order extends Aggregate<OrderProps> {
+  protected static validation: EntityValidation<OrderProps> = {
+    schema: OrderSchema,
+  };
 
   getTypedChanges() {
     interface Entities {
@@ -59,7 +63,7 @@ Second generic parameter makes properties optional at construction:
 
 ```typescript
 class User extends Aggregate<UserProps, "password" | "createdAt"> {
-  protected static hooks = {
+  protected static hooks: EntityHooks<UserProps, User> = {
     onBeforeCreate: (props) => {
       if (!props.password) props.password = generatePassword();
       if (!props.createdAt) props.createdAt = new Date();
@@ -76,7 +80,12 @@ const user = new User({ email: "a@b.com", name: "John" });
 Domain object with identity that lives inside an Aggregate.
 
 ```typescript
-import { Entity, Id } from "@woltz/rich-domain";
+import {
+  Entity,
+  Id,
+  type EntityValidation,
+  type EntityHooks,
+} from "@woltz/rich-domain";
 
 const OrderItemSchema = z.object({
   id: z.custom<Id>(),
@@ -85,8 +94,12 @@ const OrderItemSchema = z.object({
   price: z.number().positive(),
 });
 
-class OrderItem extends Entity<z.infer<typeof OrderItemSchema>> {
-  protected static validation = { schema: OrderItemSchema };
+export type OrderItemProps = z.infer<typeof OrderItemSchema>;
+
+class OrderItem extends Entity<OrderItemProps> {
+  protected static validation: EntityValidation<OrderItemProps> = {
+    schema: OrderItemSchema,
+  };
 
   updateQuantity(quantity: number): void {
     if (quantity <= 0) throw new DomainError("Quantity must be positive");
@@ -123,15 +136,16 @@ class Email extends ValueObject<string> {
 }
 
 // Composite Value Object
-class Money extends ValueObject<{ amount: number; currency: string }> {
-  protected static validation = {
+export type MoneyProps = { amount: number; currency: string };
+class Money extends ValueObject<MoneyProps> {
+  protected static validation: EntityValidation<MoneyProps> = {
     schema: z.object({
       amount: z.number(),
       currency: z.string().length(3),
     }),
   };
 
-  protected static hooks = {
+  protected static hooks: EntityHooks<MoneyProps, Money> = {
     rules: (money) => {
       if (money.value.amount < 0) {
         throwValidationError("amount", "Amount cannot be negative");
@@ -186,7 +200,9 @@ console.log(id1.equals(id2)); // true
 
 ```typescript
 class Product extends Aggregate<ProductProps> {
-  protected static validation = { schema: ProductSchema };
+  protected static validation: EntityValidation<ProductProps> = {
+    schema: ProductSchema,
+  };
 
   protected static hooks = {
     // Before validation - set defaults
@@ -343,6 +359,17 @@ class UserToPersistenceMapper extends Mapper<User, UserRecord> {
       created_at: user.createdAt,
     };
   }
+}
+```
+
+## Repository
+
+```typescript
+import type { WriteAndRead } from "@woltz/rich-domain";
+import type { User } from "../entities";
+
+export interface IUserRepository extends WriteAndRead<User> {
+  findByEmail(email: string): Promise<User | null>;
 }
 ```
 

@@ -18,18 +18,52 @@ const prisma = new PrismaClient();
 const uow = new PrismaUnitOfWork(prisma);
 ```
 
+## Prisma Entity Schema
+
+```typescript
+import type { Prisma } from "@prisma/client";
+
+export type PrismaUserSchema = Prisma.UserGetPayload<{
+  include: {
+    profile: true;
+  };
+}>;
+```
+
 ## PrismaRepository
+
+**Domain**
+
+```typescript
+import type { WriteAndRead } from "@woltz/rich-domain";
+import type { User } from "../entities";
+
+export interface IUserRepository extends WriteAndRead<User> {
+  findByEmail(email: string): Promise<User | null>;
+}
+```
+
+**Implementation**
 
 ```typescript
 import { PrismaRepository } from "@woltz/rich-domain-prisma";
 import { Criteria } from "@woltz/rich-domain";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PrismaUserSchema } from "../schemas/user.schema";
+import type { IUserRepository } from "../domain/repository";
 
-class UserRepository extends PrismaRepository<User> {
+class UserRepository
+  extends PrismaRepository<User, PrismaUserSchema, PrismaClient>
+  implements IUserRepository
+{
   // Required: Prisma model name (lowercase)
   protected readonly model = "user";
 
   // Optional: Default relations to include
-  protected readonly includes = { posts: true, profile: true };
+  protected readonly includes = {
+    posts: true,
+    profile: true,
+  } satisfies Prisma.UserInclude;
 
   constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
     super(
@@ -50,7 +84,7 @@ class UserRepository extends PrismaRepository<User> {
 
   // Custom methods
   async findByEmail(email: string): Promise<User | null> {
-    const data = await this.modelAccessor.findUnique({
+    const data = await this.context.user.findUnique({
       where: { email },
       include: this.includes,
     });
@@ -80,8 +114,10 @@ interface PrismaRepository<T> {
 import {
   PrismaToPersistence,
   PrismaBatchExecutor,
-  EntitySchemaRegistry,
+  type AggregateChanges,
 } from "@woltz/rich-domain-prisma";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+import type { PrismaClient } from "@prisma/client";
 
 const schemaRegistry = new EntitySchemaRegistry()
   .register({ entity: "User", table: "user" })
@@ -92,7 +128,7 @@ const schemaRegistry = new EntitySchemaRegistry()
     parentFk: { field: "authorId", parentEntity: "User" },
   });
 
-class UserToPersistenceMapper extends PrismaToPersistence<User> {
+class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
   protected readonly registry = schemaRegistry;
 
   // Handle new aggregate creation
@@ -165,7 +201,7 @@ class CreateOrderUseCase {
   constructor(
     private readonly orderRepository: OrderRepository,
     private readonly inventoryService: InventoryService,
-    private readonly uow: PrismaUnitOfWork // Required!
+    private readonly uow: PrismaUnitOfWork // Or use inline @Transactional(uow)
   ) {}
 
   @Transactional()
@@ -262,16 +298,6 @@ model Post {
   author       User    @relation(fields: [authorId], references: [id])
 }
 
-// schema-registry.ts
-export const schemaRegistry = new EntitySchemaRegistry()
-  .register({ entity: "User", table: "user" })
-  .register({
-    entity: "Post",
-    table: "post",
-    fields: { content: "main_content" },
-    parentFk: { field: "authorId", parentEntity: "User" },
-  });
-
 // user-to-domain.mapper.ts
 export class UserToDomainMapper extends Mapper<UserRecord, User> {
   build(record: UserRecord): User {
@@ -291,7 +317,16 @@ export class UserToDomainMapper extends Mapper<UserRecord, User> {
 }
 
 // user-to-persistence.mapper.ts
-export class UserToPersistenceMapper extends PrismaToPersistence<User> {
+const schemaRegistry = new EntitySchemaRegistry()
+  .register({ entity: "User", table: "user" })
+  .register({
+    entity: "Post",
+    table: "post",
+    fields: { content: "main_content" },
+    parentFk: { field: "authorId", parentEntity: "User" },
+  });
+
+export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
   protected readonly registry = schemaRegistry;
 
   protected async onCreate(user: User): Promise<void> {
@@ -323,10 +358,10 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
   }
 }
 
-// user.repository.ts
-export class UserRepository extends PrismaRepository<User> {
+// user.repository.ts (Implementation)
+export class UserRepository extends PrismaRepository<User, PrismaUserSchema, PrismaClient> implements IUserRepository {
   protected readonly model = "user";
-  protected readonly includes = { posts: true };
+  protected readonly includes = { posts: true } satisfies Prisma.UserIncludes;
 
   constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
     super(
@@ -338,7 +373,7 @@ export class UserRepository extends PrismaRepository<User> {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const data = await this.modelAccessor.findUnique({
+    const data = await this.context.user.findUnique({
       where: { email },
       include: this.includes,
     });
@@ -346,15 +381,15 @@ export class UserRepository extends PrismaRepository<User> {
   }
 }
 
-// create-user.use-case.ts
-export class CreateUserUseCase {
+// user.service.ts
+export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly uow: PrismaUnitOfWork
   ) {}
 
   @Transactional()
-  async execute(input: CreateUserInput): Promise<User> {
+  async create(input: CreateUserInput): Promise<User> {
     const existing = await this.userRepository.findByEmail(input.email);
     if (existing) {
       throw new Error("Email already in use");
