@@ -53,6 +53,12 @@ const betweenTuple = (coerce: z.ZodTypeAny) =>
       if (Array.isArray(v)) return v.slice(0, 2);
       if (typeof v === "string") {
         const s = v.trim();
+        if (s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) return parsed.slice(0, 2);
+          } catch {}
+        }
         const parts = s.includes("..") ? s.split("..") : s.split(",");
         return parts
           .map((p) => p.trim())
