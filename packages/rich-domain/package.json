@@ -40,6 +40,7 @@
     "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
+    "format": "prettier --write .",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
     "release:patch": "standard-version --release-as patch"

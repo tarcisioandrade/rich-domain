@@ -157,7 +157,7 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
    * 2. Creates (root → leaf)
    * 3. Updates
    */
-  *operations(): Generator<Operation> {
+  *operations(): Generator<Operation, void, undefined> {
     yield* this.deletes();
     yield* this.creates();
     yield* this.updates();

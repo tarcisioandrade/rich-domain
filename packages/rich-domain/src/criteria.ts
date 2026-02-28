@@ -11,6 +11,7 @@ import {
   OrderDirection,
   Pagination,
   PathValue,
+  QueryParamsObject,
   Search,
   TypedFilter,
   TypedOrder,
@@ -316,7 +317,7 @@ export class Criteria<T = any> {
   }
 
   static fromQueryParams<T = any>(
-    query: Record<string, any> | undefined,
+    query: QueryParamsObject | undefined,
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
     if (!query) return Criteria.create<T>();
@@ -328,10 +329,7 @@ export class Criteria<T = any> {
     }
 
     for (const [key, value] of Object.entries(query)) {
-      if (key === "page") {
-        continue;
-      }
-      if (key === "limit") {
+      if (key === "pagination") {
         continue;
       }
 
@@ -381,7 +379,12 @@ export class Criteria<T = any> {
           if (operator === "between") {
             parsedValue = criteria
               .parseFilterValue(filterValue)
-              .map((v: any) => parseQueryValue(v.trim()));
+              .map((v: any) => {
+                if (typeof v === "string") {
+                  return parseQueryValue(v.trim());
+                }
+                return parseQueryValue(v);
+              });
 
             if (parsedValue.length === 2) {
               criteria.where(
@@ -425,8 +428,8 @@ export class Criteria<T = any> {
       }
     }
 
-    const page = query.page ? parseInt(query.page) : undefined;
-    const limit = query.limit ? parseInt(query.limit) : undefined;
+    const page = query.pagination?.page;
+    const limit = query.pagination?.limit;
 
     if (page && limit) {
       criteria.paginate(page, limit);
@@ -436,28 +439,7 @@ export class Criteria<T = any> {
     if (query.orderBy) {
       const orderByValue = query.orderBy;
 
-      if (
-        typeof orderByValue === "string" &&
-        orderByValue.trim().startsWith("[")
-      ) {
-        try {
-          const orderArray = JSON.parse(orderByValue);
-          if (Array.isArray(orderArray)) {
-            orderArray.forEach((item: string) => {
-              const [field, direction] = item.split(":");
-              criteria.orderBy(
-                field as FieldPath<T>,
-                (direction as OrderDirection) || "asc"
-              );
-            });
-          }
-        } catch {
-          throw new InvalidCriteriaError(
-            "Invalid JSON array format for orderBy",
-            orderByValue
-          );
-        }
-      } else if (Array.isArray(orderByValue)) {
+      if (Array.isArray(orderByValue)) {
         orderByValue.forEach((item: string) => {
           const [field, direction] = item.split(":");
           criteria.orderBy(
@@ -465,22 +447,6 @@ export class Criteria<T = any> {
             (direction as OrderDirection) || "asc"
           );
         });
-      }
-      // 2. orderBy="field:asc,field2:desc"
-      else if (typeof orderByValue === "string" && orderByValue.includes(":")) {
-        const sortParts = orderByValue.split(",");
-        sortParts.forEach((part: string) => {
-          const [field, direction] = part.split(":");
-          criteria.orderBy(
-            field as FieldPath<T>,
-            (direction as OrderDirection) || "asc"
-          );
-        });
-      }
-      // 3. orderBy="field" + orderDirection="asc"
-      else {
-        const direction = (query.orderDirection as OrderDirection) || "asc";
-        criteria.orderBy(orderByValue as FieldPath<T>, direction);
       }
     }
 
@@ -491,13 +457,8 @@ export class Criteria<T = any> {
     return criteria;
   }
 
-  toQueryObject(): {
-    filters?: Record<string, unknown>;
-    pagination?: Pagination;
-    orders?: string[];
-    search?: string;
-  } {
-    const obj: Record<string, unknown> = {};
+  toQueryObject(): QueryParamsObject {
+    const obj: QueryParamsObject = {};
     const json = this.toJSON();
 
     if (json.filters && json.filters.length > 0) {
@@ -557,8 +518,8 @@ export class Criteria<T = any> {
       params.set("limit", String(object.pagination.limit));
     }
 
-    if (object?.orders) {
-      params.set("orderBy", JSON.stringify(object.orders));
+    if (object?.orderBy) {
+      params.set("orderBy", JSON.stringify(object.orderBy));
     }
 
     if (object?.search) {

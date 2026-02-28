@@ -159,6 +159,13 @@ export interface Pagination {
 
 export type Search = string;
 
+export type QueryParamsObject = {
+  filters?: Record<string, unknown>;
+  pagination?: Omit<Pagination, "offset">;
+  orderBy?: string[];
+  search?: string;
+};
+
 export interface PaginationMeta {
   page: number;
   limit: number;
