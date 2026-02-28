@@ -216,10 +216,7 @@ const schemaRegistry = new EntitySchemaRegistry()
 class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   protected readonly registry = schemaRegistry;
 
-  protected async onUpdate(
-    order: Order,
-    changes: AggregateChanges
-  ): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });

@@ -156,10 +156,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
   }
 
   // Handle existing aggregate updates
-  protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
-  ): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
@@ -350,7 +347,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
     });
   }
 
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
