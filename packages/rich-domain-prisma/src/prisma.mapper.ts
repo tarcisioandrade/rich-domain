@@ -81,10 +81,11 @@ export abstract class PrismaToPersistence<
   /**
    * Handle entity update with changes.
    * Override in subclass if you need custom logic.
+   * Already wrapped in transaction by @Transactional decorator.
    */
   protected abstract onUpdate(
-    entity: TDomain,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    entity: TDomain
   ): Promise<void>;
 
   /**
@@ -100,6 +101,6 @@ export abstract class PrismaToPersistence<
       return;
     }
 
-    await this.onUpdate(entity, changes);
+    await this.onUpdate(changes, entity);
   }
 }

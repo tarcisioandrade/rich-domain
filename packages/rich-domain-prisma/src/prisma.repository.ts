@@ -9,6 +9,7 @@ import {
 } from "@woltz/rich-domain";
 import { PrismaClientLike, PrismaUnitOfWork, UOWStorage } from "./unit-of-work";
 import { ModelNotFoundError, NoRecordsAffectedError } from "./errors";
+import { PrismaToPersistence } from "./prisma.mapper";
 
 export interface PrismaRepositoryConfig {
   prisma: PrismaClientLike;
@@ -26,7 +27,10 @@ export abstract class PrismaRepository<
   TContext = PrismaClientLike,
 > extends Repository<TDomain> {
   constructor(
-    protected readonly toPersistenceMapper: Mapper<TDomain, void>,
+    protected readonly toPersistenceMapper: PrismaToPersistence<
+      TDomain,
+      TContext
+    >,
     protected readonly toDomainMapper: Mapper<TPersistence, TDomain>,
     private readonly prisma: TContext,
     public readonly uow: PrismaUnitOfWork
