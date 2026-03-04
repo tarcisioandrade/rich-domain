@@ -301,9 +301,7 @@ type CriteriaQueryResult<
   O extends readonly string[],
 > = {
   filters?: F extends { _fields: infer Fields } ? Fields : z.infer<F>;
-  orderBy?: O extends readonly []
-    ? never
-    : OrderEnumValues<O> | OrderEnumValues<O>[];
+  orderBy?: O extends readonly [] ? never : OrderEnumValues<O>[];
   pagination?: { page: number; limit: number };
   search?: string;
 };
@@ -381,7 +379,9 @@ function buildOrderSchema<const T extends readonly string[]>(fields: T) {
 
   return z
     .union([
-      z.enum(enumValues as [string, ...string[]]),
+      z
+        .enum(enumValues as [string, ...string[]])
+        .transform((val) => [val] as [string, ...string[]]),
       z
         .string()
         .transform((val) => val.split(",").map((v) => v.trim()))
