@@ -56,9 +56,7 @@ export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
     }
   }
 
-  protected async onUpdate(
-    changes: AggregateChanges
-  ): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
