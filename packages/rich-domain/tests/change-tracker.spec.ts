@@ -88,9 +88,18 @@ describe("ChangeTracker.getChanges()", () => {
 
   describe("root property changes", () => {
     it("should detect circular references", () => {
-      class CircularReference extends Aggregate<{ id: Id, circularReference: CircularReference | null }> {
-        protected static validation: EntityValidation<{ id: Id, circularReference: CircularReference | null }> = {
-          schema: z.object({ id: z.custom<Id>(), circularReference: z.custom<CircularReference>().nullable() }),
+      class CircularReference extends Aggregate<{
+        id: Id;
+        circularReference: CircularReference | null;
+      }> {
+        protected static validation: EntityValidation<{
+          id: Id;
+          circularReference: CircularReference | null;
+        }> = {
+          schema: z.object({
+            id: z.custom<Id>(),
+            circularReference: z.custom<CircularReference>().nullable(),
+          }),
         };
 
         addCircularReference(circularReference: CircularReference) {
@@ -98,7 +107,10 @@ describe("ChangeTracker.getChanges()", () => {
         }
       }
 
-      const circularReference = new CircularReference({ id: new Id(), circularReference: null });
+      const circularReference = new CircularReference({
+        id: new Id(),
+        circularReference: null,
+      });
       circularReference.addCircularReference(circularReference);
 
       expect(() => {
@@ -477,8 +489,8 @@ describe("Primitive Arrays", () => {
     protected static validation: EntityValidation<
       z.infer<typeof TestStringSchema>
     > = {
-        schema: TestStringSchema,
-      };
+      schema: TestStringSchema,
+    };
   }
 
   it("should not track primitive array items as individual creates on instantiation", () => {
@@ -668,4 +680,3 @@ describe("Recursive markAsClean and markAsPersisted", () => {
     expect(address.getChanges().isEmpty()).toBe(true);
   });
 });
-

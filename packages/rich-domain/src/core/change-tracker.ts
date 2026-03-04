@@ -157,7 +157,7 @@ export class ChangeTracker {
       get: (target, prop, receiver) => {
         const value = Reflect.get(target, prop, receiver);
 
-        if (typeof prop === 'symbol') {
+        if (typeof prop === "symbol") {
           return value;
         }
 
@@ -192,7 +192,7 @@ export class ChangeTracker {
       },
 
       set: (target, prop, newValue, receiver) => {
-        if (typeof prop === 'symbol') {
+        if (typeof prop === "symbol") {
           return Reflect.set(target, prop, newValue, receiver);
         }
 
@@ -262,7 +262,7 @@ export class ChangeTracker {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
 
-        if (typeof prop === 'symbol') {
+        if (typeof prop === "symbol") {
           return value;
         }
 
@@ -328,7 +328,7 @@ export class ChangeTracker {
       },
 
       set(target, prop, newValue, receiver) {
-        if (typeof prop === 'symbol') {
+        if (typeof prop === "symbol") {
           return Reflect.set(target, prop, newValue, receiver);
         }
 
@@ -1140,12 +1140,12 @@ export class ChangeTracker {
     }
 
     if (Array.isArray(obj)) {
-      const entries = obj.map(item => this.toCanonicalString(item, visited));
+      const entries = obj.map((item) => this.toCanonicalString(item, visited));
       return `[${entries.join(",")}]`;
     }
 
     const sortedKeys = Object.keys(obj).sort();
-    const resultParts = sortedKeys.map(key => {
+    const resultParts = sortedKeys.map((key) => {
       const value = this.toCanonicalString(obj[key], visited);
       return `${JSON.stringify(key)}:${value}`;
     });
@@ -1155,7 +1155,10 @@ export class ChangeTracker {
 
   private throwCircularReferenceError(obj: any): void {
     const className = obj.constructor?.name || "Unknown";
-    throw new DomainError(`Circular reference detected in object comparison: ${className}`, "CIRCULAR_REFERENCE_ERROR");
+    throw new DomainError(
+      `Circular reference detected in object comparison: ${className}`,
+      "CIRCULAR_REFERENCE_ERROR"
+    );
   }
 
   private cloneArray(arr: any[]): any[] {
