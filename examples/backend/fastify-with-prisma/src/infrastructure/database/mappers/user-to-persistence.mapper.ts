@@ -72,10 +72,8 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
   }
 
   protected async onUpdate(
-    user: User,
     changes: AggregateChanges
   ): Promise<void> {
-    console.dir({ changes }, { depth: null });
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
