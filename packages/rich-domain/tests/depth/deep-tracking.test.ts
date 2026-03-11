@@ -186,31 +186,6 @@ describe("Deep Change Tracking", () => {
   describe("Depth Level 5 - Five levels deep", () => {
     it("should support 5 levels of nesting with independent tracking", () => {
       const level5 = new Level5({ value: "level5", children: [] });
-      const level4 = new Level4({
-        value: "level4",
-        child: level5,
-        children: [],
-      });
-      const level3 = new Level3({
-        value: "level3",
-        child: level4,
-        children: [],
-      });
-      const level2 = new Level2({
-        value: "level2",
-        child: level3,
-        children: [],
-      });
-      const level1 = new Level1({
-        value: "level1",
-        child: level2,
-        children: [],
-      });
-      const root = new Root({
-        name: "root",
-        child: level1,
-        children: [],
-      });
 
       level5.props.value = "level5-changed";
 
@@ -373,6 +348,74 @@ describe("Deep Change Tracking", () => {
       const level9Changes = level9.getChanges();
       expect(level9Changes.hasChanges()).toBe(true);
       expect(level9Changes.hasCreates()).toBe(true);
+    });
+
+    it("should detect changes in deepest nested child from root", () => {
+      const level10 = new Level10({ value: "level10" });
+      const level9 = new Level9({
+        value: "level9",
+        child: level10,
+        children: [],
+      });
+      const level8 = new Level8({
+        value: "level8",
+        child: level9,
+        children: [],
+      });
+      const level7 = new Level7({
+        value: "level7",
+        child: level8,
+        children: [],
+      });
+      const level6 = new Level6({
+        value: "level6",
+        child: level7,
+        children: [],
+      });
+      const level5 = new Level5({
+        value: "level5",
+        child: level6,
+        children: [],
+      });
+      const level4 = new Level4({
+        value: "level4",
+        child: level5,
+        children: [],
+      });
+      const level3 = new Level3({
+        value: "level3",
+        child: level4,
+        children: [],
+      });
+      const level2 = new Level2({
+        value: "level2",
+        child: level3,
+        children: [],
+      });
+      const level1 = new Level1({
+        value: "level1",
+        child: level2,
+        children: [],
+      });
+      const root = new Root({
+        name: "root",
+        child: level1,
+        children: [],
+      });
+
+      expect(root.getChanges().hasChanges()).toBe(false);
+
+      root.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.value = "level10-changed";
+
+      const rootChanges = root.getChanges();
+      expect(rootChanges.hasChanges()).toBe(true);
+      expect(rootChanges.hasUpdates()).toBe(true);
+
+      const level10Updates = rootChanges
+        .updates()
+        .filter((u) => u.entity === "Level10");
+      expect(level10Updates.length).toBeGreaterThan(0);
+      expect(level10Updates[0].changedFields.value).toBe("level10-changed");
     });
   });
 
