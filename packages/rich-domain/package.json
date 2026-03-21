@@ -34,7 +34,7 @@
     "postbuild": "node postbuild.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "check": "tsc --noEmit",
+    "check": "tsc -b --noEmit",
     "coverage": "jest --coverage",
     "lint": "eslint src",
     "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",

@@ -40,7 +40,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "check": "tsc --noEmit",
+    "check": "tsc -b --noEmit",
     "lint": "echo 'No linting rules defined'",
     "clean": "rm -rf dist node_modules",
     "prepublishOnly": "npm run build",
