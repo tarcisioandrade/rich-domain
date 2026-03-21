@@ -3,7 +3,9 @@
   "name": "filter",
   "title": "Filter",
   "description": "A component to filter data using use-criteria hook from @woltz/react-rich-domain.",
-  "dependencies": ["@woltz/rich-domain"],
+  "dependencies": [
+    "@woltz/rich-domain"
+  ],
   "registryDependencies": [
     "@shadcn/button",
     "@shadcn/input",

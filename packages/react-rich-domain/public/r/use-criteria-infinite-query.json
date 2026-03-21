@@ -3,7 +3,10 @@
   "name": "use-criteria-infinite-query",
   "title": "Use Criteria Infinite Query",
   "description": "A hook to use criteria infinite query from @woltz/rich-domain and @tanstack/react-query.",
-  "dependencies": ["@woltz/rich-domain", "@tanstack/react-query"],
+  "dependencies": [
+    "@woltz/rich-domain",
+    "@tanstack/react-query"
+  ],
   "registryDependencies": [
     "https://tarcisioandrade.github.io/rich-domain/packages/react-rich-domain/public/r/use-criteria.json"
   ],
