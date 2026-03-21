@@ -1,4 +1,4 @@
-import { EntityValidation } from "../src";
+import { DomainError, EntityValidation } from "../src";
 import { Aggregate, Id } from "../src/core/index";
 import {
   Post,
@@ -87,6 +87,37 @@ describe("ChangeTracker.getChanges()", () => {
   });
 
   describe("root property changes", () => {
+    it("should detect circular references", () => {
+      class CircularReference extends Aggregate<{
+        id: Id;
+        circularReference: CircularReference | null;
+      }> {
+        protected static validation: EntityValidation<{
+          id: Id;
+          circularReference: CircularReference | null;
+        }> = {
+          schema: z.object({
+            id: z.custom<Id>(),
+            circularReference: z.custom<CircularReference>().nullable(),
+          }),
+        };
+
+        addCircularReference(circularReference: CircularReference) {
+          this.props.circularReference = circularReference;
+        }
+      }
+
+      const circularReference = new CircularReference({
+        id: new Id(),
+        circularReference: null,
+      });
+      circularReference.addCircularReference(circularReference);
+
+      expect(() => {
+        circularReference.getChanges();
+      }).toThrow(DomainError);
+    });
+
     it("should detect primitive property changes", () => {
       const user = createUser();
 

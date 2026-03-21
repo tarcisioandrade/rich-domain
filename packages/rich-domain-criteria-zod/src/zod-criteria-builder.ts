@@ -53,6 +53,12 @@ const betweenTuple = (coerce: z.ZodTypeAny) =>
       if (Array.isArray(v)) return v.slice(0, 2);
       if (typeof v === "string") {
         const s = v.trim();
+        if (s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) return parsed.slice(0, 2);
+          } catch {}
+        }
         const parts = s.includes("..") ? s.split("..") : s.split(",");
         return parts
           .map((p) => p.trim())
@@ -295,9 +301,7 @@ type CriteriaQueryResult<
   O extends readonly string[],
 > = {
   filters?: F extends { _fields: infer Fields } ? Fields : z.infer<F>;
-  orderBy?: O extends readonly []
-    ? never
-    : OrderEnumValues<O> | OrderEnumValues<O>[];
+  orderBy?: O extends readonly [] ? never : OrderEnumValues<O>[];
   pagination?: { page: number; limit: number };
   search?: string;
 };
@@ -345,15 +349,19 @@ export function CriteriaQuerySchema<
     z.object({
       filters: filterSchema.optional(),
       orderBy: orderSchema,
-      page: z.coerce
-        .number()
-        .min(1)
-        .default(paginationOpts?.defaultPage ?? 1),
-      limit: z.coerce
-        .number()
-        .min(1)
-        .max(paginationOpts?.maxLimit ?? 100)
-        .default(paginationOpts?.defaultLimit ?? 20),
+      pagination: z
+        .object({
+          page: z.coerce
+            .number()
+            .min(1)
+            .default(paginationOpts?.defaultPage ?? 1),
+          limit: z.coerce
+            .number()
+            .min(1)
+            .max(paginationOpts?.maxLimit ?? 100)
+            .default(paginationOpts?.defaultLimit ?? 20),
+        })
+        .optional(),
       search: z.string().optional(),
     })
   ) as z.ZodType<CriteriaQueryResult<F, O>>;
@@ -371,7 +379,9 @@ function buildOrderSchema<const T extends readonly string[]>(fields: T) {
 
   return z
     .union([
-      z.enum(enumValues as [string, ...string[]]),
+      z
+        .enum(enumValues as [string, ...string[]])
+        .transform((val) => [val] as [string, ...string[]]),
       z
         .string()
         .transform((val) => val.split(",").map((v) => v.trim()))

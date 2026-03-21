@@ -39,7 +39,7 @@
     "postbuild": "node postbuild.js",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "check": "tsc --noEmit",
+    "check": "tsc -b --noEmit",
     "lint": "echo 'No linting yet'",
     "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
     "prepublishOnly": "npm run build",

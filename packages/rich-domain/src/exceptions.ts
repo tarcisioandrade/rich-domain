@@ -57,6 +57,153 @@ export class DomainError extends DomainException {
 }
 
 /**
+ * Thrown for general application errors that don't fit other domain exceptions.
+ */
+export class ApplicationError extends DomainException {
+  constructor(message: string, code?: string) {
+    super(message, code || "APPLICATION_ERROR");
+  }
+}
+
+/**
+ * Thrown when authentication is required but not provided or invalid
+ */
+export class UnauthorizedError extends DomainException {
+  public readonly resource?: string;
+  public readonly action?: string;
+
+  constructor(message?: string, resource?: string, action?: string) {
+    const defaultMessage =
+      message || "Authentication required to access this resource";
+
+    super(defaultMessage, "UNAUTHORIZED");
+    this.resource = resource;
+    this.action = action;
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      resource: this.resource,
+      action: this.action,
+    };
+  }
+}
+
+/**
+ * Thrown when the user is authenticated but doesn't have permission to perform an action
+ */
+export class ForbiddenError extends DomainException {
+  public readonly resource?: string;
+  public readonly action?: string;
+  public readonly userId?: string;
+
+  constructor(
+    message?: string,
+    resource?: string,
+    action?: string,
+    userId?: string
+  ) {
+    const defaultMessage =
+      message || "You don't have permission to perform this action";
+
+    super(defaultMessage, "FORBIDDEN");
+    this.resource = resource;
+    this.action = action;
+    this.userId = userId;
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      resource: this.resource,
+      action: this.action,
+      userId: this.userId,
+    };
+  }
+}
+
+/**
+ * Thrown when a request is malformed or contains invalid data
+ */
+export class BadRequestError extends DomainException {
+  public readonly field?: string;
+  public readonly reason?: string;
+
+  constructor(message: string, field?: string, reason?: string) {
+    super(message, "BAD_REQUEST");
+    this.field = field;
+    this.reason = reason;
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      field: this.field,
+      reason: this.reason,
+    };
+  }
+}
+
+/**
+ * Thrown when an operation exceeds the allowed time limit
+ */
+export class TimeoutError extends DomainException {
+  public readonly operation: string;
+  public readonly timeoutMs?: number;
+
+  constructor(operation: string, timeoutMs?: number, message?: string) {
+    const defaultMessage = `Operation '${operation}' timed out${
+      timeoutMs ? ` after ${timeoutMs}ms` : ""
+    }`;
+
+    super(message || defaultMessage, "TIMEOUT_ERROR");
+    this.operation = operation;
+    this.timeoutMs = timeoutMs;
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      operation: this.operation,
+      timeoutMs: this.timeoutMs,
+    };
+  }
+}
+
+/**
+ * Thrown when rate limit is exceeded
+ */
+export class RateLimitError extends DomainException {
+  public readonly limit: number;
+  public readonly windowMs: number;
+  public readonly retryAfter?: number;
+
+  constructor(
+    limit: number,
+    windowMs: number,
+    retryAfter?: number,
+    message?: string
+  ) {
+    const defaultMessage = `Rate limit exceeded: ${limit} requests per ${windowMs}ms`;
+
+    super(message || defaultMessage, "RATE_LIMIT_ERROR");
+    this.limit = limit;
+    this.windowMs = windowMs;
+    this.retryAfter = retryAfter;
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      limit: this.limit,
+      windowMs: this.windowMs,
+      retryAfter: this.retryAfter,
+    };
+  }
+}
+
+/**
  * Thrown when an entity or aggregate is not found
  */
 export class EntityNotFoundError extends DomainException {

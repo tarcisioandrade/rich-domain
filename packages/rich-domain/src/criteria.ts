@@ -11,6 +11,7 @@ import {
   OrderDirection,
   Pagination,
   PathValue,
+  QueryParamsObject,
   Search,
   TypedFilter,
   TypedOrder,
@@ -18,8 +19,8 @@ import {
 import {
   isValidOperatorForType,
   getValidOperatorsForType,
-  isOperator,
   sanitizeFieldValue,
+  isOperator,
 } from "./utils/criteria-operator-validation.js";
 import { parseQueryValue } from "./utils/helpers.js";
 
@@ -316,7 +317,7 @@ export class Criteria<T = any> {
   }
 
   static fromQueryParams<T = any>(
-    query: Record<string, any> | undefined,
+    query: QueryParamsObject | undefined,
     adapter?: CriteriaAdapter<any, any>
   ): Criteria<T> {
     if (!query) return Criteria.create<T>();
@@ -328,10 +329,7 @@ export class Criteria<T = any> {
     }
 
     for (const [key, value] of Object.entries(query)) {
-      if (key === "page") {
-        continue;
-      }
-      if (key === "limit") {
+      if (key === "pagination") {
         continue;
       }
 
@@ -381,7 +379,12 @@ export class Criteria<T = any> {
           if (operator === "between") {
             parsedValue = criteria
               .parseFilterValue(filterValue)
-              .map((v: any) => parseQueryValue(v.trim()));
+              .map((v: any) => {
+                if (typeof v === "string") {
+                  return parseQueryValue(v.trim());
+                }
+                return parseQueryValue(v);
+              });
 
             if (parsedValue.length === 2) {
               criteria.where(
@@ -425,8 +428,8 @@ export class Criteria<T = any> {
       }
     }
 
-    const page = query.page ? parseInt(query.page) : undefined;
-    const limit = query.limit ? parseInt(query.limit) : undefined;
+    const page = query.pagination?.page;
+    const limit = query.pagination?.limit;
 
     if (page && limit) {
       criteria.paginate(page, limit);
@@ -436,28 +439,7 @@ export class Criteria<T = any> {
     if (query.orderBy) {
       const orderByValue = query.orderBy;
 
-      if (
-        typeof orderByValue === "string" &&
-        orderByValue.trim().startsWith("[")
-      ) {
-        try {
-          const orderArray = JSON.parse(orderByValue);
-          if (Array.isArray(orderArray)) {
-            orderArray.forEach((item: string) => {
-              const [field, direction] = item.split(":");
-              criteria.orderBy(
-                field as FieldPath<T>,
-                (direction as OrderDirection) || "asc"
-              );
-            });
-          }
-        } catch {
-          throw new InvalidCriteriaError(
-            "Invalid JSON array format for orderBy",
-            orderByValue
-          );
-        }
-      } else if (Array.isArray(orderByValue)) {
+      if (Array.isArray(orderByValue)) {
         orderByValue.forEach((item: string) => {
           const [field, direction] = item.split(":");
           criteria.orderBy(
@@ -466,22 +448,6 @@ export class Criteria<T = any> {
           );
         });
       }
-      // 2. orderBy="field:asc,field2:desc"
-      else if (typeof orderByValue === "string" && orderByValue.includes(":")) {
-        const sortParts = orderByValue.split(",");
-        sortParts.forEach((part: string) => {
-          const [field, direction] = part.split(":");
-          criteria.orderBy(
-            field as FieldPath<T>,
-            (direction as OrderDirection) || "asc"
-          );
-        });
-      }
-      // 3. orderBy="field" + orderDirection="asc"
-      else {
-        const direction = (query.orderDirection as OrderDirection) || "asc";
-        criteria.orderBy(orderByValue as FieldPath<T>, direction);
-      }
     }
 
     if (query.search && typeof query.search === "string") {
@@ -489,6 +455,78 @@ export class Criteria<T = any> {
     }
 
     return criteria;
+  }
+
+  toQueryObject(): QueryParamsObject {
+    const obj: QueryParamsObject = {};
+    const json = this.toJSON();
+
+    if (json.filters && json.filters.length > 0) {
+      const filtersObj: Record<string, unknown> = {};
+      for (const filter of json.filters) {
+        let filterKey = `${filter.field}:${filter.operator}`;
+        if (filter.options && filter.options.quantifier) {
+          filterKey += `@${filter.options.quantifier}`;
+        }
+        let value: string | undefined;
+        if (filter.value !== undefined) {
+          if (Array.isArray(filter.value)) {
+            value = JSON.stringify(filter.value);
+          } else {
+            if (filter.value instanceof Date) {
+              value = filter.value.toISOString();
+            } else {
+              value = String(filter.value);
+            }
+          }
+        } else {
+          value = "";
+        }
+        filtersObj[filterKey] = value;
+      }
+      obj.filters = filtersObj;
+    }
+
+    if (json.pagination) {
+      obj.pagination = json.pagination;
+    }
+
+    if (json.orders && json.orders.length > 0) {
+      const sortValue = json.orders.map(
+        (order) => `${order.field}:${order.direction}`
+      );
+      obj.orderBy = sortValue;
+    }
+
+    if (json.search) {
+      obj.search = json.search;
+    }
+
+    return obj;
+  }
+
+  toQueryParams() {
+    const params = new URLSearchParams();
+    const object = this.toQueryObject();
+
+    if (object?.filters) {
+      params.set("filters", JSON.stringify(object.filters));
+    }
+
+    if (object?.pagination) {
+      params.set("page", String(object.pagination.page));
+      params.set("limit", String(object.pagination.limit));
+    }
+
+    if (object?.orderBy) {
+      params.set("orderBy", JSON.stringify(object.orderBy));
+    }
+
+    if (object?.search) {
+      params.set("search", object.search);
+    }
+
+    return params;
   }
 
   private validateOperator(operator: FilterOperator, value: any): void {

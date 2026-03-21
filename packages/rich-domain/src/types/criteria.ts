@@ -80,11 +80,31 @@ export type FilterValueFor<T> =
   | null;
 
 /**
- * Extract the plain object type from an entity
- * For entities with toJSON(), uses the return type of toJSON()
- * Otherwise, uses the type as is
+ * Resolve individual entity prop types for criteria:
+ * - Date → Date (preserved, so DateOperators are used)
+ * - Array<U> → recurse into elements
+ * - Id / ValueObject (value + equals) → unwrap to primitive value
+ * - Everything else → keep as-is
  */
-type ExtractPlainType<T> = T extends { toJSON(): infer R } ? R : T;
+type ResolveEntityProp<T> = T extends Date
+  ? Date
+  : T extends Array<infer U>
+    ? ResolveEntityProp<U>[]
+    : T extends { value: infer V; equals(...args: any[]): any }
+      ? V
+      : T;
+
+/**
+ * Extract the plain object type from an entity for criteria field resolution.
+ * - For entities (with `props`), resolves from raw props preserving Date types.
+ * - For objects with toJSON(), uses the return type of toJSON().
+ * - Otherwise, uses the type as is.
+ */
+type ExtractPlainType<T> = T extends { props: infer P }
+  ? { [K in keyof P]: ResolveEntityProp<P[K]> }
+  : T extends { toJSON(): infer R }
+    ? R
+    : T;
 
 export type PathValue<
   T,
@@ -138,6 +158,13 @@ export interface Pagination {
 }
 
 export type Search = string;
+
+export type QueryParamsObject = {
+  filters?: Record<string, unknown>;
+  pagination?: Omit<Pagination, "offset">;
+  orderBy?: string[];
+  search?: string;
+};
 
 export interface PaginationMeta {
   page: number;

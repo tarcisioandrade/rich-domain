@@ -1,46 +1,46 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { flushSync } from "react-dom";
 import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-  type QueryKey,
-  type UseMutationResult,
-  type InfiniteData,
-} from "@tanstack/react-query";
-import {
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  type PointerSensorOptions,
+  TouchSensor,
+  type UniqueIdentifier,
   useSensor,
   useSensors,
-  PointerSensor,
-  TouchSensor,
-  KeyboardSensor,
-  type UniqueIdentifier,
-  type DragStartEvent,
-  type DragOverEvent,
-  type DragEndEvent,
-  type PointerSensorOptions,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  type QueryKey,
+  type UseMutationResult,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Criteria,
   type FieldPath,
   type PaginatedJsonResult,
 } from "@woltz/rich-domain";
-import { useCriteria } from "./use-criteria";
-import { generateIndexForMove } from "../utils/fractional-index";
-import type {
-  UseCriteriaKanbanOptions,
-  UseCriteriaKanbanReturn,
-  KanbanQueryFn,
-  KanbanColumnData,
-  KanbanColumnDefinition,
-  CardMoveParams,
-  KanbanDndContextProps,
-} from "../types/use-criteria-kanban.type";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type {
   FilterIntegrationProps,
   SearchIntegrationProps,
 } from "@/components/data-view-criteria/data-view-filter/data-view-filter";
+import type {
+  CardMoveParams,
+  KanbanColumnData,
+  KanbanColumnDefinition,
+  KanbanDndContextProps,
+  KanbanQueryFn,
+  UseCriteriaKanbanOptions,
+  UseCriteriaKanbanReturn,
+} from "../types/use-criteria-kanban.type";
+import { generateIndexForMove } from "../utils/fractional-index";
+import { useCriteria } from "./use-criteria";
 
 type InternalCardMoveParams<T> = Omit<CardMoveParams<T>, "insertAfterId">;
 
@@ -158,8 +158,7 @@ export function useCriteriaKanban<T>(
   const queryClient = useQueryClient();
   const baseKey = useMemo(
     () => (Array.isArray(queryKey) ? queryKey : [queryKey]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(queryKey)]
+    [queryKey]
   );
 
   const criteriaState = useCriteria<T>({
@@ -239,8 +238,9 @@ export function useCriteriaKanban<T>(
         );
       });
 
-      if (globalCriteria.hasSearch()) {
-        baseCriteria.search(globalCriteria.getSearch()!);
+      const search = globalCriteria.getSearch();
+      if (search) {
+        baseCriteria.search(search);
       }
 
       const globalOrders = globalCriteria.getOrders();
@@ -260,28 +260,29 @@ export function useCriteriaKanban<T>(
     [criteriaState.criteria, columnPageSize]
   );
 
-  const firstPageQueries = columnDefs.map((columnDef) => {
-    const queryKey = [
-      ...baseKey,
-      "column",
-      columnDef.id,
-      criteriaState.criteria.toJSON(),
-    ];
-
+  // React Query v5 does not provide a useInfiniteQueries (plural) hook.
+  // Calling useInfiniteQuery inside .map() is safe here because columnDefs is
+  // fixed at mount time and never changes order, so hooks are always called in
+  // the same sequence across renders.
+  const firstPageQueries = columnDefs.map((columnDef) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useInfiniteQuery({
-      queryKey,
+    useInfiniteQuery({
+      queryKey: [
+        ...baseKey,
+        "column",
+        columnDef.id,
+        criteriaState.criteria.toJSON(),
+      ],
       queryFn: async ({ pageParam = 1 }) => {
         const columnCriteria = buildColumnCriteria(columnDef, pageParam);
         return fetcher(columnCriteria);
       },
-      getNextPageParam: (lastPage) => {
-        return lastPage.meta.hasNext ? lastPage.meta.page + 1 : undefined;
-      },
+      getNextPageParam: (lastPage) =>
+        lastPage.meta.hasNext ? lastPage.meta.page + 1 : undefined,
       initialPageParam: 1,
       staleTime: 30000,
-    });
-  });
+    })
+  );
 
   const columns: KanbanColumnData<T>[] = useMemo(() => {
     return columnDefs.map((columnDef, index) => {
@@ -646,9 +647,7 @@ export function useCriteriaKanban<T>(
                   activeIndexInFull,
                   overIndexInFull
                 );
-                const newActiveIndex = reorderedIds.findIndex(
-                  (id) => id === activeItemId
-                );
+                const newActiveIndex = reorderedIds.indexOf(activeItemId);
                 toIndex = newActiveIndex;
               } else {
                 toIndex = overIndex;
@@ -883,6 +882,7 @@ export function useCriteriaKanban<T>(
         toIndex,
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       enableDragDrop,
       columnDefs,

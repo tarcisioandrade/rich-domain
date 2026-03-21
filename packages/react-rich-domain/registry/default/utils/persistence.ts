@@ -33,57 +33,10 @@ export function removeCriteriaFromStorage(key: string): void {
   }
 }
 
-export function criteriaToQueryParams<T>(
-  criteria: Criteria<T>
-): URLSearchParams {
-  const params = new URLSearchParams();
-  const json = criteria.toJSON();
-
-  if (json.filters && json.filters.length > 0) {
-    const filtersObj: Record<string, unknown> = {};
-    for (const filter of json.filters) {
-      let filterKey = `${filter.field}:${filter.operator}`;
-      if (filter.options && filter.options.quantifier) {
-        filterKey += `@${filter.options.quantifier}`;
-      }
-      let value: string | undefined;
-      if (filter.value !== undefined) {
-        if (Array.isArray(filter.value)) {
-          value = JSON.stringify(filter.value);
-        } else {
-          value = String(filter.value);
-        }
-      } else {
-        value = "";
-      }
-      filtersObj[filterKey] = value;
-    }
-    params.set("filters", JSON.stringify(filtersObj));
-  }
-
-  if (json.pagination) {
-    params.set("page", String(json.pagination.page));
-    params.set("limit", String(json.pagination.limit));
-  }
-
-  if (json.orders && json.orders.length > 0) {
-    const sortValue = json.orders.map(
-      (order) => `${order.field}:${order.direction}`
-    );
-    params.set("orderBy", JSON.stringify(sortValue));
-  }
-
-  if (json.search) {
-    params.set("search", json.search);
-  }
-
-  return params;
-}
-
 export function syncCriteriaWithUrl<T>(criteria: Criteria<T>): void {
   if (typeof window === "undefined") return;
 
-  const params = criteriaToQueryParams(criteria);
+  const params = criteria.toQueryParams();
   const url = new URL(window.location.href);
   url.search = params.toString();
 

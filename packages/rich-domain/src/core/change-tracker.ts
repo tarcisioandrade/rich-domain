@@ -4,6 +4,7 @@ import { ValueObject } from "./value-object.js";
 import { ArrayState, HistoryEntry, TrackedItem } from "../types/index.js";
 import { EntityChangeState } from "../types/change-tracker.js";
 import { AggregateChanges } from "./aggregate-changes.js";
+import { DomainError } from "../exceptions.js";
 
 /**
  * Callback for validation on property change.
@@ -156,6 +157,10 @@ export class ChangeTracker {
       get: (target, prop, receiver) => {
         const value = Reflect.get(target, prop, receiver);
 
+        if (typeof prop === "symbol") {
+          return value;
+        }
+
         if (this.shouldSkipProperty(prop)) {
           return value;
         }
@@ -187,6 +192,10 @@ export class ChangeTracker {
       },
 
       set: (target, prop, newValue, receiver) => {
+        if (typeof prop === "symbol") {
+          return Reflect.set(target, prop, newValue, receiver);
+        }
+
         const currentPath = this.buildPath(String(prop));
         const oldValue = Reflect.get(target, prop, receiver);
 
@@ -253,6 +262,10 @@ export class ChangeTracker {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
 
+        if (typeof prop === "symbol") {
+          return value;
+        }
+
         if (typeof value === "function") {
           const mutatingMethods = [
             "push",
@@ -315,6 +328,10 @@ export class ChangeTracker {
       },
 
       set(target, prop, newValue, receiver) {
+        if (typeof prop === "symbol") {
+          return Reflect.set(target, prop, newValue, receiver);
+        }
+
         if (!isNaN(Number(prop))) {
           const oldArray = target.slice();
 
@@ -1045,7 +1062,8 @@ export class ChangeTracker {
 
     try {
       return this.hasChanged(a, b) === false;
-    } catch {
+    } catch (error) {
+      if (error instanceof DomainError) throw error;
       return this.deepEqual(a, b);
     }
   }
@@ -1095,9 +1113,52 @@ export class ChangeTracker {
   }
 
   private hasChanged(obj1: any, obj2: any): boolean {
-    const json1 = this.normalizeAndStringify(this.deepClone(obj1));
-    const json2 = this.normalizeAndStringify(this.deepClone(obj2));
-    return json1 !== json2;
+    return this.toCanonicalString(obj1) !== this.toCanonicalString(obj2);
+  }
+
+  private toCanonicalString(obj: any, visited = new WeakSet()): string {
+    if (obj === null || typeof obj !== "object") {
+      return JSON.stringify(obj);
+    }
+    if (visited.has(obj)) {
+      this.throwCircularReferenceError(obj);
+    }
+
+    visited.add(obj);
+
+    if (obj instanceof Id || obj instanceof ValueObject) {
+      return JSON.stringify(obj.value);
+    }
+
+    if (typeof obj.toJSON === "function") {
+      try {
+        return this.toCanonicalString(obj.toJSON(), visited);
+      } catch (error) {
+        if (error instanceof DomainError) throw error;
+        this.throwCircularReferenceError(obj);
+      }
+    }
+
+    if (Array.isArray(obj)) {
+      const entries = obj.map((item) => this.toCanonicalString(item, visited));
+      return `[${entries.join(",")}]`;
+    }
+
+    const sortedKeys = Object.keys(obj).sort();
+    const resultParts = sortedKeys.map((key) => {
+      const value = this.toCanonicalString(obj[key], visited);
+      return `${JSON.stringify(key)}:${value}`;
+    });
+
+    return `{${resultParts.join(",")}}`;
+  }
+
+  private throwCircularReferenceError(obj: any): void {
+    const className = obj.constructor?.name || "Unknown";
+    throw new DomainError(
+      `Circular reference detected in object comparison: ${className}`,
+      "CIRCULAR_REFERENCE_ERROR"
+    );
   }
 
   private cloneArray(arr: any[]): any[] {
@@ -1140,24 +1201,6 @@ export class ChangeTracker {
       }
       return cloned;
     }
-  }
-
-  private normalizeAndStringify(obj: any): string {
-    if (obj === null || typeof obj !== "object") {
-      return JSON.stringify(obj);
-    }
-
-    if (Array.isArray(obj)) {
-      return `[${obj
-        .map((item) => this.normalizeAndStringify(item))
-        .join(",")}]`;
-    }
-
-    const keys = Object.keys(obj).sort();
-    const parts = keys.map(
-      (key) => `"${key}":${this.normalizeAndStringify(obj[key])}`
-    );
-    return `{${parts.join(",")}}`;
   }
 
   getHistory(): HistoryEntry[] {

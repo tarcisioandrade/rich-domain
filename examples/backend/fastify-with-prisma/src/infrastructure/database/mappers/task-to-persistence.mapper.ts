@@ -35,10 +35,7 @@ export class PrismaTaskToPersistenceMapper extends PrismaToPersistence<
     });
   }
 
-  protected async onUpdate(
-    _task: Task,
-    changes: AggregateChanges
-  ): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });

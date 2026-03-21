@@ -39,7 +39,7 @@
     "postbuild": "node postbuild.js",
     "test": "echo 'No tests yet'",
     "test:watch": "echo 'No tests yet'",
-    "check": "tsc --noEmit",
+    "check": "tsc -b --noEmit",
     "coverage": "echo 'No coverage yet'",
     "lint": "echo 'No linting yet'",
     "clean": "rm -rf dist coverage node_modules",

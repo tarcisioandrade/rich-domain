@@ -1,4 +1,3 @@
-import { criteriaToQueryParams } from "@/utils/persistence";
 import type { Criteria, PaginatedJsonResult } from "@woltz/rich-domain";
 
 const API_BASE_URL = "http://localhost:3000";
@@ -29,7 +28,7 @@ export type Task = {
 export async function getTasks(
   criteria: Criteria<Task>
 ): Promise<PaginatedJsonResult<Task>> {
-  const params = criteriaToQueryParams(criteria);
+  const params = criteria.toQueryParams();
   const url = `${API_BASE_URL}/tasks?${params.toString()}`;
 
   const response = await fetch(url);

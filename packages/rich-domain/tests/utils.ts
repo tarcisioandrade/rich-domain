@@ -251,6 +251,12 @@ export class InMemoryRepository<
     return PaginatedResult.fromArray(allItems, criteria);
   }
 
+  async findManyByIds(ids: string[]): Promise<TDomain[]> {
+    return ids
+      .map((id) => this.items.get(id) as TDomain)
+      .filter((item) => item !== null);
+  }
+
   async findAll(criteria?: Criteria<TDomain>): Promise<TDomain[]> {
     if (criteria) {
       const result = await this.find(criteria);

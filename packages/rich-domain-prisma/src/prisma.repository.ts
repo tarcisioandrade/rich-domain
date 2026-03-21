@@ -9,6 +9,7 @@ import {
 } from "@woltz/rich-domain";
 import { PrismaClientLike, PrismaUnitOfWork, UOWStorage } from "./unit-of-work";
 import { ModelNotFoundError, NoRecordsAffectedError } from "./errors";
+import { PrismaToPersistence } from "./prisma.mapper";
 
 export interface PrismaRepositoryConfig {
   prisma: PrismaClientLike;
@@ -26,7 +27,10 @@ export abstract class PrismaRepository<
   TContext = PrismaClientLike,
 > extends Repository<TDomain> {
   constructor(
-    protected readonly toPersistenceMapper: Mapper<TDomain, void>,
+    protected readonly toPersistenceMapper: PrismaToPersistence<
+      TDomain,
+      TContext
+    >,
     protected readonly toDomainMapper: Mapper<TPersistence, TDomain>,
     private readonly prisma: TContext,
     public readonly uow: PrismaUnitOfWork
@@ -83,7 +87,7 @@ export abstract class PrismaRepository<
    * Get model accessor from context.
    * Throws ModelNotFoundError if model doesn't exist.
    */
-  protected get modelAccessor(): any {
+  private get modelAccessor(): any {
     const model = (this.context as any)[this.model];
 
     if (!model) {
@@ -369,7 +373,8 @@ export abstract class PrismaRepository<
       if (
         source[key] &&
         typeof source[key] === "object" &&
-        !Array.isArray(source[key])
+        !Array.isArray(source[key]) &&
+        !(source[key] instanceof Date)
       ) {
         if (!target[key]) target[key] = {};
         this.mergeDeep(target[key], source[key]);

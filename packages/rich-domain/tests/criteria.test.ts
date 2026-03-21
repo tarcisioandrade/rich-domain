@@ -1,7 +1,7 @@
 import { Aggregate, Id, Pagination } from "../src";
 import { Criteria } from "../src/criteria";
 import { PaginatedResult } from "../src/repository/paginated-result";
-import { CriteriaAdapter } from "../src/types";
+import { CriteriaAdapter, QueryParamsObject } from "../src/types";
 import { Post } from "./utils";
 
 interface TestUserProps {
@@ -215,8 +215,8 @@ describe("Criteria", () => {
     it("should filter by between", () => {
       const criteria = Criteria.create<TestUser>().whereBetween(
         "createdAt",
-        "2024-01-01",
-        "2024-02-01"
+        new Date("2024-01-01"),
+        new Date("2024-02-01")
       );
       const result = PaginatedResult.fromArray(testUsers, criteria);
       expect(result.data).toHaveLength(2);
@@ -410,14 +410,13 @@ describe("Criteria", () => {
 
   describe("Criteria from Query Params", () => {
     it("should create criteria from query params", () => {
-      const queryParams = {
+      const queryParams: QueryParamsObject = {
         filters: {
           "status:equals": "active",
           "age:greaterThan": "25",
         },
-        orderBy: "age:desc",
-        page: "1",
-        limit: "2",
+        orderBy: ["age:desc"],
+        pagination: { page: 1, limit: 2 },
       };
 
       const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
@@ -428,39 +427,8 @@ describe("Criteria", () => {
       expect(criteria.getPagination()?.limit).toBe(2);
     });
 
-    it("should support legacy orderBy format (orderBy + orderDirection)", () => {
-      const queryParams = {
-        orderBy: "name",
-        orderDirection: "desc",
-      };
-
-      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
-      const orders = criteria.getOrders();
-
-      expect(orders).toHaveLength(1);
-      expect(orders[0].field).toBe("name");
-      expect(orders[0].direction).toBe("desc");
-    });
-
-    it("should support comma-separated orderBy format with multiple fields", () => {
-      const queryParams = {
-        orderBy: "name:asc,email:desc,age:asc",
-      };
-
-      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
-      const orders = criteria.getOrders();
-
-      expect(orders).toHaveLength(3);
-      expect(orders[0].field).toBe("name");
-      expect(orders[0].direction).toBe("asc");
-      expect(orders[1].field).toBe("email");
-      expect(orders[1].direction).toBe("desc");
-      expect(orders[2].field).toBe("age");
-      expect(orders[2].direction).toBe("asc");
-    });
-
     it("should parse search from query params", () => {
-      const queryParams = {
+      const queryParams: QueryParamsObject = {
         search: "john doe",
       };
 
@@ -468,21 +436,6 @@ describe("Criteria", () => {
 
       expect(criteria.hasSearch()).toBe(true);
       expect(criteria.getSearch()).toBe("john doe");
-    });
-
-    it("should support JSON array orderBy format", () => {
-      const queryParams = {
-        orderBy: '["name:desc","email:asc"]',
-      };
-
-      const criteria = Criteria.fromQueryParams<TestUser>(queryParams);
-      const orders = criteria.getOrders();
-
-      expect(orders).toHaveLength(2);
-      expect(orders[0].field).toBe("name");
-      expect(orders[0].direction).toBe("desc");
-      expect(orders[1].field).toBe("email");
-      expect(orders[1].direction).toBe("asc");
     });
   });
 
@@ -542,7 +495,7 @@ describe("Criteria", () => {
       });
 
       it("should parse quantifier from query params with @some", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.title:contains@some": "test",
           },
@@ -560,7 +513,7 @@ describe("Criteria", () => {
       });
 
       it("should work with in operator and quantifier", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.title:in@some": ["test1", "test2", "test3"],
           },
@@ -577,7 +530,7 @@ describe("Criteria", () => {
       });
 
       it("should work with object stringified in query params", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.title:in@some": JSON.stringify(["test1", "test2", "test3"]),
           },
@@ -594,7 +547,7 @@ describe("Criteria", () => {
       });
 
       it("should work with between operator and quantifier", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.likes:between@some": ["10", "100"],
           },
@@ -611,7 +564,7 @@ describe("Criteria", () => {
       });
 
       it("should throw error for invalid quantifier", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.title:contains@invalid": "test",
           },
@@ -623,7 +576,7 @@ describe("Criteria", () => {
       });
 
       it("should handle multiple filters with mixed quantifiers", () => {
-        const queryParams = {
+        const queryParams: QueryParamsObject = {
           filters: {
             "posts.title:contains@some": "test",
             "posts.content:equals@every": "content",
@@ -724,7 +677,7 @@ describe("Criteria", () => {
     });
 
     it("should resolve field path from query params", () => {
-      const queryParams = {
+      const queryParams: QueryParamsObject = {
         filters: {
           "posts:contains": "test",
         },

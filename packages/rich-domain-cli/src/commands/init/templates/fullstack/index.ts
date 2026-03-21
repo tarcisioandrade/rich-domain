@@ -93,7 +93,7 @@ export class FullstackTemplate extends BaseTemplate {
       "db:studio": "prisma studio",
       "db:seed": "tsx prisma/seed.ts",
       "domain:generate": "rich-domain generate",
-      lint: "tsc --noEmit",
+      lint: "tsc -b --noEmit",
       "docker:up": "docker-compose up -d",
       "docker:down": "docker-compose down",
       "worker:start": "tsx watch src/worker.ts",
