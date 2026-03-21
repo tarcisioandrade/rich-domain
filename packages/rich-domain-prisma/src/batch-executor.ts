@@ -41,7 +41,7 @@ export class PrismaBatchExecutor {
   constructor(
     private readonly context: PrismaClientLike | PrismaTransactionClient,
     private readonly config: BatchExecutorConfig
-  ) {}
+  ) { }
 
   /**
    * Execute all batch operations.

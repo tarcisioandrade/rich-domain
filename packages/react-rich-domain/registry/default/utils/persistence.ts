@@ -62,8 +62,7 @@ export function criteriaToQueryParams<T>(
   }
 
   if (json.pagination) {
-    params.set("page", String(json.pagination.page));
-    params.set("limit", String(json.pagination.limit));
+    params.set("pagination", JSON.stringify(json.pagination));
   }
 
   if (json.orders && json.orders.length > 0) {
