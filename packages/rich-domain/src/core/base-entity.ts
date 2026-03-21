@@ -1,12 +1,12 @@
 import { ValidationError } from "../validation-error.js";
 import {
-    BaseProps,
-    HistoryEntry,
-    DeepJsonResult,
-    EntityHooks,
-    ValidationConfig,
-    StandardSchema,
-    EntityValidation,
+  BaseProps,
+  HistoryEntry,
+  DeepJsonResult,
+  EntityHooks,
+  ValidationConfig,
+  StandardSchema,
+  EntityValidation,
 } from "../types/index.js";
 import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
 import { DomainError } from "../exceptions.js";

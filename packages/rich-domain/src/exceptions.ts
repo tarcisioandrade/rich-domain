@@ -98,7 +98,12 @@ export class ForbiddenError extends DomainException {
   public readonly action?: string;
   public readonly userId?: string;
 
-  constructor(message?: string, resource?: string, action?: string, userId?: string) {
+  constructor(
+    message?: string,
+    resource?: string,
+    action?: string,
+    userId?: string
+  ) {
     const defaultMessage =
       message || "You don't have permission to perform this action";
 

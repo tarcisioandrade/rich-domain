@@ -405,7 +405,8 @@ describe("Deep Change Tracking", () => {
 
       expect(root.getChanges().hasChanges()).toBe(false);
 
-      root.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.value = "level10-changed";
+      root.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.child!.props.value =
+        "level10-changed";
 
       const rootChanges = root.getChanges();
       expect(rootChanges.hasChanges()).toBe(true);
