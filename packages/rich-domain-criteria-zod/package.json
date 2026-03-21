@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-criteria-zod",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Zod integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",
