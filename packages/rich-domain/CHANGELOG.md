@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.5](https://github.com/tarcisioandrade/rich-domain/compare/v1.0.2...v1.8.5) (2026-03-21)
+
+
+### Features
+
+* add ApplicationError class for general application errors ([4272287](https://github.com/tarcisioandrade/rich-domain/commit/4272287a7e4084999ad28e7be410d8d444284dc0))
+* add mock data service and configuration for development environment ([1ed0a2c](https://github.com/tarcisioandrade/rich-domain/commit/1ed0a2c57e7c273d45f105bfe351e1f9bc5a1d93))
+* add new error classes for better error handling including ([3b12120](https://github.com/tarcisioandrade/rich-domain/commit/3b121200a040da6d21cb1f44afdf1c4e7508f5f2))
+* add overColumnId to track hovered column during drag in Kanban component ([354d4fa](https://github.com/tarcisioandrade/rich-domain/commit/354d4fa225f0ab5b692887d35ce14c545febfa15))
+
+
+### Bug Fixes
+
+* enhance betweenTuple function to support parsing array-like strings ([5715a4c](https://github.com/tarcisioandrade/rich-domain/commit/5715a4c685e096ffa557bde64bebc3b3170d184f))
+* incorrect criteria query value ([7dba841](https://github.com/tarcisioandrade/rich-domain/commit/7dba8411b45519509d6595f3da2be42f8465a4ca))
+* lint ([24c7daf](https://github.com/tarcisioandrade/rich-domain/commit/24c7daf69ebab533d5da5663112214ef23c41478))
+
+
+### Documentation
+
+* add live demo to components documentation ([1fa16b6](https://github.com/tarcisioandrade/rich-domain/commit/1fa16b6e6f1540dd99f6c50eeaa2acada914b8da))
+* change prisma adapter docs to new batch executor params order ([5ac9f7c](https://github.com/tarcisioandrade/rich-domain/commit/5ac9f7c574d252f882d75f970ea14f5dd39670ba))
+* update navbar label from "Get Started" to "Github" in docs.json ([3a1ed9f](https://github.com/tarcisioandrade/rich-domain/commit/3a1ed9f6272de8925bcd0818630385a35e38867d))
+
+
+### Tests
+
+* enhance deep tracking tests by adding a new case for detecting changes ([5b23479](https://github.com/tarcisioandrade/rich-domain/commit/5b23479ae6d46936158944ee9e88eb60e72c47c9))
+
+
+### Refactoring
+
+* abstract many properties into unique criteria prop ([9d400c0](https://github.com/tarcisioandrade/rich-domain/commit/9d400c0128a6d076bd0e6c84bae5675214c33694))
+* enhance ChangeTracker to handle circular references and improve object comparison logic ([19c6e70](https://github.com/tarcisioandrade/rich-domain/commit/19c6e7053655d40de4a1f40abfd107fee9a69134))
+* enhance data table criteria component with loading states and error handling ([b600bf4](https://github.com/tarcisioandrade/rich-domain/commit/b600bf456ef6b250a91815fe84fd9fe29463797b))
+* improve Criteria class to use QueryParamsObject and streamline query handling ([a790fd1](https://github.com/tarcisioandrade/rich-domain/commit/a790fd184942cb8607938845b94088132bcf4ebd))
+* remove unused parameters from onUpdate methods in persistence mappers ([219e743](https://github.com/tarcisioandrade/rich-domain/commit/219e743b67c0e1d8394a7655d9f46b5ffb6e972f))
+* simplify orderBy type definition and enhance enum transformation in zod criteria builder ([0528dbd](https://github.com/tarcisioandrade/rich-domain/commit/0528dbd90f0001aea9250db8439c05f6928e8ce5))
+* streamline localStorage operations in persistence utility functions ([c40e22a](https://github.com/tarcisioandrade/rich-domain/commit/c40e22a5343b3c6bc1f4d3120f8ed485ec3946dc))
+* update entity validation and hooks in domain models for consistency ([8abf41d](https://github.com/tarcisioandrade/rich-domain/commit/8abf41df86a4e1610aa65dd3ae3348480bc4d637))
+* update onUpdate method signature and improve PrismaRepository ([f280d5e](https://github.com/tarcisioandrade/rich-domain/commit/f280d5e543e4f3d0879d69cf3981a77007ce42dd))
+* update pagination handling in criteriaToQueryParams and clean up imports in base-entity ([3378092](https://github.com/tarcisioandrade/rich-domain/commit/33780920b52c4accb25f9d64bf76720d0ba01891))
+* use criteria registry rebuild ([c659eca](https://github.com/tarcisioandrade/rich-domain/commit/c659eca194c3ed520610cf15299fc3337d80825d))
+
+
+### Chores
+
+* add 'lint' to commitlint configuration ([40f37ab](https://github.com/tarcisioandrade/rich-domain/commit/40f37ab267aa727fc29ef1f42cab770f652c8c00))
+* update dependencies and improve CI workflow ([e217d90](https://github.com/tarcisioandrade/rich-domain/commit/e217d90cd64a6ba2065e050e746e896c597d6130))
+* update package dependencies and improve TypeScript build commands ([74c23b0](https://github.com/tarcisioandrade/rich-domain/commit/74c23b03d9de1b89a5e378e16a6607ced303085c))
+* update pre-commit script ([3c3fbf5](https://github.com/tarcisioandrade/rich-domain/commit/3c3fbf5ca5408451c243fc4313fa58c383bdf89f))
+
 ### [1.8.4](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.3...v1.8.4) (2026-01-25)
 
 ### Features
