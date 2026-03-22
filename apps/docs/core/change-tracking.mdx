@@ -123,6 +123,30 @@ console.log(changes.isEmpty()); // true
 Always call `markAsClean()` after successfully persisting. Otherwise, the same changes will be detected again.
 </Warning>
 
+### After First Save (INSERT)
+
+When persisting an entity for the first time, use `markAsPersisted()` instead of `markAsClean()`. This method also marks the Id as not-new, ensuring subsequent saves trigger UPDATE operations instead of INSERT:
+
+```typescript
+// First save (INSERT)
+await repository.save(order);
+
+// Mark as persisted - clears changes AND marks Id as not-new
+order.markAsPersisted();
+
+console.log(order.isNew());          // false (was true before)
+console.log(order.getChanges().isEmpty()); // true
+
+// Now future saves will be UPDATEs
+order.updateStatus("confirmed");
+await repository.save(order);  // This triggers an UPDATE, not INSERT
+```
+
+<Info>
+`markAsPersisted()` recursively marks all nested entities as persisted too.
+Use `markAsClean()` when you only need to reset change tracking without affecting the Id state (e.g., after UPDATEs).
+</Info>
+
 ## Batch Operations
 
 For efficient database persistence, use `toBatchOperations()` to group changes by entity:
@@ -559,6 +583,26 @@ class Order extends Aggregate<OrderProps> {
 const changes = order.getTypedChanges();
 const items = changes.for("OrderItem"); // Fully typed!
 ```
+
+<Tip>
+We strongly recommend defining a `getTypedChanges()` helper method directly in your Aggregate class. This provides a cleaner API and avoids repeating the entity map every time:
+
+```typescript
+class Order extends Aggregate<OrderProps> {
+  getTypedChanges() {
+    interface Entities {
+      OrderItem: OrderItem;
+      ItemDiscount: ItemDiscount;
+    }
+    return this.getChanges<Entities>();
+  }
+}
+
+// Usage - clean and type-safe
+const changes = order.getTypedChanges();
+const items = changes.for("OrderItem"); // Autocomplete works!
+```
+</Tip>
 
 ## Complete Example with Prisma
 ```typescript

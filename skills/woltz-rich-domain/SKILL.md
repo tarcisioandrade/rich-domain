@@ -75,7 +75,6 @@ class Post extends Entity<PostProps> {
 import {
   Aggregate,
   Id,
-  EntityHooks,
   type EntityValidation,
   type EntityHooks,
 } from "@woltz/rich-domain";

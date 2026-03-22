@@ -23,53 +23,40 @@ app.get("/users", (req, res) => {
 
 ### Query Parameter Format
 
-Filters follow the pattern: `field:operator=value`
-
-```
-GET /users?name:contains=john&age:greaterThan=18&status:equals=active
-```
+Filters follow the pattern: `field:operator=value`, nested under the `filters` key:
 
 ```typescript
 const criteria = Criteria.fromQueryParams<User>({
-  "name:contains": "john",
-  "age:greaterThan": "18",
-  "status:equals": "active",
+  filters: {
+    "name:contains": "john",
+    "age:greaterThan": "18",
+    "status:equals": "active",
+  },
 });
 ```
 
 ### Supported Parameters
 
-| Parameter       | Format                          | Example                           |
-| --------------- | ------------------------------- | --------------------------------- |
-| Filter          | `field:operator=value`          | `age:greaterThan=18`              |
-| Ordering        | `orderBy=field:direction`       | `orderBy=createdAt:desc`          |
-| Multiple orders | `orderBy=field1:dir,field2:dir` | `orderBy=featured:desc,price:asc` |
-| Page            | `page=number`                   | `page=2`                          |
-| Limit           | `limit=number`                  | `limit=20`                        |
-| Search          | `search=query`                  | `search=laptop`                 
+| Parameter       | Key in `QueryParamsObject`    | Type                              | Example                                      |
+| --------------- | ----------------------------- | --------------------------------- | -------------------------------------------- |
+| Filters         | `filters`                     | `Record<string, unknown>`         | `{ "age:greaterThan": "18" }`                |
+| Ordering        | `orderBy`                     | `string[]`                        | `["createdAt:desc"]`                         |
+| Multiple orders | `orderBy`                     | `string[]`                        | `["featured:desc", "price:asc"]`             |
+| Pagination      | `pagination`                  | `{ page: number, limit: number }` | `{ page: 2, limit: 20 }`                     |
+| Search          | `search`                      | `string`                          | `"laptop"`                                   |
 
-### Complete URL Example
-
-```
-GET /products?
-  status:equals=active&
-  price:lessThanOrEqual=100&
-  category:in=electronics,accessories&
-  search=wireless&
-  orderBy=featured:desc,price:asc&
-  page=1&
-  limit=24
-```
+### Complete Example
 
 ```typescript
 const criteria = Criteria.fromQueryParams<Product>({
-  "status:equals": "active",
-  "price:lessThanOrEqual": "100",
-  "category:in": "electronics,accessories",
+  filters: {
+    "status:equals": "active",
+    "price:lessThanOrEqual": "100",
+    "category:in": ["electronics", "accessories"],
+  },
   search: "wireless",
-  orderBy: "featured:desc,price:asc",
-  page: "1",
-  limit: "24",
+  orderBy: ["featured:desc", "price:asc"],
+  pagination: { page: 1, limit: 24 },
 });
 ```
 
@@ -97,14 +84,12 @@ Values are automatically parsed to their correct types:
 
 ### Nested Fields in Query Params
 
-```
-GET /users?profile.location.city:equals=New York&settings.theme:equals=dark
-```
-
 ```typescript
 const criteria = Criteria.fromQueryParams<User>({
-  "profile.location.city:equals": "New York",
-  "settings.theme:equals": "dark",
+  filters: {
+    "profile.location.city:equals": "New York",
+    "settings.theme:equals": "dark",
+  },
 });
 ```
 
@@ -112,15 +97,13 @@ const criteria = Criteria.fromQueryParams<User>({
 
 Use `@quantifier` suffix for array field quantifiers:
 
-```
-GET /users?posts.views:greaterThan@some=1000
-GET /users?posts.published:equals@every=true
-GET /users?comments.flagged:equals@none=true
-```
-
 ```typescript
 const criteria = Criteria.fromQueryParams<User>({
-  "posts.views:greaterThan@some": "1000", // Any post with > 1000 views
+  filters: {
+    "posts.views:greaterThan@some": "1000",   // Any post with > 1000 views
+    "posts.published:equals@every": "true",   // All posts published
+    "comments.flagged:equals@none": "true",   // No flagged comments
+  },
 });
 ```
 
@@ -275,6 +258,52 @@ Result:
   "search": 'john'
 }
 ```
+
+### toQueryObject()
+
+Convert criteria to a `QueryParamsObject` — useful when you need the structured object before converting to URL params:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .where("age", "greaterThan", 18)
+  .orderByDesc("createdAt")
+  .paginate(2, 20);
+
+const obj = criteria.toQueryObject();
+// {
+//   filters: { "status:equals": "active", "age:greaterThan": "18" },
+//   orders: [{ field: "createdAt", direction: "desc" }],  ← resolved via adapter
+//   orderBy: ["createdAt:desc"],
+//   pagination: { page: 2, limit: 20, offset: 20 },
+// }
+```
+
+### toQueryParams()
+
+Convert criteria directly to `URLSearchParams` for use in HTTP requests:
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("status", "active")
+  .orderByDesc("createdAt")
+  .paginate(1, 20);
+
+const params = criteria.toQueryParams();
+// URLSearchParams {
+//   filters → '{"status:equals":"active"}',
+//   orderBy → '["createdAt:desc"]',
+//   page    → "1",
+//   limit   → "20",
+// }
+
+// Use in fetch
+const response = await fetch(`/api/users?${params.toString()}`);
+```
+
+<Note>
+  `toQueryParams()` and `fromQueryParams()` use the `QueryParamsObject` structure (with a `filters` key). When integrating with an HTTP server, parse the `filters` query param as JSON before passing it to `fromQueryParams`.
+</Note>
 
 ### fromObject()
 
@@ -466,7 +495,7 @@ function useCriteriaQueryString<T>(criteria: Criteria<T>): string {
 
   // Add search
   if (json.search) {
-    params.set("search", json.search.value);
+    params.set("search", json.search);
   }
 
   return params.toString();

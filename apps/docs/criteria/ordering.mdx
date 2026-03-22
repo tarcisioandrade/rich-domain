@@ -302,10 +302,8 @@ type OrderDirection = "asc" | "desc";
 ### Ordering via Query Params
 
 ```typescript
-// URL: /products?orderBy=price:asc,createdAt:desc
-
 const criteria = Criteria.fromQueryParams<Product>({
-  orderBy: "price:asc,createdAt:desc",
+  orderBy: ["price:asc", "createdAt:desc"],
 });
 
 // Creates orders:
@@ -316,11 +314,8 @@ const criteria = Criteria.fromQueryParams<Product>({
 ### Pagination via Query Params
 
 ```typescript
-// URL: /products?page=2&limit=20
-
 const criteria = Criteria.fromQueryParams<Product>({
-  page: "2",
-  limit: "20",
+  pagination: { page: 2, limit: 20 },
 });
 
 criteria.getPagination();
@@ -340,14 +335,13 @@ const criteria = Criteria.fromQueryParams<Product>({
 ### Complete URL Example
 
 ```typescript
-// URL: /products?status:equals=active&price:lessThan=100&search=laptop&orderBy=price:asc&page=1&limit=20
-
 const criteria = Criteria.fromQueryParams<Product>({
-  "status:equals": "active",
-  "price:lessThan": "100",
-  "search": "laptop",
-  "orderBy": "price:asc",
-  "page": "1",
-  "limit": "20",
+  filters: {
+    "status:equals": "active",
+    "price:lessThan": "100",
+  },
+  search: "laptop",
+  orderBy: ["price:asc"],
+  pagination: { page: 1, limit: 20 },
 });
 ```

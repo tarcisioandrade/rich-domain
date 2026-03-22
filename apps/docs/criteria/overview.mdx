@@ -199,14 +199,13 @@ const criteria = Criteria.fromObject<User>({
 Perfect for REST APIs:
 
 ```typescript
-// URL: /users?status:equals=active&age:greaterThan=18&orderBy=createdAt:desc&page=1&limit=20
-
 const criteria = Criteria.fromQueryParams<User>({
-  "status:equals": "active",
-  "age:greaterThan": "18",
-  orderBy: "createdAt:desc",
-  page: "1",
-  limit: "20",
+  filters: {
+    "status:equals": "active",
+    "age:greaterThan": "18",
+  },
+  orderBy: ["createdAt:desc"],
+  pagination: { page: 1, limit: 20 },
 });
 ```
 

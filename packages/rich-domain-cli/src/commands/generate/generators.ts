@@ -632,8 +632,8 @@ function generateToPersistenceMapper(model: PrismaModel): string {
 
   // onUpdate method
   lines.push(`  protected async onUpdate(`);
-  lines.push(`    entity: ${model.name},`);
-  lines.push("    changes: AggregateChanges");
+  lines.push("    changes: AggregateChanges,");
+  lines.push(`    entity: ${model.name}`);
   lines.push("  ): Promise<void> {");
   lines.push("    const executor = new PrismaBatchExecutor(this.context, {");
   lines.push("      registry: this.registry,");

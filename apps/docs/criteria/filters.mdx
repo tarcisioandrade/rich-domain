@@ -274,9 +274,10 @@ criteria.whereNone("comments.likes", "lessThan", 0);
 ### With Query Params
 
 ```typescript
-// URL: /users?posts.views:greaterThan@some=100
 const criteria = Criteria.fromQueryParams<User>({
-  "posts.views:greaterThan@some": "100",
+  filters: {
+    "posts.views:greaterThan@some": "100",
+  },
 });
 ```
 
@@ -307,7 +308,7 @@ function searchUsers(query: string, filters: UserFilters) {
   }
 
   if (query) {
-    criteria = criteria.search(["name", "email", "bio"], query);
+    criteria = criteria.search(query);
   }
 
   return criteria.orderByDesc("createdAt").paginate(1, 20);

@@ -236,23 +236,29 @@ console.log(existingOrder.isNew()); // false
 ```typescript
 new Id(); // Generates UUID, isNew = true
 new Id("value"); // Uses provided value, isNew = false
+// With explicit isNew flag
+new Id("value", true);   // Uses provided value, isNew = true (override)
+new Id("value", false);  // Uses provided value, isNew = false (default)
 ```
 
 ### Static Methods
 
-| Method           | Description                               |
-| ---------------- | ----------------------------------------- |
-| `Id.create()`    | Creates a new Id with auto-generated UUID |
-| `Id.from(value)` | Creates an Id from an existing value      |
+| Method              | Description                                            |
+| ------------------- | ------------------------------------------------------ |
+| `Id.create()`       | Creates a new Id with auto-generated UUID              |
+| `Id.from(value)`    | Creates an Id from an existing value                   |
+| `Id.compose(a, b)`  | Composes two IDs (Id or string) into a single string   |
 
 ### Instance Methods
 
-| Method          | Returns   | Description                              |
-| --------------- | --------- | ---------------------------------------- |
-| `isNew()`       | `boolean` | True if ID was auto-generated            |
-| `equals(other)` | `boolean` | Compare with Id or string                |
-| `toString()`    | `string`  | Returns the ID value                     |
-| `toJSON()`      | `string`  | Returns the ID value (for serialization) |
+| Method             | Returns   | Description                                     |
+| ------------------ | --------- | ----------------------------------------------- |
+| `isNew()`          | `boolean` | True if ID was auto-generated                   |
+| `equals(other)`    | `boolean` | Compare with Id or string                       |
+| `toString()`       | `string`  | Returns the ID value                            |
+| `toJSON()`         | `string`  | Returns the ID value (for serialization)        |
+| `markAsNotNew()`   | `void`    | Marks the Id as not new (after persisting)      |
+| `markAsNew()`      | `void`    | Marks the Id as new                             |
 
 ### Properties
 

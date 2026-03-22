@@ -437,8 +437,8 @@ class UserToPersistence extends PrismaToPersistence<User> {
   }
 
   protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    user: User
   ): Promise<void> {
     // Automatic batch operations handling
   }
@@ -489,7 +489,7 @@ const id = Id.create(); // Generate new UUID
 const existingId = Id.from("uuid-string"); // From existing value
 
 console.log(id.value); // string
-console.log(id.isNew); // boolean
+console.log(id.isNew()); // boolean
 console.log(id.equals(otherId)); // boolean
 ```
 
@@ -500,7 +500,7 @@ Base class for entities:
 ```typescript
 abstract class Entity<T extends { id: Id }> {
   get id(): Id;
-  get isNew(): boolean;
+  isNew(): boolean;
   equals(other: Entity<T>): boolean;
   toJSON(): object;
 }
@@ -518,7 +518,7 @@ abstract class Aggregate<T extends { id: Id }> extends Entity<T> {
   protected addDomainEvent(event: IDomainEvent): void;
   getUncommittedEvents(): IDomainEvent[];
   clearEvents(): void;
-  dispatchAll(bus: DomainEventBus): Promise<void>;
+  dispatchAll(bus: IDomainEventBus): Promise<void>;
 }
 ```
 
@@ -528,11 +528,11 @@ Immutable object compared by value:
 
 ```typescript
 abstract class ValueObject<T> {
-  protected readonly props: T;
+  readonly value: T;
 
   equals(other: ValueObject<T>): boolean;
   toJSON(): T;
-  protected clone(updates: Partial<T>): this;
+  protected clone(value: T): this;
 }
 ```
 

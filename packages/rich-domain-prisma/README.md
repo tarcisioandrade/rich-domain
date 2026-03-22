@@ -193,7 +193,10 @@ class UserRepository extends PrismaRepository<User, UserPersistence> {
 Base class for persistence mappers with change tracking support.
 
 ```typescript
-abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
+abstract class PrismaToPersistence<
+  TDomain,
+  PrismaClient = PrismaClientLike,
+> extends Mapper<TDomain, void> {
   // Required: registry for field mapping
   protected abstract readonly registry: EntitySchemaRegistry;
 
@@ -202,8 +205,8 @@ abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
 
   // Required: implement update
   protected abstract onUpdate(
-    entity: TDomain,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    entity: TDomain
   ): Promise<void>;
 
   // Available: current context (transaction or prisma)
@@ -214,6 +217,7 @@ abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
 #### Complete Example
 
 ```typescript
+import type { PrismaClient } from "@prisma/client";
 import {
   PrismaToPersistence,
   PrismaBatchExecutor,
@@ -237,7 +241,7 @@ const schemaRegistry = new EntitySchemaRegistry()
     },
   });
 
-class UserToPersistenceMapper extends PrismaToPersistence<User> {
+class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
   protected readonly registry = schemaRegistry;
 
   protected async onCreate(user: User): Promise<void> {
@@ -268,8 +272,8 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
   }
 
   protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    user: User
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
@@ -428,7 +432,10 @@ class OrderRepository extends PrismaRepository<Order> {
 ### Mapper with Complex Relations
 
 ```typescript
-class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
+class OrderToPersistenceMapper extends PrismaToPersistence<
+  Order,
+  PrismaClient
+> {
   protected readonly registry = new EntitySchemaRegistry()
     .register({ entity: "Order", table: "order" })
     .register({
@@ -469,8 +476,8 @@ class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   }
 
   protected async onUpdate(
-    order: Order,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    order: Order
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,

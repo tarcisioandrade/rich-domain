@@ -153,11 +153,8 @@ async function createUser(data: CreateUserInput) {
   // 2. Save to database
   await userRepository.save(user);
 
-  // 3. Publish all uncommitted events
+  // 3. Dispatch all uncommitted events (clears automatically)
   await user.dispatchAll(eventBus);
-  
-  // 4. Clear events from aggregate
-  user.clearEvents();
 
   return user;
 }
@@ -249,14 +246,16 @@ interface IDomainEventBus {
 }
 ```
 
-### Entity/Aggregate Methods
+### Aggregate Methods
 
 ```typescript
-class BaseEntity {
+class BaseAggregate {
   protected addDomainEvent(event: IDomainEvent): void;
   getUncommittedEvents(): IDomainEvent[];
   clearEvents(): void;
   hasUncommittedEvents(): boolean;
   async dispatchAll(bus: IDomainEventBus): Promise<void>;
+  getEvent(eventName: string): IDomainEvent | undefined;
+  hasEvent(eventName: string): boolean;
 }
 ```

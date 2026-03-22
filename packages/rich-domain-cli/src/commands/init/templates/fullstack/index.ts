@@ -911,8 +911,8 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User> {
   }
 
   protected async onUpdate(
-    entity: User,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    entity: User
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
@@ -972,8 +972,8 @@ export class PostToPersistenceMapper extends PrismaToPersistence<Post> {
   }
 
   protected async onUpdate(
-    entity: Post,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    entity: Post
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,

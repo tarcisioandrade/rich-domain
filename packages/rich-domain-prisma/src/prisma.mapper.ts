@@ -27,7 +27,7 @@ import {
  *     });
  *   }
  *
- *   protected async onUpdate(entity: User, changes: AggregateChanges): Promise<void> {
+ *   protected async onUpdate(changes: AggregateChanges, entity: User): Promise<void> {
  *     const batch = changes.toBatchOperations();
  *     // Process deletes, creates, updates...
  *   }

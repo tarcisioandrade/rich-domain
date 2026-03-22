@@ -184,7 +184,7 @@ You can pass the UoW instance directly to the decorator instead of relying on co
 class CreateUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
-  @Transactional({ uow: myUnitOfWork })
+  @Transactional(myUnitOfWork)
   async execute(input: CreateUserInput): Promise<User> {
     // Uses the explicitly provided UoW
     const user = new User({ ...input, posts: [] });
@@ -198,20 +198,20 @@ class CreateUserUseCase {
 
 The decorator looks for the UoW instance in this order:
 
-1. **Decorator parameter** - `@Transactional({ uow: myUow })`
+1. **Decorator parameter** - `@Transactional(myUow)`
 2. **Instance property** - `this.uow`
 3. **Private property** - `this._uow`
 4. **Any property** - Any property that is a `PrismaUnitOfWork` instance
 
 ```typescript
 // Option 1: Via decorator parameter
-@Transactional({ uow: globalUow })
+@Transactional(globalUow)
 async method1() { ... }
 
 // Option 2: Via constructor (recommended)
 class MyService {
   constructor(private readonly uow: PrismaUnitOfWork) {}
-  
+
   @Transactional()
   async method2() { ... }
 }
@@ -219,7 +219,7 @@ class MyService {
 // Option 3: Via any instance property
 class MyService {
   unitOfWork = new PrismaUnitOfWork(prisma);
-  
+
   @Transactional()
   async method3() { ... }
 }
@@ -242,10 +242,10 @@ Base class for repositories with full Criteria support.
 ```typescript
 import { PrismaRepository } from "@woltz/rich-domain-prisma";
 
-abstract class PrismaRepository<TDomain, TPersistence> {
+abstract class PrismaRepository<TDomain, TPersistence, TContext = PrismaClientLike> {
   // Required: Prisma model name
   protected abstract get model(): string;
-  
+
   // Required: Search query generator
   protected abstract generateSearchQuery(search: string): any[];
 
@@ -255,7 +255,7 @@ abstract class PrismaRepository<TDomain, TPersistence> {
   // Built-in methods
   async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
   async findById(id: string): Promise<TDomain | null>;
-  async findOne(criteria: Criteria<TDomain>): Promise<TDomain | null>;
+  async findManyByIds(ids: string[]): Promise<TDomain[]>;
   async count(criteria?: Criteria<TDomain>): Promise<number>;
   async exists(id: string): Promise<boolean>;
   async save(entity: TDomain): Promise<void>;
@@ -296,11 +296,11 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
 
   // Custom query methods
   async findByEmail(email: string): Promise<User | null> {
-    const data = await this.modelAccessor.findUnique({
+    const data = await this.context.user.findUnique({
       where: { email },
       include: this.includes,
     });
-    return data ? this.mapperToDomain.build(data) : null;
+    return data ? this.toDomainMapper.build(data) : null;
   }
 }
 ```
@@ -313,11 +313,11 @@ The repository automatically uses the transaction context when available:
 class UserRepository extends PrismaRepository<User, UserRecord> {
   // Use this.context for transaction-aware queries
   async customQuery(): Promise<User[]> {
-    const data = await (this.context as any).user.findMany({
+    const data = await this.context.user.findMany({
       where: { status: "active" },
       include: this.includes,
     });
-    return data.map((d) => this.mapperToDomain.build(d));
+    return data.map((d) => this.toDomainMapper.build(d));
   }
 }
 ```
@@ -429,7 +429,7 @@ Base mapper class with change tracking integration.
 import { PrismaToPersistence } from "@woltz/rich-domain-prisma";
 import { EntitySchemaRegistry, AggregateChanges } from "@woltz/rich-domain";
 
-abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
+abstract class PrismaToPersistence<TDomain, PrismaClient = PrismaClientLike> extends Mapper<TDomain, void> {
   // Required: registry for field mapping
   protected abstract readonly registry: EntitySchemaRegistry;
 
@@ -438,12 +438,12 @@ abstract class PrismaToPersistence<TDomain> extends Mapper<TDomain, void> {
 
   // Required: handle entity update with changes
   protected abstract onUpdate(
-    entity: TDomain,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    entity: TDomain
   ): Promise<void>;
 
-  // Available: current context (transaction or prisma)
-  protected get context(): PrismaClient | Transaction;
+  // Returns transaction client when inside a transaction, otherwise the prisma client
+  protected get context(): PrismaClient;
 }
 ```
 
@@ -491,8 +491,8 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
   }
 
   protected async onUpdate(
-    user: User,
-    changes: AggregateChanges
+    changes: AggregateChanges,
+    user: User
   ): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
@@ -702,7 +702,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
@@ -738,11 +738,11 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const data = await this.modelAccessor.findUnique({
+    const data = await this.context.user.findUnique({
       where: { email },
       include: this.includes,
     });
-    return data ? this.mapperToDomain.build(data) : null;
+    return data ? this.toDomainMapper.build(data) : null;
   }
 }
 ```
@@ -874,7 +874,7 @@ export {
 |--------|---------|-------------|
 | `find(criteria)` | `Promise<PaginatedResult<T>>` | Find with criteria |
 | `findById(id)` | `Promise<T \| null>` | Find by ID |
-| `findOne(criteria)` | `Promise<T \| null>` | Find first match |
+| `findManyByIds(ids)` | `Promise<T[]>` | Find multiple by IDs |
 | `count(criteria?)` | `Promise<number>` | Count entities |
 | `exists(id)` | `Promise<boolean>` | Check if exists |
 | `save(entity)` | `Promise<void>` | Create or update |

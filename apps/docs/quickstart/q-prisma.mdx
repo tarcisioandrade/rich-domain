@@ -115,20 +115,10 @@ export const uow = new PrismaUnitOfWork(prisma);
 
 ```typescript
 import { z } from "zod";
-import { Aggregate, Entity, ValueObject, EntityValidation, Id } from "@woltz/rich-domain";
+import { Aggregate, Entity, EntityValidation, Id } from "@woltz/rich-domain";
 
-// Tag (Value Object - shared, immutable reference)
-const tagSchema = z.object({
-  id: z.custom<Id>((val) => val instanceof Id),
-});
-
-type TagProps = z.infer<typeof tagSchema>;
-
-export class Tag extends ValueObject<TagProps> {
-  get id() {
-    return this.props.id;
-  }
-}
+// Tag (Entity - independent reference, tracked by identity in N:N relations)
+export class Tag extends Entity<{ id: Id }> {}
 
 // Post (Entity - owned by User)
 const postSchema = z.object({
@@ -270,7 +260,7 @@ export class UserToDomainMapper extends Mapper<UserSchema, User> {
       email: raw.email,
       name: raw.name,
       posts: raw.posts.map(post =>
-        Post.restore({
+        new Post({
           id: Id.from(post.id),
           title: post.title,
           content: post.content,
@@ -374,7 +364,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
     }
   }
 
-  protected async onUpdate(user: User, changes: AggregateChanges): Promise<void> {
+  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
     const executor = new PrismaBatchExecutor(this.context, {
       registry: this.registry,
     });
