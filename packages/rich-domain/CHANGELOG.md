@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.6](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.5...v1.8.6) (2026-03-26)
+
+
+### Features
+
+* add relation name handling in schema-registry ([b631bd3](https://github.com/tarcisioandrade/rich-domain/commit/b631bd3320058fa8f9694577613a68900cde223b))
+
+
+### Bug Fixes
+
+* inconsistent relation name database ([774a891](https://github.com/tarcisioandrade/rich-domain/commit/774a891dff3ed43e193798d93ec8b4926b226320))
+* resolve potential errors causes ([6555de2](https://github.com/tarcisioandrade/rich-domain/commit/6555de2c2eed737c5ec05619393812090c6d9d8c))
+
+
+### Chores
+
+* **release:** update package versions for rich-domain packages ([44f891f](https://github.com/tarcisioandrade/rich-domain/commit/44f891ff02d8844e65703090e9bbfcf974f94971))
+* **release:** update packages dependencies versions ([f5b79ee](https://github.com/tarcisioandrade/rich-domain/commit/f5b79ee4bce533ca0f97d515054c1d4a438b9bc3))
+
+
+### Documentation
+
+* enhance Prisma integration documentation with relation name examples ([d80c796](https://github.com/tarcisioandrade/rich-domain/commit/d80c796755378922f8604d019efe91ab681533c9))
+* fix contents wrong ([0fa8291](https://github.com/tarcisioandrade/rich-domain/commit/0fa82911a09b3a22894e10bc7fc8c442368ca45b))
+
 ### [1.8.5](https://github.com/tarcisioandrade/rich-domain/compare/v1.0.2...v1.8.5) (2026-03-21)
 
 ### Features
