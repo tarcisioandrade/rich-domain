@@ -383,12 +383,15 @@ const registry = new EntitySchemaRegistry()
       },
       collections: {
         // Field name related to the relationship in the domain;
-        // 'posts.tags' <- Domain Relation field name is 'tags'  
+        // 'posts.tags' <- Domain Relation field name is 'tags'
         tags: {
-        // 'reference': Independent entities connected via junction table
-        // They exist independently and are only linked/unlinked
+          // 'reference': Independent entities connected via junction table
+          // They exist independently and are only linked/unlinked
           type: "reference",
           entity: "Tag",
+          // Optional: set when the Prisma relation field name differs from the domain property name.
+          // e.g. domain property: "tags", Prisma schema field: "post_tags"
+          // relationName: "post_tags",
           // Junction config required for manually created pivot tables
           junction: {
             table: "tagPost",    // Pivot table name
@@ -417,6 +420,8 @@ The `PrismaBatchExecutor` automatically uses the correct Prisma operations based
 // For 'reference' collections (N:N):
 // - Creates use: prisma.post.update({ data: { tags: { connect: [...] } } })
 // - Deletes use: prisma.post.update({ data: { tags: { disconnect: [...] } } })
+// Note: if the Prisma relation field name differs from the domain property name,
+// set `relationName` in the collection config so the executor uses the correct field.
 ```
 
 ---
