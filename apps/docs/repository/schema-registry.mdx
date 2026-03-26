@@ -210,13 +210,16 @@ registry.register({
   collections: {
     // 1:N owned relationship - comments belong to post
     comments: { type: "owned" },
-    
+
     // Field name related to the relationship in the domain;
-    // 'posts.tags' <- Domain Relation field name is 'tags' 
-    tags: { 
-    // N:N reference relationship - tags exist independently
-      type: "reference", 
+    // 'posts.tags' <- Domain Relation field name is 'tags'
+    tags: {
+      // N:N reference relationship - tags exist independently
+      type: "reference",
       entity: "Tag",
+      // Optional: use when the Prisma relation field name differs from the domain property name
+      // e.g. domain: "tags", Prisma schema field: "post_tags"
+      relationName: "post_tags",
       // Optional: junction table config (for ORMs that need it)
       junction: {
         table: "post_tags",
@@ -250,6 +253,41 @@ registry.isOwnedCollection("Post", "tags");          // false
 const tagConfig = registry.getCollectionConfig("Post", "tags");
 // { type: "reference", entity: "Tag", junction: { ... } }
 ```
+
+### Mapping Domain Field Names to ORM Field Names
+
+When the domain property name and the ORM relation field name differ, use `relationName` to configure the mapping. ORM adapters such as `PrismaBatchExecutor` use `getRelationFieldName()` to resolve the correct field for `connect`/`disconnect` operations.
+
+```typescript
+// Prisma schema
+// model Post {
+//   id       String  @id
+//   post_tags Tag[]  @relation("PostToTag")
+// }
+
+// Domain entity has a property named "tags", but Prisma expects "post_tags"
+registry.register({
+  entity: "Post",
+  table: "post",
+  collections: {
+    tags: {
+      type: "reference",
+      entity: "Tag",
+      relationName: "post_tags", // ← ORM field name used for connect/disconnect
+    },
+  },
+});
+
+// Resolve the ORM field name at runtime
+registry.getRelationFieldName("Post", "tags"); // "post_tags"
+
+// Without relationName it falls back to the domain property name
+registry.getRelationFieldName("Post", "comments"); // "comments"
+```
+
+<Warning>
+  If you omit `relationName` and your Prisma relation field name differs from the domain property name, `PrismaBatchExecutor` will pass the wrong field to Prisma's `connect`/`disconnect` operations and the call will fail. Always set `relationName` when the names diverge.
+</Warning>
 
 ## Query Methods
 
@@ -424,6 +462,7 @@ interface EntitySchema {
 interface CollectionConfig {
   type: "owned" | "reference";
   entity?: string;                          // Target entity (for reference)
+  relationName?: string;                    // ORM relation field name when it differs from the domain property name
   junction?: {
     table: string;                          // Junction table name
     sourceKey: string;                      // FK to source entity
@@ -450,6 +489,7 @@ interface CollectionConfig {
 | `getParentFkField(entity)` | `string \| null` | Get FK field name |
 | `getParentFk(entity, parentId)` | `object \| null` | Get FK object |
 | `getCollectionConfig(entity, field)` | `CollectionConfig \| null` | Get collection config |
+| `getRelationFieldName(entity, field)` | `string` | Resolve ORM relation field name (returns `relationName` if set, otherwise the domain field name) |
 | `isReferenceCollection(entity, field)` | `boolean` | Check if N:N relation |
 | `isOwnedCollection(entity, field)` | `boolean` | Check if 1:N relation |
 | `getRegisteredEntities()` | `string[]` | Get all entity names |

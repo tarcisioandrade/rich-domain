@@ -375,4 +375,36 @@ describe("EntitySchemaRegistry", () => {
       });
     });
   });
+
+  describe("getRelationFieldName", () => {
+    it("should return relationName when configured", () => {
+      registry.register({
+        entity: "User",
+        table: "users",
+        collections: {
+          tags: { type: "reference", entity: "Tag", relationName: "user_tags" },
+        },
+      });
+
+      expect(registry.getRelationFieldName("User", "tags")).toBe("user_tags");
+    });
+
+    it("should fall back to domain field name when relationName is not set", () => {
+      registry.register({
+        entity: "User",
+        table: "users",
+        collections: {
+          tags: { type: "reference", entity: "Tag" },
+        },
+      });
+
+      expect(registry.getRelationFieldName("User", "tags")).toBe("tags");
+    });
+
+    it("should fall back to domain field name when collection is not configured", () => {
+      registry.register({ entity: "User", table: "users" });
+
+      expect(registry.getRelationFieldName("User", "tags")).toBe("tags");
+    });
+  });
 });

@@ -28,6 +28,18 @@ export interface CollectionConfig {
   entity?: string;
 
   /**
+   * ORM relation field name when it differs from the domain property name.
+   * Used by ORM adapters for connect/disconnect operations.
+   * If not provided, the domain property name (the key in `collections`) is used.
+   * @example
+   * // Domain property: "tags", Prisma field: "user_tags"
+   * collections: {
+   *   tags: { type: 'reference', entity: 'Tag', relationName: 'user_tags' }
+   * }
+   */
+  relationName?: string;
+
+  /**
    * Junction table configuration (optional, for ORMs that need it like Drizzle).
    * Prisma handles this automatically, so it's optional.
    */
@@ -380,6 +392,19 @@ export class EntitySchemaRegistry {
   ): CollectionConfig["junction"] | null {
     const config = this.getCollectionConfig(entity, fieldName);
     return config?.junction ?? null;
+  }
+
+  /**
+   * Resolves the ORM relation field name for a collection.
+   * Returns `relationName` if configured, otherwise falls back to the domain field name.
+   *
+   * @param entity - Parent entity name
+   * @param domainFieldName - Domain property name (e.g., 'tags')
+   * @returns The field name to use in ORM operations
+   */
+  getRelationFieldName(entity: string, domainFieldName: string): string {
+    const config = this.getCollectionConfig(entity, domainFieldName);
+    return config?.relationName ?? domainFieldName;
   }
 
   /**

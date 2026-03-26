@@ -16,13 +16,13 @@
 
 ## Packages
 
-| Package | Description |
-| --- | --- |
-| [`@woltz/rich-domain`](./packages/rich-domain) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain) | Core library — Entities, Aggregates, Value Objects, Criteria, Change Tracking, Domain Events |
-| [`@woltz/rich-domain-prisma`](./packages/rich-domain-prisma) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-prisma) | Prisma adapter — Unit of Work, batch operations, `@Transactional` decorator |
-| [`@woltz/rich-domain-typeorm`](./packages/rich-domain-typeorm) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm) | TypeORM adapter — repository, transactions, batch executor |
-| [`@woltz/rich-domain-export`](./packages/rich-domain-export) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-export) | Multi-format data export (CSV, JSON, JSONL) with streaming support |
-| [`@woltz/rich-domain-criteria-zod`](./packages/rich-domain-criteria-zod) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod schemas for validating Criteria query params from HTTP requests |
+| Package                                                                                                                                                                                                                   | Description                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`@woltz/rich-domain`](./packages/rich-domain) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain)                                                     | Core library — Entities, Aggregates, Value Objects, Criteria, Change Tracking, Domain Events |
+| [`@woltz/rich-domain-prisma`](./packages/rich-domain-prisma) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-prisma)                         | Prisma adapter — Unit of Work, batch operations, `@Transactional` decorator                  |
+| [`@woltz/rich-domain-typeorm`](./packages/rich-domain-typeorm) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm)                     | TypeORM adapter — repository, transactions, batch executor                                   |
+| [`@woltz/rich-domain-export`](./packages/rich-domain-export) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-export)                         | Multi-format data export (CSV, JSON, JSONL) with streaming support                           |
+| [`@woltz/rich-domain-criteria-zod`](./packages/rich-domain-criteria-zod) [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod schemas for validating Criteria query params from HTTP requests                          |
 
 ## Quick Start
 
@@ -59,7 +59,13 @@ console.log(email.getDomain()); // "example.com"
 ### Define an Aggregate with Validation
 
 ```typescript
-import { Aggregate, Entity, Id, type EntityValidation, type EntityHooks } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  Entity,
+  Id,
+  type EntityValidation,
+  type EntityHooks,
+} from "@woltz/rich-domain";
 import { z } from "zod";
 
 // Child Entity
@@ -72,11 +78,19 @@ const PostSchema = z.object({
 type PostProps = z.infer<typeof PostSchema>;
 
 class Post extends Entity<PostProps> {
-  protected static validation: EntityValidation<PostProps> = { schema: PostSchema };
+  protected static validation: EntityValidation<PostProps> = {
+    schema: PostSchema,
+  };
 
-  publish() { this.props.published = true; }
-  get title() { return this.props.title; }
-  get content() { return this.props.content; }
+  publish() {
+    this.props.published = true;
+  }
+  get title() {
+    return this.props.title;
+  }
+  get content() {
+    return this.props.content;
+  }
 }
 
 // Aggregate Root
@@ -90,7 +104,9 @@ const UserSchema = z.object({
 type UserProps = z.infer<typeof UserSchema>;
 
 class User extends Aggregate<UserProps, "createdAt"> {
-  protected static validation: EntityValidation<UserProps> = { schema: UserSchema };
+  protected static validation: EntityValidation<UserProps> = {
+    schema: UserSchema,
+  };
 
   protected static hooks: EntityHooks<UserProps, User> = {
     onBeforeCreate: (props) => {
@@ -100,7 +116,9 @@ class User extends Aggregate<UserProps, "createdAt"> {
 
   // Recommended pattern for type-safe change tracking
   getTypedChanges() {
-    interface Entities { Post: Post; }
+    interface Entities {
+      Post: Post;
+    }
     return this.getChanges<Entities>();
   }
 
@@ -108,8 +126,12 @@ class User extends Aggregate<UserProps, "createdAt"> {
     this.props.posts.push(new Post({ title, content, published: false }));
   }
 
-  get email() { return this.props.email.value; }
-  get posts() { return this.props.posts; }
+  get email() {
+    return this.props.email.value;
+  }
+  get posts() {
+    return this.props.posts;
+  }
 }
 ```
 
@@ -138,7 +160,7 @@ const changes = user.getTypedChanges();
 // changes.for("Post").creates  → [Post]
 // changes.for("Post").updates  → [{ entity: Post, changed: { published: { from: false, to: true } } }]
 
-await userRepository.save(user);  // Only the diff hits the database
+await userRepository.save(user); // Only the diff hits the database
 user.markAsClean();
 ```
 
@@ -149,7 +171,10 @@ Rich Domain provides the `IDomainEventBus` interface — you bring the implement
 ```typescript
 import { DomainEvent, type IDomainEventBus } from "@woltz/rich-domain";
 
-class OrderConfirmedEvent extends DomainEvent<{ orderId: string; total: number }> {}
+class OrderConfirmedEvent extends DomainEvent<{
+  orderId: string;
+  total: number;
+}> {}
 
 // Inside a use case
 const order = Order.create(data);

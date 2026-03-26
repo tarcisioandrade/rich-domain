@@ -95,6 +95,34 @@ export interface BatchDeleteItem {
   relationField?: string;
 }
 
+export interface BatchDeleteOperation {
+  entity: string;
+  depth: number;
+  ids: string[];
+  parentId?: string;
+  /** Relation field name (for determining owned vs reference) */
+  relationField?: string;
+  /** Parent entity name */
+  parentEntity?: string;
+  /** Individual items with their relation fields (when mixed) */
+  items?: BatchDeleteItem[];
+}
+
+export interface BatchCreateOperation {
+  entity: string;
+  depth: number;
+  items: BatchCreateItem[];
+  /** Relation field name (for determining owned vs reference) */
+  relationField?: string;
+  /** Parent entity name */
+  parentEntity?: string;
+}
+
+export interface BatchUpdateOperation {
+  entity: string;
+  items: BatchUpdateItem[];
+}
+
 /**
  * Grouped and ordered operations for batch execution.
  */
@@ -102,39 +130,17 @@ export interface BatchOperations {
   /**
    * Deletes grouped by entity, ordered by depth descending (leaf → root).
    */
-  deletes: Array<{
-    entity: string;
-    depth: number;
-    ids: string[];
-    parentId?: string;
-    /** Relation field name (for determining owned vs reference) */
-    relationField?: string;
-    /** Parent entity name */
-    parentEntity?: string;
-    /** Individual items with their relation fields (when mixed) */
-    items?: BatchDeleteItem[];
-  }>;
+  deletes: Array<BatchDeleteOperation>;
 
   /**
    * Creates grouped by entity, ordered by depth ascending (root → leaf).
    */
-  creates: Array<{
-    entity: string;
-    depth: number;
-    items: BatchCreateItem[];
-    /** Relation field name (for determining owned vs reference) */
-    relationField?: string;
-    /** Parent entity name */
-    parentEntity?: string;
-  }>;
+  creates: Array<BatchCreateOperation>;
 
   /**
    * Updates grouped by entity.
    */
-  updates: Array<{
-    entity: string;
-    items: BatchUpdateItem[];
-  }>;
+  updates: Array<BatchUpdateOperation>;
 }
 
 /**
