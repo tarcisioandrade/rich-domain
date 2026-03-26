@@ -2,6 +2,10 @@ import {
   AggregateChanges,
   EntitySchemaRegistry,
   CollectionConfig,
+  BatchDeleteOperation,
+  BatchCreateOperation,
+  BatchUpdateOperation,
+  BatchCreateItem,
 } from "@woltz/rich-domain";
 import { PrismaClientLike, PrismaTransactionClient } from "./unit-of-work";
 import { TableNotFoundError, BatchOperationError } from "./errors";
@@ -63,14 +67,7 @@ export class PrismaBatchExecutor {
    * - For 'owned' collections (1:N): uses deleteMany
    */
   private async executeDeletes(
-    deletes: Array<{
-      entity: string;
-      depth: number;
-      ids: string[];
-      relationField?: string;
-      parentId?: string;
-      parentEntity?: string;
-    }>
+    deletes: Array<BatchDeleteOperation>
   ): Promise<void> {
     for (const del of deletes) {
       const { entity, ids, relationField, parentEntity, parentId } = del;
@@ -100,18 +97,7 @@ export class PrismaBatchExecutor {
    * - For 'owned' collections (1:N): uses createMany
    */
   private async executeCreates(
-    creates: Array<{
-      entity: string;
-      depth: number;
-      items: Array<{
-        data: any;
-        parentId?: string;
-        parentEntity?: string;
-        relationField?: string;
-      }>;
-      relationField?: string;
-      parentEntity?: string;
-    }>
+    creates: Array<BatchCreateOperation>
   ): Promise<void> {
     for (const create of creates) {
       const { entity, items, relationField, parentEntity } = create;
@@ -134,10 +120,7 @@ export class PrismaBatchExecutor {
    * Execute update operations.
    */
   private async executeUpdates(
-    updates: Array<{
-      entity: string;
-      items: Array<{ id: string; changedFields: Record<string, any> }>;
-    }>
+    updates: Array<BatchUpdateOperation>
   ): Promise<void> {
     for (const upd of updates) {
       const table = this.config.registry.getTable(upd.entity);
@@ -256,12 +239,7 @@ export class PrismaBatchExecutor {
    * Groups items by parentId to execute one update per parent.
    */
   private async executeConnect(
-    items: Array<{
-      data: any;
-      parentId?: string;
-      parentEntity?: string;
-      relationField?: string;
-    }>,
+    items: Array<BatchCreateItem>,
     relationField: string,
     parentEntity: string
   ): Promise<void> {
@@ -296,7 +274,10 @@ export class PrismaBatchExecutor {
       parentEntity,
       relationField
     );
-    const modelField = juction ? juction.table : relationField;
+    const relationName = this.config.registry.getRelationFieldName(
+      parentEntity,
+      relationField
+    );
 
     // Execute connect for each parent
     for (const [parentId, idsToConnect] of groupedByParent) {
@@ -307,7 +288,7 @@ export class PrismaBatchExecutor {
           await parentModel.update({
             where: { id: parentId },
             data: {
-              [modelField]: {
+              [relationName]: {
                 connect: idsToConnect.map((id) => ({ id })),
               },
             },
@@ -325,7 +306,7 @@ export class PrismaBatchExecutor {
         throw new BatchOperationError(
           "connect",
           parentEntity,
-          `Failed to connect relation "${relationField}": ${error.message}`,
+          `Failed to connect relation "${relationName}": ${error.message}`,
           error
         );
       }
@@ -378,6 +359,10 @@ export class PrismaBatchExecutor {
       parentEntity,
       relationField
     );
+    const relationName = this.config.registry.getRelationFieldName(
+      parentEntity,
+      relationField
+    );
 
     try {
       if (junction) {
@@ -386,7 +371,7 @@ export class PrismaBatchExecutor {
         await parentModel.update({
           where: { id: parentId },
           data: {
-            [relationField]: {
+            [relationName]: {
               disconnect: ids.map((id) => ({ id })),
             },
           },
@@ -404,7 +389,7 @@ export class PrismaBatchExecutor {
       throw new BatchOperationError(
         "disconnect",
         parentEntity,
-        `Failed to disconnect relation "${relationField}": ${error.message}`,
+        `Failed to disconnect relation "${relationName}": ${error.message}`,
         error
       );
     }
