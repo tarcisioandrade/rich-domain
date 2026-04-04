@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-drizzle",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "Drizzle integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",

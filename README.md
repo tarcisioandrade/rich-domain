@@ -20,6 +20,7 @@
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | [`@woltz/rich-domain`](./packages/rich-domain)                           | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain)                           | Core library — Entities, Aggregates, Value Objects, Criteria, Change Tracking, Domain Events |
 | [`@woltz/rich-domain-prisma`](./packages/rich-domain-prisma)             | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-prisma.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-prisma)             | Prisma adapter — Unit of Work, batch operations, `@Transactional` decorator                  |
+| [`@woltz/rich-domain-drizzle`](./packages/rich-domain-drizzle)           | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-drizzle.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-drizzle)           | Drizzle adapter — Unit of Work, batch operations, `@Transactional` decorator                 |
 | [`@woltz/rich-domain-typeorm`](./packages/rich-domain-typeorm)           | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-typeorm.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-typeorm)           | TypeORM adapter — repository, transactions, batch executor                                   |
 | [`@woltz/rich-domain-export`](./packages/rich-domain-export)             | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-export.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-export)             | Multi-format data export (CSV, JSON, JSONL) with streaming support                           |
 | [`@woltz/rich-domain-criteria-zod`](./packages/rich-domain-criteria-zod) | [![npm](https://img.shields.io/npm/v/@woltz/rich-domain-criteria-zod.svg?label=)](https://www.npmjs.com/package/@woltz/rich-domain-criteria-zod) | Zod schemas for validating Criteria query params from HTTP requests                          |
@@ -32,7 +33,7 @@
 npm install @woltz/rich-domain zod
 ```
 
-> Add an ORM adapter if needed: `@woltz/rich-domain-prisma` or `@woltz/rich-domain-typeorm`.
+> Add an ORM adapter if needed: `@woltz/rich-domain-prisma`, `@woltz/rich-domain-drizzle`, or `@woltz/rich-domain-typeorm`.
 
 ### Define a Value Object
 
