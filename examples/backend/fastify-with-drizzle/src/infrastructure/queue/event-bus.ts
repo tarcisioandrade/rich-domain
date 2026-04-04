@@ -19,11 +19,16 @@ export class BullMQEventBus implements IDomainEventBus {
     return this.queues.get(queueName)!;
   }
 
+  private resolveQueueName(event: IDomainEvent): string {
+    const eventClass = event.constructor as any;
+    return eventClass.queueName ?? this.defaultQueueName;
+  }
+
   async publish(event: IDomainEvent, options?: JobsOptions): Promise<void> {
-    const queue = this.getQueue(this.defaultQueueName);
+    const queue = this.getQueue(this.resolveQueueName(event));
     await queue.add(event.eventName, event, {
-      removeOnComplete: true,
-      removeOnFail: false,
+      removeOnComplete: { age: 24 * 3600, count: 1000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
       attempts: 3,
       backoff: { type: "exponential", delay: 2000 },
       ...options,
@@ -31,19 +36,28 @@ export class BullMQEventBus implements IDomainEventBus {
   }
 
   async publishAll(events: IDomainEvent[], options?: JobsOptions): Promise<void> {
-    const queue = this.getQueue(this.defaultQueueName);
-    await queue.addBulk(
-      events.map((event) => ({
-        name: event.eventName,
-        data: event,
-        opts: {
-          removeOnComplete: true,
-          removeOnFail: false,
-          attempts: 3,
-          backoff: { type: "exponential" as const, delay: 2000 },
-          ...options,
-        },
-      }))
+    const byQueue = events.reduce<Record<string, IDomainEvent[]>>((acc, event) => {
+      const queueName = this.resolveQueueName(event);
+      (acc[queueName] ??= []).push(event);
+      return acc;
+    }, {});
+
+    await Promise.all(
+      Object.entries(byQueue).map(([queueName, queueEvents]) =>
+        this.getQueue(queueName).addBulk(
+          queueEvents.map((event) => ({
+            name: event.eventName,
+            data: event,
+            opts: {
+              removeOnComplete: { age: 24 * 3600, count: 1000 },
+              removeOnFail: { age: 7 * 24 * 3600 },
+              attempts: 3,
+              backoff: { type: "exponential" as const, delay: 2000 },
+              ...options,
+            },
+          }))
+        )
+      )
     );
   }
 

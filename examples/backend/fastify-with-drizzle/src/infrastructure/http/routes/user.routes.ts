@@ -1,23 +1,22 @@
-import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { Criteria } from "@woltz/rich-domain";
-import { ZodTypeProvider } from "fastify-type-provider-zod";
+import { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import {
   CriteriaQuerySchema,
   PaginatedResponseSchema,
   defineFilters,
 } from "@woltz/rich-domain-criteria-zod";
 
-const createUserSchema = z.object({
+const UserParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
+const CreateUserBodySchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
 });
 
-const getUserParamsSchema = z.object({
-  id: z.string().uuid(),
-});
-
-const updateNameSchema = z.object({
+const UpdateNameBodySchema = z.object({
   name: z.string().min(1),
 });
 
@@ -37,31 +36,46 @@ const UserResponseSchema = z.object({
   ),
 });
 
-export const userRoutes: FastifyPluginAsync = async (app) => {
+const MessageResponseSchema = z.object({ message: z.string() });
+
+const usersQueryParams = defineFilters((q) => ({
+  name: q.string(),
+  email: q.string(),
+  createdAt: q.date(),
+}));
+
+export const userRoutes: FastifyPluginAsyncZod = async (app) => {
   const { userService } = app.container;
 
-  app.post("/users", async (request, reply) => {
-    const body = createUserSchema.parse(request.body);
-    const user = await userService.create(body);
-    return user.toJSON();
+  app.post("/users", {
+    schema: {
+      operationId: "createUser",
+      body: CreateUserBodySchema,
+      response: { "2xx": UserResponseSchema },
+    },
+    handler: async (request, reply) => {
+      const user = await userService.create(request.body);
+      return reply.status(201).send(user.toJSON());
+    },
   });
 
-  app.get("/users/:id", async (request) => {
-    const { id } = getUserParamsSchema.parse(request.params);
-    const user = await userService.getById(id);
-    return user.toJSON();
+  app.get("/users/:id", {
+    schema: {
+      operationId: "getUserById",
+      params: UserParamsSchema,
+      response: { "2xx": UserResponseSchema },
+    },
+    handler: async (request) => {
+      const user = await userService.getById(request.params.id);
+      return user.toJSON();
+    },
   });
 
-  const usersQueryParams = defineFilters((q) => ({
-    name: q.string(),
-    email: q.string(),
-    createdAt: q.date(),
-  }));
-
-  app.withTypeProvider<ZodTypeProvider>().route({
+  app.route({
     method: "GET",
     url: "/users",
     schema: {
+      operationId: "listUsers",
       querystring: CriteriaQuerySchema(usersQueryParams, {
         orderBy: ["name", "email", "id", "createdAt"],
       }),
@@ -76,16 +90,16 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
     },
   });
 
-  app.patch("/users/:id/name", async (request, reply) => {
-    try {
-      const { id } = getUserParamsSchema.parse(request.params);
-      const { name } = updateNameSchema.parse(request.body);
-      await userService.changeName(id, name);
+  app.patch("/users/:id/name", {
+    schema: {
+      operationId: "updateUserName",
+      params: UserParamsSchema,
+      body: UpdateNameBodySchema,
+      response: { "2xx": MessageResponseSchema },
+    },
+    handler: async (request, reply) => {
+      await userService.changeName(request.params.id, request.body.name);
       return reply.send({ message: "Name updated successfully" });
-    } catch (error) {
-      return reply.status(404).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+    },
   });
 };

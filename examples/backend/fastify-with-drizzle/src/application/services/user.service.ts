@@ -1,6 +1,6 @@
 import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
-import { Criteria, Id, IDomainEventBus } from "@woltz/rich-domain";
+import { Criteria, EntityAlreadyExistsError, EntityNotFoundError, Id, IDomainEventBus } from "@woltz/rich-domain";
 
 interface CreateUserInput {
   email: string;
@@ -15,7 +15,7 @@ export class UserService {
 
   async create(input: CreateUserInput): Promise<User> {
     const existing = await this.userRepository.findByEmail(input.email);
-    if (existing) throw new Error("User with this email already exists");
+    if (existing) throw new EntityAlreadyExistsError("User", input.email);
 
     const user = new User({
       id: new Id(),
@@ -34,7 +34,7 @@ export class UserService {
 
   async changeName(id: string, name: string): Promise<void> {
     const user = await this.userRepository.findById(id);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new EntityNotFoundError("User", id);
 
     user.updateName(name);
     await this.userRepository.save(user);
@@ -46,7 +46,7 @@ export class UserService {
 
   async getById(id: string): Promise<User> {
     const user = await this.userRepository.findById(id);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new EntityNotFoundError("User", id);
     return user;
   }
 }

@@ -18,7 +18,7 @@ export class PostService {
 
   async create(input: CreatePostInput): Promise<Post> {
     const author = await this.userRepository.findById(input.authorId);
-    if (!author) throw new Error("Author not found");
+    if (!author) throw new EntityNotFoundError("User", input.authorId);
 
     const post = new Post({
       id: new Id(),
@@ -52,12 +52,12 @@ export class PostService {
     return post;
   }
 
-  async update(id: string, input: Partial<PostProps>): Promise<object> {
+  async update(id: string, input: Partial<PostProps>): Promise<Post> {
     const post = await this.getById(id);
     if (input.title) post.updateTitle(input.title);
     if (input.content) post.updateContent(input.content);
     await this.postRepository.save(post);
-    return post.toJSON();
+    return post;
   }
 
   async addTag(id: string, tagId: string): Promise<void> {
