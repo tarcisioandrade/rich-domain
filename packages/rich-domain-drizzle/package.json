@@ -1,0 +1,69 @@
+{
+  "name": "@woltz/rich-domain-drizzle",
+  "version": "0.0.1",
+  "description": "Drizzle integration for Rich Domain Library",
+  "homepage": "https://woltz.mintlify.app",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain-drizzle"
+  },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
+    "test": "echo 'No tests yet'",
+    "test:watch": "echo 'No tests yet'",
+    "check": "tsc -b --noEmit",
+    "coverage": "echo 'No coverage yet'",
+    "lint": "echo 'No linting yet'",
+    "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
+    "prepublishOnly": "npm run build",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch"
+  },
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "drizzle",
+    "orm",
+    "repository",
+    "unit-of-work",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.8.6",
+    "drizzle-orm": ">=0.45.2",
+    "typescript": ">=4.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

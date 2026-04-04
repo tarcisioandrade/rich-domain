@@ -1,0 +1,531 @@
+---
+title: "With Drizzle"
+description: "Complete guide to using Rich Domain with Drizzle ORM"
+keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","drizzle"]
+---
+
+<Note>
+  For a complete working example, see the [fastify-with-drizzle example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-drizzle) in the repository.
+</Note>
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm pg zod
+npm install -D drizzle-kit @types/pg
+```
+
+```bash pnpm
+pnpm add @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm pg zod
+pnpm add -D drizzle-kit @types/pg
+```
+
+```bash yarn
+yarn add @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm pg zod
+yarn add -D drizzle-kit @types/pg
+```
+
+</CodeGroup>
+
+## Define the Database Schema
+
+Create `src/infrastructure/database/schema.ts`:
+
+```typescript
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  timestamp,
+  primaryKey,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  published: boolean("published").notNull().default(false),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const tags = pgTable("tags", {
+  id: uuid("id").primaryKey(),
+});
+
+// Junction table for N:N (Post ↔ Tag)
+export const postsToTags = pgTable(
+  "posts_to_tags",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.tagId] })]
+);
+
+// Relations for Drizzle relational query API
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+}));
+
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  author: one(users, { fields: [posts.authorId], references: [users.id] }),
+  tags: many(postsToTags),
+}));
+
+export const postsToTagsRelations = relations(postsToTags, ({ one }) => ({
+  post: one(posts, { fields: [postsToTags.postId], references: [posts.id] }),
+  tag: one(tags, { fields: [postsToTags.tagId], references: [tags.id] }),
+}));
+
+// Inferred types for mappers
+export type UserRecord = typeof users.$inferSelect;
+export type PostRecord = typeof posts.$inferSelect & {
+  tags?: Array<{ tag: typeof tags.$inferSelect }>;
+};
+export type UserWithPosts = UserRecord & { posts: PostRecord[] };
+```
+
+## Initialize the Database
+
+Create `src/infrastructure/database/db.ts`:
+
+```typescript
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+
+let pool: Pool | null = null;
+let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+
+export async function initializeDatabase() {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  await pool.query("SELECT 1"); // verify connection
+  db = drizzle(pool, { schema });
+}
+
+export function getDb() {
+  if (!db) throw new Error("Database not initialized.");
+  return db;
+}
+
+export async function closeDatabase() {
+  await pool?.end();
+  db = null;
+  pool = null;
+}
+```
+
+## Define Domain Models
+
+```typescript
+import { z } from "zod";
+import { Aggregate, Entity, EntityValidation, Id } from "@woltz/rich-domain";
+
+// Tag — independent reference entity
+export class Tag extends Entity<{ id: Id }> {}
+
+// Post — owned entity (belongs to User)
+const postSchema = z.object({
+  id: z.custom<Id>(),
+  title: z.string().min(1),
+  content: z.string().min(1),
+  published: z.boolean(),
+  authorId: z.string(),
+  tags: z.array(z.instanceof(Tag)),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type PostProps = z.infer<typeof postSchema>;
+
+export class Post extends Aggregate<PostProps> {
+  protected static validation: EntityValidation<PostProps> = {
+    schema: postSchema,
+  };
+
+  static restore(props: PostProps): Post { return new Post(props); }
+
+  addTag(tag: Tag) { this.props.tags.push(tag); }
+
+  removeTag(tag: Tag) {
+    this.props.tags = this.props.tags.filter((t) => !t.id.equals(tag.id));
+  }
+
+  publish() { this.props.published = true; }
+
+  get title()     { return this.props.title; }
+  get content()   { return this.props.content; }
+  get published() { return this.props.published; }
+  get authorId()  { return this.props.authorId; }
+  get tags()      { return this.props.tags; }
+  get createdAt() { return this.props.createdAt; }
+  get updatedAt() { return this.props.updatedAt; }
+}
+
+// User — aggregate root
+const userSchema = z.object({
+  id: z.custom<Id>(),
+  email: z.string().email(),
+  name: z.string().min(1),
+  posts: z.array(z.instanceof(Post)),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type UserProps = z.infer<typeof userSchema>;
+
+export class User extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+  };
+
+  static create(props: Omit<UserProps, "id" | "createdAt" | "updatedAt">): User {
+    return new User({ ...props, createdAt: new Date(), updatedAt: new Date() });
+  }
+
+  static restore(props: UserProps): User { return new User(props); }
+
+  addPost(post: Post) { this.props.posts.push(post); }
+
+  updateName(name: string) {
+    this.props.name = name;
+    this.props.updatedAt = new Date();
+  }
+
+  get email()     { return this.props.email; }
+  get name()      { return this.props.name; }
+  get posts()     { return this.props.posts; }
+  get createdAt() { return this.props.createdAt; }
+  get updatedAt() { return this.props.updatedAt; }
+}
+```
+
+## Create Mappers
+
+### ToDomain Mapper
+
+```typescript
+import { Mapper, Id } from "@woltz/rich-domain";
+import { UserWithPosts } from "../schema";
+
+export class UserToDomainMapper extends Mapper<UserWithPosts, User> {
+  build(record: UserWithPosts): User {
+    return User.restore({
+      id: new Id(record.id),
+      email: record.email,
+      name: record.name,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      posts: (record.posts ?? []).map((p) =>
+        Post.restore({
+          id: new Id(p.id),
+          title: p.title,
+          content: p.content,
+          published: p.published,
+          authorId: p.authorId,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          tags: (p.tags ?? []).map(({ tag }) => new Tag({ id: new Id(tag.id) })),
+        })
+      ),
+    });
+  }
+}
+```
+
+### ToPersistence Mapper
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+import { DrizzleToPersistence, DrizzleUnitOfWork, Transactional } from "@woltz/rich-domain-drizzle";
+import { users, posts, tags, postsToTags } from "../schema";
+
+export const userRegistry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "users",
+    collections: {
+      posts: { type: "owned", entity: "Post" },
+    },
+  })
+  .register({
+    entity: "Post",
+    table: "posts",
+    parentFk: { field: "authorId", parentEntity: "User" },
+    collections: {
+      tags: {
+        type: "reference",
+        entity: "Tag",
+        junction: {
+          table: "posts_to_tags", // must match tableMap key
+          sourceKey: "postId",
+          targetKey: "tagId",
+        },
+      },
+    },
+  })
+  .register({ entity: "Tag", table: "tags" });
+
+export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+  protected readonly registry = userRegistry;
+
+  protected readonly tableMap = new Map<string, any>([
+    ["User", users],
+    ["Post", posts],
+    ["Tag", tags],
+    ["posts_to_tags", postsToTags], // junction table
+  ]);
+
+  constructor(uow: DrizzleUnitOfWork) {
+    super(uow);
+  }
+
+  protected getDb() {
+    return getDb();
+  }
+
+  @Transactional()
+  protected async onCreate(user: User): Promise<void> {
+    // Insert aggregate root
+    await this.context.insert(users).values({
+      id: user.id.value,
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+
+    // Insert owned children (Posts)
+    if (user.posts.length > 0) {
+      await this.context.insert(posts).values(
+        user.posts.map((p) => ({
+          id: p.id.value,
+          title: p.title,
+          content: p.content,
+          published: p.published,
+          authorId: user.id.value,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        }))
+      );
+    }
+  }
+  // onUpdate is handled automatically by DrizzleBatchExecutor
+}
+```
+
+## Create Repository
+
+```typescript
+import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/rich-domain-drizzle";
+import { eq } from "drizzle-orm";
+import { users, UserWithPosts } from "../schema";
+
+export class UserRepository extends DrizzleRepository<User, UserWithPosts> {
+  constructor(uow: DrizzleUnitOfWork) {
+    const db = getDb() as any;
+    super({
+      db,
+      table: users,
+      toDomainMapper: new UserToDomainMapper(),
+      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      uow,
+    });
+  }
+
+  protected get model() {
+    return "users"; // key in db.query — matches Drizzle schema export name
+  }
+
+  protected getSearchableFields(): SearchableField<UserWithPosts>[] {
+    return ["name", "email"];
+  }
+
+  protected getDefaultRelations() {
+    return {
+      posts: { with: { tags: { with: { tag: true } } } },
+    };
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const record = await this.context.query.users.findFirst({
+      where: eq(users.email, email),
+      with: this.getDefaultRelations(),
+    });
+    if (!record) return null;
+    const user = this.toDomainMapper.build(record as any);
+    user.markAsClean();
+    return user;
+  }
+}
+```
+
+## Usage
+
+### Setup UnitOfWork and Repository
+
+```typescript
+import { DrizzleUnitOfWork } from "@woltz/rich-domain-drizzle";
+
+await initializeDatabase();
+
+const uow = new DrizzleUnitOfWork(getDb() as any);
+const userRepo = new UserRepository(uow);
+```
+
+### Create
+
+```typescript
+import { Criteria, Id } from "@woltz/rich-domain";
+
+// Create user (posts: [] on creation)
+const user = User.create({ name: "John Doe", email: "john@example.com", posts: [] });
+await userRepo.save(user);
+// ✅ User inserted into DB
+```
+
+### Create with Nested Entities
+
+```typescript
+// User.restore() pre-embeds posts — onCreate handles both in one transaction
+const userId = new Id();
+const post = Post.restore({
+  id: new Id(), title: "Hello World", content: "First post",
+  published: false, authorId: userId.value,
+  tags: [], createdAt: new Date(), updatedAt: new Date(),
+});
+
+const user = User.restore({
+  id: userId, name: "John", email: "john@example.com",
+  posts: [post], createdAt: new Date(), updatedAt: new Date(),
+});
+
+await userRepo.save(user);
+// ✅ User and Post inserted atomically
+```
+
+### Find with Criteria
+
+```typescript
+// Filter + order + paginate (top-level columns only)
+const criteria = Criteria.create<User>()
+  .whereEquals("name", "John")
+  .orderByAsc("createdAt")
+  .paginate(1, 10);
+
+const result = await userRepo.find(criteria);
+// result.data        → User[]
+// result.toJSON().meta.total → total count
+// result.toJSON().meta.hasNext → boolean
+```
+
+### Update
+
+```typescript
+const user = await userRepo.findById(userId);
+user.updateName("Jane Doe"); // tracked by ChangeTracker
+await userRepo.save(user);
+// ✅ Only changed fields are updated in DB
+```
+
+### Connect / Disconnect (N:N Reference)
+
+```typescript
+// Connect — adds row to posts_to_tags
+const post = await postRepo.findById(postId);
+post.addTag(new Tag({ id: new Id(tagId) }));
+await postRepo.save(post);
+
+// Disconnect — removes row from posts_to_tags
+post.removeTag(new Tag({ id: new Id(tagId) }));
+await postRepo.save(post);
+```
+
+### Remove Owned Entity from Collection
+
+```typescript
+const user = await userRepo.findById(userId);
+const index = user.posts.findIndex((p) => p.id.value === postIdToRemove);
+if (index !== -1) user.props.posts.splice(index, 1);
+await userRepo.save(user);
+// ✅ Post row is deleted from DB
+```
+
+### Delete
+
+```typescript
+await userRepo.delete(user);
+await userRepo.deleteById(userId);
+```
+
+### Transactions
+
+```typescript
+await uow.transaction(async () => {
+  const user = User.create({ name: "Alice", email: "alice@example.com", posts: [] });
+  await userRepo.save(user);
+
+  const post = new Post({ ... });
+  await postRepo.save(post);
+  // Both committed atomically, or both rolled back on error
+});
+```
+
+---
+
+## Key Differences from Prisma
+
+| Topic | Prisma | Drizzle |
+|-------|--------|---------|
+| N:N junction | Optional (Prisma manages implicit tables) | **Always required** |
+| `onCreate` | Nested writes via Prisma API | Manual `INSERT` with Drizzle SQL |
+| Criteria dot paths | Supported via `include` | **Not supported** — use custom methods |
+| Relational queries | `include: { posts: true }` | `with: { posts: true }` (relational API) |
+| `contains` operator | Case-insensitive (all DBs) | Uses `ILIKE` (PostgreSQL only) |
+
+---
+
+## Limitations
+
+<Warning>
+  **Criteria dot-field paths are not supported.** Filters, ordering, and search fields must reference top-level columns of the primary table. Using `"profile.name"`, `"posts.title"`, or any dotted path throws a `DrizzleAdapterError`. Add custom repository methods with explicit JOINs for cross-table queries.
+</Warning>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Drizzle Integration" icon="database" href="/integrations/drizzle">
+    Deep dive into all Drizzle adapter features
+  </Card>
+  <Card title="Repository Pattern" icon="book" href="/repository/overview">
+    Learn advanced repository patterns
+  </Card>
+  <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
+    Understand how changes are tracked
+  </Card>
+  <Card title="Schema Registry" icon="table" href="/repository/schema-registry">
+    Full Schema Registry reference
+  </Card>
+</CardGroup>
