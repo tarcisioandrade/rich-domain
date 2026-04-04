@@ -76,7 +76,7 @@ export abstract class DrizzleToPersistence<TDomain> extends Mapper<
    */
   protected async onUpdate(
     changes: AggregateChanges,
-    _aggregate: TDomain,
+    _aggregate: TDomain
   ): Promise<void> {
     const executor = new DrizzleBatchExecutor({
       registry: this.registry,

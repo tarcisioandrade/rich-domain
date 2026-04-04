@@ -1,4 +1,8 @@
-import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleRepository,
+  DrizzleUnitOfWork,
+  SearchableField,
+} from "@woltz/rich-domain-drizzle";
 import { Criteria } from "@woltz/rich-domain";
 import { Post } from "../../../domain/post/post.entity";
 import { PostRepository } from "../../../domain/post/post.repository";

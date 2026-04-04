@@ -15,7 +15,10 @@ import {
   UnauthorizedError,
   ForbiddenError,
 } from "@woltz/rich-domain";
-import { initializeDatabase, closeDatabase } from "./infrastructure/database/db";
+import {
+  initializeDatabase,
+  closeDatabase,
+} from "./infrastructure/database/db";
 import diPlugin from "./infrastructure/di/fastify-plugin";
 import { userRoutes } from "./infrastructure/http/routes/user.routes";
 import { postRoutes } from "./infrastructure/http/routes/post.routes";
@@ -74,23 +77,33 @@ app.setErrorHandler((error, _request, reply) => {
   }
 
   if (error instanceof EntityNotFoundError) {
-    return reply.status(404).send({ error: "Not Found", message: error.message });
+    return reply
+      .status(404)
+      .send({ error: "Not Found", message: error.message });
   }
 
   if (error instanceof UnauthorizedError) {
-    return reply.status(401).send({ error: "Unauthorized", message: error.message });
+    return reply
+      .status(401)
+      .send({ error: "Unauthorized", message: error.message });
   }
 
   if (error instanceof ForbiddenError) {
-    return reply.status(403).send({ error: "Forbidden", message: error.message });
+    return reply
+      .status(403)
+      .send({ error: "Forbidden", message: error.message });
   }
 
   if (error instanceof EntityAlreadyExistsError) {
-    return reply.status(409).send({ error: "Conflict", message: error.message });
+    return reply
+      .status(409)
+      .send({ error: "Conflict", message: error.message });
   }
 
   if (error instanceof ApplicationError) {
-    return reply.status(400).send({ error: "Bad Request", message: error.message });
+    return reply
+      .status(400)
+      .send({ error: "Bad Request", message: error.message });
   }
 
   app.log.error({ err: error }, "Unexpected error");

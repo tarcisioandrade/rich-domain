@@ -1,8 +1,4 @@
-import {
-  eq,
-  inArray,
-  and,
-} from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import {
   AggregateChanges,
   EntitySchemaRegistry,
@@ -12,7 +8,11 @@ import {
   BatchCreateItem,
 } from "@woltz/rich-domain";
 import { DrizzleClient } from "./unit-of-work";
-import { TableNotFoundError, BatchOperationError, MissingJunctionConfigError } from "./errors";
+import {
+  TableNotFoundError,
+  BatchOperationError,
+  MissingJunctionConfigError,
+} from "./errors";
 
 export interface DrizzleBatchExecutorConfig {
   registry: EntitySchemaRegistry;
@@ -146,11 +146,7 @@ export class DrizzleBatchExecutor {
             relationField
           )
         ) {
-          await this.executeJunctionCreate(
-            parentEntity,
-            relationField,
-            items
-          );
+          await this.executeJunctionCreate(parentEntity, relationField, items);
         } else {
           await this.executeCreateOwned(entity, items);
         }

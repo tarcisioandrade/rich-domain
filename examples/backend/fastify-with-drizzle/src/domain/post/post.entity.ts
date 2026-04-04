@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { Aggregate, DomainError, EntityValidation, Id } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  DomainError,
+  EntityValidation,
+  Id,
+} from "@woltz/rich-domain";
 import { Tag } from "../tag/tags";
 
 export const PostSchema = z.object({
@@ -54,11 +59,25 @@ export class Post extends Aggregate<PostProps> {
     this.props.tags = this.props.tags.filter((t) => !t.id.equals(tag.id));
   }
 
-  get title() { return this.props.title; }
-  get content() { return this.props.content; }
-  get published() { return this.props.published; }
-  get authorId() { return this.props.authorId; }
-  get createdAt() { return this.props.createdAt; }
-  get updatedAt() { return this.props.updatedAt; }
-  get tags() { return this.props.tags; }
+  get title() {
+    return this.props.title;
+  }
+  get content() {
+    return this.props.content;
+  }
+  get published() {
+    return this.props.published;
+  }
+  get authorId() {
+    return this.props.authorId;
+  }
+  get createdAt() {
+    return this.props.createdAt;
+  }
+  get updatedAt() {
+    return this.props.updatedAt;
+  }
+  get tags() {
+    return this.props.tags;
+  }
 }

@@ -1,4 +1,9 @@
-import { Aggregate, EntityHooks, EntityValidation, Id } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  EntityHooks,
+  EntityValidation,
+  Id,
+} from "@woltz/rich-domain";
 import { z } from "zod";
 import { Post } from "../post/post.entity";
 import { UserCreatedEvent } from "./events/user-create.event";
@@ -34,7 +39,9 @@ export class User extends Aggregate<UserProps> {
     },
   };
 
-  static create(props: Omit<UserProps, "id" | "createdAt" | "updatedAt">): User {
+  static create(
+    props: Omit<UserProps, "id" | "createdAt" | "updatedAt">
+  ): User {
     return new User({
       ...props,
       createdAt: new Date(),
@@ -61,9 +68,19 @@ export class User extends Aggregate<UserProps> {
     this.props.updatedAt = new Date();
   }
 
-  get email() { return this.props.email; }
-  get name() { return this.props.name; }
-  get createdAt() { return this.props.createdAt; }
-  get updatedAt() { return this.props.updatedAt; }
-  get posts() { return this.props.posts; }
+  get email() {
+    return this.props.email;
+  }
+  get name() {
+    return this.props.name;
+  }
+  get createdAt() {
+    return this.props.createdAt;
+  }
+  get updatedAt() {
+    return this.props.updatedAt;
+  }
+  get posts() {
+    return this.props.posts;
+  }
 }

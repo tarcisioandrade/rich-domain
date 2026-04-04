@@ -29,12 +29,14 @@ export class Container {
 
     this.register(
       "userRepository",
-      () => new DrizzleUserRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
+      () =>
+        new DrizzleUserRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
     );
 
     this.register(
       "postRepository",
-      () => new DrizzlePostRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
+      () =>
+        new DrizzlePostRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
     );
 
     this.register(

@@ -1,5 +1,9 @@
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
-import { DrizzleToPersistence, DrizzleUnitOfWork, Transactional } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleToPersistence,
+  DrizzleUnitOfWork,
+  Transactional,
+} from "@woltz/rich-domain-drizzle";
 import { User } from "../../../domain/user/user.entity";
 import { users, posts, tags, postsToTags } from "../schema";
 import { getDb } from "../db";
@@ -54,7 +58,7 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
   }
 
   protected getDb() {
-    return getDb()
+    return getDb();
   }
 
   @Transactional()

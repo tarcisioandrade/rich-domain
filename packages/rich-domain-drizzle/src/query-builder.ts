@@ -93,7 +93,9 @@ export class DrizzleQueryBuilder {
       if (col === undefined) {
         throw new DrizzleAdapterError(
           `Column "${filter.field}" not found on table. ` +
-            `Available columns: ${Object.keys(table).filter((k) => typeof table[k] === "object").join(", ")}`
+            `Available columns: ${Object.keys(table)
+              .filter((k) => typeof table[k] === "object")
+              .join(", ")}`
         );
       }
 
@@ -109,7 +111,11 @@ export class DrizzleQueryBuilder {
 
     // Build search conditions
     let searchCondition: SQL | undefined;
-    if (criteria.hasSearch() && searchableFields && searchableFields.length > 0) {
+    if (
+      criteria.hasSearch() &&
+      searchableFields &&
+      searchableFields.length > 0
+    ) {
       const search = criteria.getSearch()!;
       const searchConditions: SQL[] = [];
 
@@ -136,7 +142,9 @@ export class DrizzleQueryBuilder {
         if (col === undefined) {
           throw new DrizzleAdapterError(
             `Search field "${fieldName}" not found on table. ` +
-              `Available columns: ${Object.keys(table).filter((k) => typeof table[k] === "object").join(", ")}`
+              `Available columns: ${Object.keys(table)
+                .filter((k) => typeof table[k] === "object")
+                .join(", ")}`
           );
         }
 
@@ -183,7 +191,9 @@ export class DrizzleQueryBuilder {
         if (col === undefined) {
           throw new DrizzleAdapterError(
             `Order field "${o.field}" not found on table. ` +
-              `Available columns: ${Object.keys(table).filter((k) => typeof table[k] === "object").join(", ")}`
+              `Available columns: ${Object.keys(table)
+                .filter((k) => typeof table[k] === "object")
+                .join(", ")}`
           );
         }
 

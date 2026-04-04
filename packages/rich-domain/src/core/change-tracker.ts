@@ -285,7 +285,10 @@ export class ChangeTracker {
 
               if (rootTracker.onChangeValidator) {
                 try {
-                  const validatorResult = rootTracker.onChangeValidator(path, newArray);
+                  const validatorResult = rootTracker.onChangeValidator(
+                    path,
+                    newArray
+                  );
                   if (validatorResult === false) {
                     target.splice(0, target.length, ...oldArray);
                     return undefined;

@@ -6,11 +6,7 @@ import {
   Criteria,
   PaginatedResult,
 } from "@woltz/rich-domain";
-import {
-  DrizzleClient,
-  DrizzleUnitOfWork,
-  UOWStorage,
-} from "./unit-of-work";
+import { DrizzleClient, DrizzleUnitOfWork, UOWStorage } from "./unit-of-work";
 import { NoRecordsAffectedError } from "./errors";
 import { DrizzleToPersistence } from "./mappers/to-persistence";
 import { DrizzleQueryBuilder, SearchableField } from "./query-builder";
@@ -95,10 +91,7 @@ export abstract class DrizzleRepository<
           .then((r: any[]) => Number(r[0]?.value ?? 0)),
       ]);
     } else {
-      const selectQuery = this.context
-        .select()
-        .from(this.table)
-        .$dynamic();
+      const selectQuery = this.context.select().from(this.table).$dynamic();
 
       if (where) selectQuery.where(where);
       if (orderBy && orderBy.length > 0) selectQuery.orderBy(...orderBy);
@@ -110,10 +103,7 @@ export abstract class DrizzleRepository<
         .from(this.table);
       if (where) countQuery.where(where);
 
-      [data, [{ value: total }]] = await Promise.all([
-        selectQuery,
-        countQuery,
-      ]);
+      [data, [{ value: total }]] = await Promise.all([selectQuery, countQuery]);
       total = Number(total ?? 0);
     }
 

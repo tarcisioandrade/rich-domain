@@ -1,6 +1,12 @@
 import { User } from "../../domain/user/user.entity";
 import { UserRepository } from "../../domain/user/user.repository";
-import { Criteria, EntityAlreadyExistsError, EntityNotFoundError, Id, IDomainEventBus } from "@woltz/rich-domain";
+import {
+  Criteria,
+  EntityAlreadyExistsError,
+  EntityNotFoundError,
+  Id,
+  IDomainEventBus,
+} from "@woltz/rich-domain";
 
 interface CreateUserInput {
   email: string;

@@ -1,5 +1,9 @@
 import { eq } from "drizzle-orm";
-import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleRepository,
+  DrizzleUnitOfWork,
+  SearchableField,
+} from "@woltz/rich-domain-drizzle";
 import { User } from "../../../domain/user/user.entity";
 import { UserRepository } from "../../../domain/user/user.repository";
 import { UserToDomainMapper } from "../mappers/user-to-domain.mapper";

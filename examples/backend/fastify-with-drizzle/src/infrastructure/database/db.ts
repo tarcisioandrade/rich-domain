@@ -17,7 +17,9 @@ export async function initializeDatabase() {
 
 export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
   if (!db) {
-    throw new Error("Database not initialized. Call initializeDatabase() first.");
+    throw new Error(
+      "Database not initialized. Call initializeDatabase() first."
+    );
   }
   return db;
 }

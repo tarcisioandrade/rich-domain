@@ -1,5 +1,9 @@
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
-import { DrizzleToPersistence, DrizzleUnitOfWork, Transactional } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleToPersistence,
+  DrizzleUnitOfWork,
+  Transactional,
+} from "@woltz/rich-domain-drizzle";
 import { Post } from "../../../domain/post/post.entity";
 import { posts, tags, postsToTags } from "../schema";
 import { getDb } from "../db";
@@ -50,12 +54,15 @@ export class PostToPersistenceMapper extends DrizzleToPersistence<Post> {
     });
 
     if (post.tags.length > 0) {
-      await this.context.insert(postsToTags).values(
-        post.tags.map((tag) => ({
-          postId: post.id.value,
-          tagId: tag.id.value,
-        }))
-      ).onConflictDoNothing();
+      await this.context
+        .insert(postsToTags)
+        .values(
+          post.tags.map((tag) => ({
+            postId: post.id.value,
+            tagId: tag.id.value,
+          }))
+        )
+        .onConflictDoNothing();
     }
   }
 }
