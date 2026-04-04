@@ -73,7 +73,9 @@ export class BullMQDomainEventWorker {
           if (!handler) {
             const token = randomUUID();
             await job.moveToFailed(
-              new Error(`No handler registered for event: ${job.data.eventName}`),
+              new Error(
+                `No handler registered for event: ${job.data.eventName}`
+              ),
               token
             );
             return;

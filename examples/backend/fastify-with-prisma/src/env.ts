@@ -2,7 +2,9 @@ import z from "zod";
 
 const configSchema = z.object({
   DATABASE_URL: z.string(),
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   PORT: z.number(),
   REDIS_PORT: z.number(),
   REDIS_HOST: z.string(),
