@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:3001
+
+### Create post (replace authorId with a real user ID)
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+  "title": "Hello World",
+  "content": "My first post using Rich Domain + Drizzle",
+  "authorId": "00000000-0000-0000-0000-000000000000"
+}
+
+### Create second post
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+  "title": "DDD with Drizzle ORM",
+  "content": "How to build rich domain models with Drizzle as persistence layer",
+  "authorId": "773d135f-0682-4b75-af96-6aeb4b42cc1a"
+}
+
+### Get post by ID (replace with real ID after creation)
+GET {{baseUrl}}/posts/00000000-0000-0000-0000-000000000000
+
+### List posts (no filters)
+GET {{baseUrl}}/posts
+
+### List posts — filter by published status
+GET {{baseUrl}}/posts?filters={"published:equals":"true"}
+
+### List posts — search in title/content
+GET {{baseUrl}}/posts?search=drizzle
+
+### List posts — order by createdAt DESC + pagination
+GET {{baseUrl}}/posts?orderBy=createdAt:desc&pagination={"limit":1}
+
+### Update post title/content (replace ID)
+PATCH {{baseUrl}}/posts/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "content": "Updated content here"
+}
+
+### Publish post (replace ID)
+PATCH {{baseUrl}}/posts/9ce0d7d0-d886-44ab-9529-d4c3bb2c28cd/publish
+
+### Add tag to post (replace postId; tagId must exist in tags table)
+PATCH {{baseUrl}}/posts/00000000-0000-0000-0000-000000000000/tags
+Content-Type: application/json
+
+{
+  "tagId": "00000000-0000-0000-0000-000000000001"
+}
+
+### Remove tag from post (replace postId and tagId)
+DELETE {{baseUrl}}/posts/00000000-0000-0000-0000-000000000000/tags/00000000-0000-0000-0000-000000000001

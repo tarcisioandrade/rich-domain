@@ -1,0 +1,51 @@
+@baseUrl = http://localhost:3001
+
+### Create user
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Alice Silva",
+  "email": "blice2@example.com"
+}
+
+### Create second user
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Bob Santos",
+  "email": "bob@example.com"
+}
+
+### Get user by ID (replace with real ID after creation)
+GET {{baseUrl}}/users/773d135f-0682-4b75-af96-6aeb4b42cc1a
+
+### List users (no filters)
+GET {{baseUrl}}/users
+
+### List users — filter by name (contains)
+GET {{baseUrl}}/users?filters={"name:contains":"alice"}
+
+### List users — filter by email (exact)
+GET {{baseUrl}}/users?filters={"email:equals":"bob@example.com"}
+
+### List users — order by name ASC
+GET {{baseUrl}}/users?orderBy="email:desc"
+
+### List users — order by createdAt DESC + pagination (page 1, limit 2)
+GET {{baseUrl}}/users?orderBy=["createdAt:desc"]&pagination={"page":1,"limit":2}
+
+### Filter + order + pagination combined
+GET {{baseUrl}}/users?filters={"name:contains":"a"}&orderBy=["name:asc"]&pagination={"page":1,"limit":3}
+
+### Full-text search by name/email
+GET {{baseUrl}}/users?search=blice2@example.com
+
+### Update user name (replace ID)
+PATCH {{baseUrl}}/users/773d135f-0682-4b75-af96-6aeb4b42cc1a/name
+Content-Type: application/json
+
+{
+  "name": "Tarcisio Andrade"
+}

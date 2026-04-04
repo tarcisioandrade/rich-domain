@@ -1,0 +1,43 @@
+import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/rich-domain-drizzle";
+import { Criteria } from "@woltz/rich-domain";
+import { Post } from "../../../domain/post/post.entity";
+import { PostRepository } from "../../../domain/post/post.repository";
+import { PostToDomainMapper } from "../mappers/post-to-domain.mapper";
+import { PostToPersistenceMapper } from "../mappers/post-to-persistence.mapper";
+import { posts, PostRecord } from "../schema";
+import { getDb } from "../db";
+
+export class DrizzlePostRepository
+  extends DrizzleRepository<Post, PostRecord>
+  implements PostRepository
+{
+  constructor(uow: DrizzleUnitOfWork) {
+    const db = getDb() as any;
+    super({
+      db,
+      table: posts,
+      toDomainMapper: new PostToDomainMapper(),
+      toPersistenceMapper: new PostToPersistenceMapper(uow),
+      uow,
+    });
+  }
+
+  protected get model() {
+    return "posts";
+  }
+
+  protected getSearchableFields(): SearchableField<PostRecord>[] {
+    return ["title", "content"];
+  }
+
+  protected getDefaultRelations() {
+    return {
+      tags: { with: { tag: true } },
+    };
+  }
+
+  override async find(criteria: Criteria<Post> = Criteria.create<Post>()) {
+    criteria.orderByDesc("createdAt");
+    return super.find(criteria);
+  }
+}
