@@ -67,7 +67,11 @@ class UserRepository extends DrizzleRepository<User, UserRecord> {
 const userRepo = new UserRepository(uow);
 
 // Create
-const user = User.create({ name: "John", email: "john@example.com", posts: [] });
+const user = User.create({
+  name: "John",
+  email: "john@example.com",
+  posts: [],
+});
 await userRepo.save(user);
 
 // Find by ID
@@ -173,7 +177,11 @@ abstract class DrizzleToPersistence<TDomain> extends Mapper<TDomain, void> {
 #### Example
 
 ```typescript
-import { DrizzleToPersistence, DrizzleUnitOfWork, Transactional } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleToPersistence,
+  DrizzleUnitOfWork,
+  Transactional,
+} from "@woltz/rich-domain-drizzle";
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 import { users, posts, tags, postsToTags } from "./schema";
 
@@ -253,10 +261,10 @@ class UserToPersistenceMapper extends DrizzleToPersistence<User> {
 
 ### EntitySchemaRegistry — Collection Types
 
-| Type | Behavior | Junction required? |
-|------|----------|--------------------|
-| `owned` | 1:N — child rows belong to the parent; deletes cascade | No |
-| `reference` | N:N — rows in a junction table | **Yes — always** |
+| Type        | Behavior                                               | Junction required? |
+| ----------- | ------------------------------------------------------ | ------------------ |
+| `owned`     | 1:N — child rows belong to the parent; deletes cascade | No                 |
+| `reference` | N:N — rows in a junction table                         | **Yes — always**   |
 
 Unlike Prisma, Drizzle does not manage implicit junction tables. Every `reference` collection must provide a `junction` config. Omitting it throws `MissingJunctionConfigError`.
 
@@ -284,11 +292,11 @@ class CreateUserUseCase {
 }
 ```
 
-| Scenario | Behavior |
-|----------|----------|
-| Direct call | Creates new transaction |
-| Already in transaction | Reuses existing one |
-| Error thrown | Automatic rollback |
+| Scenario               | Behavior                |
+| ---------------------- | ----------------------- |
+| Direct call            | Creates new transaction |
+| Already in transaction | Reuses existing one     |
+| Error thrown           | Automatic rollback      |
 
 The class must expose a `uow` property of type `DrizzleUnitOfWork` for the decorator to find it.
 
@@ -345,13 +353,13 @@ await uow.transaction(async () => {
 
 ## Error Reference
 
-| Error | When thrown |
-|-------|-------------|
-| `TableNotFoundError` | `tableMap` key not found for an entity or junction name |
-| `MissingJunctionConfigError` | `reference` collection has no `junction` configured |
-| `BatchOperationError` | DB error during a batch create, update, or delete |
-| `NoRecordsAffectedError` | `delete()` / `deleteById()` matched 0 rows |
-| `DrizzleAdapterError` | Unsupported Criteria operator, dot-field path, or column not found |
+| Error                        | When thrown                                                        |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `TableNotFoundError`         | `tableMap` key not found for an entity or junction name            |
+| `MissingJunctionConfigError` | `reference` collection has no `junction` configured                |
+| `BatchOperationError`        | DB error during a batch create, update, or delete                  |
+| `NoRecordsAffectedError`     | `delete()` / `deleteById()` matched 0 rows                         |
+| `DrizzleAdapterError`        | Unsupported Criteria operator, dot-field path, or column not found |
 
 ---
 
