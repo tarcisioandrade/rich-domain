@@ -13,7 +13,8 @@
     "clean": "rm -rf dist coverage node_modules",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint": "echo 'no linting available'"
   },
   "keywords": [
     "fastify",
