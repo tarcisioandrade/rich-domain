@@ -51,3 +51,28 @@ export class DrizzleRepositoryError extends DrizzleAdapterError {
     this.name = "DrizzleRepositoryError";
   }
 }
+
+export class MissingJunctionConfigError extends DrizzleAdapterError {
+  constructor(
+    public readonly parentEntity: string,
+    public readonly collectionField: string
+  ) {
+    super(
+      `Collection "${collectionField}" on entity "${parentEntity}" is of type "reference" but has no junction configured. ` +
+        `Drizzle does not manage junction tables automatically — you must provide the junction config. ` +
+        `Example:\n` +
+        `  collections: {\n` +
+        `    ${collectionField}: {\n` +
+        `      type: "reference",\n` +
+        `      entity: "TargetEntity",\n` +
+        `      junction: {\n` +
+        `        table: "${parentEntity.toLowerCase()}_${collectionField}",\n` +
+        `        sourceKey: "${parentEntity.toLowerCase()}Id",\n` +
+        `        targetKey: "targetEntityId",\n` +
+        `      },\n` +
+        `    },\n` +
+        `  }`
+    );
+    this.name = "MissingJunctionConfigError";
+  }
+}

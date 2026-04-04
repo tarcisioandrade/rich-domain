@@ -33,4 +33,5 @@ export {
   NoRecordsAffectedError,
   BatchOperationError,
   DrizzleRepositoryError,
+  MissingJunctionConfigError,
 } from "./errors";

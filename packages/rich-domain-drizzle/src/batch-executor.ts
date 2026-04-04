@@ -12,7 +12,7 @@ import {
   BatchCreateItem,
 } from "@woltz/rich-domain";
 import { DrizzleClient } from "./unit-of-work";
-import { TableNotFoundError, BatchOperationError } from "./errors";
+import { TableNotFoundError, BatchOperationError, MissingJunctionConfigError } from "./errors";
 
 export interface DrizzleBatchExecutorConfig {
   registry: EntitySchemaRegistry;
@@ -104,7 +104,9 @@ export class DrizzleBatchExecutor {
       relationField
     );
 
-    if (!junction) return;
+    if (!junction) {
+      throw new MissingJunctionConfigError(parentEntity, relationField);
+    }
 
     const junctionTable = this.getJunctionTable(junction.table);
 
@@ -199,7 +201,9 @@ export class DrizzleBatchExecutor {
       relationField
     );
 
-    if (!junction) return;
+    if (!junction) {
+      throw new MissingJunctionConfigError(parentEntity, relationField);
+    }
 
     const junctionTable = this.getJunctionTable(junction.table);
 
