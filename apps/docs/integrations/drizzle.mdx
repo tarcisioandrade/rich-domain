@@ -1,11 +1,644 @@
 ---
-title: "Drizzle (coming soon)"
-description: "Integration between rich-domain and Drizzle ORM (coming soon)"
-keywords: ["drizzle","orm","adapter","database","integration","coming-soon","typescript"]
+title: "Drizzle"
+description: "Integration between rich-domain and Drizzle ORM"
+keywords: ["drizzle","orm","adapter","database","integration","postgresql","typescript"]
 ---
 
+## Overview
+
+`@woltz/rich-domain-drizzle` integrates rich-domain with Drizzle ORM. Unlike Prisma, Drizzle works at the SQL level, which means you have full control over queries but must configure things explicitly — junction tables, column mappings, and eager-loaded relations are all opt-in.
+
+```bash
+npm install @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm
+```
+
+<CardGroup cols={2}>
+
+<Card title="Unit of Work" icon="arrows-rotate">
+  Request-isolated transactions via AsyncLocalStorage
+</Card>
+
+<Card title="Repository Base Class" icon="database">
+  DrizzleRepository with built-in Criteria support
+</Card>
+
+<Card title="Change Tracking" icon="code-compare">
+  DrizzleToPersistence with automatic change detection
+</Card>
+
+<Card title="Batch Operations" icon="layer-group">
+  DrizzleBatchExecutor for efficient bulk writes
+</Card>
+
+</CardGroup>
+
+<Note>
+  For a complete working example, see the [fastify-with-drizzle example](https://github.com/tarcisioandrade/rich-domain/tree/main/examples/backend/fastify-with-drizzle) in the repository.
+</Note>
+
+---
+
+## DrizzleUnitOfWork
+
+Manages transactions with per-request isolation using `AsyncLocalStorage`.
+
+```typescript
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { DrizzleUnitOfWork } from "@woltz/rich-domain-drizzle";
+import * as schema from "./schema";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle(pool, { schema });
+
+export const uow = new DrizzleUnitOfWork(db);
+```
+
+### Transaction Execution
+
+```typescript
+await uow.transaction(async () => {
+  await userRepository.save(user);
+  await postRepository.save(post);
+  // All or nothing — auto rollback on failure
+});
+```
+
+### Nested Transactions (Idempotent)
+
+If `transaction()` is called inside an already-active transaction, it reuses the same context instead of nesting:
+
+```typescript
+await uow.transaction(async () => {
+  // outer transaction starts
+
+  await uow.transaction(async () => {
+    // reuses the outer context — no nested transaction
+    await userRepository.save(user);
+  });
+});
+// single commit
+```
+
+### API Reference
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `transaction(work)` | `Promise<T>` | Execute work in a transaction |
+| `isInTransaction()` | `boolean` | Check if currently in a transaction |
+| `getCurrentContext()` | `DrizzleTransactionContext \| null` | Get current transaction context |
+
+---
+
+## @Transactional Decorator
+
+Wraps a method in a transaction automatically. Reuses the existing transaction if one is already active.
+
+```typescript
+import { Transactional } from "@woltz/rich-domain-drizzle";
+
+class CreateUserUseCase {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly uow: DrizzleUnitOfWork
+  ) {}
+
+  @Transactional()
+  async execute(input: CreateUserInput): Promise<User> {
+    const user = User.create(input);
+    await this.userRepository.save(user);
+    return user;
+  }
+}
+```
+
+### With Explicit UoW Parameter
+
+```typescript
+@Transactional(myUnitOfWork)
+async execute(input: CreateUserInput): Promise<User> { ... }
+```
+
+### UoW Resolution Order
+
+The decorator looks for the UoW instance in this order:
+
+1. **Decorator parameter** — `@Transactional(myUow)`
+2. **`this.uow`** property
+3. **`this._uow`** property
+4. **Any property** that is a `DrizzleUnitOfWork` instance
+
+### Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| Direct call | Creates new transaction |
+| Already in transaction | Reuses existing one |
+| Error thrown | Automatic rollback |
+
+---
+
+## DrizzleRepository
+
+Base class for repositories. Provides `find`, `findById`, `findManyByIds`, `save`, `delete`, and more with full Criteria support.
+
+```typescript
+import { DrizzleRepository } from "@woltz/rich-domain-drizzle";
+
+abstract class DrizzleRepository<TDomain, TPersistence> {
+  // Required: Drizzle query model name (key in db.query)
+  protected abstract get model(): string;
+
+  // Required: fields used when criteria.search() is called
+  protected abstract getSearchableFields(): SearchableField<TPersistence>[];
+
+  // Optional: relations to include via Drizzle relational query API
+  protected getDefaultRelations(): Record<string, any> { return {}; }
+
+  // Built-in methods
+  async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
+  async findById(id: string): Promise<TDomain | null>;
+  async findManyByIds(ids: string[]): Promise<TDomain[]>;
+  async count(criteria?: Criteria<TDomain>): Promise<number>;
+  async exists(id: string): Promise<boolean>;
+  async save(entity: TDomain): Promise<void>;
+  async delete(entity: TDomain): Promise<void>;
+  async deleteById(id: string): Promise<void>;
+  async transaction<T>(work: () => Promise<T>): Promise<T>;
+}
+```
+
+### Complete Implementation
+
+```typescript
+import { DrizzleRepository, SearchableField } from "@woltz/rich-domain-drizzle";
+import { users, UserRecord } from "../schema";
+
+export class UserRepository extends DrizzleRepository<User, UserRecord> {
+  constructor(uow: DrizzleUnitOfWork) {
+    const db = getDb();
+    super({
+      db,
+      table: users,
+      toDomainMapper: new UserToDomainMapper(),
+      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      uow,
+    });
+  }
+
+  protected get model() {
+    return "users"; // key in db.query — must match Drizzle schema export name
+  }
+
+  protected getSearchableFields(): SearchableField<UserRecord>[] {
+    return ["name", "email"];
+  }
+
+  protected getDefaultRelations() {
+    return {
+      posts: {
+        with: { tags: { with: { tag: true } } },
+      },
+    };
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const record = await this.context.query.users.findFirst({
+      where: eq(users.email, email),
+      with: this.getDefaultRelations(),
+    });
+    if (!record) return null;
+    const user = this.toDomainMapper.build(record as any);
+    user.markAsClean();
+    return user;
+  }
+}
+```
+
+### Context-Aware Queries
+
+Use `this.context` in custom methods — it automatically switches to the transaction client when inside a transaction:
+
+```typescript
+async findActiveUsers(): Promise<User[]> {
+  const records = await this.context.query.users.findMany({
+    where: eq(users.status, "active"),
+    with: this.getDefaultRelations(),
+  });
+  return records.map((r) => this.toDomainMapper.build(r));
+}
+```
+
+---
+
+## EntitySchemaRegistry
+
+Maps domain entities to Drizzle tables, configures FK relationships, and describes collection types.
+
 <Info>
-  **Coming Soon** — The Drizzle adapter is currently in development.
+  See the complete [Schema Registry documentation](/repository/schema-registry) for all features.
 </Info>
 
-## 
+### Basic Registration
+
+```typescript
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "users",
+  })
+  .register({
+    entity: "Post",
+    table: "posts",
+    parentFk: {
+      field: "authorId",    // FK column in DB
+      parentEntity: "User", // name of the parent entity
+    },
+  });
+```
+
+### Owned Collections (1:N)
+
+```typescript
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "User",
+    table: "users",
+    collections: {
+      posts: {
+        type: "owned", // Posts are lifecycle-managed by User
+        entity: "Post",
+      },
+    },
+  })
+  .register({
+    entity: "Post",
+    table: "posts",
+    parentFk: {
+      field: "authorId",
+      parentEntity: "User",
+    },
+  });
+```
+
+### Reference Collections (N:N) — Junction Required
+
+<Warning>
+  Unlike Prisma, Drizzle **always requires** an explicit `junction` config for `reference` collections. Drizzle does not manage junction tables automatically. Omitting `junction` will throw a `MissingJunctionConfigError` at runtime.
+</Warning>
+
+```typescript
+const registry = new EntitySchemaRegistry()
+  .register({
+    entity: "Post",
+    table: "posts",
+    collections: {
+      tags: {
+        type: "reference",  // Tags exist independently; only the link is managed
+        entity: "Tag",
+        junction: {
+          table: "posts_to_tags", // must match your tableMap key
+          sourceKey: "postId",    // FK column pointing to Post
+          targetKey: "tagId",     // FK column pointing to Tag
+        },
+      },
+    },
+  })
+  .register({ entity: "Tag", table: "tags" });
+```
+
+### Collection Types
+
+| Type | Relationship | Creates | Deletes |
+|------|-------------|---------|---------|
+| `owned` | 1:N | `INSERT` into child table | `DELETE` from child table |
+| `reference` | N:N | `INSERT` into junction table | `DELETE` from junction table |
+
+### tableMap
+
+The `tableMap` maps entity names (and junction table names) to the actual Drizzle table objects. It is used by `DrizzleBatchExecutor` to execute queries.
+
+```typescript
+protected readonly tableMap = new Map<string, any>([
+  ["User", users],             // entity name → Drizzle table
+  ["Post", posts],
+  ["Tag", tags],
+  ["posts_to_tags", postsToTags], // junction table name → Drizzle table
+]);
+```
+
+<Warning>
+  The keys in `tableMap` must exactly match the entity names used in `registry.register({ entity: "..." })` and the junction table names in `junction.table`. A wrong key throws `TableNotFoundError` with a list of available keys.
+</Warning>
+
+---
+
+## DrizzleToPersistence
+
+Base mapper class for persisting aggregates. You control `onCreate` manually; `onUpdate` defaults to `DrizzleBatchExecutor`.
+
+```typescript
+import { DrizzleToPersistence, Transactional } from "@woltz/rich-domain-drizzle";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+
+export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+  protected readonly registry = new EntitySchemaRegistry()
+    .register({
+      entity: "User",
+      table: "users",
+      collections: {
+        posts: { type: "owned", entity: "Post" },
+      },
+    })
+    .register({
+      entity: "Post",
+      table: "posts",
+      parentFk: { field: "authorId", parentEntity: "User" },
+      collections: {
+        tags: {
+          type: "reference",
+          entity: "Tag",
+          junction: { table: "posts_to_tags", sourceKey: "postId", targetKey: "tagId" },
+        },
+      },
+    })
+    .register({ entity: "Tag", table: "tags" });
+
+  protected readonly tableMap = new Map<string, any>([
+    ["User", users],
+    ["Post", posts],
+    ["Tag", tags],
+    ["posts_to_tags", postsToTags],
+  ]);
+
+  constructor(uow: DrizzleUnitOfWork) {
+    super(uow);
+  }
+
+  protected getDb() {
+    return getDb();
+  }
+
+  @Transactional()
+  protected async onCreate(user: User): Promise<void> {
+    // Insert root aggregate
+    await this.context.insert(users).values({
+      id: user.id.value,
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+
+    // Insert owned children (Posts)
+    if (user.posts.length > 0) {
+      await this.context.insert(posts).values(
+        user.posts.map((p) => ({
+          id: p.id.value,
+          title: p.title,
+          content: p.content,
+          published: p.published,
+          authorId: user.id.value,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        }))
+      );
+    }
+  }
+
+  // onUpdate is handled automatically by DrizzleBatchExecutor (default implementation).
+  // Override only if you need custom update logic.
+}
+```
+
+### onUpdate Default Behavior
+
+If you do not override `onUpdate`, the adapter uses `DrizzleBatchExecutor.execute(changes)` automatically:
+
+```typescript
+// Default — no override needed for standard change tracking
+protected async onUpdate(changes: AggregateChanges, entity: User): Promise<void> {
+  const executor = new DrizzleBatchExecutor({
+    registry: this.registry,
+    db: this.context,
+    tableMap: this.tableMap,
+  });
+  await executor.execute(changes);
+}
+```
+
+---
+
+## DrizzleBatchExecutor
+
+Executes `AggregateChanges` in the correct order, respecting referential integrity.
+
+```typescript
+import { DrizzleBatchExecutor } from "@woltz/rich-domain-drizzle";
+
+const executor = new DrizzleBatchExecutor({
+  registry: schemaRegistry,
+  db: context,
+  tableMap,
+});
+
+await executor.execute(changes);
+```
+
+### Execution Order
+
+1. **Deletes** — Leaf → Root (depth DESC)
+   - `owned`: `DELETE FROM table WHERE id IN (...)`
+   - `reference`: `DELETE FROM junction WHERE sourceKey = ? AND targetKey IN (...)`
+
+2. **Creates** — Root → Leaf (depth ASC)
+   - `owned`: `INSERT INTO table VALUES (...)`
+   - `reference`: `INSERT INTO junction VALUES (...) ON CONFLICT DO NOTHING`
+
+3. **Updates** — Any order
+
+---
+
+## Criteria Support
+
+`DrizzleQueryBuilder` translates a `Criteria` instance into Drizzle `where`, `orderBy`, `limit`, and `offset` clauses.
+
+```typescript
+const criteria = Criteria.create<User>()
+  .whereEquals("published", true)
+  .orderByAsc("createdAt")
+  .paginate(1, 20);
+
+const result = await userRepository.find(criteria);
+// result.data → User[]
+// result.toJSON().meta → { page, limit, total, totalPages, hasNext, hasPrev }
+```
+
+### Supported Operators
+
+| Criteria Operator | SQL |
+|-------------------|-----|
+| `equals` | `= ?` |
+| `notEquals` | `!= ?` |
+| `greaterThan` | `> ?` |
+| `greaterThanOrEqual` | `>= ?` |
+| `lessThan` | `< ?` |
+| `lessThanOrEqual` | `<= ?` |
+| `contains` | `ILIKE '%value%'` |
+| `startsWith` | `ILIKE 'value%'` |
+| `endsWith` | `ILIKE '%value'` |
+| `in` | `IN (...)` |
+| `notIn` | `NOT IN (...)` |
+| `isNull` | `IS NULL` |
+| `isNotNull` | `IS NOT NULL` |
+| `between` | `BETWEEN ? AND ?` |
+
+---
+
+## Limitations
+
+### No Dot-Notation Field Paths
+
+Criteria filters, ordering, and search fields must reference **top-level columns on the repository's primary table**. Dot paths like `"profile.name"` or `"posts.title"` are not supported and will throw a `DrizzleAdapterError`.
+
+```typescript
+// ❌ Throws DrizzleAdapterError
+Criteria.create<User>().whereEquals("profile.name", "John");
+Criteria.create<User>().orderByAsc("address.city");
+
+// ✅ Top-level columns only
+Criteria.create<User>().whereEquals("name", "John");
+Criteria.create<User>().orderByAsc("createdAt");
+```
+
+For cross-table filtering or ordering, add a custom method to your repository using Drizzle's SQL API with explicit JOINs:
+
+```typescript
+async findByPostTitle(title: string): Promise<User[]> {
+  const records = await this.context
+    .select()
+    .from(users)
+    .innerJoin(posts, eq(posts.authorId, users.id))
+    .where(ilike(posts.title, `%${title}%`));
+
+  return records.map(({ users: u }) => this.toDomainMapper.build(u as any));
+}
+```
+
+### No Relation Quantifiers
+
+Criteria quantifiers (`some`, `every`, `none`) are not supported. Use raw Drizzle queries with `EXISTS` subqueries for these cases.
+
+```typescript
+// ❌ Not supported
+Criteria.create<User>().where("posts", "some", { published: true });
+
+// ✅ Add a custom repository method
+async findUsersWithPublishedPosts(): Promise<User[]> { ... }
+```
+
+### `contains` is Case-Insensitive (PostgreSQL Only)
+
+The `contains`, `startsWith`, and `endsWith` operators use `ILIKE`, which is a PostgreSQL-specific operator. They will not work on SQLite or MySQL without customization.
+
+### Junction Config is Always Required
+
+Unlike Prisma (which handles implicit N:N automatically), Drizzle requires an explicit `junction` config for every `reference` collection. Omitting it throws `MissingJunctionConfigError` with an example config.
+
+---
+
+## Error Reference
+
+| Error | When thrown |
+|-------|------------|
+| `TableNotFoundError` | `tableMap` key not found for an entity or junction name |
+| `MissingJunctionConfigError` | `reference` collection has no `junction` configured |
+| `BatchOperationError` | DB error during a batch create, update, or delete |
+| `NoRecordsAffectedError` | `delete()` / `deleteById()` matched 0 rows |
+| `DrizzleAdapterError` | Unsupported Criteria operator, dot-field path, or column not found |
+
+```typescript
+import {
+  TableNotFoundError,
+  MissingJunctionConfigError,
+  BatchOperationError,
+  NoRecordsAffectedError,
+  DrizzleAdapterError,
+} from "@woltz/rich-domain-drizzle";
+
+try {
+  await userRepository.save(user);
+} catch (error) {
+  if (error instanceof MissingJunctionConfigError) {
+    // reference collection missing junction — config error
+  } else if (error instanceof TableNotFoundError) {
+    // entity not found in tableMap — config error
+  } else if (error instanceof BatchOperationError) {
+    // DB-level failure during batch write
+  } else if (error instanceof NoRecordsAffectedError) {
+    // delete targeted a non-existent row
+  }
+}
+```
+
+---
+
+## API Reference
+
+### Exports
+
+```typescript
+// Unit of Work
+export { DrizzleUnitOfWork, Transactional, getCurrentDrizzleContext };
+export type { DrizzleClient, DrizzleTransactionClient, DrizzleTransactionContext };
+
+// Repository
+export { DrizzleRepository };
+export type { DrizzleRepositoryConfig };
+
+// Mappers
+export { DrizzleToPersistence };
+export { DrizzleToDomain };
+
+// Batch Executor
+export { DrizzleBatchExecutor, executeBatch };
+export type { DrizzleBatchExecutorConfig };
+
+// Query Builder
+export { DrizzleQueryBuilder };
+export type { SearchableField };
+
+// Errors
+export {
+  DrizzleAdapterError,
+  TableNotFoundError,
+  MissingJunctionConfigError,
+  NoRecordsAffectedError,
+  BatchOperationError,
+  DrizzleRepositoryError,
+};
+```
+
+### DrizzleRepository Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `find(criteria)` | `Promise<PaginatedResult<T>>` | Find with filters, ordering, pagination |
+| `findById(id)` | `Promise<T \| null>` | Find single entity by ID |
+| `findManyByIds(ids)` | `Promise<T[]>` | Find multiple entities by IDs |
+| `count(criteria?)` | `Promise<number>` | Count matching entities |
+| `exists(id)` | `Promise<boolean>` | Check if entity exists |
+| `save(entity)` | `Promise<void>` | Create or update (detected automatically) |
+| `delete(entity)` | `Promise<void>` | Delete by entity instance |
+| `deleteById(id)` | `Promise<void>` | Delete by ID string |
+| `transaction(work)` | `Promise<T>` | Execute work in a transaction |
+
+### DrizzleUnitOfWork Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `transaction(work)` | `Promise<T>` | Execute work in a transaction |
+| `isInTransaction()` | `boolean` | Check if in a transaction |
+| `getCurrentContext()` | `DrizzleTransactionContext \| null` | Get current transaction context |
