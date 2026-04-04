@@ -286,7 +286,9 @@ export const userRegistry = new EntitySchemaRegistry()
   })
   .register({ entity: "Tag", table: "tags" });
 
-export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+type DB = ReturnType<typeof getDb>;
+
+export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
   protected readonly registry = userRegistry;
 
   protected readonly tableMap = new Map<string, any>([
@@ -296,12 +298,8 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
     ["posts_to_tags", postsToTags], // junction table
   ]);
 
-  constructor(uow: DrizzleUnitOfWork) {
-    super(uow);
-  }
-
-  protected getDb() {
-    return getDb();
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
+    super(db, uow);
   }
 
   @Transactional()
@@ -341,14 +339,15 @@ import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/ri
 import { eq } from "drizzle-orm";
 import { users, UserWithPosts } from "../schema";
 
-export class UserRepository extends DrizzleRepository<User, UserWithPosts> {
-  constructor(uow: DrizzleUnitOfWork) {
-    const db = getDb() as any;
+type DB = ReturnType<typeof getDb>;
+
+export class UserRepository extends DrizzleRepository<User, UserWithPosts, DB> {
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
       table: users,
       toDomainMapper: new UserToDomainMapper(),
-      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
     });
   }
@@ -389,8 +388,9 @@ import { DrizzleUnitOfWork } from "@woltz/rich-domain-drizzle";
 
 await initializeDatabase();
 
-const uow = new DrizzleUnitOfWork(getDb() as any);
-const userRepo = new UserRepository(uow);
+const db = getDb();
+const uow = new DrizzleUnitOfWork(db);
+const userRepo = new UserRepository(db, uow);
 ```
 
 ### Create

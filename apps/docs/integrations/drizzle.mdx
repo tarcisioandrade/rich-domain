@@ -145,7 +145,16 @@ Base class for repositories. Provides `find`, `findById`, `findManyByIds`, `save
 ```typescript
 import { DrizzleRepository } from "@woltz/rich-domain-drizzle";
 
-abstract class DrizzleRepository<TDomain, TPersistence> {
+abstract class DrizzleRepository<
+  TDomain,
+  TPersistence,
+  TDb extends DrizzleClient = DrizzleClient,
+> {
+  constructor(config: { db: TDb; table: any; toDomainMapper; toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>; uow }) { ... }
+
+  // Available: current context (transaction or plain db) — typed as TDb
+  protected get context(): TDb;
+
   // Required: Drizzle query model name (key in db.query)
   protected abstract get model(): string;
 
@@ -174,14 +183,15 @@ abstract class DrizzleRepository<TDomain, TPersistence> {
 import { DrizzleRepository, SearchableField } from "@woltz/rich-domain-drizzle";
 import { users, UserRecord } from "../schema";
 
-export class UserRepository extends DrizzleRepository<User, UserRecord> {
-  constructor(uow: DrizzleUnitOfWork) {
-    const db = getDb();
+type DB = ReturnType<typeof getDb>;
+
+export class UserRepository extends DrizzleRepository<User, UserRecord, DB> {
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
       table: users,
       toDomainMapper: new UserToDomainMapper(),
-      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
     });
   }
@@ -343,7 +353,9 @@ Base mapper class for persisting aggregates. You control `onCreate` manually; `o
 import { DrizzleToPersistence, Transactional } from "@woltz/rich-domain-drizzle";
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 
-export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+type DB = ReturnType<typeof getDb>;
+
+export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
   protected readonly registry = new EntitySchemaRegistry()
     .register({
       entity: "User",
@@ -373,12 +385,8 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
     ["posts_to_tags", postsToTags],
   ]);
 
-  constructor(uow: DrizzleUnitOfWork) {
-    super(uow);
-  }
-
-  protected getDb() {
-    return getDb();
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
+    super(db, uow);
   }
 
   @Transactional()
