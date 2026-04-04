@@ -24,9 +24,12 @@ npm install @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm
 
 ```typescript
 import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "./schema";
 import { DrizzleUnitOfWork } from "@woltz/rich-domain-drizzle";
 
-const db = drizzle(pool, { schema });
+type DB = ReturnType<typeof drizzle<typeof schema>>;
+
+const db: DB = drizzle(pool, { schema });
 const uow = new DrizzleUnitOfWork(db);
 ```
 
@@ -36,13 +39,15 @@ const uow = new DrizzleUnitOfWork(db);
 import { DrizzleRepository, SearchableField } from "@woltz/rich-domain-drizzle";
 import { users } from "./schema";
 
-class UserRepository extends DrizzleRepository<User, UserRecord> {
-  constructor(uow: DrizzleUnitOfWork) {
+type DB = ReturnType<typeof drizzle<typeof schema>>;
+
+class UserRepository extends DrizzleRepository<User, UserRecord, DB> {
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
       table: users,
       toDomainMapper: new UserToDomainMapper(),
-      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
     });
   }
@@ -128,7 +133,13 @@ uow.getCurrentContext(); // DrizzleTransactionContext | null
 Base class for repositories with full Criteria support.
 
 ```typescript
-abstract class DrizzleRepository<TDomain, TRecord> {
+abstract class DrizzleRepository<
+  TDomain,
+  TRecord,
+  TDb extends DrizzleClient = DrizzleClient,
+> {
+  constructor(config: { db: TDb; table: any; toDomainMapper; toPersistenceMapper; uow }) { ... }
+
   // Required: key in db.query matching the Drizzle schema export name
   protected abstract get model(): string;
 
@@ -137,6 +148,9 @@ abstract class DrizzleRepository<TDomain, TRecord> {
 
   // Optional: default relations to include in queries
   protected getDefaultRelations(): Record<string, any>;
+
+  // Available: current context (transaction or plain db) — typed as TDb
+  protected get context(): TDb;
 
   // Available methods
   async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>>;
@@ -159,7 +173,12 @@ abstract class DrizzleRepository<TDomain, TRecord> {
 Base class for persistence mappers with change tracking support.
 
 ```typescript
-abstract class DrizzleToPersistence<TDomain> extends Mapper<TDomain, void> {
+abstract class DrizzleToPersistence<
+  TDomain,
+  TDb extends DrizzleClient = DrizzleClient,
+> extends Mapper<TDomain, void> {
+  constructor(db: TDb, uow: DrizzleUnitOfWork) { ... }
+
   // Required: registry for entity/table/collection mapping
   protected abstract readonly registry: EntitySchemaRegistry;
 
@@ -169,8 +188,8 @@ abstract class DrizzleToPersistence<TDomain> extends Mapper<TDomain, void> {
   // Required: implement creation
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
-  // Available: current context (transaction or plain db)
-  protected get context(): DrizzleClient | DrizzleTransactionClient;
+  // Available: current context (transaction or plain db) — typed as TDb
+  protected get context(): TDb;
 }
 ```
 
@@ -211,7 +230,9 @@ const userRegistry = new EntitySchemaRegistry()
   })
   .register({ entity: "Tag", table: "tags" });
 
-class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+type DB = ReturnType<typeof drizzle<typeof schema>>;
+
+class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
   protected readonly registry = userRegistry;
 
   protected readonly tableMap = new Map<string, any>([
@@ -221,12 +242,8 @@ class UserToPersistenceMapper extends DrizzleToPersistence<User> {
     ["posts_to_tags", postsToTags], // junction table key must match registry
   ]);
 
-  constructor(uow: DrizzleUnitOfWork) {
-    super(uow);
-  }
-
-  protected getDb() {
-    return getDb();
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
+    super(db, uow);
   }
 
   @Transactional()

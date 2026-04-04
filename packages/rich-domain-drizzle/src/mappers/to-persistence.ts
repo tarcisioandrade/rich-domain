@@ -11,11 +11,14 @@ import {
 } from "../unit-of-work";
 import { DrizzleBatchExecutor } from "../batch-executor";
 
-export abstract class DrizzleToPersistence<TDomain> extends Mapper<
+export abstract class DrizzleToPersistence<
   TDomain,
-  void
-> {
-  constructor(protected readonly uow: DrizzleUnitOfWork) {
+  TDb extends DrizzleClient = DrizzleClient,
+> extends Mapper<TDomain, void> {
+  constructor(
+    protected readonly db: TDb,
+    protected readonly uow: DrizzleUnitOfWork,
+  ) {
     super();
   }
 
@@ -38,16 +41,11 @@ export abstract class DrizzleToPersistence<TDomain> extends Mapper<
   protected abstract readonly tableMap: Map<string, any>;
 
   /**
-   * Get the raw db instance.
-   */
-  protected abstract getDb(): DrizzleClient;
-
-  /**
    * Get current context (transaction client or raw db).
    */
-  protected get context(): DrizzleClient {
+  protected get context(): TDb {
     const ctx = UOWStorage.getStore()?.ctx;
-    return ctx?.client ?? this.getDb();
+    return (ctx?.client ?? this.db) as TDb;
   }
 
   /**

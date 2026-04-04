@@ -11,25 +11,30 @@ import { NoRecordsAffectedError } from "./errors";
 import { DrizzleToPersistence } from "./mappers/to-persistence";
 import { DrizzleQueryBuilder, SearchableField } from "./query-builder";
 
-export interface DrizzleRepositoryConfig<TDomain, TPersistence> {
-  db: DrizzleClient;
+export interface DrizzleRepositoryConfig<
+  TDomain,
+  TPersistence,
+  TDb extends DrizzleClient = DrizzleClient,
+> {
+  db: TDb;
   table: any;
   toDomainMapper: Mapper<TPersistence, TDomain>;
-  toPersistenceMapper: DrizzleToPersistence<TDomain>;
+  toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>;
   uow: DrizzleUnitOfWork;
 }
 
 export abstract class DrizzleRepository<
   TDomain extends Aggregate<any>,
   TPersistence,
+  TDb extends DrizzleClient = DrizzleClient,
 > extends Repository<TDomain> {
-  protected readonly db: DrizzleClient;
+  protected readonly db: TDb;
   protected readonly table: any;
   protected readonly toDomainMapper: Mapper<TPersistence, TDomain>;
-  protected readonly toPersistenceMapper: DrizzleToPersistence<TDomain>;
+  protected readonly toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>;
   protected readonly uow: DrizzleUnitOfWork;
 
-  constructor(config: DrizzleRepositoryConfig<TDomain, TPersistence>) {
+  constructor(config: DrizzleRepositoryConfig<TDomain, TPersistence, TDb>) {
     super();
     this.db = config.db;
     this.table = config.table;
@@ -41,9 +46,9 @@ export abstract class DrizzleRepository<
   /**
    * Returns tx from UOWStorage if inside a transaction, otherwise the raw db.
    */
-  protected get context(): DrizzleClient {
+  protected get context(): TDb {
     const ctx = UOWStorage.getStore()?.ctx;
-    return ctx?.client ?? this.db;
+    return (ctx?.client ?? this.db) as TDb;
   }
 
   /**
