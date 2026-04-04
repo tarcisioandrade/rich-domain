@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.7](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.6...v1.8.7) (2026-04-04)
+
+
+### Features
+
+* add @woltz/rich-domain-drizzle adapter with documentation and version update ([3bf2ef5](https://github.com/tarcisioandrade/rich-domain/commit/3bf2ef5216e4f73722a9a9aa2b84aa09cb7caaf8))
+* add @woltz/rich-domain-drizzle workspace to build script ([fabf999](https://github.com/tarcisioandrade/rich-domain/commit/fabf999cac54cd7e9a05ec665e96f7a3999896a4))
+* add fastify-with-drizzle example ([a8d0f12](https://github.com/tarcisioandrade/rich-domain/commit/a8d0f122230b49bc0fcc0d3ee48ab779341584fc))
+* add MissingJunctionConfigError and enforce junction configuration in DrizzleBatchExecutor ([467d8cb](https://github.com/tarcisioandrade/rich-domain/commit/467d8cb893e1c676cc0fc63644d1aba5f9f89615))
+* drizzle adapter implementation v1 ([e1d81a9](https://github.com/tarcisioandrade/rich-domain/commit/e1d81a94f74e28413ee10231a546fef0998e834b))
+* improve configuration ([40f076f](https://github.com/tarcisioandrade/rich-domain/commit/40f076ffccefe4c8d61987493871a4aae72a0434))
+
+
+### Bug Fixes
+
+* implement WeakMap for domain event management in BaseAggregate ([11566ab](https://github.com/tarcisioandrade/rich-domain/commit/11566ab71c578c5ed7edca6345914eb42faee8e8))
+* splice catching error in validator ([852ed5b](https://github.com/tarcisioandrade/rich-domain/commit/852ed5bba69d1a2c5b5fbeb4ad70e3a6f4aafd24))
+
+
+### Refactoring
+
+* change private mapper to protected in DrizzleRepository for improved accessibility ([8ecf5ca](https://github.com/tarcisioandrade/rich-domain/commit/8ecf5caf6565d68910f8fce76fca02427d5a0599))
+* enhance pagination handling in Criteria class ([865dcd3](https://github.com/tarcisioandrade/rich-domain/commit/865dcd3fe0dc7cf3f17065ee68dcb6e18f5303f5))
+
+
+### Documentation
+
+* drizzle adapter documentation ([a3ce54f](https://github.com/tarcisioandrade/rich-domain/commit/a3ce54fde5986a91e348c8a00dd5983fed0897ab))
+
+
+### Chores
+
+* add lint script to fastify-with-drizzle example ([05aacf5](https://github.com/tarcisioandrade/rich-domain/commit/05aacf5e6316ed86833b82f1dc2ce6e4e35cce9e))
+* update @woltz/rich-domain and related packages to version 1.8.6 and 0.7.7 ([65a90c2](https://github.com/tarcisioandrade/rich-domain/commit/65a90c24b5abbe5e1626197546a9212e6a8f1d45))
+
 ### [1.8.6](https://github.com/tarcisioandrade/rich-domain/compare/v0.1.5...v1.8.6) (2026-03-26)
 
 ### Features
