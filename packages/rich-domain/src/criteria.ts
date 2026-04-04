@@ -428,11 +428,26 @@ export class Criteria<T = any> {
       }
     }
 
-    const page = query.pagination?.page;
-    const limit = query.pagination?.limit;
+    function parsePagination<T>(pagination: T | string) {
+      if (typeof pagination === "string") {
+        try {
+          return JSON.parse(pagination) as T;
+        } catch {
+          return undefined;
+        }
+      }
+      return pagination;
+    }
+
+    const pagination = parsePagination(query.pagination);
+
+    const page = pagination?.page;
+    const limit = pagination?.limit;
 
     if (page && limit) {
-      criteria.paginate(page, limit);
+      criteria.paginate(Number(page), Number(limit));
+    } else if (limit) {
+      criteria.paginate(1, Number(limit));
     }
 
     // 1. orderBy=["field:asc","field2:desc"]
