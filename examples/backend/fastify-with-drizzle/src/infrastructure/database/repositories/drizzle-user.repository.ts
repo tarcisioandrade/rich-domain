@@ -11,17 +11,18 @@ import { UserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
 import { users, UserRecord } from "../schema";
 import { getDb } from "../db";
 
+type DB = ReturnType<typeof getDb>;
+
 export class DrizzleUserRepository
-  extends DrizzleRepository<User, UserRecord>
+  extends DrizzleRepository<User, UserRecord, DB>
   implements UserRepository
 {
-  constructor(uow: DrizzleUnitOfWork) {
-    const db = getDb() as any;
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
       table: users,
       toDomainMapper: new UserToDomainMapper(),
-      toPersistenceMapper: new UserToPersistenceMapper(uow),
+      toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
     });
   }
@@ -45,7 +46,7 @@ export class DrizzleUserRepository
   async findByEmail(email: string): Promise<User | null> {
     const record = await this.context.query.users.findFirst({
       where: eq(users.email, email),
-      with: this.getDefaultRelations(),
+      with: this.getDefaultRelations() as any,
     });
 
     if (!record) return null;

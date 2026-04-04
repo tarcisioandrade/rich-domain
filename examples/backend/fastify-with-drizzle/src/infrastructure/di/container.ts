@@ -24,19 +24,25 @@ export class Container {
   }
 
   private registerDependencies() {
-    this.register("unitOfWork", () => new DrizzleUnitOfWork(getDb() as any));
+    this.register("unitOfWork", () => new DrizzleUnitOfWork(getDb()));
     this.register("eventBus", () => new BullMQEventBus(connection));
 
     this.register(
       "userRepository",
       () =>
-        new DrizzleUserRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
+        new DrizzleUserRepository(
+          getDb(),
+          this.resolve<DrizzleUnitOfWork>("unitOfWork")
+        )
     );
 
     this.register(
       "postRepository",
       () =>
-        new DrizzlePostRepository(this.resolve<DrizzleUnitOfWork>("unitOfWork"))
+        new DrizzlePostRepository(
+          getDb(),
+          this.resolve<DrizzleUnitOfWork>("unitOfWork")
+        )
     );
 
     this.register(

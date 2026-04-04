@@ -8,6 +8,8 @@ import { Post } from "../../../domain/post/post.entity";
 import { posts, tags, postsToTags } from "../schema";
 import { getDb } from "../db";
 
+type DB = ReturnType<typeof getDb>;
+
 export const postSchemaRegistry = new EntitySchemaRegistry().register({
   entity: "Post",
   table: "posts",
@@ -24,7 +26,7 @@ export const postSchemaRegistry = new EntitySchemaRegistry().register({
   },
 });
 
-export class PostToPersistenceMapper extends DrizzleToPersistence<Post> {
+export class PostToPersistenceMapper extends DrizzleToPersistence<Post, DB> {
   protected readonly registry = postSchemaRegistry;
 
   protected readonly tableMap = new Map<string, any>([
@@ -32,14 +34,6 @@ export class PostToPersistenceMapper extends DrizzleToPersistence<Post> {
     ["Tag", tags],
     ["posts_to_tags", postsToTags],
   ]);
-
-  constructor(uow: DrizzleUnitOfWork) {
-    super(uow);
-  }
-
-  protected getDb() {
-    return getDb() as any;
-  }
 
   @Transactional()
   protected async onCreate(post: Post): Promise<void> {

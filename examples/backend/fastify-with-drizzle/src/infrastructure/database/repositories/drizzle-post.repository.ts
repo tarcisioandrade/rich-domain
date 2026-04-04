@@ -11,17 +11,18 @@ import { PostToPersistenceMapper } from "../mappers/post-to-persistence.mapper";
 import { posts, PostRecord } from "../schema";
 import { getDb } from "../db";
 
+type DB = ReturnType<typeof getDb>;
+
 export class DrizzlePostRepository
-  extends DrizzleRepository<Post, PostRecord>
+  extends DrizzleRepository<Post, PostRecord, DB>
   implements PostRepository
 {
-  constructor(uow: DrizzleUnitOfWork) {
-    const db = getDb() as any;
+  constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
       table: posts,
       toDomainMapper: new PostToDomainMapper(),
-      toPersistenceMapper: new PostToPersistenceMapper(uow),
+      toPersistenceMapper: new PostToPersistenceMapper(db, uow),
       uow,
     });
   }

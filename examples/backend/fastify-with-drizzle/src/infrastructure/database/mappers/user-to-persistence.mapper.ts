@@ -1,12 +1,13 @@
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 import {
   DrizzleToPersistence,
-  DrizzleUnitOfWork,
   Transactional,
 } from "@woltz/rich-domain-drizzle";
 import { User } from "../../../domain/user/user.entity";
 import { users, posts, tags, postsToTags } from "../schema";
 import { getDb } from "../db";
+
+type DB = ReturnType<typeof getDb>;
 
 export const userSchemaRegistry = new EntitySchemaRegistry()
   .register({
@@ -43,7 +44,7 @@ export const userSchemaRegistry = new EntitySchemaRegistry()
     table: "tags",
   });
 
-export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
+export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
   protected readonly registry = userSchemaRegistry;
 
   protected readonly tableMap = new Map<string, any>([
@@ -52,14 +53,6 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User> {
     ["Tag", tags],
     ["posts_to_tags", postsToTags],
   ]);
-
-  constructor(uow: DrizzleUnitOfWork) {
-    super(uow);
-  }
-
-  protected getDb() {
-    return getDb();
-  }
 
   @Transactional()
   protected async onCreate(user: User): Promise<void> {
