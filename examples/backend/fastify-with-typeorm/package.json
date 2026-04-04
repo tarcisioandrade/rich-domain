@@ -11,8 +11,7 @@
     "start": "node dist/server.js",
     "lint": "echo 'no linting available'",
     "clean": "rm -rf dist coverage node_modules",
-    "check": "tsc -b --noEmit",
-    "start:worker": "bun tsx watch src/worker.ts"
+    "check": "tsc -b --noEmit"
   },
   "keywords": [
     "fastify",
@@ -31,6 +30,8 @@
     "@woltz/rich-domain-typeorm": "^0.1.5",
     "bullmq": "^5.64.0",
     "fastify": "^5.5.0",
+    "ioredis": "^5.6.1",
+    "pino-pretty": "^13.0.0",
     "fastify-plugin": "^5.1.0",
     "fastify-type-provider-zod": "^6.1.0",
     "pg": "^8.16.3",

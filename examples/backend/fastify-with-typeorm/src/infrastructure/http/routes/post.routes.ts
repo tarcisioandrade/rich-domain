@@ -1,156 +1,110 @@
-import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { TypeORMPostRepository } from "../../database/repositories/typeorm-post.repository";
-import { TypeORMUserRepository } from "../../database/repositories/typeorm-user.repository";
 import { Criteria } from "@woltz/rich-domain";
-import { getDataSource, getUoW } from "../../database/data-source";
-import { PostSchema } from "../../../domain/post/post.entity";
-import { PostService } from "../../../application/services/post.service";
-import { ZodTypeProvider } from "fastify-type-provider-zod";
-import { PostEntity, UserEntity } from "../../database/models";
+import { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 
-const createPostSchema = z.object({
+const PostParamsSchema = z.object({
+  id: z.string(),
+});
+
+const PostTagParamsSchema = z.object({
+  postId: z.string(),
+  tagId: z.string(),
+});
+
+const CreatePostBodySchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
   authorId: z.string(),
 });
 
-const OnlyIdSchema = z.object({
-  id: z.string(),
+const UpdatePostBodySchema = z.object({
+  title: z.string().min(1).optional(),
+  content: z.string().min(1).optional(),
 });
 
-const getPostParamsSchema = z.object({
-  id: z.string(),
-});
+const MessageResponseSchema = z.object({ message: z.string() });
 
-export const postRoutes: FastifyPluginAsync = async (app) => {
+export const postRoutes: FastifyPluginAsyncZod = async (app) => {
   const { postService } = app.container;
 
-  app.post("/posts", async (request, reply) => {
-    try {
-      const body = createPostSchema.parse(request.body);
-      const post = await postService.create(body);
-
+  app.post("/posts", {
+    schema: {
+      operationId: "createPost",
+      body: CreatePostBodySchema,
+    },
+    handler: async (request, reply) => {
+      const post = await postService.create(request.body);
       return reply.status(201).send(post.toJSON());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: z.treeifyError(error) });
-      }
-      return reply.status(400).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+    },
   });
 
-  app.get("/posts/:id", async (request, reply) => {
-    try {
-      const params = getPostParamsSchema.parse(request.params);
-      const post = await postService.getById(params.id);
-
-      return reply.send(post.toJSON());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: z.treeifyError(error) });
-      }
-      return reply.status(404).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+  app.get("/posts/:id", {
+    schema: {
+      operationId: "getPostById",
+      params: PostParamsSchema,
+    },
+    handler: async (request) => {
+      const post = await postService.getById(request.params.id);
+      return post.toJSON();
+    },
   });
 
-  app.get("/posts", async (request, reply) => {
-    try {
-      const query = request.query as Record<string, any>;
-      const criteria = Criteria.fromQueryParams(query);
+  app.get("/posts", {
+    schema: { operationId: "listPosts" },
+    handler: async (request) => {
+      const criteria = Criteria.fromQueryParams(
+        request.query as Record<string, any>
+      );
       const posts = await postService.list(criteria);
-
-      return reply.send(posts.map((post) => post.toJSON()));
-    } catch (error) {
-      return reply.status(500).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+      return posts.map((post) => post.toJSON());
+    },
   });
 
-  app.patch("/posts/:id", async (request, reply) => {
-    try {
-      const params = OnlyIdSchema.parse(request.params);
-      const body = PostSchema.partial().parse(request.body);
-      await postService.update(params.id, body);
-
+  app.patch("/posts/:id", {
+    schema: {
+      operationId: "updatePost",
+      params: PostParamsSchema,
+      body: UpdatePostBodySchema,
+    },
+    handler: async (request, reply) => {
+      await postService.update(request.params.id, request.body);
       return reply.send({ message: "Post updated successfully" });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: z.treeifyError(error) });
-      }
-      return reply.status(404).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+    },
   });
 
-  app.patch("/posts/:id/publish", async (request, reply) => {
-    try {
-      const params = getPostParamsSchema.parse(request.params);
-      const post = await postService.publish(params.id);
-
-      return reply.send(post.toJSON());
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return reply.status(400).send({ error: z.treeifyError(error) });
-      }
-      return reply.status(404).send({
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  app.withTypeProvider<ZodTypeProvider>().patch("/posts/:id/tags", {
+  app.patch("/posts/:id/publish", {
     schema: {
-      body: z.object({
-        tagId: z.string(),
-      }),
+      operationId: "publishPost",
+      params: PostParamsSchema,
+    },
+    handler: async (request) => {
+      const post = await postService.publish(request.params.id);
+      return post.toJSON();
+    },
+  });
+
+  app.patch("/posts/:id/tags", {
+    schema: {
+      operationId: "addTagToPost",
+      params: PostParamsSchema,
+      body: z.object({ tagId: z.string() }),
+      response: { "2xx": MessageResponseSchema },
     },
     handler: async (request, reply) => {
-      try {
-        const params = getPostParamsSchema.parse(request.params);
-        await postService.addTag(params.id, request.body.tagId);
-
-        return reply.send({ message: "Tag added successfully" });
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: z.treeifyError(error) });
-        }
-        return reply.status(404).send({
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
+      await postService.addTag(request.params.id, request.body.tagId);
+      return reply.send({ message: "Tag added successfully" });
     },
   });
 
-  app.withTypeProvider<ZodTypeProvider>().delete("/posts/:postId/tags/:tagId", {
+  app.delete("/posts/:postId/tags/:tagId", {
     schema: {
-      params: z.object({
-        postId: z.string(),
-        tagId: z.string(),
-      }),
+      operationId: "removeTagFromPost",
+      params: PostTagParamsSchema,
+      response: { "2xx": MessageResponseSchema },
     },
     handler: async (request, reply) => {
-      try {
-        await postService.removeTag(
-          request.params.postId,
-          request.params.tagId
-        );
-
-        return reply.send({ message: "Tag removed successfully" });
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return reply.status(400).send({ error: z.treeifyError(error) });
-        }
-        return reply.status(404).send({
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
+      await postService.removeTag(request.params.postId, request.params.tagId);
+      return reply.send({ message: "Tag removed successfully" });
     },
   });
 };
