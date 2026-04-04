@@ -30,7 +30,7 @@ export abstract class DrizzleRepository<
   protected readonly db: DrizzleClient;
   protected readonly table: any;
   protected readonly toDomainMapper: Mapper<TPersistence, TDomain>;
-  private readonly _toPersistenceMapper: DrizzleToPersistence<TDomain>;
+  protected readonly toPersistenceMapper: DrizzleToPersistence<TDomain>;
   protected readonly uow: DrizzleUnitOfWork;
 
   constructor(config: DrizzleRepositoryConfig<TDomain, TPersistence>) {
@@ -38,7 +38,7 @@ export abstract class DrizzleRepository<
     this.db = config.db;
     this.table = config.table;
     this.toDomainMapper = config.toDomainMapper;
-    this._toPersistenceMapper = config.toPersistenceMapper;
+    this.toPersistenceMapper = config.toPersistenceMapper;
     this.uow = config.uow;
   }
 
@@ -211,7 +211,7 @@ export abstract class DrizzleRepository<
   }
 
   async save(entity: TDomain): Promise<void> {
-    await this._toPersistenceMapper.build(entity);
+    await this.toPersistenceMapper.build(entity);
     entity.markAsPersisted();
   }
 
