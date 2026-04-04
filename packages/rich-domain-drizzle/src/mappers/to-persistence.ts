@@ -17,7 +17,7 @@ export abstract class DrizzleToPersistence<
 > extends Mapper<TDomain, void> {
   constructor(
     protected readonly db: TDb,
-    protected readonly uow: DrizzleUnitOfWork,
+    protected readonly uow: DrizzleUnitOfWork
   ) {
     super();
   }
