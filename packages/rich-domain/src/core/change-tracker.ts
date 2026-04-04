@@ -280,27 +280,26 @@ export class ChangeTracker {
           if (mutatingMethods.includes(String(prop))) {
             return function (...args: any[]) {
               const oldArray = target.slice();
+              const result = value.apply(target, args);
+              const newArray = target.slice();
 
               if (rootTracker.onChangeValidator) {
                 try {
-                  const result = rootTracker.onChangeValidator(path, [
-                    ...oldArray,
-                    ...args,
-                  ]);
-                  if (result === false) {
+                  const validatorResult = rootTracker.onChangeValidator(path, newArray);
+                  if (validatorResult === false) {
+                    target.splice(0, target.length, ...oldArray);
                     return undefined;
                   }
                 } catch (error) {
+                  target.splice(0, target.length, ...oldArray);
                   throw error;
                 }
               }
 
-              const result = value.apply(target, args);
-
               rootTracker.history.push({
                 path,
                 previousValue: oldArray,
-                currentValue: target.slice(),
+                currentValue: newArray,
                 timestamp: Date.now(),
               });
 

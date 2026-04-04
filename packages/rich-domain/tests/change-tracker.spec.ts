@@ -1,5 +1,5 @@
 import { DomainError, EntityValidation } from "../src";
-import { Aggregate, Id } from "../src/core/index";
+import { Aggregate, Entity, Id } from "../src/core/index";
 import {
   Post,
   TagReference,
@@ -678,5 +678,66 @@ describe("Recursive markAsClean and markAsPersisted", () => {
 
     // Address should also be clean
     expect(address.getChanges().isEmpty()).toBe(true);
+  });
+});
+
+describe("splice() on Zod-validated collection", () => {
+  const ItemSchema = z.object({ id: z.custom<Id>() });
+
+  class Item extends Entity<z.infer<typeof ItemSchema>> {}
+
+  const CollectionSchema = z.object({
+    id: z.custom<Id>(),
+    items: z.array(z.instanceof(Item)),
+  });
+
+  class CollectionAggregate extends Aggregate<
+    z.infer<typeof CollectionSchema>
+  > {
+    protected static validation: EntityValidation<
+      z.infer<typeof CollectionSchema>
+    > = {
+      schema: CollectionSchema,
+    };
+
+    get items() {
+      return this.props.items;
+    }
+  }
+
+  it("should not throw when splice() removes an item from a Zod-validated collection", () => {
+    const item1 = new Item({ id: new Id("item-1") });
+    const item2 = new Item({ id: new Id("item-2") });
+    const agg = new CollectionAggregate({
+      id: new Id("agg-1"),
+      items: [item1, item2],
+    });
+    agg.markAsClean();
+
+    expect(() => {
+      agg.props.items.splice(0, 1);
+    }).not.toThrow();
+
+    expect(agg.props.items).toHaveLength(1);
+    expect(agg.props.items[0].id.value).toBe("item-2");
+  });
+
+  it("should track splice() removal as a delete in AggregateChanges", () => {
+    const item1 = new Item({ id: new Id("item-1") });
+    const item2 = new Item({ id: new Id("item-2") });
+    const agg = new CollectionAggregate({
+      id: new Id("agg-1"),
+      items: [item1, item2],
+    });
+    agg.markAsClean();
+
+    agg.props.items.splice(0, 1);
+
+    const changes = agg.getChanges();
+
+    expect(changes.hasDeletes()).toBe(true);
+    const deletes = changes.deletes();
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0].id).toBe("item-1");
   });
 });
