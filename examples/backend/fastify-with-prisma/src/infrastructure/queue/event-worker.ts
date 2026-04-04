@@ -2,54 +2,51 @@ import { ConfigurationError, DomainEvent } from "@woltz/rich-domain";
 import { Job, Worker, WorkerOptions } from "bullmq";
 import IORedis from "ioredis";
 import { randomUUID } from "crypto";
+import type { FastifyInstance } from "fastify";
 import { QUEUES } from "../../constants";
 import { QueueName } from "./queue-publisher";
 
-type QueueWorkerHandler = {
-  handler: (event: DomainEvent<any>) => Promise<any>;
+type EventHandler<T extends Record<string, any>> = (
+  event: DomainEvent<T>,
+  app: FastifyInstance
+) => Promise<void>;
+
+type QueueWorkerConfig = {
+  handlers: Map<string, EventHandler<any>>;
+  settings?: WorkerOptions;
 };
 
 export class BullMQDomainEventWorker {
-  private workers: Record<
-    string,
-    {
-      handlers: Map<string, QueueWorkerHandler>;
-      settings?: WorkerOptions;
-    }
-  > = {
+  private workers: Record<string, QueueWorkerConfig> = {
     [QUEUES.MAIN]: {
-      handlers: new Map<string, QueueWorkerHandler>(),
-      settings: {
-        concurrency: 50,
-      } as WorkerOptions,
+      handlers: new Map(),
+      settings: { concurrency: 50 } as WorkerOptions,
     },
     [QUEUES.NOTIFICATION_EVENTS]: {
-      handlers: new Map<string, QueueWorkerHandler>(),
-      settings: {
-        concurrency: 10,
-      } as WorkerOptions,
+      handlers: new Map(),
+      settings: { concurrency: 10 } as WorkerOptions,
     },
     [QUEUES.WORKFLOW_EVENTS]: {
-      handlers: new Map<string, QueueWorkerHandler>(),
-      settings: {
-        concurrency: 5,
-      } as WorkerOptions,
+      handlers: new Map(),
+      settings: { concurrency: 5 } as WorkerOptions,
     },
   };
 
-  private _connection: IORedis;
+  private _app?: FastifyInstance;
 
-  constructor(connection: IORedis) {
-    this._connection = connection;
+  constructor(
+    private readonly connection: IORedis,
+    app?: FastifyInstance
+  ) {
+    this._app = app;
   }
 
   public on<T extends Record<string, any> = Record<string, any>>(props: {
     queue: QueueName;
     event: new (...args: any[]) => DomainEvent<T>;
-    handler: (event: DomainEvent<T>) => Promise<void>;
-  }) {
+    handler: EventHandler<T>;
+  }): void {
     const { queue, event, handler } = props;
-    const eventName = event.name;
 
     if (!this.workers[queue]) {
       throw new ConfigurationError(
@@ -57,35 +54,39 @@ export class BullMQDomainEventWorker {
       );
     }
 
-    this.workers[queue].handlers.set(eventName, { handler });
+    this.workers[queue].handlers.set(event.name, handler);
   }
 
-  public async start() {
-    for (const [workerName, worker] of Object.entries(this.workers)) {
-      const onJobHandler = async (job: Job<DomainEvent<any>>) => {
-        const workerProps = worker.handlers.get(job.data.eventName);
-        const token = randomUUID();
+  public async start(): Promise<void> {
+    if (!this._app) {
+      throw new Error("FastifyInstance is required to start the worker.");
+    }
 
-        if (!workerProps) {
-          const error = new ConfigurationError(
-            `Handler not found for event: ${job.data.eventName}`
-          );
-          await job.moveToFailed(error, token);
-          return;
-        }
+    const app = this._app;
 
-        return await workerProps.handler(job.data);
-      };
+    for (const [queueName, workerConfig] of Object.entries(this.workers)) {
+      new Worker(
+        queueName,
+        async (job: Job<DomainEvent<any>>) => {
+          const handler = workerConfig.handlers.get(job.data.eventName);
 
-      // Creating the Worker automatically starts it in BullMQ v5
-      const bullWorker = new Worker(workerName, onJobHandler, {
-        ...worker?.settings,
-        connection: this._connection,
-      });
+          if (!handler) {
+            const token = randomUUID();
+            await job.moveToFailed(
+              new Error(`No handler registered for event: ${job.data.eventName}`),
+              token
+            );
+            return;
+          }
+
+          await handler(job.data, app);
+        },
+        { ...workerConfig.settings, connection: this.connection }
+      );
     }
   }
 
-  async stop() {
-    await this._connection.quit();
+  async stop(): Promise<void> {
+    await this.connection.quit();
   }
 }
