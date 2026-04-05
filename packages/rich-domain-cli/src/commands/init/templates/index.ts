@@ -1,5 +1,7 @@
 import { BaseTemplate, TemplateMetadata } from "./base.template.js";
-import { FullstackTemplate } from "./fullstack/index.js";
+import { FullstackPrismaTemplate } from "./fullstack-prisma/index.js";
+import { FullstackDrizzleTemplate } from "./fullstack-drizzle/index.js";
+import { FullstackTypeORMTemplate } from "./fullstack-typeorm/index.js";
 
 /**
  * Registry of all available templates
@@ -8,11 +10,9 @@ export class TemplateRegistry {
   private templates: Map<string, BaseTemplate> = new Map();
 
   constructor() {
-    this.register(new FullstackTemplate());
-    // Register more templates here:
-    // this.register(new MinimalTemplate());
-    // this.register(new MonorepoTemplate());
-    // this.register(new MicroserviceTemplate());
+    this.register(new FullstackPrismaTemplate());
+    this.register(new FullstackDrizzleTemplate());
+    this.register(new FullstackTypeORMTemplate());
   }
 
   register(template: BaseTemplate): void {
@@ -45,4 +45,6 @@ export type {
   TemplateOptions,
   TemplateFile,
 } from "./base.template";
-export { FullstackTemplate } from "./fullstack/index.js";
+export { FullstackPrismaTemplate } from "./fullstack-prisma/index.js";
+export { FullstackDrizzleTemplate } from "./fullstack-drizzle/index.js";
+export { FullstackTypeORMTemplate } from "./fullstack-typeorm/index.js";
