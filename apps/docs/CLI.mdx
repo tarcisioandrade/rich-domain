@@ -77,13 +77,191 @@ npx rich-domain init [directory] [options]
 npx rich-domain init my-app
 
 # Specify template and package manager
-npx rich-domain init my-app --template fullstack -p pnpm
+npx rich-domain init my-app --template fullstack-prisma -p pnpm
 
 # Initialize in current directory
-npx rich-domain init . --template fullstack
+npx rich-domain init . --template fullstack-drizzle
 
 # Skip all prompts
-npx rich-domain init my-app -t fullstack -p npm -f
+npx rich-domain init my-app -t fullstack-typeorm -p npm -f
+```
+
+---
+
+## Templates
+
+### Available Templates
+
+| Template             | Stack                                   | Description                              |
+| -------------------- | --------------------------------------- | ---------------------------------------- |
+| `fullstack-prisma`   | Fastify + Prisma + BullMQ + Zod         | Prisma v7 with driver adapter (pg)       |
+| `fullstack-drizzle`  | Fastify + Drizzle ORM + BullMQ + Zod    | Drizzle with node-postgres               |
+| `fullstack-typeorm`  | Fastify + TypeORM + BullMQ + Zod        | TypeORM with decorators and DataSource   |
+
+All templates share the same DDD architecture and generate the same project structure. They differ only in the ORM layer.
+
+### Generated Project Structure
+
+```
+my-app/
+├── prisma.config.ts              # ORM config (Prisma) / drizzle.config.ts (Drizzle)
+├── docker-compose.yml            # PostgreSQL + Redis
+├── .env.example
+├── tsconfig.json
+└── src/
+    ├── env.ts                    # Zod-validated environment variables
+    ├── server.ts                 # Fastify app entry point
+    ├── constants.ts              # Queue name constants
+    ├── domain/
+    │   ├── entities/
+    │   │   └── user.aggregate.ts
+    │   ├── repositories/
+    │   │   └── user.repository.ts
+    │   ├── events/
+    │   │   └── user-created.event.ts
+    │   └── value-objects/
+    │       └── email.ts
+    ├── application/
+    │   ├── service/
+    │   │   └── user.service.ts
+    │   └── processor/
+    │       ├── events.processor.ts   # Observe-only handlers (logging, emails)
+    │       └── action.processor.ts   # Mutation handlers
+    ├── infra/
+    │   ├── database/
+    │   │   ├── <orm>/              # Schema/entity files
+    │   │   ├── mappers/            # Domain ↔ persistence mappers
+    │   │   ├── repositories/       # Concrete repository implementations
+    │   │   ├── schemas/            # Persistence type definitions
+    │   │   └── seed/
+    │   ├── queue/
+    │   │   ├── connection.ts       # IORedis connection
+    │   │   ├── event-bus.ts        # BullMQ IDomainEventBus implementation
+    │   │   ├── event-worker.ts     # BullMQ domain event worker
+    │   │   └── queue-publisher.ts
+    │   └── di/
+    │       ├── container.ts        # DI container
+    │       └── fastify-plugin.ts   # Fastify DI decorator
+    └── presentation/
+        ├── controllers/
+        │   └── user.controller.ts
+        └── dto/
+            └── user/
+                └── user.dto.ts
+```
+
+### Scripts
+
+All templates include the same base scripts:
+
+| Script          | Description                     |
+| --------------- | ------------------------------- |
+| `dev`           | Start dev server with tsx watch |
+| `build`         | Compile TypeScript              |
+| `start`         | Start production server         |
+| `lint`          | Type-check without emitting     |
+| `db:generate`   | Generate ORM client/migrations  |
+| `db:migrate`    | Run migrations                  |
+| `db:push`       | Push schema to database         |
+| `db:studio`     | Open ORM studio UI              |
+| `db:seed`       | Run seed script                 |
+| `docker:up`     | Start PostgreSQL + Redis        |
+| `docker:down`   | Stop Docker services            |
+
+<Note>
+  TypeORM does not include `db:generate`, `db:migrate`, `db:push`, or `db:studio` — schema synchronization is handled by `synchronize: true` in development mode.
+</Note>
+
+### fullstack-prisma
+
+Uses **Prisma v7** with the `@prisma/adapter-pg` driver adapter (required in v7) and `prisma.config.ts` for schema configuration.
+
+**Key dependencies:** `@prisma/client`, `@prisma/adapter-pg`, `pg`, `@woltz/rich-domain-prisma`
+
+```typescript
+// src/infra/database/prisma.ts
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+export const prisma = new PrismaClient({ adapter });
+```
+
+```typescript
+// prisma.config.ts
+import { defineConfig } from "prisma/config";
+
+export default defineConfig({
+  schema: path.join("src", "infra", "database", "prisma", "schema.prisma"),
+  datasource: {
+    url: env.DATABASE_URL,
+  },
+  migrations: {
+    path: path.join("src", "infra", "database", "prisma", "migrations"),
+    seed: path.join("src", "infra", "database", "seed", "seed.ts"),
+  },
+});
+```
+
+### fullstack-drizzle
+
+Uses **Drizzle ORM** with `drizzle-orm/node-postgres` and a lazy-initialized connection pool.
+
+**Key dependencies:** `drizzle-orm`, `pg`, `@woltz/rich-domain-drizzle`
+
+```typescript
+// src/infra/database/db.ts
+export async function initializeDatabase() {
+  pool = new Pool({ connectionString: env.DATABASE_URL });
+  db = drizzle(pool, { schema });
+}
+```
+
+```typescript
+// drizzle.config.ts
+export default defineConfig({
+  schema: "./src/infra/database/drizzle/schema.ts",
+  out: "./src/infra/database/drizzle/migrations",
+  dialect: "postgresql",
+});
+```
+
+### fullstack-typeorm
+
+Uses **TypeORM** with `DataSource`, decorator-based entities, and `synchronize: true` in development.
+
+**Key dependencies:** `typeorm`, `pg`, `reflect-metadata`, `@woltz/rich-domain-typeorm`
+
+```typescript
+// src/infra/database/db.ts
+export const AppDataSource = new DataSource({
+  type: "postgres",
+  url: env.DATABASE_URL,
+  synchronize: env.NODE_ENV === "development",
+  entities: [UserEntity],
+});
+```
+
+<Warning>
+  The TypeORM template enables `synchronize: true` in development mode. Disable this and use migrations in production.
+</Warning>
+
+### Getting Started
+
+After running `init`:
+
+```bash
+cd my-app
+pnpm install
+cp .env.example .env
+pnpm docker:up
+pnpm db:push       # or db:migrate for Prisma/Drizzle
+pnpm dev
+```
+
+```
+API:     http://localhost:3000
+Swagger: http://localhost:3000/doc
 ```
 
 ---
