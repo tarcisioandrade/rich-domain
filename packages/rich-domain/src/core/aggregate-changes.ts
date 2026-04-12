@@ -32,7 +32,7 @@ import { EntityChanges } from "./entity-changes.js";
  * const changes = user.getChanges<UserEntities>();
  *
  * // Filtering by entity with autocompletion
- * const postChanges = changes.for('Post');
+ * const postChanges = changes.of('Post');
  * postChanges.creates.forEach(post => {
  *   console.log(post.title);
  * });
@@ -324,7 +324,7 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
    *
    * @example
    * ```typescript
-   * const postChanges = changes.for('Post');
+   * const postChanges = changes.of('Post');
    *
    * if (postChanges.hasCreates()) {
    *   postChanges.creates.forEach(post => {
@@ -333,7 +333,7 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
    * }
    * ```
    */
-  for<K extends keyof TEntityMap>(entityName: K): EntityChanges<TEntityMap[K]> {
+  of<K extends keyof TEntityMap>(entityName: K): EntityChanges<TEntityMap[K]> {
     const filtered = this.ops.filter((op) => op.entity === entityName);
     return new EntityChanges<TEntityMap[K]>(filtered);
   }

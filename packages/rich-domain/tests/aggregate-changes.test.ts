@@ -207,30 +207,30 @@ describe("AggregateChanges", () => {
     });
 
     it("should filter creates by entity", () => {
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.creates).toHaveLength(2);
       expect(postChanges.creates[0].id).toBe("p1");
     });
 
     it("should filter updates by entity", () => {
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.updates).toHaveLength(1);
       expect(postChanges.updates[0].entity.id).toBe("p3");
     });
 
     it("should filter deletes by entity", () => {
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.deletes).toHaveLength(1);
       expect(postChanges.deletes[0].id).toBe("p4");
     });
 
     it("should return empty for non-existent entity", () => {
-      const userChanges = changes.for("User");
+      const userChanges = changes.of("User");
       expect(userChanges.isEmpty()).toBe(true);
     });
 
     it("should have helper methods", () => {
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.hasUpdates()).toBe(true);
       expect(postChanges.hasDeletes()).toBe(true);
