@@ -30,7 +30,7 @@ export class FullstackTypeORMTemplate extends FullstackBaseTemplate {
       "@fastify/cors": "^11.0.0",
       "@fastify/swagger": "^9.6.0",
       "@fastify/swagger-ui": "^5.2.0",
-      "@woltz/rich-domain": "^1.8.7",
+      "@woltz/rich-domain": "^1.8.8",
       "@woltz/rich-domain-criteria-zod": "^0.1.5",
       "@woltz/rich-domain-typeorm": "^0.1.5",
       bullmq: "^5.64.0",
