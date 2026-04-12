@@ -18,6 +18,7 @@ TypeScript library for Domain-Driven Design with automatic change tracking and S
 | --------------------------------- | ---------------------------- |
 | `@woltz/rich-domain`              | Core DDD building blocks     |
 | `@woltz/rich-domain-prisma`       | Prisma ORM adapter           |
+| `@woltz/rich-domain-drizzle`      | Drizzle ORM adapter          |
 | `@woltz/rich-domain-typeorm`      | TypeORM adapter              |
 | `@woltz/rich-domain-criteria-zod` | Zod schemas for Criteria API |
 | `@woltz/rich-domain-export`       | Multi-format data export     |
@@ -176,6 +177,7 @@ For detailed documentation on specific topics:
 - [Criteria Zod](./references/criteria-zod.md) - Zod schemas for API query validation
 - [Schema Registry](./references/schema-registry.md) - EntitySchemaRegistry for field mapping and relationships
 - [Prisma Adapter](./references/prisma-adapter.md) - PrismaRepository, UnitOfWork, Transactions
+- [Drizzle Adapter](./references/drizzle-adapter.md) - DrizzleRepository, UnitOfWork, BatchExecutor, junction tables
 - [TypeORM Adapter](./references/typeorm-adapter.md) - TypeORMRepository, change tracking
 - [Export](./references/export.md) - CSV, JSON export with streaming support
 

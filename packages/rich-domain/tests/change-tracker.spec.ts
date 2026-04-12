@@ -128,7 +128,7 @@ describe("ChangeTracker.getChanges()", () => {
 
       expect(changes.hasUpdates()).toBe(true);
 
-      const userUpdates = changes.for("User");
+      const userUpdates = changes.of("User");
       expect(userUpdates.hasUpdates()).toBe(true);
       expect(userUpdates.updates[0].changed).toMatchObject({
         name: "New Name",
@@ -148,7 +148,7 @@ describe("ChangeTracker.getChanges()", () => {
 
       expect(changes.hasCreates()).toBe(true);
 
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
 
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.creates).toHaveLength(1);
@@ -178,7 +178,7 @@ describe("ChangeTracker.getChanges()", () => {
 
       expect(changes.hasDeletes()).toBe(true);
 
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.hasDeletes()).toBe(true);
       expect(postChanges.deletes.length).toBe(1);
     });
@@ -191,7 +191,7 @@ describe("ChangeTracker.getChanges()", () => {
 
       const changes = user.getTypedChanges();
 
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
       expect(postChanges.hasUpdates()).toBe(true);
       expect(postChanges.updates[0].changed).toMatchObject({
         title: "Updated Title",
@@ -214,7 +214,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.posts[0].changeTitle("Post 2 Updated");
 
       const changes = user.getTypedChanges();
-      const postChanges = changes.for("Post");
+      const postChanges = changes.of("Post");
 
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.hasUpdates()).toBe(true);
@@ -236,7 +236,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.posts[0].addComment(newComment);
 
       const changes = user.getTypedChanges();
-      const commentChanges = changes.for("Comment");
+      const commentChanges = changes.of("Comment");
 
       expect(commentChanges.hasCreates()).toBe(true);
       expect(commentChanges.creates[0].text).toBe("New comment");
@@ -258,7 +258,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.posts[0].comments[0].addLike(newLike);
 
       const changes = user.getTypedChanges();
-      const likeChanges = changes.for("Like");
+      const likeChanges = changes.of("Like");
 
       expect(likeChanges.hasCreates()).toBe(true);
       expect(likeChanges.creates).toHaveLength(1);
@@ -274,7 +274,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.setAddress(createAddress("New Street", "New City"));
 
       const changes = user.getTypedChanges();
-      const addressChanges = changes.for("Address");
+      const addressChanges = changes.of("Address");
 
       expect(addressChanges.hasCreates()).toBe(true);
       expect(addressChanges.creates[0].street).toBe("New Street");
@@ -287,7 +287,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.removeAddress();
 
       const changes = user.getTypedChanges();
-      const addressChanges = changes.for("Address");
+      const addressChanges = changes.of("Address");
 
       expect(addressChanges.hasDeletes()).toBe(true);
       expect(addressChanges.deletes).toHaveLength(1);
@@ -300,7 +300,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.address?.changeStreet("New Street");
 
       const changes = user.getTypedChanges();
-      const addressChanges = changes.for("Address");
+      const addressChanges = changes.of("Address");
 
       expect(addressChanges.hasUpdates()).toBe(true);
       expect(addressChanges.updates[0].changed).toMatchObject({
@@ -316,7 +316,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.setAddress(newAddress);
 
       const changes = user.getTypedChanges();
-      const addressChanges = changes.for("Address");
+      const addressChanges = changes.of("Address");
 
       expect(addressChanges.hasDeletes()).toBe(true);
       expect(addressChanges.hasCreates()).toBe(true);
@@ -335,7 +335,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.addTag(tag);
 
       const changes = user.getTypedChanges();
-      const tagChanges = changes.for("TagReference");
+      const tagChanges = changes.of("TagReference");
 
       expect(tagChanges.hasCreates()).toBe(true);
       expect(tagChanges.creates).toHaveLength(1);
@@ -349,7 +349,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.removeTag(tag.tagId);
 
       const changes = user.getTypedChanges();
-      const tagChanges = changes.for("TagReference");
+      const tagChanges = changes.of("TagReference");
 
       expect(tagChanges.hasDeletes()).toBe(true);
       expect(tagChanges.deletes).toHaveLength(1);
@@ -369,7 +369,7 @@ describe("ChangeTracker.getChanges()", () => {
       user.posts[0].comments[0].removeLike(like.postId, like.userId);
 
       const changes = user.getTypedChanges();
-      const likeChanges = changes.for("Like");
+      const likeChanges = changes.of("Like");
 
       expect(likeChanges.hasDeletes()).toBe(true);
       expect(likeChanges.deletes).toHaveLength(1);

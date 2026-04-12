@@ -11,7 +11,7 @@ import {
  * @example
  * ```typescript
  * const changes = user.getChanges();
- * const postChanges = changes.for('Post');
+ * const postChanges = changes.of('Post');
  *
  * if (postChanges.hasCreates()) {
  *   console.log('Created posts:', postChanges.creates);

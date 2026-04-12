@@ -3,6 +3,7 @@ import {
   EntityHooks,
   EntityValidation,
   Id,
+  throwValidationError,
 } from "@woltz/rich-domain";
 import { z } from "zod";
 import { Post } from "../post/post.entity";
@@ -18,11 +19,6 @@ export const UserSchema = z.object({
 });
 
 export type UserProps = z.infer<typeof UserSchema>;
-
-export type UserEntities = {
-  User: User;
-  Post: Post;
-};
 
 export class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
@@ -58,7 +54,8 @@ export class User extends Aggregate<UserProps> {
   }
 
   updateName(name: string): void {
-    if (name.trim().length === 0) throw new Error("Name cannot be empty");
+    if (name.trim().length === 0)
+      throwValidationError("name", "Name cannot be empty");
     this.props.name = name;
     this.props.updatedAt = new Date();
   }
