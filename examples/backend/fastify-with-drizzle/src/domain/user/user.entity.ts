@@ -54,7 +54,8 @@ export class User extends Aggregate<UserProps> {
   }
 
   updateName(name: string): void {
-    if (name.trim().length === 0) throwValidationError("name", "Name cannot be empty");
+    if (name.trim().length === 0)
+      throwValidationError("name", "Name cannot be empty");
     this.props.name = name;
     this.props.updatedAt = new Date();
   }

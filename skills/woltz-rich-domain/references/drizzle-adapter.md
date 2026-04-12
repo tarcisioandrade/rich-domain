@@ -10,13 +10,13 @@ npm install @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm
 
 ## Key Differences from Prisma Adapter
 
-| Aspect | Prisma | Drizzle |
-|--------|--------|---------|
-| Junction tables (N:N) | Automatic | Always requires explicit `junction` config |
-| `onCreate` | Optional | **Required** — no automatic insert |
-| `onUpdate` | Required | **Optional** — defaults to `DrizzleBatchExecutor` |
-| Query API | `context.model.findMany()` | `context.query[model].findMany()` |
-| Field mapping | `fields` in registry | Same |
+| Aspect                | Prisma                     | Drizzle                                           |
+| --------------------- | -------------------------- | ------------------------------------------------- |
+| Junction tables (N:N) | Automatic                  | Always requires explicit `junction` config        |
+| `onCreate`            | Optional                   | **Required** — no automatic insert                |
+| `onUpdate`            | Required                   | **Optional** — defaults to `DrizzleBatchExecutor` |
+| Query API             | `context.model.findMany()` | `context.query[model].findMany()`                 |
+| Field mapping         | `fields` in registry       | Same                                              |
 
 ## Setup
 
@@ -44,7 +44,7 @@ const registry = new EntitySchemaRegistry()
     entity: "User",
     table: "users",
     collections: {
-      posts: { type: "owned", entity: "Post" },  // 1:N — lifecycle-managed
+      posts: { type: "owned", entity: "Post" }, // 1:N — lifecycle-managed
     },
   })
   .register({
@@ -53,10 +53,10 @@ const registry = new EntitySchemaRegistry()
     parentFk: { field: "authorId", parentEntity: "User" },
     collections: {
       tags: {
-        type: "reference",  // N:N — only the link is managed
+        type: "reference", // N:N — only the link is managed
         entity: "Tag",
         junction: {
-          table: "posts_to_tags",  // must match tableMap key
+          table: "posts_to_tags", // must match tableMap key
           sourceKey: "postId",
           targetKey: "tagId",
         },
@@ -68,10 +68,10 @@ const registry = new EntitySchemaRegistry()
 
 ### Collection Types
 
-| Type | Relationship | Creates | Deletes |
-|------|-------------|---------|---------|
-| `owned` | 1:N | `INSERT` into child table | `DELETE` from child table |
-| `reference` | N:N | `INSERT` into junction table (ON CONFLICT DO NOTHING) | `DELETE` from junction table |
+| Type        | Relationship | Creates                                               | Deletes                      |
+| ----------- | ------------ | ----------------------------------------------------- | ---------------------------- |
+| `owned`     | 1:N          | `INSERT` into child table                             | `DELETE` from child table    |
+| `reference` | N:N          | `INSERT` into junction table (ON CONFLICT DO NOTHING) | `DELETE` from junction table |
 
 > **Warning:** Unlike Prisma, `reference` collections **always require** a `junction` config. Omitting it throws `MissingJunctionConfigError` at runtime.
 
@@ -80,7 +80,10 @@ const registry = new EntitySchemaRegistry()
 Base class for persisting aggregates. Controls `onCreate` (required); `onUpdate` defaults to `DrizzleBatchExecutor`.
 
 ```typescript
-import { DrizzleToPersistence, Transactional } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleToPersistence,
+  Transactional,
+} from "@woltz/rich-domain-drizzle";
 import { EntitySchemaRegistry } from "@woltz/rich-domain";
 
 type DB = ReturnType<typeof getDb>;
@@ -102,7 +105,11 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
         tags: {
           type: "reference",
           entity: "Tag",
-          junction: { table: "posts_to_tags", sourceKey: "postId", targetKey: "tagId" },
+          junction: {
+            table: "posts_to_tags",
+            sourceKey: "postId",
+            targetKey: "tagId",
+          },
         },
       },
     })
@@ -113,7 +120,7 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
     ["User", users],
     ["Post", posts],
     ["Tag", tags],
-    ["posts_to_tags", postsToTags],  // junction table name → Drizzle table object
+    ["posts_to_tags", postsToTags], // junction table name → Drizzle table object
   ]);
 
   // Required: handle INSERT for new aggregate
@@ -156,7 +163,11 @@ export class UserToPersistenceMapper extends DrizzleToPersistence<User, DB> {
 Base class for repositories. Provides CRUD and Criteria-based queries.
 
 ```typescript
-import { DrizzleRepository, DrizzleUnitOfWork, SearchableField } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleRepository,
+  DrizzleUnitOfWork,
+  SearchableField,
+} from "@woltz/rich-domain-drizzle";
 import { eq } from "drizzle-orm";
 
 type DB = ReturnType<typeof getDb>;
@@ -168,7 +179,7 @@ export class DrizzleUserRepository
   constructor(db: DB, uow: DrizzleUnitOfWork) {
     super({
       db,
-      table: users,                                     // Drizzle table object
+      table: users, // Drizzle table object
       toDomainMapper: new UserToDomainMapper(),
       toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
@@ -233,7 +244,7 @@ import { DrizzleBatchExecutor } from "@woltz/rich-domain-drizzle";
 
 const executor = new DrizzleBatchExecutor({
   registry,
-  db: context,   // use context (tx-aware), not raw db
+  db: context, // use context (tx-aware), not raw db
   tableMap,
 });
 
@@ -282,6 +293,7 @@ class CreateUserUseCase {
 ```
 
 UoW resolution order for `@Transactional()` (no argument):
+
 1. `this.uow`
 2. `this._uow`
 3. First property that is a `DrizzleUnitOfWork` instance
@@ -313,8 +325,12 @@ Both `@Transactional` and `uow.transaction()` are idempotent — nested calls re
 export const postsToTags = pgTable(
   "posts_to_tags",
   {
-    postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
-    tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.postId, t.tagId] })]
 );
@@ -347,13 +363,13 @@ const result = await userRepository.find(
 
 ## Error Reference
 
-| Error | When thrown |
-|-------|------------|
-| `TableNotFoundError` | `tableMap` key not found for an entity or junction name |
-| `MissingJunctionConfigError` | `reference` collection has no `junction` configured |
-| `BatchOperationError` | DB error during a batch create, update, or delete |
-| `NoRecordsAffectedError` | `delete()` / `deleteById()` matched 0 rows |
-| `DrizzleAdapterError` | Unsupported Criteria operator, dot-field path, or column not found |
+| Error                        | When thrown                                                        |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `TableNotFoundError`         | `tableMap` key not found for an entity or junction name            |
+| `MissingJunctionConfigError` | `reference` collection has no `junction` configured                |
+| `BatchOperationError`        | DB error during a batch create, update, or delete                  |
+| `NoRecordsAffectedError`     | `delete()` / `deleteById()` matched 0 rows                         |
+| `DrizzleAdapterError`        | Unsupported Criteria operator, dot-field path, or column not found |
 
 ```typescript
 import {
@@ -382,7 +398,9 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   published: boolean("published").notNull().default(false),
-  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -397,14 +415,18 @@ export class UserToDomainMapper extends Mapper<UserWithPosts, User> {
       id: Id.from(record.id),
       email: record.email,
       name: record.name,
-      posts: record.posts?.map((p) => new Post({
-        id: Id.from(p.id),
-        title: p.title,
-        content: p.content,
-        published: p.published,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-      })) ?? [],
+      posts:
+        record.posts?.map(
+          (p) =>
+            new Post({
+              id: Id.from(p.id),
+              title: p.title,
+              content: p.content,
+              published: p.published,
+              createdAt: p.createdAt,
+              updatedAt: p.updatedAt,
+            })
+        ) ?? [],
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     });
@@ -472,7 +494,9 @@ export class DrizzleUserRepository
     });
   }
 
-  protected get model() { return "users"; }
+  protected get model() {
+    return "users";
+  }
 
   protected getSearchableFields(): SearchableField<UserRecord>[] {
     return ["name", "email"];

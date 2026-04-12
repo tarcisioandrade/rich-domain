@@ -4,7 +4,7 @@ import {
   DomainError,
   EntityValidation,
   Id,
-  throwValidationError
+  throwValidationError,
 } from "@woltz/rich-domain";
 import { Tag } from "../tag/tags";
 
@@ -31,13 +31,15 @@ export class Post extends Aggregate<PostProps> {
   }
 
   updateTitle(title: string): void {
-    if (title.trim().length === 0) throwValidationError("title", "Title cannot be empty");
+    if (title.trim().length === 0)
+      throwValidationError("title", "Title cannot be empty");
     this.props.title = title;
     this.props.updatedAt = new Date();
   }
 
   updateContent(content: string): void {
-    if (content.trim().length === 0) throwValidationError("content", "Content cannot be empty");
+    if (content.trim().length === 0)
+      throwValidationError("content", "Content cannot be empty");
     this.props.content = content;
     this.props.updatedAt = new Date();
   }
