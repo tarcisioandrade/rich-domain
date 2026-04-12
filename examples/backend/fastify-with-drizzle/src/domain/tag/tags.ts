@@ -1,4 +1,4 @@
-import { Entity, Id, VOValidation } from "@woltz/rich-domain";
+import { Entity, EntityValidation, Id } from "@woltz/rich-domain";
 import z from "zod";
 
 export const TagProps = z.object({
@@ -8,7 +8,7 @@ export const TagProps = z.object({
 type TagProps = z.infer<typeof TagProps>;
 
 export class Tag extends Entity<TagProps> {
-  protected static validation: VOValidation<TagProps> = {
+  protected static validation: EntityValidation<TagProps> = {
     schema: TagProps,
   };
 
