@@ -158,8 +158,8 @@ user.addPost("Hello", "World");
 user.posts[0].publish();
 
 const changes = user.getTypedChanges();
-// changes.for("Post").creates  → [Post]
-// changes.for("Post").updates  → [{ entity: Post, changed: { published: { from: false, to: true } } }]
+// changes.of("Post").creates  → [Post]
+// changes.of("Post").updates  → [{ entity: Post, changed: { published: { from: false, to: true } } }]
 
 await userRepository.save(user); // Only the diff hits the database
 user.markAsClean();

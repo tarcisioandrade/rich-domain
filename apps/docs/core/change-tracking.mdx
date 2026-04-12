@@ -84,7 +84,7 @@ for (const op of changes.operations()) {
 
 Get changes for a specific entity type:
 ```typescript
-const itemChanges = changes.for("OrderItem");
+const itemChanges = changes.of("OrderItem");
 
 // Access entities directly
 itemChanges.creates;   // OrderItem[] - new items
@@ -251,7 +251,7 @@ const order = new Order({
 order.addItem("prod-1", 2, 29.99);
 order.addItem("prod-2", 1, 49.99);
 
-const itemChanges = order.getChanges().for("OrderItem");
+const itemChanges = order.getChanges().of("OrderItem");
 console.log(itemChanges.creates.length); // 2
 ```
 
@@ -267,7 +267,7 @@ const order = new Order({
 
 order.removeItem(Id.from("item-1"));
 
-const itemChanges = order.getChanges().for("OrderItem");
+const itemChanges = order.getChanges().of("OrderItem");
 console.log(itemChanges.deleteIds); // ["item-1"]
 ```
 
@@ -282,7 +282,7 @@ const order = new Order({
 
 order.items[0].updateQuantity(5);
 
-const itemChanges = order.getChanges().for("OrderItem");
+const itemChanges = order.getChanges().of("OrderItem");
 console.log(itemChanges.updates[0].changed); // { quantity: 5 }
 ```
 
@@ -293,7 +293,7 @@ order.addItem("prod-new", 1, 39.99);        // Create
 order.items[0].updateQuantity(10);          // Update
 order.removeItem(Id.from("item-old"));      // Delete
 
-const itemChanges = order.getChanges().for("OrderItem");
+const itemChanges = order.getChanges().of("OrderItem");
 console.log(itemChanges.creates.length); // 1
 console.log(itemChanges.updates.length); // 1
 console.log(itemChanges.deletes.length); // 1
@@ -313,7 +313,7 @@ user.setAddress(new Address({
   city: "New York",
 }));
 
-const addressChanges = user.getChanges().for("Address");
+const addressChanges = user.getChanges().of("Address");
 console.log(addressChanges.hasCreates()); // true
 ```
 
@@ -326,7 +326,7 @@ const user = new User({
 
 user.removeAddress();
 
-const addressChanges = user.getChanges().for("Address");
+const addressChanges = user.getChanges().of("Address");
 console.log(addressChanges.deleteIds); // ["addr-1"]
 ```
 
@@ -339,7 +339,7 @@ const user = new User({
 
 user.address.changeStreet("New Street");
 
-const addressChanges = user.getChanges().for("Address");
+const addressChanges = user.getChanges().of("Address");
 console.log(addressChanges.updates[0].changed); // { street: "New Street" }
 ```
 
@@ -356,7 +356,7 @@ user.setAddress(new Address({
   city: "Boston",
 }));
 
-const addressChanges = user.getChanges().for("Address");
+const addressChanges = user.getChanges().of("Address");
 console.log(addressChanges.hasDeletes()); // true - old address
 console.log(addressChanges.hasCreates()); // true - new address
 ```
@@ -391,9 +391,9 @@ user.posts[0].comments[0].changeText("Updated");
 user.posts[0].addComment(new Comment({ ... }));
 
 const changes = user.getChanges();
-console.log(changes.for("Comment").hasCreates()); // true
-console.log(changes.for("Comment").hasUpdates()); // true
-console.log(changes.for("Like").hasCreates());    // true
+console.log(changes.of("Comment").hasCreates()); // true
+console.log(changes.of("Comment").hasUpdates()); // true
+console.log(changes.of("Like").hasCreates());    // true
 ```
 
 ### Cascading Deletes
@@ -416,9 +416,9 @@ const user = new User({
 user.removePost(Id.from("post-1"));
 
 const changes = user.getChanges();
-console.log(changes.for("Post").deleteIds);    // ["post-1"]
-console.log(changes.for("Comment").deleteIds); // ["comment-1", "comment-2"]
-console.log(changes.for("Like").deleteIds);    // [...]
+console.log(changes.of("Post").deleteIds);    // ["post-1"]
+console.log(changes.of("Comment").deleteIds); // ["comment-1", "comment-2"]
+console.log(changes.of("Like").deleteIds);    // [...]
 
 // Batch operations handle correct order automatically
 const batch = changes.toBatchOperations();
@@ -443,9 +443,9 @@ user.addPost(new Post({
 }));
 
 const changes = user.getChanges();
-console.log(changes.for("Post").creates.length);    // 1
-console.log(changes.for("Comment").creates.length); // 1
-console.log(changes.for("Like").creates.length);    // 2
+console.log(changes.of("Post").creates.length);    // 1
+console.log(changes.of("Comment").creates.length); // 1
+console.log(changes.of("Like").creates.length);    // 2
 
 // Batch operations handle correct order automatically
 const batch = changes.toBatchOperations();
@@ -505,7 +505,7 @@ user.addTag(new TagReference({
 }));
 
 const changes = user.getChanges();
-const tagChanges = changes.for("TagReference");
+const tagChanges = changes.of("TagReference");
 
 console.log(tagChanges.deletes.length); // 1
 console.log(tagChanges.creates.length); // 1
@@ -537,7 +537,7 @@ const comment = new Comment({
 comment.removeLike("post-1", "user-2");
 
 const changes = comment.getChanges();
-const likeChanges = changes.for("Like");
+const likeChanges = changes.of("Like");
 
 console.log(likeChanges.deletes.length); // 1
 ```
@@ -556,8 +556,8 @@ type OrderEntities = {
 // Get typed changes
 const changes = order.getChanges<OrderEntities>();
 
-// Now 'for' has autocomplete
-const itemChanges = changes.for("OrderItem");
+// Now 'of' has autocomplete
+const itemChanges = changes.of("OrderItem");
 //                              ^? "Order" | "OrderItem" | "ItemDiscount" | "ShippingAddress"
 
 // Returns are properly typed
@@ -581,7 +581,7 @@ class Order extends Aggregate<OrderProps> {
 
 // Usage
 const changes = order.getTypedChanges();
-const items = changes.for("OrderItem"); // Fully typed!
+const items = changes.of("OrderItem"); // Fully typed!
 ```
 
 <Tip>
@@ -600,7 +600,7 @@ class Order extends Aggregate<OrderProps> {
 
 // Usage - clean and type-safe
 const changes = order.getTypedChanges();
-const items = changes.for("OrderItem"); // Autocomplete works!
+const items = changes.of("OrderItem"); // Autocomplete works!
 ```
 </Tip>
 
@@ -706,7 +706,7 @@ class OrderService {
 | `creates()` | `CreateOperation[]` | All creates, ordered root → leaf |
 | `updates()` | `UpdateOperation[]` | All updates |
 | `deletes()` | `DeleteOperation[]` | All deletes, ordered leaf → root |
-| `for(entity)` | `EntityChanges<T>` | Filter changes by entity name |
+| `of(entity)` | `EntityChanges<T>` | Filter changes by entity name |
 | `toBatchOperations()` | `BatchOperations` | Group changes for bulk operations |
 | `hasCreates()` | `boolean` | Has any creates |
 | `hasUpdates()` | `boolean` | Has any updates |
