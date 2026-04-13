@@ -4,29 +4,26 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.8.8](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.7...v1.8.8) (2026-04-12)
 
-
 ### Features
 
-* add drizzle skills ([d1ca1b5](https://github.com/tarcisioandrade/rich-domain/commit/d1ca1b5ce9ba6ffb72b31274d6e0761bc8b406eb))
-* enhance fastify-with-typeorm example with new environment variable support ([424e222](https://github.com/tarcisioandrade/rich-domain/commit/424e222b3f888889e29c400cfc990477f40b23d1))
-* new templates in cli init command ([ad957d8](https://github.com/tarcisioandrade/rich-domain/commit/ad957d8f86128670b85283eadfe00567ab93c71a))
-
+- add drizzle skills ([d1ca1b5](https://github.com/tarcisioandrade/rich-domain/commit/d1ca1b5ce9ba6ffb72b31274d6e0761bc8b406eb))
+- enhance fastify-with-typeorm example with new environment variable support ([424e222](https://github.com/tarcisioandrade/rich-domain/commit/424e222b3f888889e29c400cfc990477f40b23d1))
+- new templates in cli init command ([ad957d8](https://github.com/tarcisioandrade/rich-domain/commit/ad957d8f86128670b85283eadfe00567ab93c71a))
 
 ### Documentation
 
-* change for api reference on documentations ([5af34ac](https://github.com/tarcisioandrade/rich-domain/commit/5af34ac963ef9cfa8e75838eaad9c0efae9a824b))
-* update cli docs ([852bc25](https://github.com/tarcisioandrade/rich-domain/commit/852bc25008b4a46f1a067fb9f63fddc27e45798c))
-* update documentation to include q-drizzle quickstart page ([05ce408](https://github.com/tarcisioandrade/rich-domain/commit/05ce408173b471c4fb5eaf0e83a1beb602f3966c))
-* update drizzle documentation to new generic types ([f213331](https://github.com/tarcisioandrade/rich-domain/commit/f2133312a7c0e3d8d146ed3e1e822bf468d2c79d))
-
+- change for api reference on documentations ([5af34ac](https://github.com/tarcisioandrade/rich-domain/commit/5af34ac963ef9cfa8e75838eaad9c0efae9a824b))
+- update cli docs ([852bc25](https://github.com/tarcisioandrade/rich-domain/commit/852bc25008b4a46f1a067fb9f63fddc27e45798c))
+- update documentation to include q-drizzle quickstart page ([05ce408](https://github.com/tarcisioandrade/rich-domain/commit/05ce408173b471c4fb5eaf0e83a1beb602f3966c))
+- update drizzle documentation to new generic types ([f213331](https://github.com/tarcisioandrade/rich-domain/commit/f2133312a7c0e3d8d146ed3e1e822bf468d2c79d))
 
 ### Refactoring
 
-* change-for-api-to-of ([cfbbb46](https://github.com/tarcisioandrade/rich-domain/commit/cfbbb4679aaf8e161e4e08147ddc7ba7d00f89fa))
-* enhance Drizzle repository and persistence mappers with generic database type support ([3aa091a](https://github.com/tarcisioandrade/rich-domain/commit/3aa091a01999b0785b523f83c94840cb3fda00b9))
-* enhance fastify-with-prisma example with improved error handling ([2642fda](https://github.com/tarcisioandrade/rich-domain/commit/2642fda47b57e724b3a623513f32555da1880d02))
-* remove some incosistencies in drizzle example ([7845667](https://github.com/tarcisioandrade/rich-domain/commit/784566719e0fde97085a7096f4576df1d151ecd7))
-* update persistence mappers and repositories to utilize generic database type ([2ba910f](https://github.com/tarcisioandrade/rich-domain/commit/2ba910fccb148dbd60f9dd683f79065cae9b215a))
+- change-for-api-to-of ([cfbbb46](https://github.com/tarcisioandrade/rich-domain/commit/cfbbb4679aaf8e161e4e08147ddc7ba7d00f89fa))
+- enhance Drizzle repository and persistence mappers with generic database type support ([3aa091a](https://github.com/tarcisioandrade/rich-domain/commit/3aa091a01999b0785b523f83c94840cb3fda00b9))
+- enhance fastify-with-prisma example with improved error handling ([2642fda](https://github.com/tarcisioandrade/rich-domain/commit/2642fda47b57e724b3a623513f32555da1880d02))
+- remove some incosistencies in drizzle example ([7845667](https://github.com/tarcisioandrade/rich-domain/commit/784566719e0fde97085a7096f4576df1d151ecd7))
+- update persistence mappers and repositories to utilize generic database type ([2ba910f](https://github.com/tarcisioandrade/rich-domain/commit/2ba910fccb148dbd60f9dd683f79065cae9b215a))
 
 ### [1.8.7](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.6...v1.8.7) (2026-04-04)
 
