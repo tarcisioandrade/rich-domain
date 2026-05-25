@@ -236,6 +236,53 @@ export class ChangeTracker {
 
         return result;
       },
+
+      deleteProperty: (target, prop) => {
+        if (typeof prop === "symbol") {
+          return Reflect.deleteProperty(target, prop);
+        }
+
+        const currentPath = this.buildPath(String(prop));
+        const oldValue = Reflect.get(target, prop);
+
+        if (!(prop in target)) {
+          return true;
+        }
+
+        const rootTracker = this.getRootTracker();
+        if (rootTracker.onChangeValidator) {
+          try {
+            const result = rootTracker.onChangeValidator(
+              currentPath,
+              undefined
+            );
+            if (result === false) {
+              return false;
+            }
+          } catch (error) {
+            throw error;
+          }
+        }
+
+        if (!rootTracker.originalValues.has(currentPath)) {
+          rootTracker.originalValues.set(currentPath, oldValue);
+        }
+
+        rootTracker.history.push({
+          path: currentPath,
+          previousValue: oldValue,
+          currentValue: undefined,
+          timestamp: Date.now(),
+        });
+
+        const result = Reflect.deleteProperty(target, prop);
+
+        if (oldValue instanceof Entity) {
+          this.handleEntityChange(currentPath, oldValue, undefined);
+        }
+
+        return result;
+      },
     };
 
     const proxy = new Proxy(this.target, handler);
@@ -404,6 +451,12 @@ export class ChangeTracker {
       if (path.includes(".") || path.includes("[")) continue;
 
       const currentValue = this.target[path];
+
+      // 1:1 entity relations are tracked by analyzeEntityChanges
+      if (rootTracker.trackedEntities.has(path)) continue;
+      if (originalValue instanceof Entity || currentValue instanceof Entity) {
+        continue;
+      }
 
       if (!this.isEqual(originalValue, currentValue)) {
         changedFields[path] =
@@ -803,14 +856,16 @@ export class ChangeTracker {
               parentEntity
             );
           }
-          changes.addCreate(
-            entityName,
-            currentValue,
-            depth,
-            parentId,
-            parentEntity,
-            relationField
-          );
+          if (!this.isAbsent(currentValue)) {
+            changes.addCreate(
+              entityName,
+              currentValue,
+              depth,
+              parentId,
+              parentEntity,
+              relationField
+            );
+          }
           break;
 
         case "updated":
@@ -839,15 +894,18 @@ export class ChangeTracker {
     previous: any,
     current: any
   ): EntityChangeState {
-    if (previous === null && current !== null) {
+    const hadPrevious = !this.isAbsent(previous);
+    const hasCurrent = !this.isAbsent(current);
+
+    if (!hadPrevious && hasCurrent) {
       return "created";
     }
 
-    if (previous !== null && current === null) {
+    if (hadPrevious && !hasCurrent) {
       return "deleted";
     }
 
-    if (previous !== null && current !== null) {
+    if (hadPrevious && hasCurrent) {
       const prevId = this.getEntityId(previous);
       const currId = this.getEntityId(current);
 
@@ -859,6 +917,10 @@ export class ChangeTracker {
     }
 
     return "unchanged";
+  }
+
+  private isAbsent(value: any): boolean {
+    return value === null || value === undefined;
   }
 
   private detectArrayChanges(
