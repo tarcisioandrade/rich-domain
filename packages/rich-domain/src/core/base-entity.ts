@@ -19,6 +19,37 @@ function getStaticProperty<T>(
   return instance.constructor[propertyName];
 }
 
+function getValueAtPath(obj: any, path: string): any {
+  if (!path) return obj;
+
+  const parts = path.split(/[.\[\]]+/).filter(Boolean);
+  let current = obj;
+
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    current = current[part];
+  }
+
+  return current;
+}
+
+function setValueAtPath(obj: any, path: string, value: any): void {
+  if (!path) return;
+
+  const parts = path.split(/[.\[\]]+/).filter(Boolean);
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (current[part] === null || current[part] === undefined) {
+      current[part] = {};
+    }
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]!] = value;
+}
+
 export abstract class BaseEntity<
   T extends BaseProps,
   TOptionalInput extends keyof T = never,
@@ -144,8 +175,8 @@ export abstract class BaseEntity<
     const self = this;
 
     this.tracker.setOnChangeValidator((path, newValue) => {
-      const originalValue = self._props[path as keyof T];
-      (self._props as any)[path] = newValue;
+      const originalValue = getValueAtPath(self._props, path);
+      setValueAtPath(self._props, path, newValue);
 
       try {
         if (self.entityHooks?.onBeforeUpdate && self.snapshot) {
@@ -154,7 +185,7 @@ export abstract class BaseEntity<
             self.snapshot
           );
           if (!shouldContinue) {
-            (self._props as any)[path] = originalValue;
+            setValueAtPath(self._props, path, originalValue);
             return false;
           }
         }
@@ -166,7 +197,7 @@ export abstract class BaseEntity<
             console.warn(
               "Async validation on update not supported. Consider using sync validation."
             );
-            (self._props as any)[path] = originalValue;
+            setValueAtPath(self._props, path, originalValue);
             return true;
           }
 
@@ -181,7 +212,7 @@ export abstract class BaseEntity<
               }
             );
 
-            (self._props as any)[path] = originalValue;
+            setValueAtPath(self._props, path, originalValue);
 
             if (self.validationConfig.throwOnError) {
               throw validationError;
@@ -196,7 +227,7 @@ export abstract class BaseEntity<
           try {
             self.entityHooks.rules(self as any);
           } catch (error) {
-            (self._props as any)[path] = originalValue;
+            setValueAtPath(self._props, path, originalValue);
 
             if (self.validationConfig.throwOnError) {
               throw error;
@@ -207,10 +238,10 @@ export abstract class BaseEntity<
           }
         }
 
-        (self._props as any)[path] = originalValue;
+        setValueAtPath(self._props, path, originalValue);
         return true;
       } catch (error) {
-        (self._props as any)[path] = originalValue;
+        setValueAtPath(self._props, path, originalValue);
         throw error;
       }
     });
