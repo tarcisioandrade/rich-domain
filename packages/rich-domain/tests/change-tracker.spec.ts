@@ -288,9 +288,40 @@ describe("ChangeTracker.getChanges()", () => {
 
       const changes = user.getTypedChanges();
       const addressChanges = changes.of("Address");
+      const batch = changes.toBatchOperations();
 
       expect(addressChanges.hasDeletes()).toBe(true);
       expect(addressChanges.deletes).toHaveLength(1);
+      expect(batch.updates).toHaveLength(0);
+    });
+
+    it("should detect deleted entity when using delete operator", () => {
+      class UserWithDelete extends User {
+        removeAddressWithDelete() {
+          if (this.props.address) {
+            // @ts-expect-error - we want to test the delete operator
+            delete this.props.address;
+          }
+        }
+      }
+
+      const address = createAddress();
+      const user = new UserWithDelete({
+        id: new Id("user-1"),
+        name: "Test User",
+        email: new Email("test@test.com"),
+        address,
+        posts: [],
+        tags: [],
+      });
+
+      user.removeAddressWithDelete();
+
+      const batch = user.getTypedChanges().toBatchOperations();
+
+      expect(batch.deletes.some((d) => d.entity === "Address")).toBe(true);
+      expect(batch.creates).toHaveLength(0);
+      expect(batch.updates).toHaveLength(0);
     });
 
     it("should detect updated entity (same ID with changes)", () => {
