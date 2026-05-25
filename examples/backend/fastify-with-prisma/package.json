@@ -31,7 +31,7 @@
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.3",
     "@prisma/client": "^5.22.0",
-    "@woltz/rich-domain": "^1.8.8",
+    "@woltz/rich-domain": "^1.8.9",
     "@woltz/rich-domain-criteria-zod": "^0.1.5",
     "@woltz/rich-domain-prisma": "^0.7.7",
     "bullmq": "^5.64.0",

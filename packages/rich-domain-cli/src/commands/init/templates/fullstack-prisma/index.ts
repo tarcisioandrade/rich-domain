@@ -32,7 +32,7 @@ export class FullstackPrismaTemplate extends FullstackBaseTemplate {
       "@fastify/swagger-ui": "^5.2.0",
       "@prisma/adapter-pg": "^7.6.0",
       "@prisma/client": "^7.6.0",
-      "@woltz/rich-domain": "^1.8.8",
+      "@woltz/rich-domain": "^1.8.9",
       "@woltz/rich-domain-criteria-zod": "^0.1.5",
       "@woltz/rich-domain-prisma": "^0.7.7",
       dotenv: "^17.4.0",
