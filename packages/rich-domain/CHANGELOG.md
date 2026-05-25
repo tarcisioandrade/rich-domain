@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.8.9](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.8...v1.8.9) (2026-05-25)
+
+
+### Features
+
+* add getValueAtPath and setValueAtPath utility functions for dynamic property access ([2678a41](https://github.com/tarcisioandrade/rich-domain/commit/2678a41badc9c07f54d571ae119ef4fec7763f15))
+
+
+### Bug Fixes
+
+* incorrect tracker when deleting entity ([b4fe4f4](https://github.com/tarcisioandrade/rich-domain/commit/b4fe4f429d173af31ea16d84642148ce71b44334))
+
+
+### Chores
+
+* update @woltz/rich-domain to version 1.8.8 across all package.json files ([be163d2](https://github.com/tarcisioandrade/rich-domain/commit/be163d244bad054dbdf5e890fbfd634bd7a14819))
+
 ### [1.8.8](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.7...v1.8.8) (2026-04-12)
 
 ### Features
