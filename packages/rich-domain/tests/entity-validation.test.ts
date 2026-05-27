@@ -101,8 +101,108 @@ class UserSafe extends Aggregate<UserProps> {
     return this.props.name;
   }
 
+  set name(value: string) {
+    this.props.name = value;
+  }
+
   get email(): string {
     return this.props.email;
+  }
+
+  set email(value: string) {
+    this.props.email = value;
+  }
+}
+
+class UserWithRules extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: false,
+    },
+  };
+
+  protected static hooks: EntityHooks<UserProps, UserWithRules> = {
+    rules: (entity) => {
+      if (entity.age > 90) {
+        entity.addValidationIssue("age", "Age cannot exceed 90 years");
+      }
+    },
+  };
+
+  get name(): string {
+    return this.props.name;
+  }
+
+  set name(value: string) {
+    this.props.name = value;
+  }
+
+  get email(): string {
+    return this.props.email;
+  }
+
+  set email(value: string) {
+    this.props.email = value;
+  }
+
+  get age(): number {
+    return this.props.age;
+  }
+
+  set age(value: number) {
+    this.props.age = value;
+  }
+}
+
+const userWithOptionalAddressSchema = userSchema.extend({
+  address: z.string().optional(),
+});
+
+type UserWithAddressProps = z.infer<typeof userWithOptionalAddressSchema>;
+
+class UserWithOptionalAddress extends Aggregate<UserWithAddressProps> {
+  protected static validation: EntityValidation<UserWithAddressProps> = {
+    schema: userWithOptionalAddressSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: false,
+    },
+  };
+
+  get email(): string {
+    return this.props.email;
+  }
+
+  set email(value: string) {
+    this.props.email = value;
+  }
+
+  removeAddress(): void {
+    delete this.props.address;
+  }
+}
+
+class UserLockedWhenInvalid extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: false,
+      lockMutationsWhenInvalid: true,
+    },
+  };
+
+  get name(): string {
+    return this.props.name;
+  }
+
+  set name(value: string) {
+    this.props.name = value;
   }
 }
 
@@ -174,8 +274,18 @@ describe("Rich Domain with Standard Schema Validation", () => {
         expect(error).toBeInstanceOf(ValidationError);
         const validationError = error as ValidationError;
         const formatted = validationError.getFormattedErrors();
-        expect(formatted).toContain("[name]");
-        expect(formatted).toContain("[email]");
+        expect(formatted).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ path: "name" }),
+            expect.objectContaining({ path: "email" }),
+          ])
+        );
+        formatted.forEach((item) => {
+          expect(item).toHaveProperty("path");
+          expect(item).toHaveProperty("message");
+          expect(typeof item.path).toBe("string");
+          expect(typeof item.message).toBe("string");
+        });
       }
     });
 
@@ -295,6 +405,38 @@ describe("Rich Domain with Standard Schema Validation", () => {
       expect(user.validationErrors).toBeUndefined();
       expect(user.name).toBe("John Doe");
     });
+
+    it("should collect rules issues via addValidationIssue when throwOnError is false", () => {
+      const user = new UserWithRules({
+        name: "John Doe",
+        email: "john@example.com",
+        age: 95,
+        status: "active",
+      });
+
+      expect(user.hasValidationErrors).toBe(true);
+      expect(user.validationErrors?.getFormattedErrors()).toEqual(
+        expect.arrayContaining([
+          {
+            path: "age",
+            message: "Age cannot exceed 90 years",
+          },
+        ])
+      );
+    });
+
+    it("should merge schema and rules issues when throwOnError is false", () => {
+      const user = new UserWithRules({
+        name: "J",
+        email: "john@example.com",
+        age: 95,
+        status: "active",
+      });
+
+      expect(user.validationErrors?.issues.length).toBeGreaterThanOrEqual(2);
+      expect(user.validationErrors?.hasErrorsForPath("age")).toBe(true);
+      expect(user.validationErrors?.hasErrorsForPath("name")).toBe(true);
+    });
   });
 
   describe("Update Validation", () => {
@@ -393,6 +535,67 @@ describe("Rich Domain with Standard Schema Validation", () => {
       });
 
       expect(user.name).toBe("OnCreateHook");
+    });
+
+    it("should refresh validation errors on failed update when throwOnError is false", () => {
+      const user = new UserSafe({
+        name: "John Doe",
+        email: "invalid",
+        age: 30,
+        status: "active",
+      });
+
+      expect(user.hasValidationErrors).toBe(true);
+
+      user.name = "Jane Doe";
+
+      expect(user.name).toBe("John Doe");
+      expect(user.hasValidationErrors).toBe(true);
+      expect(user.validationErrors?.hasErrorsForPath("email")).toBe(true);
+    });
+
+    it("should clear validation errors when update fixes all issues", () => {
+      const user = new UserSafe({
+        name: "John Doe",
+        email: "invalid",
+        age: 30,
+        status: "active",
+      });
+
+      expect(user.hasValidationErrors).toBe(true);
+
+      user.email = "fixed@example.com";
+
+      expect(user.email).toBe("fixed@example.com");
+      expect(user.hasValidationErrors).toBe(false);
+    });
+
+    it("should reject delete without TypeError when validation fails on update", () => {
+      const user = new UserWithOptionalAddress({
+        name: "John Doe",
+        email: "invalid",
+        age: 30,
+        status: "active",
+        address: "Main St",
+      });
+
+      expect(() => user.removeAddress()).not.toThrow();
+      expect(user.props.address).toBe("Main St");
+    });
+
+    it("should block mutations when lockMutationsWhenInvalid is true", () => {
+      const user = new UserLockedWhenInvalid({
+        name: "J",
+        email: "invalid",
+        age: 30,
+        status: "active",
+      });
+
+      expect(user.hasValidationErrors).toBe(true);
+
+      user.name = "Jane Doe";
+
+      expect(user.name).toBe("J");
     });
 
     it("does not enter in loop when mutate entity in rules", () => {

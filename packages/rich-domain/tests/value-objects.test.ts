@@ -48,6 +48,24 @@ class EmailSafe extends ValueObject<EmailProps> {
   };
 }
 
+class MoneySafeWithRules extends ValueObject<number> {
+  protected static validation: VOValidation<number> = {
+    schema: moneySchema,
+    config: {
+      onCreate: true,
+      throwOnError: false,
+    },
+  };
+
+  protected static hooks: VOHooks<number, MoneySafeWithRules> = {
+    rules: (money) => {
+      if (money.value > 1000000) {
+        money.addValidationIssue("amount", "Amount cannot exceed 1,000,000");
+      }
+    },
+  };
+}
+
 describe("Value Object", () => {
   it("should compare value objects by value", () => {
     const email1 = new Email("test@example.com");
@@ -98,6 +116,18 @@ describe("Value Object", () => {
     expect(() => {
       new Money(1000001);
     }).toThrow(ValidationError);
+  });
+
+  it("should collect rules issues via addValidationIssue when throwOnError is false", () => {
+    const money = new MoneySafeWithRules(1000001);
+
+    expect(money.hasValidationErrors).toBe(true);
+    expect(money.validationErrors?.getFormattedErrors()).toEqual([
+      {
+        path: "amount",
+        message: "Amount cannot exceed 1,000,000",
+      },
+    ]);
   });
 
   it("should create new instance when adding (immutability)", () => {
