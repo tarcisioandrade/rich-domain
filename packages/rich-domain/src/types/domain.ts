@@ -29,4 +29,6 @@ export interface ValidationConfig {
   onCreate?: boolean;
   onUpdate?: boolean;
   throwOnError?: boolean;
+  /** When true, blocks all property mutations while validation errors exist. Default: false */
+  lockMutationsWhenInvalid?: boolean;
 }

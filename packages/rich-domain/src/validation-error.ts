@@ -3,6 +3,40 @@ export interface ValidationIssue {
   message: string;
 }
 
+export type FormattedValidationError = {
+  path: string;
+  message: string;
+};
+
+export class ValidationIssueCollector {
+  private issues: ValidationIssue[] = [];
+
+  add(path: string | string[], message: string): void {
+    this.issues.push(createValidationIssue(path, message));
+  }
+
+  getIssues(): readonly ValidationIssue[] {
+    return this.issues;
+  }
+
+  hasIssues(): boolean {
+    return this.issues.length > 0;
+  }
+
+  clear(): void {
+    this.issues = [];
+  }
+
+  toValidationError(options?: {
+    entityName?: string;
+  }): ValidationError | undefined {
+    if (!this.hasIssues()) {
+      return undefined;
+    }
+    return new ValidationError([...this.issues], options);
+  }
+}
+
 export class ValidationError extends Error {
   public readonly issues: ValidationIssue[];
   public readonly __isValidationError = true;
@@ -23,6 +57,28 @@ export class ValidationError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ValidationError);
     }
+  }
+
+  static fromIssues(
+    issues: ValidationIssue[],
+    options?: { message?: string; entityName?: string }
+  ): ValidationError {
+    return new ValidationError(issues, options);
+  }
+
+  static merge(
+    existing: ValidationError | undefined,
+    extra: ValidationIssue[],
+    options?: { entityName?: string }
+  ): ValidationError | undefined {
+    if (!existing && extra.length === 0) {
+      return undefined;
+    }
+
+    const allIssues = [...(existing?.issues ?? []), ...extra];
+    return new ValidationError(allIssues, {
+      entityName: options?.entityName ?? existing?.entityName,
+    });
   }
 
   private static formatMessage(
@@ -53,6 +109,10 @@ export class ValidationError extends Error {
     return `${entityPrefix}Validation failed with ${issues.length} error(s):\n${errorLines}`;
   }
 
+  private static normalizePath(path: string | string[]): string {
+    return Array.isArray(path) ? path.join(".") : path;
+  }
+
   /**
    * Check if an error is a ValidationError (works across module boundaries)
    */
@@ -78,14 +138,15 @@ export class ValidationError extends Error {
   /**
    * Get errors for a specific field path
    */
-  getErrorsForPath(path: string): ValidationIssue[] {
-    return this.issues.filter((i) => i.path.join(".") === path);
+  getErrorsForPath(path: string | string[]): ValidationIssue[] {
+    const normalized = ValidationError.normalizePath(path);
+    return this.issues.filter((i) => i.path.join(".") === normalized);
   }
 
   /**
    * Check if a specific path has errors
    */
-  hasErrorsForPath(path: string): boolean {
+  hasErrorsForPath(path: string | string[]): boolean {
     return this.getErrorsForPath(path).length > 0;
   }
 
@@ -107,16 +168,13 @@ export class ValidationError extends Error {
   }
 
   /**
-   * Get a formatted string with all validation errors
+   * Get validation errors formatted for UI/API consumption
    */
-  getFormattedErrors(): string {
-    return this.issues
-      .map((issue) => {
-        const pathStr =
-          issue.path.length > 0 ? ` [${issue.path.join(".")}]` : "";
-        return `${pathStr} ${issue.message}`;
-      })
-      .join("\n");
+  getFormattedErrors(): FormattedValidationError[] {
+    return this.issues.map((issue) => ({
+      path: issue.path.length > 0 ? issue.path.join(".") : "",
+      message: issue.message,
+    }));
   }
 
   /**
