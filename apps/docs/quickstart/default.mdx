@@ -13,11 +13,9 @@ Only the core library is needed:
 npm install @woltz/rich-domain zod
 ```
 
-
 ```bash pnpm
 pnpm add @woltz/rich-domain zod
 ```
-
 
 ```bash yarn
 yarn add @woltz/rich-domain zod
@@ -317,7 +315,6 @@ product.decreaseStock(5);
 // Get changes
 const changes = product.getChanges();
 console.log(changes.hasUpdates()); // true
-console.log(changes.getUpdatedFields()); // ["price", "stock"]
 
 // Save changes
 await repository.save(product);
@@ -402,12 +399,15 @@ product.decreaseStock(100); // stock becomes negative
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
   </Card>
+
   <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
     Understand how changes are tracked
   </Card>
+
   <Card title="Criteria API" icon="filter" href="/criteria/overview">
     Type-safe query building
   </Card>
+
   <Card title="Entities & Aggregates" icon="cube" href="/core/entities-and-aggregates">
     Core DDD concepts
   </Card>
