@@ -227,9 +227,23 @@ protected static hooks: EntityHooks<UserProps, User> = {
 - Reserved value checks
 - Complex conditional rules
 
+## Collecting Validation Issues (Non-Throwing)
+
+When `throwOnError` is `false`, accumulate issues in `rules` without throwing:
+
+```typescript
+rules: (entity) => {
+  if (entity.age > 90) {
+    entity.addValidationIssue("age", "Age cannot exceed 90 years");
+  }
+};
+```
+
+After construction or update, check `entity.hasValidationErrors` and `entity.validationErrors?.getFormattedErrors()` for UI display.
+
 ## Throwing Validation Errors
 
-Use `throwValidationError` helper in rules:
+Use `throwValidationError` helper in rules for fail-fast validation:
 
 ```typescript
 import { throwValidationError } from "@woltz/rich-domain";

@@ -164,6 +164,7 @@ interface ValidationConfig {
   onCreate?: boolean; // Validate in constructor (default: true)
   onUpdate?: boolean; // Validate on property changes (default: true)
   throwOnError?: boolean; // Throw or collect errors (default: true)
+  lockMutationsWhenInvalid?: boolean; // Block all mutations while errors exist (default: false)
 }
 ```
 
@@ -216,6 +217,10 @@ Controls error handling behavior:
 // throwOnError: false
 // Stores errors internally, doesn't throw
 ```
+
+### lockMutationsWhenInvalid
+
+When `throwOnError` is `false`, mutations are allowed by default so users can fix invalid fields. Set `lockMutationsWhenInvalid: true` to freeze the entity until all validation errors are resolved.
 
 ## Validation for Value Objects
 

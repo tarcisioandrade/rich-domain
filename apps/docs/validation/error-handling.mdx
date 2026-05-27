@@ -55,6 +55,20 @@ const messages = error.getMessages();
 // ["Name is required", "Invalid email format", "Age must be positive"]
 ```
 
+#### getFormattedErrors()
+
+Get errors formatted for UI/API consumption:
+
+```typescript
+const fieldErrors = error.getFormattedErrors();
+// [
+//   { path: "name", message: "Name is required" },
+//   { path: "email", message: "Invalid email format" }
+// ]
+```
+
+Use this for form field bindings. The `path` is a dot-joined string (empty string for global errors).
+
 #### getErrorsForPath(path)
 
 Get errors for a specific field:
@@ -63,7 +77,7 @@ Get errors for a specific field:
 const nameErrors = error.getErrorsForPath("name");
 // [{ path: ["name"], message: "Name is required" }]
 
-const addressCityErrors = error.getErrorsForPath("address.city");
+const addressCityErrors = error.getErrorsForPath(["address", "city"]);
 // [{ path: ["address", "city"], message: "City is required" }]
 ```
 
@@ -176,8 +190,40 @@ if (user.hasValidationErrors) {
 
   console.log(errors.getMessages());
   // ["Name is required", "Invalid email format"]
+
+  console.log(errors.getFormattedErrors());
+  // [{ path: "name", message: "..." }, { path: "email", message: "..." }]
 }
 ```
+
+### Collecting Issues in rules (without throwing)
+
+When `throwOnError` is `false`, use `addValidationIssue` inside `rules` to accumulate business rule violations:
+
+```typescript
+rules: (entity) => {
+  if (entity.age > 90) {
+    entity.addValidationIssue("age", "Age cannot exceed 90 years");
+  }
+};
+```
+
+Issues from schema validation and `addValidationIssue` are merged into `validationErrors`.
+
+Use `throwValidationError` when you want fail-fast behavior (always throws, regardless of `throwOnError`).
+
+### lockMutationsWhenInvalid
+
+When `throwOnError` is `false`, entities are in **fix-up mode** by default: users can mutate properties to correct invalid fields. Set `lockMutationsWhenInvalid: true` to block **all** property changes (including `delete`) while validation errors exist:
+
+```typescript
+config: {
+  throwOnError: false,
+  lockMutationsWhenInvalid: true,
+}
+```
+
+On failed updates with `throwOnError: false`, `_validationError` is refreshed with the latest validation result. Property deletes rejected by validation fail silently (no `TypeError`).
 
 ### When to Use Non-Throwing Mode
 

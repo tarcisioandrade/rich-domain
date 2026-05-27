@@ -261,17 +261,18 @@ class Product extends Aggregate<ProductProps> {
 
     rules: (entity) => {
       if (entity.price > 1000 && entity.stock === 0) {
-        throw new ValidationError([
-          {
-            path: ["stock"],
-            message: "Premium products must have stock available",
-          },
-        ]);
+        entity.addValidationIssue(
+          "stock",
+          "Premium products must have stock available"
+        );
+        // Or use throwValidationError() for fail-fast
       }
     },
   };
 }
 ```
+
+With `throwOnError: false`, use `entity.addValidationIssue(path, message)` in `rules` and read `entity.validationErrors?.getFormattedErrors()` for `{ path, message }[]` field errors. Use `lockMutationsWhenInvalid: true` to block mutations while errors exist.
 
 ### Optional Input Properties
 
