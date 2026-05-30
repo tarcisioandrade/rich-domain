@@ -43,11 +43,7 @@
     "coverage": "echo 'No coverage yet'",
     "lint": "echo 'No linting yet'",
     "clean": "rm -rf dist coverage node_modules",
-    "prepublishOnly": "npm run build",
-    "release": "standard-version",
-    "release:minor": "standard-version --release-as minor",
-    "release:major": "standard-version --release-as major",
-    "release:patch": "standard-version --release-as patch"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "ddd",
@@ -59,7 +55,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "@woltz/rich-domain": "^1.8.9",
+    "@woltz/rich-domain": "^1.8.10",
     "typeorm": ">=0.3.0",
     "typescript": ">=4.7.0"
   },

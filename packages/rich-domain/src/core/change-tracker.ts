@@ -257,7 +257,7 @@ export class ChangeTracker {
               undefined
             );
             if (result === false) {
-              return false;
+              return true;
             }
           } catch (error) {
             throw error;

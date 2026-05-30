@@ -1,4 +1,8 @@
-import { ValidationError } from "../validation-error.js";
+import {
+  ValidationError,
+  ValidationIssue,
+  ValidationIssueCollector,
+} from "../validation-error.js";
 import {
   BaseProps,
   HistoryEntry,
@@ -61,6 +65,7 @@ export abstract class BaseEntity<
   private validationConfig: Required<ValidationConfig>;
   private entityHooks?: EntityHooks<T, any>;
   private entitySchema?: StandardSchema<T>;
+  private readonly issueCollector = new ValidationIssueCollector();
 
   protected static validation?: EntityValidation<any>;
   protected static hooks?: EntityHooks<any, any>;
@@ -111,7 +116,7 @@ export abstract class BaseEntity<
     this.proxiedProps = this.tracker.createProxy();
 
     if (hooks?.rules) {
-      hooks.rules(this as any);
+      this.runRulesHook();
     }
 
     if (hooks?.onCreate) {
@@ -121,8 +126,58 @@ export abstract class BaseEntity<
     this.takeSnapshot();
   }
 
+  /**
+   * Add a validation issue during rules hook execution (non-throwing mode).
+   */
+  public addValidationIssue(path: string | string[], message: string): void {
+    this.issueCollector.add(path, message);
+  }
+
+  private beginValidationCycle(): void {
+    this.issueCollector.clear();
+  }
+
+  private finalizeValidation(collectedIssues: ValidationIssue[] = []): void {
+    const existing = (this as any)._validationError as
+      | ValidationError
+      | undefined;
+    const merged = ValidationError.merge(existing, collectedIssues, {
+      entityName: this.constructor.name,
+    });
+
+    if (!merged) {
+      delete (this as any)._validationError;
+      return;
+    }
+
+    if (this.validationConfig.throwOnError) {
+      throw merged;
+    }
+
+    (this as any)._validationError = merged;
+  }
+
+  private runRulesHook(): void {
+    if (!this.entityHooks?.rules) return;
+
+    this.beginValidationCycle();
+    this.entityHooks.rules(this as any);
+    this.finalizeValidation([...this.issueCollector.getIssues()]);
+  }
+
   private validateProps(props: T): void {
-    if (!this.entitySchema) return;
+    const schemaError = this.validateSchema(props);
+    if (!schemaError) return;
+
+    if (this.validationConfig.throwOnError) {
+      throw schemaError;
+    }
+
+    (this as any)._validationError = schemaError;
+  }
+
+  private validateSchema(props: T): ValidationError | null {
+    if (!this.entitySchema) return null;
 
     const result = this.entitySchema["~standard"].validate(props);
 
@@ -133,7 +188,7 @@ export abstract class BaseEntity<
     }
 
     if (result.issues && result.issues.length > 0) {
-      const validationError = new ValidationError(
+      return new ValidationError(
         result.issues.map((issue) => ({
           path: issue.path?.map((p) => this.extractPathKey(p)) || [],
           message: issue.message,
@@ -142,13 +197,35 @@ export abstract class BaseEntity<
           entityName: this.constructor.name,
         }
       );
-
-      if (this.validationConfig.throwOnError) {
-        throw validationError;
-      }
-
-      (this as any)._validationError = validationError;
     }
+
+    return null;
+  }
+
+  private handleValidationFailure(
+    schemaError: ValidationError | null,
+    collectedIssues: ValidationIssue[] = []
+  ): void {
+    const issues = [...(schemaError?.issues ?? []), ...collectedIssues];
+
+    if (issues.length === 0) {
+      delete (this as any)._validationError;
+      return;
+    }
+
+    const error = ValidationError.fromIssues(issues, {
+      entityName: this.constructor.name,
+    });
+
+    if (this.validationConfig.throwOnError) {
+      throw error;
+    }
+
+    (this as any)._validationError = error;
+  }
+
+  private clearValidationError(): void {
+    delete (this as any)._validationError;
   }
 
   private extractPathKey(pathSegment: unknown): string {
@@ -179,6 +256,14 @@ export abstract class BaseEntity<
       setValueAtPath(self._props, path, newValue);
 
       try {
+        if (
+          self.validationConfig.lockMutationsWhenInvalid &&
+          (self as any)._validationError
+        ) {
+          setValueAtPath(self._props, path, originalValue);
+          return false;
+        }
+
         if (self.entityHooks?.onBeforeUpdate && self.snapshot) {
           const shouldContinue = self.entityHooks.onBeforeUpdate(
             self as any,
@@ -190,42 +275,39 @@ export abstract class BaseEntity<
           }
         }
 
-        if (self.entitySchema) {
-          const result = self.entitySchema["~standard"].validate(self._props);
+        const schemaError = self.entitySchema
+          ? self.validateSchema(self._props)
+          : null;
 
-          if (result instanceof Promise) {
-            console.warn(
-              "Async validation on update not supported. Consider using sync validation."
-            );
-            setValueAtPath(self._props, path, originalValue);
-            return true;
+        if (schemaError) {
+          setValueAtPath(self._props, path, originalValue);
+
+          if (self.validationConfig.throwOnError) {
+            throw schemaError;
           }
 
-          if (result.issues && result.issues.length > 0) {
-            const validationError = new ValidationError(
-              result.issues.map((issue) => ({
-                path: issue.path?.map((p) => self.extractPathKey(p)) || [],
-                message: issue.message,
-              })),
-              {
-                entityName: self.constructor.name,
-              }
-            );
-
-            setValueAtPath(self._props, path, originalValue);
-
-            if (self.validationConfig.throwOnError) {
-              throw validationError;
-            }
-
-            console.error("Validation failed on update:", validationError);
-            return false;
-          }
+          self.handleValidationFailure(schemaError);
+          return false;
         }
 
         if (self.entityHooks?.rules) {
           try {
+            self.beginValidationCycle();
             self.entityHooks.rules(self as any);
+            const collected = [...self.issueCollector.getIssues()];
+
+            if (collected.length > 0) {
+              setValueAtPath(self._props, path, originalValue);
+
+              if (self.validationConfig.throwOnError) {
+                throw ValidationError.fromIssues(collected, {
+                  entityName: self.constructor.name,
+                });
+              }
+
+              self.handleValidationFailure(null, collected);
+              return false;
+            }
           } catch (error) {
             setValueAtPath(self._props, path, originalValue);
 
@@ -233,11 +315,15 @@ export abstract class BaseEntity<
               throw error;
             }
 
-            console.error("Rules validation failed on update:", error);
+            if (ValidationError.isValidationError(error)) {
+              self.handleValidationFailure(error);
+            }
+
             return false;
           }
         }
 
+        self.clearValidationError();
         setValueAtPath(self._props, path, originalValue);
         return true;
       } catch (error) {

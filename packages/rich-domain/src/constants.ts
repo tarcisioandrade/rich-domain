@@ -12,6 +12,7 @@ export const DEFAULT_VALIDATION_CONFIG: Required<ValidationConfig> = {
   onCreate: true,
   onUpdate: true,
   throwOnError: true,
+  lockMutationsWhenInvalid: false,
 };
 
 export const ARRAY_OPERATORS: ArrayOperators[] = [

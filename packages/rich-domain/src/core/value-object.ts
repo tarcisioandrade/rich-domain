@@ -1,4 +1,8 @@
-import { ValidationError } from "../validation-error.js";
+import {
+  ValidationError,
+  ValidationIssue,
+  ValidationIssueCollector,
+} from "../validation-error.js";
 import {
   VOHooks,
   ValidationConfig,
@@ -19,9 +23,9 @@ function getStaticProperty<T>(
 export abstract class ValueObject<T extends Primitive> {
   public readonly value!: T;
   private validationConfig: Required<ValidationConfig>;
-  // @ts-expect-error - This is a private property
   private domainHooks?: VOHooks<T, any>;
   private domainSchema?: StandardSchema<T>;
+  private readonly issueCollector = new ValidationIssueCollector();
 
   protected static validation?: EntityValidation<any>;
   protected static hooks?: VOHooks<any, any>;
@@ -55,14 +59,62 @@ export abstract class ValueObject<T extends Primitive> {
     this.value = value;
 
     if (hooks?.rules) {
-      hooks.rules(this as any);
+      this.runRulesHook();
     }
 
     Object.freeze(this);
   }
 
+  /**
+   * Add a validation issue during rules hook execution (non-throwing mode).
+   */
+  public addValidationIssue(path: string | string[], message: string): void {
+    this.issueCollector.add(path, message);
+  }
+
+  private beginValidationCycle(): void {
+    this.issueCollector.clear();
+  }
+
+  private finalizeValidation(collectedIssues: ValidationIssue[] = []): void {
+    const existing = (this as any)._validationError as
+      | ValidationError
+      | undefined;
+    const merged = ValidationError.merge(existing, collectedIssues);
+
+    if (!merged) {
+      delete (this as any)._validationError;
+      return;
+    }
+
+    if (this.validationConfig.throwOnError) {
+      throw merged;
+    }
+
+    (this as any)._validationError = merged;
+  }
+
+  private runRulesHook(): void {
+    if (!this.domainHooks?.rules) return;
+
+    this.beginValidationCycle();
+    this.domainHooks.rules(this as any);
+    this.finalizeValidation([...this.issueCollector.getIssues()]);
+  }
+
   private validateValue(value: T): void {
-    if (!this.domainSchema) return;
+    const schemaError = this.validateSchema(value);
+    if (!schemaError) return;
+
+    if (this.validationConfig.throwOnError) {
+      throw schemaError;
+    }
+
+    (this as any)._validationError = schemaError;
+  }
+
+  private validateSchema(value: T): ValidationError | null {
+    if (!this.domainSchema) return null;
 
     const result = this.domainSchema["~standard"].validate(value);
 
@@ -73,19 +125,15 @@ export abstract class ValueObject<T extends Primitive> {
     }
 
     if (result.issues && result.issues.length > 0) {
-      const validationError = new ValidationError(
+      return new ValidationError(
         result.issues.map((issue) => ({
           path: issue.path?.map((p) => this.extractPathKey(p)) || [],
           message: issue.message,
         }))
       );
-
-      if (this.validationConfig.throwOnError) {
-        throw validationError;
-      }
-
-      (this as any)._validationError = validationError;
     }
+
+    return null;
   }
 
   private extractPathKey(pathSegment: unknown): string {

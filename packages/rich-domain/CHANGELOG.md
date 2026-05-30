@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.10
+
+### Patch Changes
+
+- Add `addValidationIssue` for accumulating validation errors in `rules` when `throwOnError` is false
+- Change `getFormattedErrors()` to return `Array<{ path: string; message: string }>` for UI/API usage
+- Add `lockMutationsWhenInvalid` validation config option (default: false)
+- Refresh `_validationError` on failed updates when `throwOnError` is false
+- Fix `deleteProperty` on change proxy rejecting validation without throwing `TypeError`
+- Add Changesets release workflow at monorepo root
+
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
 ### [1.8.9](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.8...v1.8.9) (2026-05-25)
