@@ -41,3 +41,7 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Verify changeset for publishable packages
+        if: github.event_name == 'pull_request'
+        run: npx changeset status --since=origin/${{ github.base_ref }}

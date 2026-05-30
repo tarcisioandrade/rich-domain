@@ -205,19 +205,29 @@ npm run lint                                    # Lint all packages
 npm run clean                                   # Clean all build artifacts
 ```
 
+**Releasing packages** (Changesets — see [CONTRIBUTING.md](./CONTRIBUTING.md)):
+
+```bash
+npm run changeset          # Describe changes + semver bump (per PR)
+npm run version:packages   # Apply versions + CHANGELOGs
+npm run build:packages
+npm run release            # Publish to npm
+```
+
 ## Documentation
 
 Visit **[woltz.mintlify.app](https://woltz.mintlify.app)** for the full documentation covering core concepts, validation, criteria queries, repository patterns, ORM integrations, React components, and CLI reference.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue first to discuss what you'd like to change.
+Contributions are welcome. See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for the changeset workflow and release process.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/my-feature`)
 3. Commit with [conventional commits](https://www.conventionalcommits.org/) (`git commit -m 'feat: add something'`)
-4. Run `npm run check && npm test && npm format` before pushing
-5. Open a Pull Request
+4. Add a changeset if you changed a publishable package: `npm run changeset`
+5. Run `npm run check && npm test && npm format` before pushing
+6. Open a Pull Request
 
 ## License
 
