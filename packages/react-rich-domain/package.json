@@ -5,9 +5,7 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "scripts": {
     "build": "tsc -b && vite build && npm run registry:build",
     "dev": "vite",
