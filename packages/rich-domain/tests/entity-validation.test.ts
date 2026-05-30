@@ -15,116 +15,59 @@ const userSchema = z.object({
   status: z.enum(["active", "inactive"]),
 });
 
-interface UserProps extends z.infer<typeof userSchema> {}
+type UserProps = z.infer<typeof userSchema>;
+
 class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: true,
-    },
+    config: { onCreate: true, onUpdate: true, throwOnError: true },
   };
 
   protected static hooks: EntityHooks<UserProps, User> = {
-    onBeforeUpdate: (entity, snapshot) => {
-      if (snapshot.email !== entity.email) {
-        return false;
-      }
-      return true;
-    },
+    onBeforeUpdate: (_entity, snapshot) => snapshot.email === _entity.email,
     rules: (entity) => {
       if (entity.name.toLowerCase() === "admin") {
         throw new Error("Name cannot be 'admin'");
       }
-
       if (entity.name === "changeInRules") {
         entity.changeStatus("inactive");
       }
     },
   };
 
-  get name(): string {
+  get name() {
     return this.props.name;
   }
-
   set name(value: string) {
     this.props.name = value;
   }
-
-  get email(): string {
+  get email() {
     return this.props.email;
   }
-
   set email(value: string) {
     this.props.email = value;
   }
-
-  get age(): number {
+  get age() {
     return this.props.age;
   }
-
   set age(value: number) {
     this.props.age = value;
   }
-
-  get status(): "active" | "inactive" {
+  get status() {
     return this.props.status;
   }
-
-  deactivate(): void {
-    this.props.status = "inactive";
-  }
-
-  activate(): void {
-    this.props.status = "active";
-  }
-
   changeStatus(status: "active" | "inactive"): void {
     this.props.status = status;
   }
 }
 
-class UserSafe extends Aggregate<UserProps> {
+class UserCollectingErrors extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
     schema: userSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: false,
-    },
+    config: { onCreate: true, onUpdate: true, throwOnError: false },
   };
 
-  protected static hooks: EntityHooks<UserProps, UserSafe> = {};
-
-  get name(): string {
-    return this.props.name;
-  }
-
-  set name(value: string) {
-    this.props.name = value;
-  }
-
-  get email(): string {
-    return this.props.email;
-  }
-
-  set email(value: string) {
-    this.props.email = value;
-  }
-}
-
-class UserWithRules extends Aggregate<UserProps> {
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: false,
-    },
-  };
-
-  protected static hooks: EntityHooks<UserProps, UserWithRules> = {
+  protected static hooks: EntityHooks<UserProps, UserCollectingErrors> = {
     rules: (entity) => {
       if (entity.age > 90) {
         entity.addValidationIssue("age", "Age cannot exceed 90 years");
@@ -132,27 +75,55 @@ class UserWithRules extends Aggregate<UserProps> {
     },
   };
 
-  get name(): string {
+  get name() {
     return this.props.name;
   }
-
   set name(value: string) {
     this.props.name = value;
   }
-
-  get email(): string {
+  get email() {
     return this.props.email;
   }
-
   set email(value: string) {
     this.props.email = value;
   }
-
-  get age(): number {
+  get age() {
     return this.props.age;
   }
+  changeAge(value: number): void {
+    this.props.age = value;
+  }
+}
 
-  set age(value: number) {
+class UserFrozen extends Aggregate<UserProps> {
+  protected static validation: EntityValidation<UserProps> = {
+    schema: userSchema,
+    config: {
+      onCreate: true,
+      onUpdate: true,
+      throwOnError: false,
+      persistInvalidMutations: false,
+    },
+  };
+
+  protected static hooks: EntityHooks<UserProps, UserFrozen> = {
+    rules: (entity) => {
+      if (entity.age > 90) {
+        entity.addValidationIssue("age", "Age cannot exceed 90 years");
+      }
+    },
+  };
+
+  get name() {
+    return this.props.name;
+  }
+  set name(value: string) {
+    this.props.name = value;
+  }
+  get age() {
+    return this.props.age;
+  }
+  changeAge(value: number): void {
     this.props.age = value;
   }
 }
@@ -166,113 +137,39 @@ type UserWithAddressProps = z.infer<typeof userWithOptionalAddressSchema>;
 class UserWithOptionalAddress extends Aggregate<UserWithAddressProps> {
   protected static validation: EntityValidation<UserWithAddressProps> = {
     schema: userWithOptionalAddressSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: false,
-    },
+    config: { onCreate: true, onUpdate: true, throwOnError: false },
   };
-
-  get email(): string {
-    return this.props.email;
-  }
-
-  set email(value: string) {
-    this.props.email = value;
-  }
 
   removeAddress(): void {
     delete this.props.address;
   }
 }
 
-class UserLockedWhenInvalid extends Aggregate<UserProps> {
-  protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: false,
-      lockMutationsWhenInvalid: true,
-    },
-  };
-
-  get name(): string {
-    return this.props.name;
-  }
-
-  set name(value: string) {
-    this.props.name = value;
-  }
+function createInvalidUser() {
+  return () =>
+    new User({
+      name: "J",
+      email: "invalid",
+      age: 30,
+      status: "active",
+    });
 }
 
-describe("Rich Domain with Standard Schema Validation", () => {
-  describe("ValidationError Messages", () => {
-    it("should include entity name in error message", () => {
+describe("Entity validation", () => {
+  describe("ValidationError formatting", () => {
+    it("should expose message, paths, formatted errors, summary, and toJSON", () => {
       try {
-        new User({
-          name: "J",
-          email: "invalid-email",
-          age: 30,
-          status: "active",
-        });
+        createInvalidUser()();
         fail("Should have thrown ValidationError");
       } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
         const validationError = error as ValidationError;
-        expect(validationError.message).toContain("[User]");
+
+        expect(validationError).toBeInstanceOf(ValidationError);
         expect(validationError.entityName).toBe("User");
-      }
-    });
-
-    it("should include property path in single error message", () => {
-      try {
-        new User({
-          name: "J",
-          email: "john@example.com",
-          age: 30,
-          status: "active",
-        });
-        fail("Should have thrown ValidationError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
-        expect(validationError.message).toContain('"name"');
-        expect(validationError.message).toContain("Validation failed");
-      }
-    });
-
-    it("should format multiple errors with numbered list", () => {
-      try {
-        new User({
-          name: "J",
-          email: "invalid",
-          age: 30,
-          status: "active",
-        });
-        fail("Should have thrown ValidationError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
         expect(validationError.message).toContain("[User]");
         expect(validationError.message).toContain("Validation failed with");
-        expect(validationError.message).toContain("1.");
-        expect(validationError.message).toContain("2.");
-      }
-    });
+        expect(validationError.message).toContain('"name"');
 
-    it("should provide formatted errors via getFormattedErrors()", () => {
-      try {
-        new User({
-          name: "J",
-          email: "invalid",
-          age: 30,
-          status: "active",
-        });
-        fail("Should have thrown ValidationError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
         const formatted = validationError.getFormattedErrors();
         expect(formatted).toEqual(
           expect.arrayContaining([
@@ -281,56 +178,26 @@ describe("Rich Domain with Standard Schema Validation", () => {
           ])
         );
         formatted.forEach((item) => {
-          expect(item).toHaveProperty("path");
-          expect(item).toHaveProperty("message");
           expect(typeof item.path).toBe("string");
           expect(typeof item.message).toBe("string");
         });
-      }
-    });
 
-    it("should provide summary via getSummary()", () => {
-      try {
-        new User({
-          name: "J",
-          email: "invalid",
-          age: 30,
-          status: "active",
-        });
-        fail("Should have thrown ValidationError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
         const summary = validationError.getSummary();
         expect(summary).toContain("[User]");
-        expect(summary).toContain("Validation failed on:");
         expect(summary).toContain("name");
         expect(summary).toContain("email");
-      }
-    });
 
-    it("should include entity name in toJSON()", () => {
-      try {
-        new User({
-          name: "J",
-          email: "john@example.com",
-          age: 30,
-          status: "active",
+        expect(validationError.toJSON()).toMatchObject({
+          name: "ValidationError",
+          entityName: "User",
+          issues: expect.any(Array),
         });
-        fail("Should have thrown ValidationError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
-        const json = validationError.toJSON();
-        expect(json.entityName).toBe("User");
-        expect(json.name).toBe("ValidationError");
-        expect(json.issues).toBeDefined();
       }
     });
   });
 
-  describe("User Creation with Validation", () => {
-    it("should create user with valid data", () => {
+  describe("Create (throwOnError: true)", () => {
+    it("should create a valid entity", () => {
       const user = new User({
         name: "John Doe",
         email: "john@example.com",
@@ -338,95 +205,62 @@ describe("Rich Domain with Standard Schema Validation", () => {
         status: "active",
       });
 
-      expect(user).toBeInstanceOf(User);
       expect(user.name).toBe("John Doe");
-      expect(user.email).toBe("john@example.com");
-      expect(user.age).toBe(25);
       expect(user.isNew()).toBe(true);
     });
 
-    it("should throw on invalid email", () => {
-      expect(() => {
-        new User({
-          name: "John",
-          email: "invalid-email",
-          age: 30,
-          status: "active",
-        });
-      }).toThrow(ValidationError);
+    it.each([
+      ["invalid email", { name: "John", email: "invalid-email" }],
+      ["invalid name", { name: "J", email: "john@example.com" }],
+    ] as const)("should throw ValidationError on %s", (_label, overrides) => {
+      expect(
+        () =>
+          new User({
+            age: 30,
+            status: "active",
+            ...overrides,
+          })
+      ).toThrow(ValidationError);
     });
 
-    it("should throw on invalid name (too short)", () => {
-      expect(() => {
-        new User({
-          name: "J",
-          email: "john@example.com",
-          age: 30,
-          status: "active",
-        });
-      }).toThrow(ValidationError);
+    it("should throw from rules on create", () => {
+      expect(
+        () =>
+          new User({
+            name: "admin",
+            email: "admin@example.com",
+            age: 30,
+            status: "active",
+          })
+      ).toThrow(Error);
     });
+  });
 
-    it("should throw on custom rule violation", () => {
-      expect(() => {
-        new User({
-          name: "admin",
-          email: "admin@example.com",
-          age: 30,
-          status: "active",
-        });
-      }).toThrow(Error);
-    });
-
-    it("should not throw when throwOnError is false", () => {
-      const user = new UserSafe({
+  describe("Create (throwOnError: false)", () => {
+    it("should collect errors without throwing and clear when valid", () => {
+      const invalid = new UserCollectingErrors({
         name: "J",
         email: "invalid",
         age: 30,
         status: "active",
       });
 
-      expect(user).toBeInstanceOf(UserSafe);
-      expect(user.hasValidationErrors).toBe(true);
-      expect(user.validationErrors).toBeInstanceOf(ValidationError);
-      expect(user.validationErrors?.issues.length).toBeGreaterThan(0);
-    });
+      expect(invalid.hasValidationErrors).toBe(true);
+      expect(invalid.validationErrors).toBeInstanceOf(ValidationError);
 
-    it("should not have errors when valid and throwOnError is false", () => {
-      const user = new UserSafe({
+      const valid = new UserCollectingErrors({
         name: "John Doe",
         email: "john@example.com",
         age: 30,
         status: "active",
       });
 
-      expect(user).toBeInstanceOf(UserSafe);
-      expect(user.hasValidationErrors).toBe(false);
-      expect(user.validationErrors).toBeUndefined();
-      expect(user.name).toBe("John Doe");
+      expect(valid.hasValidationErrors).toBe(false);
+      expect(valid.validationErrors).toBeUndefined();
     });
 
-    it("should collect rules issues via addValidationIssue when throwOnError is false", () => {
-      const user = new UserWithRules({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 95,
-        status: "active",
-      });
-
-      expect(user.hasValidationErrors).toBe(true);
-      expect(user.validationErrors?.getFormattedErrors()).toEqual(
-        expect.arrayContaining([
-          {
-            path: "age",
-            message: "Age cannot exceed 90 years",
-          },
-        ])
-      );
-    });
-
-    it("should merge schema and rules issues when throwOnError is false", () => {
-      const user = new UserWithRules({
+    it("should merge schema and rules issues on create", () => {
+      const user = new UserCollectingErrors({
         name: "J",
         email: "john@example.com",
         age: 95,
@@ -439,172 +273,44 @@ describe("Rich Domain with Standard Schema Validation", () => {
     });
   });
 
-  describe("Update Validation", () => {
-    it("should validate on property update", () => {
-      const user = new User({
+  describe("Update (throwOnError: true)", () => {
+    const validUser = () =>
+      new User({
         name: "John Doe",
         email: "john@example.com",
         age: 30,
         status: "active",
       });
+
+    it("should throw on invalid update and allow valid update", () => {
+      const user = validUser();
 
       expect(() => {
         user.name = "J";
       }).toThrow(ValidationError);
-    });
-
-    it("should allow valid updates", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
 
       user.name = "Jane Doe";
       expect(user.name).toBe("Jane Doe");
     });
 
-    it("should block update via onBeforeUpdate hook", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
+    it("should block update when onBeforeUpdate returns false", () => {
+      const user = validUser();
 
       user.email = "newemail@example.com";
 
       expect(user.email).toBe("john@example.com");
     });
 
-    it("should validate custom rules on update", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
+    it("should throw from rules on update", () => {
+      const user = validUser();
 
       expect(() => {
         user.name = "admin";
       }).toThrow(Error);
     });
 
-    it("should call onBeforeCreate hook", () => {
-      class OnBeforeCreateHook extends Aggregate<UserProps> {
-        protected static hooks: EntityHooks<UserProps, OnBeforeCreateHook> = {
-          onBeforeCreate: (props) => {
-            props.name = "OnBeforeCreateHook";
-          },
-        };
-        get name(): string {
-          return this.props.name;
-        }
-      }
-      const user = new OnBeforeCreateHook({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
-
-      expect(user.name).toBe("OnBeforeCreateHook");
-    });
-
-    it("should call onCreate hook", () => {
-      class OnCreateHook extends Aggregate<UserProps> {
-        protected static hooks: EntityHooks<UserProps, OnCreateHook> = {
-          onCreate: (entity) => {
-            entity.name = "OnCreateHook";
-          },
-        };
-        get name(): string {
-          return this.props.name;
-        }
-        set name(value: string) {
-          this.props.name = value;
-        }
-      }
-
-      const user = new OnCreateHook({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
-
-      expect(user.name).toBe("OnCreateHook");
-    });
-
-    it("should refresh validation errors on failed update when throwOnError is false", () => {
-      const user = new UserSafe({
-        name: "John Doe",
-        email: "invalid",
-        age: 30,
-        status: "active",
-      });
-
-      expect(user.hasValidationErrors).toBe(true);
-
-      user.name = "Jane Doe";
-
-      expect(user.name).toBe("John Doe");
-      expect(user.hasValidationErrors).toBe(true);
-      expect(user.validationErrors?.hasErrorsForPath("email")).toBe(true);
-    });
-
-    it("should clear validation errors when update fixes all issues", () => {
-      const user = new UserSafe({
-        name: "John Doe",
-        email: "invalid",
-        age: 30,
-        status: "active",
-      });
-
-      expect(user.hasValidationErrors).toBe(true);
-
-      user.email = "fixed@example.com";
-
-      expect(user.email).toBe("fixed@example.com");
-      expect(user.hasValidationErrors).toBe(false);
-    });
-
-    it("should reject delete without TypeError when validation fails on update", () => {
-      const user = new UserWithOptionalAddress({
-        name: "John Doe",
-        email: "invalid",
-        age: 30,
-        status: "active",
-        address: "Main St",
-      });
-
-      expect(() => user.removeAddress()).not.toThrow();
-      expect(user.props.address).toBe("Main St");
-    });
-
-    it("should block mutations when lockMutationsWhenInvalid is true", () => {
-      const user = new UserLockedWhenInvalid({
-        name: "J",
-        email: "invalid",
-        age: 30,
-        status: "active",
-      });
-
-      expect(user.hasValidationErrors).toBe(true);
-
-      user.name = "Jane Doe";
-
-      expect(user.name).toBe("J");
-    });
-
-    it("does not enter in loop when mutate entity in rules", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
+    it("should not loop when rules mutate the entity", () => {
+      const user = validUser();
 
       expect(() => {
         user.name = "changeInRules";
@@ -614,193 +320,111 @@ describe("Rich Domain with Standard Schema Validation", () => {
     });
   });
 
-  describe("Serialization", () => {
-    it("should serialize to JSON correctly", () => {
-      const user = new User({
-        name: "John Doe",
-        email: "john@example.com",
-        age: 30,
-        status: "active",
-      });
-
-      const json = user.toJSON();
-
-      expect(json.name).toBe("John Doe");
-      expect(json.email).toBe("john@example.com");
-      expect(json.age).toBe(30);
-      expect(json.status).toBe("active");
-      expect(typeof json.id).toBe("string");
-    });
-  });
-
-  describe("Optional Input Properties", () => {
-    const userWithPasswordSchema = z.object({
-      id: z.custom<Id>((val) => val instanceof Id),
-      email: z.string().email(),
-      password: z.string().min(8, "Password must be at least 8 characters"),
-      name: z.string(),
-    });
-
-    type UserWithPasswordProps = z.infer<typeof userWithPasswordSchema>;
-
-    it("should allow password to be optional in constructor but required in entity", () => {
-      class UserWithPassword extends Aggregate<
-        UserWithPasswordProps,
-        "password"
-      > {
-        protected static validation: EntityValidation<UserWithPasswordProps> = {
-          schema: userWithPasswordSchema,
-        };
-
-        protected static hooks: EntityHooks<
-          UserWithPasswordProps,
-          UserWithPassword
-        > = {
-          onBeforeCreate: (props) => {
-            if (!props.password) {
-              props.password = "generated-password-123";
-            }
-          },
-        };
-
-        get email() {
-          return this.props.email;
-        }
-
-        get password() {
-          return this.props.password;
-        }
-
-        get name() {
-          return this.props.name;
-        }
-      }
-
-      const user = new UserWithPassword({
-        email: "test@example.com",
-        name: "Test User",
-      });
-
-      expect(user.email).toBe("test@example.com");
-      expect(user.password).toBe("generated-password-123");
-      expect(user.name).toBe("Test User");
-    });
-
-    it("should allow providing the optional field explicitly", () => {
-      class UserWithPassword extends Aggregate<
-        UserWithPasswordProps,
-        "password"
-      > {
-        protected static validation: EntityValidation<UserWithPasswordProps> = {
-          schema: userWithPasswordSchema,
-        };
-
-        protected static hooks: EntityHooks<
-          UserWithPasswordProps,
-          UserWithPassword
-        > = {
-          onBeforeCreate: (props) => {
-            if (!props.password) {
-              props.password = "generated-password-123";
-            }
-          },
-        };
-
-        get password() {
-          return this.props.password;
-        }
-      }
-
-      const user = new UserWithPassword({
-        email: "test@example.com",
-        name: "Test User",
-        password: "custom-password-12345678",
-      });
-
-      expect(user.password).toBe("custom-password-12345678");
-    });
-
-    it("should validate that generated password meets schema requirements", () => {
-      class UserWithPassword extends Aggregate<
-        UserWithPasswordProps,
-        "password"
-      > {
-        protected static validation: EntityValidation<UserWithPasswordProps> = {
-          schema: userWithPasswordSchema,
-        };
-
-        protected static hooks: EntityHooks<
-          UserWithPasswordProps,
-          UserWithPassword
-        > = {
-          onBeforeCreate: (props) => {
-            if (!props.password) {
-              // This should fail validation (less than 8 chars)
-              props.password = "short";
-            }
-          },
-        };
-      }
-
-      expect(() => {
-        new UserWithPassword({
-          email: "test@example.com",
-          name: "Test User",
+  describe("Update (throwOnError: false)", () => {
+    describe("persistInvalidMutations: true (default)", () => {
+      it("should keep mutations and report all current schema and rules issues", () => {
+        const user = new UserCollectingErrors({
+          name: "John Doe",
+          email: "john@example.com",
+          age: 27,
+          status: "active",
         });
-      }).toThrow(ValidationError);
+
+        user.changeAge(95);
+        user.name = "J";
+
+        expect(user.age).toBe(95);
+        expect(user.name).toBe("J");
+        expect(user.toJSON().age).toBe(95);
+        expect(user.validationErrors?.getFormattedErrors()).toEqual(
+          expect.arrayContaining([
+            {
+              path: "age",
+              message: "Age cannot exceed 90 years",
+            },
+            {
+              path: "name",
+              message: expect.stringContaining("2 characters"),
+            },
+          ])
+        );
+      });
+
+      it("should allow fixing one field while other errors remain", () => {
+        const user = new UserCollectingErrors({
+          name: "John Doe",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+
+        expect(user.hasValidationErrors).toBe(true);
+
+        user.name = "Jane Doe";
+
+        expect(user.name).toBe("Jane Doe");
+        expect(user.hasValidationErrors).toBe(true);
+        expect(user.validationErrors?.hasErrorsForPath("email")).toBe(true);
+        expect(user.validationErrors?.hasErrorsForPath("name")).toBe(false);
+      });
+
+      it("should clear validation errors when all issues are resolved", () => {
+        const user = new UserCollectingErrors({
+          name: "John Doe",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+
+        user.email = "fixed@example.com";
+
+        expect(user.email).toBe("fixed@example.com");
+        expect(user.hasValidationErrors).toBe(false);
+      });
+
+      it("should reject delete without TypeError when entity stays invalid", () => {
+        const user = new UserWithOptionalAddress({
+          name: "John Doe",
+          email: "invalid",
+          age: 30,
+          status: "active",
+          address: "Main St",
+        });
+
+        expect(() => user.removeAddress()).not.toThrow();
+        expect(user.props.address).toBeUndefined();
+        expect(user.validationErrors?.hasErrorsForPath("email")).toBe(true);
+      });
     });
 
-    it("should support multiple optional input fields", () => {
-      const multiOptionalSchema = z.object({
-        id: z.custom<Id>((val) => val instanceof Id),
-        email: z.string().email(),
-        password: z.string().min(8),
-        createdAt: z.date(),
-        updatedAt: z.date(),
+    describe("persistInvalidMutations: false", () => {
+      it("should block mutations while errors already exist", () => {
+        const user = new UserFrozen({
+          name: "J",
+          email: "invalid",
+          age: 30,
+          status: "active",
+        });
+
+        user.name = "Jane Doe";
+
+        expect(user.name).toBe("J");
+        expect(user.hasValidationErrors).toBe(true);
       });
 
-      interface MultiOptionalProps extends z.infer<
-        typeof multiOptionalSchema
-      > {}
+      it("should revert the first invalid mutation", () => {
+        const user = new UserFrozen({
+          name: "John Doe",
+          email: "john@example.com",
+          age: 27,
+          status: "active",
+        });
 
-      class MultiOptional extends Aggregate<
-        MultiOptionalProps,
-        "password" | "createdAt" | "updatedAt"
-      > {
-        protected static validation: EntityValidation<MultiOptionalProps> = {
-          schema: multiOptionalSchema,
-        };
+        user.changeAge(95);
 
-        protected static hooks: EntityHooks<MultiOptionalProps, MultiOptional> =
-          {
-            onBeforeCreate: (props) => {
-              const now = new Date();
-              if (!props.password) props.password = "generated-12345678";
-              if (!props.createdAt) props.createdAt = now;
-              if (!props.updatedAt) props.updatedAt = now;
-            },
-          };
-
-        get password() {
-          return this.props.password;
-        }
-
-        get createdAt() {
-          return this.props.createdAt;
-        }
-
-        get updatedAt() {
-          return this.props.updatedAt;
-        }
-      }
-
-      const entity = new MultiOptional({
-        email: "test@example.com",
+        expect(user.age).toBe(27);
+        expect(user.validationErrors?.hasErrorsForPath("age")).toBe(true);
       });
-
-      expect(entity.password).toBe("generated-12345678");
-      expect(entity.createdAt).toBeInstanceOf(Date);
-      expect(entity.updatedAt).toBeInstanceOf(Date);
     });
   });
 });

@@ -202,14 +202,9 @@ export abstract class BaseEntity<
     return null;
   }
 
-  private handleValidationFailure(
-    schemaError: ValidationError | null,
-    collectedIssues: ValidationIssue[] = []
-  ): void {
-    const issues = [...(schemaError?.issues ?? []), ...collectedIssues];
-
+  private handleValidationFailure(issues: ValidationIssue[]): void {
     if (issues.length === 0) {
-      delete (this as any)._validationError;
+      this.clearValidationError();
       return;
     }
 
@@ -226,6 +221,56 @@ export abstract class BaseEntity<
 
   private clearValidationError(): void {
     delete (this as any)._validationError;
+  }
+
+  /**
+   * Validates the full current props (schema + rules). Used on updates when
+   * throwOnError is false so validationErrors reflects every invalid field.
+   */
+  private collectCurrentValidationIssues(): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+
+    const schemaError = this.entitySchema
+      ? this.validateSchema(this._props)
+      : null;
+    if (schemaError) {
+      issues.push(...schemaError.issues);
+    }
+
+    if (this.entityHooks?.rules) {
+      this.beginValidationCycle();
+      this.entityHooks.rules(this as any);
+      issues.push(...this.issueCollector.getIssues());
+    }
+
+    return issues;
+  }
+
+  /**
+   * @returns true when the entity has no validation issues after refresh
+   */
+  private refreshValidationStateFromCurrentProps(): boolean {
+    const issues = this.collectCurrentValidationIssues();
+
+    if (issues.length === 0) {
+      this.clearValidationError();
+      return true;
+    }
+
+    this.handleValidationFailure(issues);
+    return false;
+  }
+
+  /**
+   * When true, failed schema/rules updates keep the mutated value and refresh
+   * validationErrors (dirty / form mode). Requires throwOnError: false and
+   * persistInvalidMutations: true.
+   */
+  private shouldPersistInvalidMutation(): boolean {
+    return (
+      !this.validationConfig.throwOnError &&
+      this.validationConfig.persistInvalidMutations
+    );
   }
 
   private extractPathKey(pathSegment: unknown): string {
@@ -257,7 +302,7 @@ export abstract class BaseEntity<
 
       try {
         if (
-          self.validationConfig.lockMutationsWhenInvalid &&
+          !self.validationConfig.persistInvalidMutations &&
           (self as any)._validationError
         ) {
           setValueAtPath(self._props, path, originalValue);
@@ -275,51 +320,38 @@ export abstract class BaseEntity<
           }
         }
 
+        if (!self.validationConfig.throwOnError) {
+          const isValid = self.refreshValidationStateFromCurrentProps();
+          if (!isValid) {
+            if (!self.shouldPersistInvalidMutation()) {
+              setValueAtPath(self._props, path, originalValue);
+            }
+            return self.shouldPersistInvalidMutation();
+          }
+
+          setValueAtPath(self._props, path, originalValue);
+          return true;
+        }
+
         const schemaError = self.entitySchema
           ? self.validateSchema(self._props)
           : null;
 
         if (schemaError) {
           setValueAtPath(self._props, path, originalValue);
-
-          if (self.validationConfig.throwOnError) {
-            throw schemaError;
-          }
-
-          self.handleValidationFailure(schemaError);
-          return false;
+          throw schemaError;
         }
 
         if (self.entityHooks?.rules) {
-          try {
-            self.beginValidationCycle();
-            self.entityHooks.rules(self as any);
-            const collected = [...self.issueCollector.getIssues()];
+          self.beginValidationCycle();
+          self.entityHooks.rules(self as any);
+          const collected = [...self.issueCollector.getIssues()];
 
-            if (collected.length > 0) {
-              setValueAtPath(self._props, path, originalValue);
-
-              if (self.validationConfig.throwOnError) {
-                throw ValidationError.fromIssues(collected, {
-                  entityName: self.constructor.name,
-                });
-              }
-
-              self.handleValidationFailure(null, collected);
-              return false;
-            }
-          } catch (error) {
+          if (collected.length > 0) {
             setValueAtPath(self._props, path, originalValue);
-
-            if (self.validationConfig.throwOnError) {
-              throw error;
-            }
-
-            if (ValidationError.isValidationError(error)) {
-              self.handleValidationFailure(error);
-            }
-
-            return false;
+            throw ValidationError.fromIssues(collected, {
+              entityName: self.constructor.name,
+            });
           }
         }
 

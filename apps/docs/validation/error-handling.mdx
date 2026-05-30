@@ -212,18 +212,50 @@ Issues from schema validation and `addValidationIssue` are merged into `validati
 
 Use `throwValidationError` when you want fail-fast behavior (always throws, regardless of `throwOnError`).
 
-### lockMutationsWhenInvalid
+### persistInvalidMutations
 
-When `throwOnError` is `false`, entities are in **fix-up mode** by default: users can mutate properties to correct invalid fields. Set `lockMutationsWhenInvalid: true` to block **all** property changes (including `delete`) while validation errors exist:
+When `throwOnError` is `false`, this flag defines whether invalid **updates** are kept on the entity:
 
 ```typescript
+// Default: dirty / form mode — mutations apply, errors collected
 config: {
   throwOnError: false,
-  lockMutationsWhenInvalid: true,
+}
+
+// Freeze — block changes while invalid; revert failed updates
+config: {
+  throwOnError: false,
+  persistInvalidMutations: false,
 }
 ```
 
-On failed updates with `throwOnError: false`, `_validationError` is refreshed with the latest validation result. Property deletes rejected by validation fail silently (no `TypeError`).
+**`persistInvalidMutations: true`** (default)
+
+- Property changes apply even when schema or `rules` fail.
+- `validationErrors` reflects the latest validation of the current props (all fields).
+- Matches form UX: what the user typed is what `toJSON()` returns.
+
+```typescript
+const user = new UserSafe({ name: "Tarcisio", email: "root@root.com", age: 91, ... });
+// hasValidationErrors: age rule from create
+
+user.changeName("New Name");
+user.changeRole(new Role("User"));
+user.removeAddress();
+
+// toJSON() reflects applied mutations; age issue remains until fixed
+expect(user.toJSON().name).toBe("New Name");
+expect(user.hasValidationErrors).toBe(true);
+```
+
+**`persistInvalidMutations: false`**
+
+- While `validationErrors` exists, further mutations are blocked (including `delete`).
+- A single update that fails validation is reverted; errors are still recorded.
+
+<Warning>
+  Before `save()` or exporting changes, validate `!entity.hasValidationErrors` when using dirty mode.
+</Warning>
 
 ### When to Use Non-Throwing Mode
 

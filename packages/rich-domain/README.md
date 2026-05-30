@@ -272,7 +272,7 @@ class Product extends Aggregate<ProductProps> {
 }
 ```
 
-With `throwOnError: false`, use `entity.addValidationIssue(path, message)` in `rules` and read `entity.validationErrors?.getFormattedErrors()` for `{ path, message }[]` field errors. Use `lockMutationsWhenInvalid: true` to block mutations while errors exist.
+With `throwOnError: false`, use `entity.addValidationIssue(path, message)` in `rules` and read `entity.validationErrors?.getFormattedErrors()` for `{ path, message }[]` field errors. By default (`persistInvalidMutations: true`), updates apply even when invalid (dirty / form mode). Set `persistInvalidMutations: false` to freeze the entity and revert failed updates while errors exist.
 
 ### Optional Input Properties
 

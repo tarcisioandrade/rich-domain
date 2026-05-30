@@ -6,7 +6,7 @@
 
 - Add `addValidationIssue` for accumulating validation errors in `rules` when `throwOnError` is false
 - Change `getFormattedErrors()` to return `Array<{ path: string; message: string }>` for UI/API usage
-- Add `lockMutationsWhenInvalid` validation config option (default: false)
+- Add `persistInvalidMutations` validation config option (default: true when collecting errors)
 - Refresh `_validationError` on failed updates when `throwOnError` is false
 - Fix `deleteProperty` on change proxy rejecting validation without throwing `TypeError`
 - Add Changesets release workflow at monorepo root

@@ -164,7 +164,7 @@ interface ValidationConfig {
   onCreate?: boolean; // Validate in constructor (default: true)
   onUpdate?: boolean; // Validate on property changes (default: true)
   throwOnError?: boolean; // Throw or collect errors (default: true)
-  lockMutationsWhenInvalid?: boolean; // Block all mutations while errors exist (default: false)
+  persistInvalidMutations?: boolean; // Keep invalid updates on entity (default: true when throwOnError is false)
 }
 ```
 
@@ -218,9 +218,26 @@ Controls error handling behavior:
 // Stores errors internally, doesn't throw
 ```
 
-### lockMutationsWhenInvalid
+### persistInvalidMutations
 
-When `throwOnError` is `false`, mutations are allowed by default so users can fix invalid fields. Set `lockMutationsWhenInvalid: true` to freeze the entity until all validation errors are resolved.
+Only applies when `throwOnError` is `false`. Controls how **updates** behave while the entity is invalid:
+
+| Value | Update behavior |
+|-------|-----------------|
+| `true` (default) | **Dirty / form mode** — mutations apply even when schema or `rules` fail; `validationErrors` is refreshed to match the current state (same idea as invalid data on create). |
+| `false` | **Freeze mode** — no property changes while `validationErrors` already exist; updates that would fail validation are reverted. |
+
+```typescript
+// Form: user can edit every field; UI reads validationErrors (default)
+config: { throwOnError: false }
+
+// Strict: entity cannot change until all errors are cleared
+config: { throwOnError: false, persistInvalidMutations: false }
+```
+
+<Warning>
+  With `persistInvalidMutations: true`, `toJSON()`, `getChanges()`, and repository `save()` may see invalid props. Check `hasValidationErrors` before persisting.
+</Warning>
 
 ## Validation for Value Objects
 
