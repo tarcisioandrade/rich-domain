@@ -36,7 +36,7 @@ export class QueuePublisher {
     if (!this.queues.has(queueName)) {
       this.queues.set(
         queueName,
-        new Queue(queueName, { connection: this.connection })
+        new Queue(queueName, { connection: this.connection.options })
       );
     }
     return this.queues.get(queueName)!;

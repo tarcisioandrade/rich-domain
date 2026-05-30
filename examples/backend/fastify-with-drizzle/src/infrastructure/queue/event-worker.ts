@@ -71,7 +71,7 @@ export class BullMQDomainEventWorker {
 
           await handler(job.data, app);
         },
-        { ...workerConfig.settings, connection: this.connection }
+        { ...workerConfig.settings, connection: this.connection.options }
       );
     }
   }
