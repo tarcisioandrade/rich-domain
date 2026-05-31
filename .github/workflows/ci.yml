@@ -25,10 +25,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Fix rollup optional deps
-        run: npm install @rollup/rollup-linux-x64-gnu --no-save
+        run: npm install --prefer-offline
+        
+      - name: Fix native optional deps
+        run: npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu --no-save
 
       - name: Run formatter
         run: npm run format:check
