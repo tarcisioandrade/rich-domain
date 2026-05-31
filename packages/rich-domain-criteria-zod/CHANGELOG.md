@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [0805f49]
+  - @woltz/rich-domain@1.9.0
+
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
 ### [0.1.5](https://github.com/tarcisioandrade/rich-domain/compare/v1.8.5...v0.1.5) (2026-03-21)

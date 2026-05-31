@@ -28,7 +28,7 @@
     "@fastify/cors": "^9.0.1",
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.3",
-    "@woltz/rich-domain": "^1.8.10",
+    "@woltz/rich-domain": "^1.9.0",
     "@woltz/rich-domain-criteria-zod": "^0.1.5",
     "@woltz/rich-domain-drizzle": "^0.1.2",
     "bullmq": "^5.64.0",
