@@ -9,7 +9,7 @@
     "apps/**/*"
   ],
   "scripts": {
-    "build": "npm run build:packages && npm run build:examples && npm run build:apps",
+    "build": "npm run build:packages && npm run build:examples",
     "build:packages": "npm run build --workspace=@woltz/rich-domain && npm run build --workspace=@woltz/rich-domain-prisma && npm run build --workspace=@woltz/rich-domain-criteria-zod && npm run build --workspace=@woltz/rich-domain-cli && npm run build --workspace=@woltz/rich-domain-typeorm && npm run build --workspace=@woltz/rich-domain-drizzle && npm run build --workspace=@woltz/rich-domain-export",
     "build:examples": "npm run build --workspace=examples/backend",
     "build:apps": "npm run build --workspace=apps",
