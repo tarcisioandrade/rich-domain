@@ -1,6 +1,6 @@
 ---
 name: woltz-rich-domain
-description: Guide for @woltz/rich-domain DDD library and ecosystem. Use when building domain models, repositories, or working with Prisma/TypeORM adapters.
+description: Guide for @woltz/rich-domain DDD library and ecosystem. Use when building domain models, repositories, or working with Prisma/TypeORM/Drizzle adapters.
 ---
 
 # @woltz/rich-domain
@@ -141,7 +141,7 @@ const changes = user.getTypedChanges();
 // { creates: [...], updates: [...], deletes: [...] }
 
 // After saving
-user.markAsClean();
+user.markAsPersisted();
 ```
 
 ### 5. Query with Criteria
