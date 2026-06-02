@@ -1,7 +1,7 @@
 ---
 title: "With Prisma"
 description: "Complete guide to using Rich Domain with Prisma ORM"
-keywords: ["quickstart","getting-started","tutorial","setup","installation","ddd","typescript","guide","prisma"]
+keywords: ["quickstart", "getting-started", "tutorial", "setup", "installation", "ddd", "typescript", "guide", "prisma"]
 ---
 
 <Note>
@@ -17,12 +17,10 @@ npm install @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 npm install -D prisma
 ```
 
-
 ```bash pnpm
 pnpm add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
 pnpm add -D prisma
 ```
-
 
 ```bash yarn
 yarn add @woltz/rich-domain @woltz/rich-domain-prisma @prisma/client zod
@@ -136,8 +134,7 @@ type PostProps = z.infer<typeof postSchema>;
 
 export class Post extends Entity<PostProps> {
   protected static validation: EntityValidation<PostProps> = {
-    schema: postSchema,
-    config: { onCreate: true, onUpdate: true },
+    schema: postSchema
   };
 
   get title() {
@@ -192,8 +189,7 @@ type UserProps = z.infer<typeof userSchema>;
 
 export class User extends Aggregate<UserProps> {
   protected static validation: EntityValidation<UserProps> = {
-    schema: userSchema,
-    config: { onCreate: true, onUpdate: true, throwOnError: true },
+    schema: userSchema
   };
 
   get email() {
@@ -530,12 +526,15 @@ This creates:
   <Card title="Prisma Integration" icon="database" href="/integrations/prisma">
     Deep dive into Prisma adapter features
   </Card>
+
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
   </Card>
+
   <Card title="Change Tracking" icon="clock-rotate-left" href="/core/change-tracking">
     Understand how changes are tracked
   </Card>
+
   <Card title="CLI Reference" icon="terminal" href="/CLI">
     Complete CLI documentation
   </Card>
