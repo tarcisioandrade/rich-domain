@@ -1,0 +1,597 @@
+---
+title: "Transactional Outbox"
+description: "Guaranteed domain event delivery with the Transactional Outbox pattern"
+keywords: ["outbox","transactional-outbox","domain-events","reliability","eventual-consistency","messaging"]
+---
+
+## The Problem 💀
+
+Consider a typical e-commerce flow:
+
+```typescript
+// User places an order
+const order = Order.create({ items, total: 150 });
+await repo.save(order);           // ✅ Persisted to DB
+
+// Dispatch domain events
+await order.dispatchAll(bus);     // 💀 CRASH HERE
+```
+
+### The Failure Window
+
+There's a **gap** between `save()` and `dispatchAll()`. If the process dies in that gap:
+
+| What happens | Impact |
+|---|---|
+| Order is saved to DB | ✅ Data is safe |
+| `OrderPlaced` event | ❌ **Silently lost** |
+| Inventory reservation | ❌ Never happens |
+| Confirmation email | ❌ Never sent |
+| Analytics tracking | ❌ Missing |
+
+This isn't theoretical. It happens in production:
+- **Process crashes** (unhandled exceptions, OOM kills)
+- **Deployments** (container is replaced mid-request)
+- **Network blips** (message broker unreachable at that exact moment)
+- **Infrastructure** (node restart, pod eviction)
+
+The event is **silently lost** — no trace, no retry, no recovery.
+
+## The Solution — Transactional Outbox Pattern
+
+The **Transactional Outbox Pattern** ensures events are persisted **atomically** with your aggregate write, then published by a background process:
+
+```
+┌──────────────────────────────────────────────────┐
+│  Transaction Boundary                            │
+│                                                  │
+│  INSERT INTO orders (...)                        │
+│  INSERT INTO outbox (eventId, payload, ...)      │
+│                                                  │
+│  ═══════════ COMMIT ═══════════                  │
+│  ✅ Both rows written atomically                  │
+└──────────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────────────────┐
+│  OutboxPublisher (background process)            │
+│                                                  │
+│  SELECT * FROM outbox WHERE status = 'pending'   │
+│  → publish to message broker                     │
+│  → UPDATE outbox SET status = 'published'        │
+│                                                  │
+│  On failure:                                     │
+│  → UPDATE outbox SET status = 'failed', retries++│
+│  → Retry on next poll                            │
+└──────────────────────────────────────────────────┘
+```
+
+### Immediate-First, Outbox as Safety Net
+
+Rich Domain's implementation uses a **decorator pattern** — your code stays identical:
+
+```typescript
+// Your use case code — unchanged
+await repo.save(order);
+await order.dispatchAll(bus);   // Still publishes immediately!
+```
+
+Behind the scenes:
+
+1. **Immediate publish** — `dispatchAll()` tries the real bus first (RabbitMQ, Kafka, etc.)
+2. **Success** → `outboxStore.markPublished(eventId)` — marks as done
+3. **Failure** → `outboxStore.markFailed(eventId, error)` — records the error
+4. **Background safety net** — `OutboxPublisher` polls for pending events and retries
+
+The outbox is the **safety net**, not the primary path. You get low-latency delivery when the broker is healthy, and guaranteed delivery when it's not.
+
+<Note>
+  The `repo.save()` call also auto-saves uncommitted events to the outbox table in the same transaction — so even if `dispatchAll()` isn't called at all, your events are preserved.
+</Note>
+
+## Proven Pattern
+
+This isn't new. Established frameworks have used this pattern for years:
+
+| Framework | Ecosystem | How they do it |
+|---|---|---|
+| **MassTransit** | .NET | Transactional outbox built-in; stores messages in DB transaction, publishes via Quartz.NET scheduled job |
+| **NServiceBus** | .NET | Outbox feature since v6; stores outgoing messages in same DB transaction as business data |
+| **CAP** | .NET | EQueue outbox pattern; `[CapSubscribe]` attribute + transactional message storage |
+| **Debezium** | Java | CDC-based outbox; tails the DB transaction log to pick up outbox events |
+| **Axon Framework** | Java | Event sourcing + outbox; persists domain events in the same transaction as the aggregate |
+
+Frameworks like [Dapper](https://github.com/DapperLib/Dapper) (.NET) and [Spring Cloud Stream](https://spring.io/projects/spring-cloud-stream) (Java) also support variations of this pattern.
+
+`@woltz/rich-domain-outbox` brings the same reliability guarantee to the **TypeScript/Node.js** ecosystem — with zero external dependencies beyond your existing database.
+
+---
+
+## Quick Start
+
+### Step 1: Install
+
+```bash
+npm install @woltz/rich-domain-outbox
+```
+
+### Step 2: Create the Outbox Table
+
+The outbox table has a simple, fixed schema. The `id` column stores the event's own `eventId` — this is how `markPublished(eventId)` does a direct primary key lookup:
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `TEXT` | **PRIMARY KEY**. Stores `event.eventId` directly |
+| `eventName` | `TEXT` | The event class name (e.g. `"OrderPlaced"`) |
+| `payload` | `JSONB` / `JSON` | The event payload |
+| `occurredOn` | `TIMESTAMPTZ` | When the event was created |
+| `status` | `TEXT` | `'pending'` → `'published'` → (or `'failed'`) |
+| `retries` | `INTEGER` | Number of publish attempts. Default `0` |
+| `lastError` | `TEXT NULL` | Last error message if publish failed |
+| `createdAt` | `TIMESTAMPTZ` | When the row was inserted |
+
+Pick your ORM:
+
+<Tabs>
+
+<Tab title="Prisma">
+
+Copy this into your `schema.prisma`:
+
+```prisma
+model Outbox {
+  id          String   @id
+  eventName   String
+  payload     Json
+  occurredOn  DateTime
+  status      String   @default("pending")
+  retries     Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+}
+```
+
+Then import the schema constant for reference:
+
+```typescript
+import { PRISMA_OUTBOX_SCHEMA } from "@woltz/rich-domain-prisma";
+```
+
+</Tab>
+
+<Tab title="Drizzle">
+
+Import the table definition from `@woltz/rich-domain-drizzle`:
+
+```typescript
+import { outboxTable } from "@woltz/rich-domain-drizzle";
+
+// Add to your schema
+export const schema = {
+  users: usersTable,
+  posts: postsTable,
+  outbox: outboxTable,
+};
+```
+
+</Tab>
+
+<Tab title="TypeORM">
+
+Add `OutboxEntity` to your DataSource `entities` array:
+
+```typescript
+import { OutboxEntity } from "@woltz/rich-domain-typeorm";
+
+const dataSource = new DataSource({
+  // ...
+  entities: [User, Post, OutboxEntity],
+});
+```
+
+</Tab>
+
+<Tab title="Raw SQL">
+
+Use the exported DDL:
+
+```typescript
+import { OUTBOX_DDL } from "@woltz/rich-domain-outbox";
+
+// PostgreSQL
+await db.execute(OUTBOX_DDL.postgresql);
+
+// MySQL
+await db.execute(OUTBOX_DDL.mysql);
+```
+
+</Tab>
+</Tabs>
+
+Then run your migration as usual (`prisma migrate dev`, `drizzle-kit generate`, `typeorm migration:run`, etc.).
+
+### Step 3: Wrap your EventBus
+
+```typescript
+import { OutboxEventBusDecorator } from "@woltz/rich-domain-outbox";
+
+// Your real event bus (RabbitMQ, Kafka, InMemory, etc.)
+const realBus = new RabbitMQEventBus(connection);
+
+// Wrap it with the outbox decorator
+const bus = new OutboxEventBusDecorator(realBus, outboxStore);
+```
+
+### Step 4: Start the OutboxPublisher
+
+```typescript
+import { OutboxPublisher } from "@woltz/rich-domain-outbox";
+
+const publisher = new OutboxPublisher(outboxStore, realBus, {
+  pollIntervalMs: 5000,  // Poll every 5 seconds
+  batchSize: 50,         // Process up to 50 events per batch
+  maxRetries: 3,         // Give up after 3 failed attempts
+});
+
+publisher.start();
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  await publisher.stop();
+});
+```
+
+### Step 5: Your Code Stays the Same
+
+```typescript
+// This code doesn't change at all
+const order = Order.create({ items, total: 150 });
+
+await repo.save(order);              // Events auto-saved to outbox
+await order.dispatchAll(bus);        // Still publishes immediately
+```
+
+<Note>
+  The outbox is the **safety net**, not a replacement. Events are published immediately when possible. The background publisher only picks up events that failed to publish (or were never dispatched at all).
+</Note>
+
+---
+
+## ORM Integration
+
+Each ORM adapter provides an outbox store that integrates with the adapter's transaction management.
+
+### Prisma
+
+```typescript
+import { PrismaClient } from "@prisma/client";
+import { PrismaUnitOfWork, PrismaOutboxStore } from "@woltz/rich-domain-prisma";
+import { OutboxEventBusDecorator, OutboxPublisher } from "@woltz/rich-domain-outbox";
+
+const prisma = new PrismaClient();
+const uow = new PrismaUnitOfWork(prisma);
+const outboxStore = new PrismaOutboxStore(prisma);
+
+// Auto-save in repository
+class OrderRepository extends PrismaRepository<Order, OrderRecord> {
+  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+    super(
+      new OrderToPersistenceMapper(prisma, uow),
+      new OrderToDomainMapper(),
+      prisma,
+      uow,
+      outboxStore  // ← pass the outbox store
+    );
+  }
+}
+
+// Wrap the event bus
+const bus = new OutboxEventBusDecorator(rabbitBus, outboxStore);
+
+// Background publisher
+const publisher = new OutboxPublisher(outboxStore, rabbitBus, {
+  pollIntervalMs: 5000,
+});
+publisher.start();
+```
+
+When you call `repo.save(order)` inside a `uow.transaction()`, the outbox events are written in the **same database transaction** as the aggregate — guaranteeing atomicity.
+
+### Drizzle
+
+```typescript
+import { drizzle } from "drizzle-orm/node-postgres";
+import { DrizzleUnitOfWork, DrizzleOutboxStore } from "@woltz/rich-domain-drizzle";
+import { OutboxEventBusDecorator, OutboxPublisher } from "@woltz/rich-domain-outbox";
+
+const db = drizzle(pool, { schema });
+const uow = new DrizzleUnitOfWork(db);
+const outboxStore = new DrizzleOutboxStore(db);
+
+// Configure repository with outboxStore in DrizzleRepositoryConfig
+const repo = new OrderRepository({
+  db,
+  table: schema.orders,
+  toDomainMapper: new OrderToDomainMapper(),
+  toPersistenceMapper: new OrderToPersistenceMapper(),
+  uow,
+  outboxStore,  // ← auto-save enabled
+});
+
+// Same decorator + publisher pattern
+const bus = new OutboxEventBusDecorator(rabbitBus, outboxStore);
+const publisher = new OutboxPublisher(outboxStore, rabbitBus);
+publisher.start();
+```
+
+### TypeORM
+
+```typescript
+import { DataSource } from "typeorm";
+import { TypeORMUnitOfWork, TypeORMOutboxStore } from "@woltz/rich-domain-typeorm";
+import { OutboxEventBusDecorator, OutboxPublisher } from "@woltz/rich-domain-outbox";
+
+const dataSource = new DataSource({ /* ... */ });
+const uow = new TypeORMUnitOfWork(dataSource);
+const outboxStore = new TypeORMOutboxStore(dataSource);
+
+// Configure repository with outboxStore in TypeORMRepositoryConfig
+const repo = new OrderRepository({
+  typeormRepository: dataSource.getRepository(OrderEntity),
+  toDomainMapper: new OrderToDomainMapper(),
+  toPersistenceMapper: new OrderToPersistenceMapper(),
+  uow,
+  outboxStore,  // ← auto-save enabled
+});
+
+// Same decorator + publisher pattern
+const bus = new OutboxEventBusDecorator(rabbitBus, outboxStore);
+const publisher = new OutboxPublisher(outboxStore, rabbitBus);
+publisher.start();
+```
+
+---
+
+## How Auto-Save Works
+
+When you configure an `outboxStore` on your repository, the `save()` method automatically:
+
+1. **Extracts** uncommitted domain events from the aggregate (using duck-typing — no direct dependency on `BaseAggregate`)
+2. **Clears** the events from the aggregate (so `dispatchAll()` won't double-publish)
+3. **Saves** the events to the outbox table in the same transaction context
+
+```typescript
+// Inside the repository base class:
+async save(entity: TDomain): Promise<void> {
+  const events = this.extractEvents(entity);  // 1. Extract events
+  await this.toPersistenceMapper.build(entity); // 2. Persist aggregate
+  entity.markAsPersisted();
+
+  if (events.length > 0 && this.outboxStore) {
+    await this.outboxStore.save(events);      // 3. Save to outbox (same tx)
+  }
+}
+```
+
+This means that even if `dispatchAll()` is never called, your events are safely stored in the outbox. The `OutboxPublisher` will pick them up on the next poll cycle.
+
+---
+
+## API Reference
+
+### OutboxEventBusDecorator
+
+Wraps an `IDomainEventBus` to track publish success/failure in the outbox.
+
+```typescript
+class OutboxEventBusDecorator implements IDomainEventBus {
+  constructor(
+    inner: IDomainEventBus,
+    outboxStore: IOutboxStore
+  );
+
+  async publish(event: IDomainEvent): Promise<void>;
+  async publishAll(events: IDomainEvent[]): Promise<void>;
+}
+```
+
+| Method | Description |
+|---|---|
+| `publish(event)` | Publish immediately. On success → `markPublished(eventId)`. On failure → `markFailed(eventId, error)` + re-throw |
+| `publishAll(events)` | Same as `publish` but for multiple events. Empty array is a no-op |
+
+### OutboxPublisher
+
+Background process that polls the outbox table and publishes pending events.
+
+```typescript
+class OutboxPublisher {
+  constructor(
+    store: IOutboxStore,
+    bus: IDomainEventBus,
+    config?: OutboxPublisherConfig
+  );
+
+  start(): void;
+  stop(): Promise<void>;
+  processOnce(): Promise<{ processed: number; failed: number }>;
+  get isRunning(): boolean;
+}
+```
+
+| Method | Description |
+|---|---|
+| `start()` | Begin polling loop. Idempotent — safe to call multiple times |
+| `stop()` | Graceful shutdown. Waits for in-flight batch to complete |
+| `processOnce()` | Process a single batch (useful for cron jobs or manual triggers) |
+| `isRunning` | Whether the polling loop is active |
+
+### OutboxPublisherConfig
+
+| Option | Default | Description |
+|---|---|---|
+| `pollIntervalMs` | `5000` | How often to poll the outbox table (milliseconds) |
+| `batchSize` | `50` | Maximum events to process per poll cycle |
+| `maxRetries` | `3` | Stop retrying after this many failed attempts |
+| `logger` | `console` | Logger instance (must have `info`, `warn`, `error` methods) |
+
+### IOutboxStore
+
+The contract that all ORM-specific outbox stores implement.
+
+```typescript
+interface IOutboxStore {
+  save(events: IDomainEvent[]): Promise<void>;
+  fetchPending(batchSize?: number): Promise<OutboxEntryData[]>;
+  markPublished(eventId: string): Promise<void>;
+  markFailed(eventId: string, error: string): Promise<void>;
+}
+```
+
+| Method | Description |
+|---|---|
+| `save(events)` | Insert events into the outbox table. Uses the transactional client when inside a UoW transaction |
+| `fetchPending(batchSize?)` | Fetch pending events ordered by `createdAt ASC` |
+| `markPublished(eventId)` | `UPDATE outbox SET status = 'published' WHERE id = $eventId` — direct PK lookup |
+| `markFailed(eventId, error)` | `UPDATE outbox SET status = 'failed', retries = retries + 1, lastError = $error WHERE id = $eventId` |
+
+### OutboxEntry
+
+Plain immutable class representing an outbox row.
+
+```typescript
+class OutboxEntry {
+  readonly id: string;
+  readonly eventName: string;
+  readonly payload: unknown;
+  readonly occurredOn: Date;
+  readonly status: OutboxStatus;
+  readonly retries: number;
+  readonly lastError: string | null;
+  readonly createdAt: Date;
+
+  canRetry(maxRetries: number): boolean;
+  get isPublished(): boolean;
+  get isPending(): boolean;
+  get isFailed(): boolean;
+  toJSON(): Record<string, unknown>;
+}
+```
+
+### OutboxStatus
+
+```typescript
+type OutboxStatus = "pending" | "published" | "failed";
+```
+
+---
+
+## Best Practices
+
+### Polling Interval
+
+Tune `pollIntervalMs` to your latency tolerance:
+
+| Interval | Use Case |
+|---|---|
+| `1000` (1s) | Low-latency requirements, high-throughput systems |
+| `5000` (5s) | General purpose (default) |
+| `30000` (30s) | Background processes, analytics events |
+
+<Warning>
+  Polling too frequently adds unnecessary database load. Start with 5 seconds and adjust based on your event volume and latency requirements.
+</Warning>
+
+### Batch Size
+
+`batchSize` controls how many events are fetched per poll cycle:
+
+```typescript
+// High-throughput system
+const publisher = new OutboxPublisher(store, bus, {
+  batchSize: 200,
+  pollIntervalMs: 2000,
+});
+
+// Low-volume system
+const publisher = new OutboxPublisher(store, bus, {
+  batchSize: 10,
+  pollIntervalMs: 10000,
+});
+```
+
+### Graceful Shutdown
+
+Always stop the publisher during application shutdown to avoid in-flight message loss:
+
+```typescript
+const publisher = new OutboxPublisher(store, bus);
+publisher.start();
+
+async function shutdown() {
+  console.log("Shutting down...");
+  await publisher.stop();  // Waits for current batch to finish
+  process.exit(0);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+```
+
+### Monitoring
+
+Monitor the outbox table for events stuck in `failed` status:
+
+```sql
+-- Events that have exhausted retries
+SELECT COUNT(*) FROM outbox
+WHERE status = 'failed' AND retries >= 3;
+
+-- Events stuck in pending (possibly orphaned)
+SELECT COUNT(*) FROM outbox
+WHERE status = 'pending'
+  AND createdAt < NOW() - INTERVAL '1 hour';
+```
+
+Set up alerts when these counts exceed a threshold — it means the background publisher isn't keeping up or the broker is down.
+
+### Error Handling
+
+The `OutboxEventBusDecorator` re-throws publish errors so your use case code can respond:
+
+```typescript
+try {
+  await order.dispatchAll(bus);
+} catch (error) {
+  if (error instanceof OutboxPublishError) {
+    // Immediate publish failed, but event is safely in outbox
+    // Respond to the user — the event will be retried
+    return { status: "accepted", retryExpected: true };
+  }
+  throw error;
+}
+```
+
+---
+
+## Exports Summary
+
+```typescript
+// Main package: @woltz/rich-domain-outbox
+export { OutboxEventBusDecorator } from "./outbox-event-bus-decorator";
+export { OutboxPublisher } from "./outbox-publisher";
+export { OutboxEntry } from "./outbox-entry";
+export { OutboxError, OutboxPublishError, OutboxStoreError } from "./outbox-errors";
+export { OUTBOX_DDL } from "./outbox-ddl";
+export type { OutboxPublisherConfig } from "./outbox-publisher";
+
+// Core types (from @woltz/rich-domain)
+export type { IOutboxStore, OutboxEntryData, OutboxFetchResult, OutboxStatus };
+
+// ORM adapters
+export { PrismaOutboxStore, PRISMA_OUTBOX_SCHEMA } from "@woltz/rich-domain-prisma";
+export { DrizzleOutboxStore, outboxTable } from "@woltz/rich-domain-drizzle";
+export { TypeORMOutboxStore, OutboxEntity } from "@woltz/rich-domain-typeorm";
+```

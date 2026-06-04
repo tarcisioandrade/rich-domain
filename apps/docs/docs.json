@@ -93,6 +93,7 @@
                 ]
               },
               "integrations/export",
+              "integrations/outbox",
               "integrations/prisma",
               "integrations/typeorm",
               "integrations/zod",
