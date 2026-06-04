@@ -30,6 +30,10 @@ npm install @woltz/rich-domain-typeorm @woltz/rich-domain typeorm
   Full ACID compliance with @Transactional decorator
 </Card>
 
+<Card title="Transactional Outbox" icon="inbox" href="/integrations/outbox">
+  Optional `outboxStore` in repository config for guaranteed event delivery
+</Card>
+
 </CardGroup>
 
 <Note>
@@ -419,6 +423,30 @@ export class UserRepository extends TypeORMRepository<User, UserEntity> {
 }
 ```
 
+### Transactional Outbox
+
+Pass an optional **`outboxStore`** in `TypeORMRepositoryConfig`. When set, `save()` automatically persists uncommitted domain events to the outbox table in the **same database transaction** as the aggregate write.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `outboxStore` | `TypeORMOutboxStore` | No | Enables auto-save of domain events on `save()` |
+
+Use `TypeORMOutboxStore` from `@woltz/rich-domain-typeorm`. For the full setup (entity registration, event bus decorator, background publisher), see **[Transactional Outbox](/integrations/outbox)**.
+
+```typescript
+import { TypeORMOutboxStore } from "@woltz/rich-domain-typeorm";
+
+const outboxStore = new TypeORMOutboxStore(dataSource);
+
+const repo = new OrderRepository({
+  typeormRepository: dataSource.getRepository(OrderEntity),
+  toDomainMapper: new OrderToDomainMapper(),
+  toPersistenceMapper: new OrderToPersistenceMapper(),
+  uow,
+  outboxStore, // ← events saved atomically with the aggregate
+});
+```
+
 ### Methods
 
 | Method | Returns | Description |
@@ -686,6 +714,9 @@ export type { TypeORMTransactionContext };
 export { TypeORMRepository };
 export type { TypeORMRepositoryConfig };
 
+// Outbox
+export { TypeORMOutboxStore, OutboxEntity };
+
 // Mappers
 export { TypeORMToPersistence };
 export { TypeORMToDomain };
@@ -709,6 +740,7 @@ export {
   BatchOperationError,
   NoRecordsAffectedError,
   TypeORMRepositoryError,
+  OutboxStoreError,
 };
 ```
 
@@ -721,6 +753,8 @@ interface TypeORMRepositoryConfig<TDomain, TEntity> {
   toPersistenceMapper: TypeORMToPersistence<TDomain>;
   uow: TypeORMUnitOfWork;
   alias?: string; // Default: "entity"
+  /** Optional — auto-save domain events on `save()`. See [Transactional Outbox](/integrations/outbox). */
+  outboxStore?: TypeORMOutboxStore;
 }
 ```
 

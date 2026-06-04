@@ -566,11 +566,21 @@ class ProductRepository extends TypeORMRepository<Product, ProductEntity> {
 }
 ```
 
+## Transactional Outbox (optional)
+
+If your aggregates emit domain events, pass an optional **`outboxStore`** in `TypeORMRepositoryConfig`. When set, `save()` persists uncommitted events to the outbox table in the **same transaction** as the aggregate — so events are not lost if the process crashes before `dispatchAll()`.
+
+See **[Transactional Outbox](/integrations/outbox)** for the full setup (`OutboxEntity`, event bus decorator, background publisher). Repository wiring is documented under [TypeORM Integration → Transactional Outbox](/integrations/typeorm#transactional-outbox).
+
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="TypeORM Integration" icon="table" href="/integrations/typeorm">
     Deep dive into TypeORM adapter features
+  </Card>
+
+  <Card title="Transactional Outbox" icon="inbox" href="/integrations/outbox">
+    Guaranteed domain event delivery with the outbox pattern
   </Card>
   <Card title="Repository Pattern" icon="book" href="/repository/overview">
     Learn advanced repository patterns
