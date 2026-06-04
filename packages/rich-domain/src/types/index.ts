@@ -6,3 +6,4 @@ export * from "./unit-of-work.js";
 export * from "./domain-event.js";
 export * from "./change-tracker.js";
 export * from "./event-bus.js";
+export * from "./outbox-store.js";

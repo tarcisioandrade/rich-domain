@@ -1,4 +1,5 @@
 import { IDomainEvent } from "..";
+import UUID from "../utils/crypto";
 
 /**
  * Base class for domain events
@@ -22,8 +23,11 @@ export abstract class DomainEvent<P> implements IDomainEvent<P> {
     return this.constructor.name;
   }
 
+  /**
+   * Generate a UUID v4
+   */
   private generateEventId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return UUID();
   }
 
   toJSON() {
