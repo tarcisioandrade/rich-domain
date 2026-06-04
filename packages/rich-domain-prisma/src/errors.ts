@@ -52,6 +52,13 @@ export class NoRecordsAffectedError extends PrismaRepositoryError {
   }
 }
 
+export class OutboxStoreError extends PrismaRepositoryError {
+  constructor(message: string) {
+    super(`[OutboxStore] ${message}`);
+    this.name = "OutboxStoreError";
+  }
+}
+
 export class BatchOperationError extends PrismaRepositoryError {
   constructor(
     operation: string,

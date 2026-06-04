@@ -23,4 +23,6 @@ export {
   TableNotFoundError,
   NoRecordsAffectedError,
   BatchOperationError,
+  OutboxStoreError,
 } from "./errors";
+export { PrismaOutboxStore, PRISMA_OUTBOX_SCHEMA } from "./outbox-store";
