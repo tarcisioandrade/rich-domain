@@ -9,11 +9,13 @@ import {
   Repository,
   Mapper,
   PaginatedResult,
+  IDomainEvent,
 } from "@woltz/rich-domain";
 import { TypeORMQueryBuilder, SearchableField } from "./criteria/query-builder";
 import { TypeORMRepositoryError } from "./errors";
 import { TypeORMUnitOfWork } from "./unit-of-work";
 import { TypeORMToPersistence } from "./mappers/to-persistence";
+import { TypeORMOutboxStore } from "./outbox-store";
 
 /**
  * Configuration for TypeORM Repository.
@@ -46,6 +48,11 @@ export interface TypeORMRepositoryConfig<
    * Alias to use in QueryBuilder (defaults to 'entity').
    */
   alias?: string;
+
+  /**
+   * Optional outbox store for auto-saving domain events in the same transaction.
+   */
+  outboxStore?: TypeORMOutboxStore;
 }
 
 /**
@@ -86,6 +93,7 @@ export abstract class TypeORMRepository<
   private readonly _toPersistenceMapper: TypeORMToPersistence<TDomain>;
   protected readonly uow: TypeORMUnitOfWork;
   protected readonly alias: string;
+  private readonly outboxStore?: TypeORMOutboxStore;
 
   constructor(config: TypeORMRepositoryConfig<TDomain, TEntity>) {
     super();
@@ -94,6 +102,7 @@ export abstract class TypeORMRepository<
     this._toPersistenceMapper = config.toPersistenceMapper;
     this.uow = config.uow;
     this.alias = config.alias ?? "entity";
+    this.outboxStore = config.outboxStore;
   }
 
   /**
@@ -415,18 +424,52 @@ export abstract class TypeORMRepository<
    * Uses the TypeORMToPersistence to handle domain → persistence conversion.
    * Delegates actual save logic to the mapper (which may use BatchExecutor).
    *
+   * If an {@link TypeORMOutboxStore} is configured, uncommitted domain events
+   * are extracted from the aggregate and saved to the outbox table in the
+   * same transaction context (guaranteeing atomicity).
+   *
    * @param aggregate - Domain entity to save
    */
   async save(aggregate: TDomain): Promise<void> {
     try {
+      // Extract uncommitted events BEFORE the mapper mutates the aggregate state.
+      const events = this.extractEvents(aggregate);
+
       await this._toPersistenceMapper.save(aggregate);
       aggregate.markAsPersisted();
+
+      // Auto-save events to outbox — uses the same transactional entity manager
+      // if inside a TypeORMUnitOfWork transaction.
+      if (events.length > 0 && this.outboxStore) {
+        await this.outboxStore.save(events);
+      }
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to save ${this.alias}: ${error.message}`,
         error
       );
     }
+  }
+
+  /**
+   * Extract uncommitted domain events from an aggregate.
+   * Uses duck-typing to avoid importing BaseAggregate from core,
+   * keeping the adapter loosely coupled.
+   */
+  private extractEvents(entity: TDomain): IDomainEvent[] {
+    if (
+      typeof entity.hasUncommittedEvents === "function" &&
+      typeof entity.getUncommittedEvents === "function" &&
+      entity.hasUncommittedEvents()
+    ) {
+      const events = entity.getUncommittedEvents();
+      if (typeof entity.clearEvents === "function") {
+        entity.clearEvents();
+      }
+      return events;
+    }
+
+    return [];
   }
 
   /**

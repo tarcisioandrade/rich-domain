@@ -80,6 +80,14 @@ export class NoRecordsAffectedError extends TypeORMAdapterError {
 /**
  * Thrown when a repository operation fails.
  */
+export class OutboxStoreError extends TypeORMAdapterError {
+  constructor(message: string) {
+    super(`[OutboxStore] ${message}`, "OUTBOX_STORE_ERROR");
+    this.name = "OutboxStoreError";
+    Object.setPrototypeOf(this, OutboxStoreError.prototype);
+  }
+}
+
 export class TypeORMRepositoryError extends TypeORMAdapterError {
   constructor(message: string, cause?: Error) {
     super(message, "REPOSITORY_ERROR", cause);

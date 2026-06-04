@@ -18,11 +18,16 @@ export {
   type SearchableFieldConfig,
 } from "./criteria/query-builder";
 export { Transactional } from "./decorators/transactional";
+// Outbox
+export { OutboxEntity } from "./outbox-entity";
+export { TypeORMOutboxStore } from "./outbox-store";
+
 export {
   TypeORMAdapterError,
   EntityClassNotFoundError,
   TableNotFoundError,
   BatchOperationError,
   NoRecordsAffectedError,
+  OutboxStoreError,
   TypeORMRepositoryError,
 } from "./errors";
