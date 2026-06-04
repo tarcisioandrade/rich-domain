@@ -32,7 +32,7 @@ class InMemoryOutboxStore implements IOutboxStore {
   async fetchPending(batchSize = 50): Promise<OutboxFetchResult> {
     const pending: OutboxEntryData[] = [];
     for (const [, entry] of this.entries) {
-      if (entry.status === "pending") {
+      if (entry.status === "pending" || entry.status === "failed") {
         pending.push(entry);
         if (pending.length >= batchSize) break;
       }

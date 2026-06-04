@@ -3,7 +3,7 @@ import {
   IOutboxStore,
   OutboxFetchResult,
 } from "@woltz/rich-domain";
-import { DataSource } from "typeorm";
+import { DataSource, In } from "typeorm";
 import { TypeORMUnitOfWork, UOWStorage } from "./unit-of-work";
 import { OutboxStoreError } from "./errors";
 import { OutboxEntity } from "./outbox-entity";
@@ -64,7 +64,7 @@ export class TypeORMOutboxStore implements IOutboxStore {
     const repo = this.manager.getRepository(OutboxEntity);
 
     const rows = await repo.find({
-      where: { status: "pending" },
+      where: { status: In(["pending", "failed"]) },
       order: { createdAt: "ASC" },
       take: batchSize,
     });

@@ -23,7 +23,7 @@ class InMemoryOutboxStore implements IOutboxStore {
   async fetchPending(): Promise<OutboxFetchResult> {
     const pending: any[] = [];
     for (const [id, entry] of this.entries) {
-      if (entry.status === "pending") {
+      if (entry.status === "pending" || entry.status === "failed") {
         pending.push({
           id,
           eventName: "TestEvent",

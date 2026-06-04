@@ -63,7 +63,7 @@ export class DrizzleOutboxStore implements IOutboxStore {
     const rows = await this.context
       .select()
       .from(outboxTable)
-      .where(inArray(outboxTable.status, ["pending"]))
+      .where(inArray(outboxTable.status, ["pending", "failed"]))
       .orderBy(asc(outboxTable.createdAt))
       .limit(batchSize);
 

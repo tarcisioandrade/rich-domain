@@ -4,6 +4,7 @@ import {
   IOutboxStore,
   OutboxEntryData,
 } from "@woltz/rich-domain";
+import { OutboxEntry } from "./outbox-entry";
 
 /**
  * Configuration options for {@link OutboxPublisher}.
@@ -115,36 +116,41 @@ export class OutboxPublisher {
 
       if (entries.length === 0) return 0;
 
+      // Convert flat data to OutboxEntry so we can use canRetry() and isFailed.
+      const outboxEntries = entries.map((e) => new OutboxEntry(e));
+
+      // Skip entries that have exhausted their retries.
+      const retryable = outboxEntries.filter((e) =>
+        e.isFailed ? e.canRetry(this.config.maxRetries) : true
+      );
+
+      if (retryable.length === 0) return 0;
+
       // Reconstruct minimal IDomainEvent objects from outbox rows.
-      // We only need the interface shape — the event bus doesn't require
-      // the full domain event class instance.
-      const events: IDomainEvent[] = entries.map(toDomainEvent);
+      const events: IDomainEvent[] = retryable.map(toDomainEvent);
 
       try {
         await this.eventBus.publishAll(events);
         await Promise.all(
-          entries.map((e) => this.outboxStore.markPublished(e.id))
+          retryable.map((e) => this.outboxStore.markPublished(e.id))
         );
         this.config.logger.info(
-          `[OutboxPublisher] Published ${entries.length} events`
+          `[OutboxPublisher] Published ${retryable.length} events`
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
 
-        // Mark only entries that haven't exceeded maxRetries as failed.
-        // Entries at maxRetries stay "failed" — they need manual intervention.
-        const toMark = entries.filter(
-          (e) => e.status !== "failed" || e.retries < this.config.maxRetries
-        );
+        // Mark failed — the store increments retries and, if retries
+        // exceed maxRetries, keeps the status as "failed".
         await Promise.all(
-          toMark.map((e) => this.outboxStore.markFailed(e.id, message))
+          retryable.map((e) => this.outboxStore.markFailed(e.id, message))
         );
         this.config.logger.error(
           `[OutboxPublisher] Batch publish failed: ${message}`
         );
       }
 
-      return entries.length;
+      return retryable.length;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.config.logger.error(`[OutboxPublisher] Polling error: ${message}`);

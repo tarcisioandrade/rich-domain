@@ -62,7 +62,7 @@ export class PrismaOutboxStore implements IOutboxStore {
   async fetchPending(batchSize = 50): Promise<OutboxFetchResult> {
     const rows = await this.db.outbox.findMany({
       where: {
-        status: { in: ["pending"] },
+        status: { in: ["pending", "failed"] },
       },
       orderBy: { createdAt: "asc" },
       take: batchSize,
