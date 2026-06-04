@@ -5,11 +5,13 @@ import {
   Mapper,
   Criteria,
   PaginatedResult,
+  IDomainEvent,
 } from "@woltz/rich-domain";
 import { DrizzleClient, DrizzleUnitOfWork, UOWStorage } from "./unit-of-work";
 import { NoRecordsAffectedError } from "./errors";
 import { DrizzleToPersistence } from "./mappers/to-persistence";
 import { DrizzleQueryBuilder, SearchableField } from "./query-builder";
+import { DrizzleOutboxStore } from "./outbox-store";
 
 export interface DrizzleRepositoryConfig<
   TDomain,
@@ -21,6 +23,8 @@ export interface DrizzleRepositoryConfig<
   toDomainMapper: Mapper<TPersistence, TDomain>;
   toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>;
   uow: DrizzleUnitOfWork;
+  /** Optional outbox store for auto-saving domain events in the same transaction. */
+  outboxStore?: DrizzleOutboxStore;
 }
 
 export abstract class DrizzleRepository<
@@ -33,6 +37,7 @@ export abstract class DrizzleRepository<
   protected readonly toDomainMapper: Mapper<TPersistence, TDomain>;
   protected readonly toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>;
   protected readonly uow: DrizzleUnitOfWork;
+  private readonly outboxStore?: DrizzleOutboxStore;
 
   constructor(config: DrizzleRepositoryConfig<TDomain, TPersistence, TDb>) {
     super();
@@ -41,6 +46,7 @@ export abstract class DrizzleRepository<
     this.toDomainMapper = config.toDomainMapper;
     this.toPersistenceMapper = config.toPersistenceMapper;
     this.uow = config.uow;
+    this.outboxStore = config.outboxStore;
   }
 
   /**
@@ -205,9 +211,47 @@ export abstract class DrizzleRepository<
     return Number(result[0]?.value ?? 0) > 0;
   }
 
+  /**
+   * Save entity (create or update).
+   * Uses change tracking to determine what changed.
+   *
+   * If an {@link DrizzleOutboxStore} is configured, uncommitted domain events
+   * are extracted from the aggregate and saved to the outbox table in the
+   * same transaction context (guaranteeing atomicity).
+   */
   async save(entity: TDomain): Promise<void> {
+    // Extract uncommitted events BEFORE the mapper mutates the aggregate state.
+    const events = this.extractEvents(entity);
+
     await this.toPersistenceMapper.build(entity);
     entity.markAsPersisted();
+
+    // Auto-save events to outbox — uses the same transactional client
+    // if inside a DrizzleUnitOfWork transaction.
+    if (events.length > 0 && this.outboxStore) {
+      await this.outboxStore.save(events);
+    }
+  }
+
+  /**
+   * Extract uncommitted domain events from an aggregate.
+   * Uses duck-typing to avoid importing BaseAggregate from core,
+   * keeping the adapter loosely coupled.
+   */
+  private extractEvents(entity: TDomain): IDomainEvent[] {
+    if (
+      typeof entity.hasUncommittedEvents === "function" &&
+      typeof entity.getUncommittedEvents === "function" &&
+      entity.hasUncommittedEvents()
+    ) {
+      const events = entity.getUncommittedEvents();
+      if (typeof entity.clearEvents === "function") {
+        entity.clearEvents();
+      }
+      return events;
+    }
+
+    return [];
   }
 
   async delete(entity: TDomain): Promise<void> {

@@ -26,6 +26,10 @@ export {
 // Query Builder
 export { DrizzleQueryBuilder, type SearchableField } from "./query-builder";
 
+// Outbox
+export { outboxTable } from "./outbox-table";
+export { DrizzleOutboxStore } from "./outbox-store";
+
 // Errors
 export {
   DrizzleAdapterError,
@@ -33,5 +37,6 @@ export {
   NoRecordsAffectedError,
   BatchOperationError,
   DrizzleRepositoryError,
+  OutboxStoreError,
   MissingJunctionConfigError,
 } from "./errors";

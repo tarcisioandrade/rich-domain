@@ -52,6 +52,13 @@ export class DrizzleRepositoryError extends DrizzleAdapterError {
   }
 }
 
+export class OutboxStoreError extends DrizzleAdapterError {
+  constructor(message: string) {
+    super(`[OutboxStore] ${message}`);
+    this.name = "OutboxStoreError";
+  }
+}
+
 export class MissingJunctionConfigError extends DrizzleAdapterError {
   constructor(
     public readonly parentEntity: string,
