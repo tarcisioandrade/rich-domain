@@ -21,7 +21,7 @@ import { TypeORMOutboxStore } from "./outbox-store";
  * Configuration for TypeORM Repository.
  */
 export interface TypeORMRepositoryConfig<
-  TDomain,
+  TDomain extends Aggregate<any>,
   TEntity extends ObjectLiteral,
 > {
   /**

@@ -2,6 +2,7 @@ import {
   Mapper,
   AggregateChanges,
   EntitySchemaRegistry,
+  Aggregate,
 } from "@woltz/rich-domain";
 import {
   PrismaClientLike,
@@ -35,7 +36,7 @@ import {
  * ```
  */
 export abstract class PrismaToPersistence<
-  TDomain,
+  TDomain extends Aggregate<any>,
   PrismaClient = PrismaClientLike,
 > extends Mapper<TDomain, void> {
   constructor(
@@ -93,9 +94,7 @@ export abstract class PrismaToPersistence<
    */
   @Transactional()
   private async handleUpdate(entity: TDomain): Promise<void> {
-    const changes = (entity as any).getChanges?.() as
-      | AggregateChanges
-      | undefined;
+    const changes = entity.getChanges();
 
     if (!changes || changes.isEmpty()) {
       return;

@@ -57,7 +57,7 @@ export class OutboxEntry {
   /**
    * Serialize to a plain JSON-compatible object.
    */
-  toJSON(): Record<string, unknown> {
+  toJSON() {
     return {
       id: this.id,
       eventName: this.eventName,

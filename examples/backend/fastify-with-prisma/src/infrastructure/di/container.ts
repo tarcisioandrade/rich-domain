@@ -18,7 +18,10 @@ import { IDomainEventBus } from "@woltz/rich-domain";
 
 export class Container {
   private static instance: Container;
-  private services = new Map<string, any>();
+  private services = new Map<
+    string,
+    { factory: () => unknown; instance: any }
+  >();
 
   private constructor() {
     this.registerDependencies();

@@ -14,7 +14,7 @@ import { DrizzleQueryBuilder, SearchableField } from "./query-builder";
 import { DrizzleOutboxStore } from "./outbox-store";
 
 export interface DrizzleRepositoryConfig<
-  TDomain,
+  TDomain extends Aggregate<any>,
   TPersistence,
   TDb extends DrizzleClient = DrizzleClient,
 > {

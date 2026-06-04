@@ -1,3 +1,4 @@
+import { Aggregate } from "@woltz/rich-domain";
 import { ObjectLiteral } from "typeorm";
 
 /**
@@ -35,7 +36,10 @@ import { ObjectLiteral } from "typeorm";
  * }
  * ```
  */
-export abstract class TypeORMToDomain<TEntity extends ObjectLiteral, TDomain> {
+export abstract class TypeORMToDomain<
+  TEntity extends ObjectLiteral,
+  TDomain extends Aggregate<any>,
+> {
   /**
    * Map TypeORM entity to domain entity.
    *
