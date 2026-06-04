@@ -9,9 +9,7 @@ import { UserRepository } from "../../../domain/user/user.repository";
 import { UserToDomainMapper } from "../mappers/user-to-domain.mapper";
 import { UserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
 import { users, UserRecord } from "../schema";
-import { getDb } from "../db";
-
-type DB = ReturnType<typeof getDb>;
+import { DB } from "../db";
 
 export class DrizzleUserRepository
   extends DrizzleRepository<User, UserRecord, DB>
@@ -40,18 +38,18 @@ export class DrizzleUserRepository
       posts: {
         with: { tags: { with: { tag: true } } },
       },
-    };
+    } as const;
   }
 
   async findByEmail(email: string): Promise<User | null> {
     const record = await this.context.query.users.findFirst({
       where: eq(users.email, email),
-      with: this.getDefaultRelations() as any,
+      with: this.getDefaultRelations(),
     });
 
     if (!record) return null;
 
-    const user = this.toDomainMapper.build(record as any);
+    const user = this.toDomainMapper.build(record);
     user.markAsClean();
     return user;
   }

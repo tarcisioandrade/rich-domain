@@ -9,9 +9,7 @@ import { PostRepository } from "../../../domain/post/post.repository";
 import { PostToDomainMapper } from "../mappers/post-to-domain.mapper";
 import { PostToPersistenceMapper } from "../mappers/post-to-persistence.mapper";
 import { posts, PostRecord } from "../schema";
-import { getDb } from "../db";
-
-type DB = ReturnType<typeof getDb>;
+import { DB } from "../db";
 
 export class DrizzlePostRepository
   extends DrizzleRepository<Post, PostRecord, DB>
@@ -38,7 +36,7 @@ export class DrizzlePostRepository
   protected getDefaultRelations() {
     return {
       tags: { with: { tag: true } },
-    };
+    } as const;
   }
 
   override async find(criteria: Criteria<Post> = Criteria.create<Post>()) {
