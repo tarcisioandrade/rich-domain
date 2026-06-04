@@ -1,5 +1,9 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaUnitOfWork,
+  PrismaOutboxStore,
+} from "@woltz/rich-domain-prisma";
 import { UserRepository } from "../../../domain/user/user.repository";
 import { PrismaUserToDomainMapper } from "../mappers/user-to-domain.mapper";
 import { PrismaUserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
@@ -34,12 +38,17 @@ export class PrismaUserRepository
     },
   } satisfies Prisma.UserInclude;
 
-  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+  constructor(
+    prisma: PrismaClient,
+    uow: PrismaUnitOfWork,
+    outboxStore?: PrismaOutboxStore
+  ) {
     super(
       new PrismaUserToPersistenceMapper(prisma, uow),
       new PrismaUserToDomainMapper(),
       prisma,
-      uow
+      uow,
+      outboxStore
     );
   }
 

@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import { PrismaUnitOfWork, PrismaOutboxStore } from "@woltz/rich-domain-prisma";
+import {
+  OutboxEventBusDecorator,
+  OutboxPublisher,
+} from "@woltz/rich-domain-outbox";
+import type { OutboxPublisherConfig } from "@woltz/rich-domain-outbox";
 import { prisma } from "../database/prisma.js";
 import { BullMQEventBus } from "../queue/event-bus.js";
 import { connection } from "../queue/connection.js";
@@ -30,15 +35,37 @@ export class Container {
     // Infrastructure dependencies
     this.register("prisma", () => prisma);
     this.register("unitOfWork", () => new PrismaUnitOfWork(prisma));
-    this.register("eventBus", () => new BullMQEventBus(connection));
 
-    // Repositories
+    // Outbox infrastructure
+    this.register("outboxStore", () => new PrismaOutboxStore(prisma));
+
+    // Event bus: BullMQ wrapped in outbox decorator for guaranteed delivery
+    this.register("eventBus", () => {
+      const realBus = new BullMQEventBus(connection);
+      const outboxStore = this.resolve<PrismaOutboxStore>("outboxStore");
+      return new OutboxEventBusDecorator(realBus, outboxStore);
+    });
+
+    // Outbox publisher: background safety net process
+    this.register("outboxPublisher", () => {
+      const outboxStore = this.resolve<PrismaOutboxStore>("outboxStore");
+      const realBus = new BullMQEventBus(connection);
+      const config: OutboxPublisherConfig = {
+        pollIntervalMs: 5000,
+        batchSize: 50,
+        maxRetries: 3,
+      };
+      return new OutboxPublisher(outboxStore, realBus, config);
+    });
+
+    // Repositories (with outbox auto-save)
     this.register(
       "userRepository",
       () =>
         new PrismaUserRepository(
           this.resolve<PrismaClient>("prisma"),
-          this.resolve<PrismaUnitOfWork>("unitOfWork")
+          this.resolve<PrismaUnitOfWork>("unitOfWork"),
+          this.resolve<PrismaOutboxStore>("outboxStore")
         )
     );
 
@@ -47,7 +74,8 @@ export class Container {
       () =>
         new PrismaPostRepository(
           this.resolve<PrismaClient>("prisma"),
-          this.resolve<PrismaUnitOfWork>("unitOfWork")
+          this.resolve<PrismaUnitOfWork>("unitOfWork"),
+          this.resolve<PrismaOutboxStore>("outboxStore")
         )
     );
 
@@ -56,7 +84,8 @@ export class Container {
       () =>
         new PrismaTaskRepository(
           this.resolve<PrismaClient>("prisma"),
-          this.resolve<PrismaUnitOfWork>("unitOfWork")
+          this.resolve<PrismaUnitOfWork>("unitOfWork"),
+          this.resolve<PrismaOutboxStore>("outboxStore")
         )
     );
 
@@ -131,6 +160,14 @@ export class Container {
 
   get taskRepository(): PrismaTaskRepository {
     return this.resolve<PrismaTaskRepository>("taskRepository");
+  }
+
+  get eventBus(): IDomainEventBus {
+    return this.resolve<IDomainEventBus>("eventBus");
+  }
+
+  get outboxPublisher(): OutboxPublisher {
+    return this.resolve<OutboxPublisher>("outboxPublisher");
   }
 
   // Reset for testing

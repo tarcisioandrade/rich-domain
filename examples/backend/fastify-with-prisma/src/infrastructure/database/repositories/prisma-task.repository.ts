@@ -1,5 +1,9 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaUnitOfWork,
+  PrismaOutboxStore,
+} from "@woltz/rich-domain-prisma";
 import { TaskRepository } from "../../../domain/task/task.repository";
 import { PrismaTaskToDomainMapper } from "../mappers/task-to-domain.mapper";
 import { PrismaTaskToPersistenceMapper } from "../mappers/task-to-persistence.mapper";
@@ -26,12 +30,17 @@ export class PrismaTaskRepository
     ] satisfies Prisma.TaskWhereInput[];
   }
 
-  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+  constructor(
+    prisma: PrismaClient,
+    uow: PrismaUnitOfWork,
+    outboxStore?: PrismaOutboxStore
+  ) {
     super(
       new PrismaTaskToPersistenceMapper(prisma, uow),
       new PrismaTaskToDomainMapper(),
       prisma,
-      uow
+      uow,
+      outboxStore
     );
   }
 
