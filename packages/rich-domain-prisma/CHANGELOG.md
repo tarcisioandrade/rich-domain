@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.8
+
+### Patch Changes
+
+- 0ae9cc0: Add Transactional Outbox Pattern support
+  - New `@woltz/rich-domain-outbox` package with `OutboxEventBusDecorator`, `OutboxPublisher`, `OutboxEntry`, and `OUTBOX_DDL`
+  - Core additions: `IOutboxStore` interface, `OutboxEntryData`, `OutboxFetchResult`, `OutboxStatus` types
+  - Prisma adapter: `PrismaOutboxStore` with `PRISMA_OUTBOX_SCHEMA`, auto-save in `PrismaRepository.save()`
+  - Drizzle adapter: `DrizzleOutboxStore` with `outboxTable` definition, auto-save in `DrizzleRepository.save()`
+  - TypeORM adapter: `TypeORMOutboxStore` with `OutboxEntity`, auto-save in `TypeORMRepository.save()`
+  - Outbox events are saved in the same DB transaction as the aggregate, then published by a background polling process
+
+- Updated dependencies [0ae9cc0]
+  - @woltz/rich-domain@1.9.1
+
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
 ### [0.7.5](https://github.com/tarcisioandrade/rich-domain/compare/v0.4.2...v0.7.5) (2026-01-25)
