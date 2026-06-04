@@ -246,6 +246,11 @@ export abstract class PrismaRepository<
    * Extract uncommitted domain events from an aggregate.
    * Uses duck-typing to avoid importing BaseAggregate from core,
    * keeping the adapter loosely coupled.
+   *
+   * **Important:** events are NOT cleared from the aggregate here.
+   * The outbox is a *copy* — `dispatchAll()` still publishes immediately
+   * via the event bus, and the publisher only picks up events that were
+   * never dispatched (or whose immediate publish failed).
    */
   private extractEvents(entity: TDomain): IDomainEvent[] {
     if (
@@ -253,11 +258,7 @@ export abstract class PrismaRepository<
       typeof entity.getUncommittedEvents === "function" &&
       entity.hasUncommittedEvents()
     ) {
-      const events = entity.getUncommittedEvents();
-      if (typeof entity.clearEvents === "function") {
-        entity.clearEvents();
-      }
-      return events;
+      return entity.getUncommittedEvents();
     }
 
     return [];
