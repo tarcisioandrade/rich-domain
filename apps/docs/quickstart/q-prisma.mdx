@@ -520,11 +520,21 @@ This creates:
   The CLI analyzes your Prisma schema relationships and generates proper DDD aggregates. See the [CLI documentation](/CLI) for more details.
 </Tip>
 
+## Transactional Outbox (optional)
+
+If your aggregates emit domain events, pass an optional **`outboxStore`** as the fifth argument to `PrismaRepository`'s constructor. When set, `save()` persists uncommitted events to the outbox table in the **same transaction** as the aggregate — so events are not lost if the process crashes before `dispatchAll()`.
+
+See **[Transactional Outbox](/integrations/outbox)** for the full setup (Prisma model, event bus decorator, background publisher). Repository wiring is documented under [Prisma Integration → Transactional Outbox](/integrations/prisma#transactional-outbox).
+
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Prisma Integration" icon="database" href="/integrations/prisma">
     Deep dive into Prisma adapter features
+  </Card>
+
+  <Card title="Transactional Outbox" icon="inbox" href="/integrations/outbox">
+    Guaranteed domain event delivery with the outbox pattern
   </Card>
 
   <Card title="Repository Pattern" icon="book" href="/repository/overview">

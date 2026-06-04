@@ -63,7 +63,9 @@ class Order extends Aggregate<OrderProps> {
 
 ## Dispatching Events
 
-Events are dispatched **after** persistence to ensure consistency:
+Events are dispatched **after** persistence to ensure consistency.
+
+> **Reliability:** For guaranteed delivery when the process crashes or the broker is down between `save()` and `dispatchAll()`, use the **[Transactional Outbox](./outbox.md)** (`@woltz/rich-domain-outbox`).
 
 ```typescript
 import { IDomainEventBus } from "@woltz/rich-domain";

@@ -2,6 +2,7 @@ import {
   Mapper,
   AggregateChanges,
   EntitySchemaRegistry,
+  Aggregate,
 } from "@woltz/rich-domain";
 import {
   DrizzleClient,
@@ -12,7 +13,7 @@ import {
 import { DrizzleBatchExecutor } from "../batch-executor";
 
 export abstract class DrizzleToPersistence<
-  TDomain,
+  TDomain extends Aggregate<any>,
   TDb extends DrizzleClient = DrizzleClient,
 > extends Mapper<TDomain, void> {
   constructor(
@@ -52,7 +53,7 @@ export abstract class DrizzleToPersistence<
    * Build persistence operations.
    */
   async build(entity: TDomain): Promise<void> {
-    const isNew = (entity as any).isNew?.() ?? false;
+    const isNew = entity.isNew();
 
     if (isNew) {
       await this.onCreate(entity);
@@ -86,9 +87,7 @@ export abstract class DrizzleToPersistence<
 
   @Transactional()
   private async handleUpdate(entity: TDomain): Promise<void> {
-    const changes = (entity as any).getChanges?.() as
-      | AggregateChanges
-      | undefined;
+    const changes = entity.getChanges();
 
     if (!changes || changes.isEmpty()) {
       return;

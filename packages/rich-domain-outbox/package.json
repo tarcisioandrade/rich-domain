@@ -1,0 +1,65 @@
+{
+  "name": "@woltz/rich-domain-outbox",
+  "version": "0.1.0",
+  "description": "Transactional Outbox pattern for the Rich Domain library — reliable domain event publishing",
+  "homepage": "https://woltz.mintlify.app",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "author": "Tarcisio Andrade",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/tarcisioandrade/rich-domain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarcisioandrade/rich-domain.git",
+    "directory": "packages/rich-domain-outbox"
+  },
+  "files": [
+    "dist",
+    "src",
+    "**/package.json"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "postbuild": "node postbuild.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "check": "tsc -b --noEmit",
+    "coverage": "jest --coverage",
+    "lint": "echo 'No linting yet'",
+    "clean": "rm -rf dist coverage node_modules *.tsbuildinfo",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ddd",
+    "domain-driven-design",
+    "outbox",
+    "transactional-outbox",
+    "domain-events",
+    "event-driven",
+    "reliability",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@woltz/rich-domain": "^1.9.0",
+    "typescript": ">=4.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

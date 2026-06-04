@@ -1,5 +1,9 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaUnitOfWork,
+  PrismaOutboxStore,
+} from "@woltz/rich-domain-prisma";
 import { PostRepository } from "../../../domain/post/post.repository";
 import { PrismaPostToDomainMapper } from "../mappers/post-to-domain.mapper";
 import { PrismaPostToPersistenceMapper } from "../mappers/post-to-persistence.mapper";
@@ -40,12 +44,17 @@ export class PrismaPostRepository
     ] satisfies Prisma.PostWhereInput[];
   }
 
-  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+  constructor(
+    prisma: PrismaClient,
+    uow: PrismaUnitOfWork,
+    outboxStore?: PrismaOutboxStore
+  ) {
     super(
       new PrismaPostToPersistenceMapper(prisma, uow),
       new PrismaPostToDomainMapper(),
       prisma,
-      uow
+      uow,
+      outboxStore
     );
   }
 

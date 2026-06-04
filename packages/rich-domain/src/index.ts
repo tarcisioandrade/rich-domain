@@ -67,4 +67,8 @@ export type {
   ArrayOperators,
   CriteriaOptions,
   IDomainEventBus,
+  IOutboxStore,
+  OutboxEntryData,
+  OutboxFetchResult,
+  OutboxStatus,
 } from "./types/index.js";

@@ -66,3 +66,16 @@ model Task {
 
   @@unique([status, order])
 }
+
+model Outbox {
+  id          String   @id
+  eventName   String
+  payload     Json
+  occurredOn  DateTime
+  status      String   @default("pending")
+  retries     Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+}

@@ -30,6 +30,10 @@ npm install @woltz/rich-domain @woltz/rich-domain-prisma
   PrismaBatchExecutor for efficient bulk writes
 </Card>
 
+<Card title="Transactional Outbox" icon="inbox" href="/integrations/outbox">
+  Optional `outboxStore` on the repository for guaranteed event delivery
+</Card>
+
 </CardGroup>
 
 <Note>
@@ -268,7 +272,11 @@ abstract class PrismaRepository<TDomain, TPersistence, TContext = PrismaClientLi
 ### Complete Implementation
 
 ```typescript
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaUnitOfWork,
+  PrismaOutboxStore,
+} from "@woltz/rich-domain-prisma";
 
 class UserRepository extends PrismaRepository<User, UserRecord> {
   protected readonly model = "user";
@@ -277,12 +285,17 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
     profile: true,
   };
 
-  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+  constructor(
+    prisma: PrismaClient,
+    uow: PrismaUnitOfWork,
+    outboxStore?: PrismaOutboxStore
+  ) {
     super(
       new UserToPersistenceMapper(prisma, uow),
       new UserToDomainMapper(),
       prisma,
-      uow
+      uow,
+      outboxStore
     );
   }
   
@@ -318,6 +331,34 @@ class UserRepository extends PrismaRepository<User, UserRecord> {
       include: this.includes,
     });
     return data.map((d) => this.toDomainMapper.build(d));
+  }
+}
+```
+
+### Transactional Outbox
+
+Pass an optional **`outboxStore`** as the fifth argument to `PrismaRepository`'s constructor. When set, `save()` automatically persists uncommitted domain events to the outbox table in the **same database transaction** as the aggregate write.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `outboxStore` | `PrismaOutboxStore` | No | Enables auto-save of domain events on `save()` |
+
+Use `PrismaOutboxStore` from `@woltz/rich-domain-prisma`. For the full setup (table migration, event bus decorator, background publisher), see **[Transactional Outbox](/integrations/outbox)**.
+
+```typescript
+import { PrismaOutboxStore } from "@woltz/rich-domain-prisma";
+
+const outboxStore = new PrismaOutboxStore(prisma);
+
+class OrderRepository extends PrismaRepository<Order, OrderRecord> {
+  constructor(prisma: PrismaClient, uow: PrismaUnitOfWork) {
+    super(
+      new OrderToPersistenceMapper(prisma, uow),
+      new OrderToDomainMapper(),
+      prisma,
+      uow,
+      outboxStore // ← events saved atomically with the aggregate
+    );
   }
 }
 ```
@@ -720,7 +761,11 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
 ### Repository
 
 ```typescript
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
+import {
+  PrismaRepository,
+  PrismaUnitOfWork,
+  PrismaOutboxStore,
+} from "@woltz/rich-domain-prisma";
 
 class UserRepository extends PrismaRepository<User, UserRecord> {
   protected readonly model = "user";
@@ -848,6 +893,9 @@ export type { PrismaTransactionContext, PrismaClientLike, PrismaTransactionClien
 export { PrismaRepository };
 export type { PrismaRepositoryConfig };
 
+// Outbox
+export { PrismaOutboxStore, PRISMA_OUTBOX_SCHEMA };
+
 // Mapper
 export { PrismaToPersistence };
 
@@ -862,8 +910,22 @@ export {
   TableNotFoundError,
   NoRecordsAffectedError,
   BatchOperationError,
+  OutboxStoreError,
 };
 ```
+
+### PrismaRepositoryConfig
+
+```typescript
+interface PrismaRepositoryConfig {
+  prisma: PrismaClientLike;
+  uow: PrismaUnitOfWork;
+  /** Optional — auto-save domain events on `save()`. See [Transactional Outbox](/integrations/outbox). */
+  outboxStore?: PrismaOutboxStore;
+}
+```
+
+The repository constructor accepts the same options positionally: mappers, `prisma`, `uow`, and optional `outboxStore`.
 
 ### PrismaUnitOfWork Methods
 

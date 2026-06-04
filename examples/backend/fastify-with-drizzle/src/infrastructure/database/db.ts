@@ -5,6 +5,7 @@ import { env } from "../../env";
 
 let pool: Pool | null = null;
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+export type DB = ReturnType<typeof drizzle<typeof schema>>;
 
 export async function initializeDatabase() {
   pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -15,7 +16,7 @@ export async function initializeDatabase() {
   db = drizzle(pool, { schema });
 }
 
-export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
+export function getDb(): DB {
   if (!db) {
     throw new Error(
       "Database not initialized. Call initializeDatabase() first."

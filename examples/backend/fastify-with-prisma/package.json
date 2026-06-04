@@ -33,6 +33,7 @@
     "@prisma/client": "^5.22.0",
     "@woltz/rich-domain": "^1.9.0",
     "@woltz/rich-domain-criteria-zod": "^0.1.5",
+    "@woltz/rich-domain-outbox": "^0.1.0",
     "@woltz/rich-domain-prisma": "^0.7.7",
     "bullmq": "^5.64.0",
     "fastify": "^5.5.0",

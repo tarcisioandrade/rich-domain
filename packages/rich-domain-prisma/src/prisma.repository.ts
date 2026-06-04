@@ -6,14 +6,18 @@ import {
   PaginatedResult,
   FilterOperator,
   CriteriaOptions,
+  IDomainEvent,
 } from "@woltz/rich-domain";
 import { PrismaClientLike, PrismaUnitOfWork, UOWStorage } from "./unit-of-work";
 import { ModelNotFoundError, NoRecordsAffectedError } from "./errors";
 import { PrismaToPersistence } from "./prisma.mapper";
+import { PrismaOutboxStore } from "./outbox-store";
 
 export interface PrismaRepositoryConfig {
   prisma: PrismaClientLike;
   uow: PrismaUnitOfWork;
+  /** Optional outbox store for auto-saving domain events in the same transaction. */
+  outboxStore?: PrismaOutboxStore;
 }
 
 /**
@@ -33,7 +37,8 @@ export abstract class PrismaRepository<
     >,
     protected readonly toDomainMapper: Mapper<TPersistence, TDomain>,
     private readonly prisma: TContext,
-    public readonly uow: PrismaUnitOfWork
+    public readonly uow: PrismaUnitOfWork,
+    private readonly outboxStore?: PrismaOutboxStore
   ) {
     super();
   }
@@ -218,10 +223,45 @@ export abstract class PrismaRepository<
   /**
    * Save entity (create or update).
    * Uses change tracking to determine what changed.
+   *
+   * If an {@link PrismaOutboxStore} is configured, uncommitted domain events
+   * are extracted from the aggregate and saved to the outbox table in the
+   * same transaction context (guaranteeing atomicity).
    */
   async save(entity: TDomain): Promise<void> {
+    // Extract uncommitted events BEFORE the mapper mutates the aggregate state.
+    const events = this.extractEvents(entity);
+
     await this.toPersistenceMapper.build(entity);
     entity.markAsPersisted();
+
+    // Auto-save events to outbox — uses the same transactional client
+    // if inside a PrismaUnitOfWork transaction.
+    if (events.length > 0 && this.outboxStore) {
+      await this.outboxStore.save(events);
+    }
+  }
+
+  /**
+   * Extract uncommitted domain events from an aggregate.
+   * Uses duck-typing to avoid importing BaseAggregate from core,
+   * keeping the adapter loosely coupled.
+   *
+   * **Important:** events are NOT cleared from the aggregate here.
+   * The outbox is a *copy* — `dispatchAll()` still publishes immediately
+   * via the event bus, and the publisher only picks up events that were
+   * never dispatched (or whose immediate publish failed).
+   */
+  private extractEvents(entity: TDomain): IDomainEvent[] {
+    if (
+      typeof entity.hasUncommittedEvents === "function" &&
+      typeof entity.getUncommittedEvents === "function" &&
+      entity.hasUncommittedEvents()
+    ) {
+      return entity.getUncommittedEvents();
+    }
+
+    return [];
   }
 
   /**

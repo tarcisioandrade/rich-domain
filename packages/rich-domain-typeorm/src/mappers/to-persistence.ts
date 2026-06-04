@@ -1,5 +1,9 @@
 import { EntityManager } from "typeorm";
-import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  AggregateChanges,
+  EntitySchemaRegistry,
+} from "@woltz/rich-domain";
 import { TypeORMUnitOfWork } from "../unit-of-work";
 import {
   TypeORMBatchExecutor,
@@ -51,7 +55,7 @@ import {
  * }
  * ```
  */
-export abstract class TypeORMToPersistence<TDomain> {
+export abstract class TypeORMToPersistence<TDomain extends Aggregate<any>> {
   /**
    * Schema registry for entity/table mapping.
    * Must be implemented by subclass.
@@ -77,17 +81,13 @@ export abstract class TypeORMToPersistence<TDomain> {
   async save(aggregate: TDomain): Promise<void> {
     const em = this.uow.getCurrentEntityManager();
 
-    if (this.isNewAggregate(aggregate)) {
+    if (aggregate.isNew()) {
       await this.onCreate(aggregate, em);
       return;
     }
 
-    if (this.hasChangeTracking(aggregate)) {
-      const changes = (aggregate as any).getChanges() as AggregateChanges;
-
-      if (changes.isEmpty()) {
-        return;
-      }
+    if (aggregate.getChanges().hasChanges()) {
+      const changes = aggregate.getChanges();
 
       const executor = new TypeORMBatchExecutor({
         registry: this.registry,
@@ -137,26 +137,6 @@ export abstract class TypeORMToPersistence<TDomain> {
     });
 
     await executor.execute(changes);
-  }
-
-  /**
-   * Check if aggregate is new (not yet persisted).
-   */
-  private isNewAggregate(aggregate: TDomain): boolean {
-    return (
-      typeof (aggregate as any).isNew === "function" &&
-      (aggregate as any).isNew() === true
-    );
-  }
-
-  /**
-   * Check if aggregate has change tracking.
-   */
-  private hasChangeTracking(aggregate: TDomain): boolean {
-    return (
-      typeof (aggregate as any).getChanges === "function" &&
-      typeof (aggregate as any).getChanges() === "object"
-    );
   }
 
   /**

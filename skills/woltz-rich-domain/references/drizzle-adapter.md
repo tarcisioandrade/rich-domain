@@ -201,7 +201,7 @@ export class DrizzleUserRepository
     return {
       posts: {
         with: { tags: { with: { tag: true } } },
-      },
+      } as const,
     };
   }
 
@@ -209,10 +209,10 @@ export class DrizzleUserRepository
   async findByEmail(email: string): Promise<User | null> {
     const record = await this.context.query.users.findFirst({
       where: eq(users.email, email),
-      with: this.getDefaultRelations() as any,
+      with: this.getDefaultRelations(),
     });
     if (!record) return null;
-    const user = this.toDomainMapper.build(record as any);
+    const user = this.toDomainMapper.build(record);
     user.markAsClean();
     return user;
   }
@@ -503,7 +503,7 @@ export class DrizzleUserRepository
   }
 
   protected getDefaultRelations() {
-    return { posts: true };
+    return { posts: true } as const;
   }
 }
 

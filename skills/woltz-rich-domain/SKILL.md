@@ -1,6 +1,6 @@
 ---
 name: woltz-rich-domain
-description: Guide for @woltz/rich-domain DDD library and ecosystem. Use when building domain models, repositories, or working with Prisma/TypeORM/Drizzle adapters.
+description: Guide for @woltz/rich-domain DDD library and ecosystem. Use when building domain models, repositories, transactional outbox, or working with Prisma/TypeORM/Drizzle adapters.
 ---
 
 # @woltz/rich-domain
@@ -22,6 +22,7 @@ TypeScript library for Domain-Driven Design with automatic change tracking and S
 | `@woltz/rich-domain-typeorm`      | TypeORM adapter              |
 | `@woltz/rich-domain-criteria-zod` | Zod schemas for Criteria API |
 | `@woltz/rich-domain-export`       | Multi-format data export     |
+| `@woltz/rich-domain-outbox`       | Transactional outbox pattern |
 
 ## Quick Start
 
@@ -173,6 +174,7 @@ For detailed documentation on specific topics:
 
 - [Core Concepts](./references/core-concepts.md) - Entities, Aggregates, Value Objects, Lifecycle Hooks
 - [Domain Events](./references/domain-events.md) - Event-driven architecture with example using BullMQ
+- [Transactional Outbox](./references/outbox.md) - Guaranteed event delivery with `outboxStore`, decorator, and publisher
 - [Criteria API](./references/criteria.md) - Type-safe query building with filters, ordering, pagination
 - [Criteria Zod](./references/criteria-zod.md) - Zod schemas for API query validation
 - [Schema Registry](./references/schema-registry.md) - EntitySchemaRegistry for field mapping and relationships

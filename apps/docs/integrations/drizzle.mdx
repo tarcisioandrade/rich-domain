@@ -30,6 +30,10 @@ npm install @woltz/rich-domain @woltz/rich-domain-drizzle drizzle-orm
   DrizzleBatchExecutor for efficient bulk writes
 </Card>
 
+<Card title="Transactional Outbox" icon="inbox" href="/integrations/outbox">
+  Optional `outboxStore` in repository config for guaranteed event delivery
+</Card>
+
 </CardGroup>
 
 <Note>
@@ -150,7 +154,7 @@ abstract class DrizzleRepository<
   TPersistence,
   TDb extends DrizzleClient = DrizzleClient,
 > {
-  constructor(config: { db: TDb; table: any; toDomainMapper; toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>; uow }) { ... }
+  constructor(config: DrizzleRepositoryConfig<TDomain, TPersistence, TDb>) { ... }
 
   // Available: current context (transaction or plain db) — typed as TDb
   protected get context(): TDb;
@@ -177,22 +181,52 @@ abstract class DrizzleRepository<
 }
 ```
 
+### Transactional Outbox
+
+Pass an optional **`outboxStore`** in `DrizzleRepositoryConfig`. When set, `save()` automatically persists uncommitted domain events to the outbox table in the **same database transaction** as the aggregate write.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `outboxStore` | `DrizzleOutboxStore` | No | Enables auto-save of domain events on `save()` |
+
+Use `DrizzleOutboxStore` from `@woltz/rich-domain-drizzle`. For the full setup (schema, event bus decorator, background publisher), see **[Transactional Outbox](/integrations/outbox)**.
+
+```typescript
+import { DrizzleOutboxStore } from "@woltz/rich-domain-drizzle";
+
+const outboxStore = new DrizzleOutboxStore(db);
+
+const repo = new OrderRepository({
+  db,
+  table: schema.orders,
+  toDomainMapper: new OrderToDomainMapper(),
+  toPersistenceMapper: new OrderToPersistenceMapper(db, uow),
+  uow,
+  outboxStore, // ← events saved atomically with the aggregate
+});
+```
+
 ### Complete Implementation
 
 ```typescript
-import { DrizzleRepository, SearchableField } from "@woltz/rich-domain-drizzle";
+import {
+  DrizzleRepository,
+  DrizzleOutboxStore,
+  SearchableField,
+} from "@woltz/rich-domain-drizzle";
 import { users, UserRecord } from "../schema";
 
 type DB = ReturnType<typeof getDb>;
 
 export class UserRepository extends DrizzleRepository<User, UserRecord, DB> {
-  constructor(db: DB, uow: DrizzleUnitOfWork) {
+  constructor(db: DB, uow: DrizzleUnitOfWork, outboxStore?: DrizzleOutboxStore) {
     super({
       db,
       table: users,
       toDomainMapper: new UserToDomainMapper(),
       toPersistenceMapper: new UserToPersistenceMapper(db, uow),
       uow,
+      outboxStore,
     });
   }
 
@@ -606,6 +640,9 @@ export type { DrizzleClient, DrizzleTransactionClient, DrizzleTransactionContext
 export { DrizzleRepository };
 export type { DrizzleRepositoryConfig };
 
+// Outbox
+export { DrizzleOutboxStore, outboxTable };
+
 // Mappers
 export { DrizzleToPersistence };
 export { DrizzleToDomain };
@@ -626,7 +663,22 @@ export {
   NoRecordsAffectedError,
   BatchOperationError,
   DrizzleRepositoryError,
+  OutboxStoreError,
 };
+```
+
+### DrizzleRepositoryConfig
+
+```typescript
+interface DrizzleRepositoryConfig<TDomain, TPersistence, TDb> {
+  db: TDb;
+  table: any;
+  toDomainMapper: Mapper<TPersistence, TDomain>;
+  toPersistenceMapper: DrizzleToPersistence<TDomain, TDb>;
+  uow: DrizzleUnitOfWork;
+  /** Optional — auto-save domain events on `save()`. See [Transactional Outbox](/integrations/outbox). */
+  outboxStore?: DrizzleOutboxStore;
+}
 ```
 
 ### DrizzleRepository Methods

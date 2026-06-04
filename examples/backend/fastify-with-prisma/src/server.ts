@@ -20,7 +20,7 @@ import {
   UnauthorizedError,
   ForbiddenError,
 } from "@woltz/rich-domain";
-import { diPlugin } from "./infrastructure/di";
+import { diPlugin, container } from "./infrastructure/di";
 import { BullMQDomainEventWorker } from "./infrastructure/queue/event-worker";
 import { connection } from "./infrastructure/queue/connection";
 import { registerUserEventHandlers } from "./infrastructure/events/user";
@@ -134,16 +134,24 @@ const start = async () => {
 
     await app.ready();
 
+    // Event handlers — still process jobs from BullMQ queues
     const worker = new BullMQDomainEventWorker(connection, app);
     registerUserEventHandlers(worker);
     await worker.start();
     app.log.info("Domain event worker started");
+
+    // Outbox publisher — safety net for events that failed immediate delivery
+    const publisher = container.outboxPublisher;
+    publisher.start();
+    app.log.info("Outbox publisher started (polling every 5s)");
 
     await app.listen({ port: env.PORT, host: "0.0.0.0" });
     app.log.info(`Server running at http://localhost:${env.PORT}`);
     app.log.info(`Swagger UI at http://localhost:${env.PORT}/doc`);
 
     const shutdown = async () => {
+      app.log.info("Shutting down...");
+      await publisher.stop();
       await worker.stop();
       await prisma.$disconnect();
       process.exit(0);
