@@ -10,7 +10,7 @@ import {
   UOWStorage,
   Transactional,
 } from "./unit-of-work";
-import { BatchExecutorConfig, PrismaBatchExecutor } from "./batch-executor";
+import { PrismaBatchExecutor } from "./batch-executor";
 
 /**
  * Base mapper for Prisma persistence.
@@ -85,14 +85,6 @@ export abstract class PrismaToPersistence<
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
   /**
-   * Batch executor configuration.
-   * Override to customize registry or other executor options.
-   */
-  protected getBatchExecutorConfig(): BatchExecutorConfig {
-    return { registry: this.registry };
-  }
-
-  /**
    * Handle entity update with changes.
    * Default implementation uses {@link PrismaBatchExecutor}.
    * Override in subclass for custom update logic.
@@ -101,10 +93,9 @@ export abstract class PrismaToPersistence<
     changes: AggregateChanges,
     _entity: TDomain
   ): Promise<void> {
-    const executor = new PrismaBatchExecutor(
-      this.context,
-      this.getBatchExecutorConfig()
-    );
+    const executor = new PrismaBatchExecutor(this.context, {
+      registry: this.registry,
+    });
     await executor.execute(changes);
   }
 
