@@ -155,14 +155,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
     });
   }
 
-  // Handle existing aggregate updates
-  protected async onUpdate(changes: AggregateChanges): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 
@@ -347,12 +340,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
     });
   }
 
-  protected async onUpdate(changes: AggregateChanges): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 
 // user.repository.ts (Implementation)
