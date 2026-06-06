@@ -10,6 +10,7 @@ import {
   UOWStorage,
   Transactional,
 } from "./unit-of-work";
+import { BatchExecutorConfig, PrismaBatchExecutor } from "./batch-executor";
 
 /**
  * Base mapper for Prisma persistence.
@@ -28,10 +29,7 @@ import {
  *     });
  *   }
  *
- *   protected async onUpdate(changes: AggregateChanges, entity: User): Promise<void> {
- *     const batch = changes.toBatchOperations();
- *     // Process deletes, creates, updates...
- *   }
+ *   // onUpdate uses PrismaBatchExecutor by default — override only if needed
  * }
  * ```
  */
@@ -87,17 +85,31 @@ export abstract class PrismaToPersistence<
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
   /**
-   * Handle entity update with changes.
-   * Override in subclass if you need custom logic.
-   * Already wrapped in transaction by @Transactional decorator.
+   * Batch executor configuration.
+   * Override to customize registry or other executor options.
    */
-  protected abstract onUpdate(
-    changes: AggregateChanges,
-    entity: TDomain
-  ): Promise<void>;
+  protected getBatchExecutorConfig(): BatchExecutorConfig {
+    return { registry: this.registry };
+  }
 
   /**
-   * Wrapper that ensures update runs in transaction.
+   * Handle entity update with changes.
+   * Default implementation uses {@link PrismaBatchExecutor}.
+   * Override in subclass for custom update logic.
+   */
+  protected async onUpdate(
+    changes: AggregateChanges,
+    _entity: TDomain
+  ): Promise<void> {
+    const executor = new PrismaBatchExecutor(
+      this.context,
+      this.getBatchExecutorConfig()
+    );
+    await executor.execute(changes);
+  }
+
+  /**
+   * Opens a transaction (when needed) and delegates to {@link onUpdate}.
    */
   @Transactional()
   private async handleUpdate(entity: TDomain): Promise<void> {
