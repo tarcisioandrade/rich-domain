@@ -597,6 +597,10 @@ function generateToPersistenceMapper(model: PrismaModel): string {
   lines.push(`    entity: "${model.name}",`);
   lines.push(`    table: "${tableName}",`);
 
+  if (model.primaryKey && model.primaryKey !== "id") {
+    lines.push(`    primaryKey: "${model.primaryKey}",`);
+  }
+
   // Collections (relations)
   const listRelations = relationFields.filter((f) => f.isList);
   if (listRelations.length > 0) {
@@ -616,10 +620,13 @@ function generateToPersistenceMapper(model: PrismaModel): string {
   lines.push("");
 
   // onCreate method
+  const pkField =
+    model.primaryKey && model.primaryKey !== "id" ? model.primaryKey : "id";
+
   lines.push(`  protected async onCreate(entity: ${model.name}) {`);
   lines.push(`    await this.context.${tableName}.create({`);
   lines.push("      data: {");
-  lines.push("        id: entity.id.value,");
+  lines.push(`        ${pkField}: entity.id.value,`);
 
   for (const field of scalarFields) {
     lines.push(`        ${field.name}: entity.${field.name},`);
