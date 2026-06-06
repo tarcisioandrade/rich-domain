@@ -25,6 +25,7 @@ import { BullMQDomainEventWorker } from "./infrastructure/queue/event-worker";
 import { connection } from "./infrastructure/queue/connection";
 import { registerUserEventHandlers } from "./infrastructure/events/user";
 import { env } from "./env";
+import { generateOpenapi } from "./utils/generate-openpai";
 
 const isDev = env.NODE_ENV === "development";
 
@@ -133,6 +134,7 @@ const start = async () => {
     app.log.info("Database connected");
 
     await app.ready();
+    generateOpenapi(app);
 
     // Event handlers — still process jobs from BullMQ queues
     const worker = new BullMQDomainEventWorker(connection, app);

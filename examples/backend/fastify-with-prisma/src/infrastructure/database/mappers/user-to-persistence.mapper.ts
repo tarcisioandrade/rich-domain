@@ -1,10 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { User } from "../../../domain/user/user.entity";
-import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
-import {
-  PrismaBatchExecutor,
-  PrismaToPersistence,
-} from "@woltz/rich-domain-prisma";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+import { PrismaToPersistence } from "@woltz/rich-domain-prisma";
 
 const schemaRegistry = new EntitySchemaRegistry()
   .register({
@@ -69,13 +66,5 @@ export class PrismaUserToPersistenceMapper extends PrismaToPersistence<
         },
       },
     });
-  }
-
-  protected async onUpdate(changes: AggregateChanges): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
   }
 }
