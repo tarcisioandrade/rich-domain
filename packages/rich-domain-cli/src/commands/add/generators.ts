@@ -584,12 +584,9 @@ export function generateToPersistenceMapper(
   if (hasPrisma) {
     // Prisma-specific mapper
     lines.push(`import {`);
-    lines.push(`  PrismaBatchExecutor,`);
     lines.push(`  PrismaToPersistence,`);
     lines.push(`} from "@woltz/rich-domain-prisma";`);
-    lines.push(
-      `import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";`
-    );
+    lines.push(`import { EntitySchemaRegistry } from "@woltz/rich-domain";`);
     lines.push(
       `import { ${pascalName} } from "../../domain/entities/${kebabName}.${suffix}.js";`
     );
@@ -614,17 +611,6 @@ export function generateToPersistenceMapper(
     lines.push("        // TODO: Add other fields");
     lines.push("      },");
     lines.push("    });");
-    lines.push("  }");
-    lines.push("");
-    lines.push("  protected async onUpdate(");
-    lines.push("    changes: AggregateChanges,");
-    lines.push(`    entity: ${pascalName}`);
-    lines.push("  ): Promise<void> {");
-    lines.push("    const executor = new PrismaBatchExecutor(this.context, {");
-    lines.push("      registry: this.registry,");
-    lines.push("    });");
-    lines.push("");
-    lines.push("    await executor.execute(changes);");
     lines.push("  }");
     lines.push("}");
   } else {

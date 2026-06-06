@@ -572,15 +572,12 @@ function generateToPersistenceMapper(model: PrismaModel): string {
 
   // Imports
   lines.push("import {");
-  lines.push("  PrismaBatchExecutor,");
   lines.push("  PrismaToPersistence,");
   lines.push('} from "@woltz/rich-domain-prisma";');
   lines.push(
     `import { ${model.name} } from "../../domain/entities/${fileName}.aggregate.js";`
   );
-  lines.push(
-    'import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";'
-  );
+  lines.push('import { EntitySchemaRegistry } from "@woltz/rich-domain";');
   lines.push("");
 
   lines.push("/**");
@@ -634,19 +631,6 @@ function generateToPersistenceMapper(model: PrismaModel): string {
 
   lines.push("      },");
   lines.push("    });");
-  lines.push("  }");
-  lines.push("");
-
-  // onUpdate method
-  lines.push(`  protected async onUpdate(`);
-  lines.push("    changes: AggregateChanges,");
-  lines.push(`    entity: ${model.name}`);
-  lines.push("  ): Promise<void> {");
-  lines.push("    const executor = new PrismaBatchExecutor(this.context, {");
-  lines.push("      registry: this.registry,");
-  lines.push("    });");
-  lines.push("");
-  lines.push("    await executor.execute(changes);");
   lines.push("  }");
   lines.push("}");
 
