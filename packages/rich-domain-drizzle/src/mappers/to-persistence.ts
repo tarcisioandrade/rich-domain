@@ -92,6 +92,9 @@ export abstract class DrizzleToPersistence<
     await executor.execute(changes);
   }
 
+  /**
+   * Opens a transaction (when needed) and delegates to {@link onUpdate}.
+   */
   @Transactional()
   private async handleUpdate(entity: TDomain): Promise<void> {
     const changes = entity.getChanges();
