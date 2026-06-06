@@ -52,7 +52,8 @@
     "typescript"
   ],
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
