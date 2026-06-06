@@ -69,6 +69,7 @@ function createAddress(street = "123 Main St", city = "Test City"): Address {
     id: new Id(),
     street,
     city,
+    residents: ["teste"],
   });
 }
 
@@ -139,16 +140,25 @@ describe("ChangeTracker.getChanges()", () => {
 
   describe("collection changes (1:N)", () => {
     it("should detect added items", () => {
-      const user = createUser();
+      const address = createAddress();
+      const user = createUser({ address });
       const newPost = createPost({ title: "New Post" });
 
       user.addPost(newPost);
+      user.address?.addResident("John Doe");
+      user.address?.removeResidentsByPrefix("teste");
 
       const changes = user.getTypedChanges();
 
       expect(changes.hasCreates()).toBe(true);
 
       const postChanges = changes.of("Post");
+      const addressChanges = changes.of("Address");
+
+      expect(addressChanges.hasUpdates()).toBe(true);
+      expect(addressChanges.updates[0].changed).toMatchObject({
+        residents: ["John Doe"],
+      });
 
       expect(postChanges.hasCreates()).toBe(true);
       expect(postChanges.creates).toHaveLength(1);
