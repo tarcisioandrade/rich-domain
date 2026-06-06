@@ -63,6 +63,13 @@ export abstract class TypeORMToPersistence<TDomain extends Aggregate<any>> {
   protected abstract readonly registry: EntitySchemaRegistry;
 
   /**
+   * Exposes the schema registry for repository PK resolution.
+   */
+  public getSchemaRegistry(): EntitySchemaRegistry {
+    return this.registry;
+  }
+
+  /**
    * Map of entity names to TypeORM entity classes.
    * Must be implemented by subclass.
    */

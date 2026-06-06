@@ -1,4 +1,4 @@
-import { EntityManager, ObjectLiteral } from "typeorm";
+import { EntityManager, ObjectLiteral, In } from "typeorm";
 import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
 import {
   EntityClassNotFoundError,
@@ -126,8 +126,9 @@ export class TypeORMBatchExecutor {
     if (ids.length === 0) return;
     const EntityClass = this.getEntityClass(entityName);
     const em = this.config.entityManager;
+    const pkField = this.config.registry.getPrimaryKeyField(entityName);
     try {
-      await em.delete(EntityClass, ids);
+      await em.delete(EntityClass, { [pkField]: In(ids) });
     } catch (error: any) {
       throw new BatchOperationError(
         "delete",
@@ -206,8 +207,8 @@ export class TypeORMBatchExecutor {
     const ParentClass = this.getEntityClass(parentEntityName);
     try {
       const parent = await em.findOne(ParentClass, {
-        where: { id: parentId } as any,
-        relations: { [relationField]: true } as any,
+        where: this.config.registry.buildWhereById(parentEntityName, parentId),
+        relations: { [relationField]: true },
       });
       if (!parent) {
         throw new TypeORMAdapterError(
@@ -413,15 +414,20 @@ export class TypeORMBatchExecutor {
     const TargetClass = this.getEntityClass(collectionConfig.entity);
     try {
       const parent = await em.findOne(ParentClass, {
-        where: { id: parentId } as any,
-        relations: { [relationField]: true } as any,
+        where: this.config.registry.buildWhereById(parentEntityName, parentId),
+        relations: { [relationField]: true },
       });
       if (!parent) {
         throw new TypeORMAdapterError(
           `[TypeORMBatchExecutor] Parent ${parentEntityName} with id ${parentId} not found for connect`
         );
       }
-      const targets = await em.findByIds(TargetClass, entityIds);
+      const targets = await em.find(TargetClass, {
+        where: {
+          [this.config.registry.getPrimaryKeyField(collectionConfig.entity)]:
+            In(entityIds),
+        },
+      });
       if (!parent[relationField]) {
         parent[relationField] = [];
       }
@@ -456,7 +462,11 @@ export class TypeORMBatchExecutor {
         );
         if (Object.keys(mappedFields).length > 0) {
           try {
-            await em.update(EntityClass, item.id, mappedFields);
+            await em.update(
+              EntityClass,
+              this.config.registry.buildWhereById(upd.entity, item.id),
+              mappedFields
+            );
           } catch (error: any) {
             throw new BatchOperationError(
               "update",
