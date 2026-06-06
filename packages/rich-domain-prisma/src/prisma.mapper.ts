@@ -53,6 +53,13 @@ export abstract class PrismaToPersistence<
   protected abstract readonly registry: EntitySchemaRegistry;
 
   /**
+   * Exposes the schema registry for repository PK resolution.
+   */
+  public getSchemaRegistry(): EntitySchemaRegistry {
+    return this.registry;
+  }
+
+  /**
    * Get current context (transaction or prisma client).
    */
   protected get context(): PrismaClient {
