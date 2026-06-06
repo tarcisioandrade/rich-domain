@@ -78,9 +78,10 @@ export class DrizzleBatchExecutor {
     if (ids.length === 0) return;
 
     const table = this.getTable(entity);
+    const pkColumn = this.getPrimaryKeyColumn(entity, table);
 
     try {
-      await this.config.db.delete(table).where(inArray(table.id, ids));
+      await this.config.db.delete(table).where(inArray(pkColumn, ids));
     } catch (error: any) {
       throw new BatchOperationError(
         "delete",
@@ -248,6 +249,7 @@ export class DrizzleBatchExecutor {
   ): Promise<void> {
     for (const upd of updates) {
       const table = this.getTable(upd.entity);
+      const pkColumn = this.getPrimaryKeyColumn(upd.entity, table);
 
       for (const item of upd.items) {
         const mappedFields = this.config.registry.mapFields(
@@ -260,7 +262,7 @@ export class DrizzleBatchExecutor {
             await this.config.db
               .update(table)
               .set(mappedFields)
-              .where(eq(table.id, item.id));
+              .where(eq(pkColumn, item.id));
           } catch (error: any) {
             throw new BatchOperationError(
               "update",
@@ -272,6 +274,21 @@ export class DrizzleBatchExecutor {
         }
       }
     }
+  }
+
+  private getPrimaryKeyColumn(entity: string, table: any) {
+    const pkField = this.config.registry.getPrimaryKeyField(entity);
+    const column = table[pkField];
+
+    if (!column) {
+      throw new BatchOperationError(
+        "resolvePrimaryKey",
+        entity,
+        `Primary key column '${pkField}' not found on table.`
+      );
+    }
+
+    return column;
   }
 
   private getTable(entityName: string): any {

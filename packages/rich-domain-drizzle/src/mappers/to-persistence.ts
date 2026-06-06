@@ -29,6 +29,13 @@ export abstract class DrizzleToPersistence<
   protected abstract readonly registry: EntitySchemaRegistry;
 
   /**
+   * Exposes the schema registry for repository PK resolution.
+   */
+  public getSchemaRegistry(): EntitySchemaRegistry {
+    return this.registry;
+  }
+
+  /**
    * Map of entity names to Drizzle table objects.
    *
    * @example
