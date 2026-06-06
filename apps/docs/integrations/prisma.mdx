@@ -482,8 +482,8 @@ abstract class PrismaToPersistence<TDomain, PrismaClient = PrismaClientLike> ext
   // Required: handle entity creation
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
-  // Required: handle entity update with changes
-  protected abstract onUpdate(
+  // Optional: override for custom update logic (default uses PrismaBatchExecutor)
+  protected async onUpdate(
     changes: AggregateChanges,
     entity: TDomain
   ): Promise<void>;
@@ -536,16 +536,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(
-    changes: AggregateChanges,
-    user: User
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 
@@ -750,13 +741,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 
