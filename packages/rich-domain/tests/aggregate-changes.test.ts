@@ -197,7 +197,7 @@ describe("AggregateChanges", () => {
     });
   });
 
-  describe("for (filter by entity)", () => {
+  describe("filter methods", () => {
     beforeEach(() => {
       changes.addCreate("Post", { id: "p1", title: "Post 1" }, 1);
       changes.addCreate("Post", { id: "p2", title: "Post 2" }, 1);
@@ -235,6 +235,25 @@ describe("AggregateChanges", () => {
       expect(postChanges.hasUpdates()).toBe(true);
       expect(postChanges.hasDeletes()).toBe(true);
       expect(postChanges.hasChanges()).toBe(true);
+    });
+
+    it("should filter operations without the specified entity", () => {
+      const changes = new AggregateChanges<{ User: any; Post: any }>([
+        { type: "create", entity: "User", data: { id: "u1" }, depth: 0 },
+        { type: "create", entity: "Post", data: { id: "p1" }, depth: 1 },
+      ]);
+      const filtered = changes.without("User");
+      expect(filtered.count).toEqual(1);
+      expect(filtered.of("User").isEmpty()).toBe(true);
+    });
+
+    it("should filter operations without the specified entities", () => {
+      const changes = new AggregateChanges<{ User: any; Post: any }>([
+        { type: "create", entity: "User", data: { id: "u1" }, depth: 0 },
+        { type: "create", entity: "Post", data: { id: "p1" }, depth: 1 },
+      ]);
+      const filtered = changes.without(["User", "Post"]);
+      expect(filtered.count).toEqual(0);
     });
   });
 

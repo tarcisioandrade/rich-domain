@@ -365,6 +365,28 @@ export class AggregateChanges<TEntityMap = Record<string, any>> {
   }
 
   /**
+   * Returns a new AggregateChanges without the specified entities.
+   *
+   * @param input - Entity name or array of entity names
+   * @returns New AggregateChanges containing only operations for the remaining entities
+   *
+   * @example
+   * ```typescript
+   * const changes = new AggregateChanges([...]);
+   * const filtered = changes.without('Post');
+   * // Contains only operations for entities other than 'Post'
+   * ```
+   */
+  without<K extends keyof TEntityMap>(
+    input: K | K[]
+  ): AggregateChanges<TEntityMap> {
+    const entities = Array.isArray(input) ? input : [input];
+    const filtered = this.ops.filter(
+      (op) => !entities.includes(op.entity as K)
+    );
+    return new AggregateChanges<TEntityMap>(filtered);
+  }
+  /**
    * Checks if there are update operations.
    */
   hasUpdates(): boolean {
