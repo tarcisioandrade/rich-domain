@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain-prisma",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "description": "Prisma integration for Rich Domain Library",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",
@@ -55,7 +55,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "@woltz/rich-domain": "^1.9.1",
+    "@woltz/rich-domain": "^1.9.2",
     "@prisma/client": ">=5.0.0",
     "typescript": ">=4.7.0"
   },

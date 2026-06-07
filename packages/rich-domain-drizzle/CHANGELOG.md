@@ -1,5 +1,13 @@
 # @woltz/rich-domain-drizzle
 
+## 0.1.4
+
+### Patch Changes
+
+- some fixes
+- Updated dependencies
+  - @woltz/rich-domain@1.9.2
+
 ## 0.1.3
 
 ### Patch Changes
