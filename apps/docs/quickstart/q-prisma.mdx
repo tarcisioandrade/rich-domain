@@ -371,7 +371,7 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
   - Owned entity changes (Post creates/updates/deletes)
   - Reference changes (Tag link/unlink in junction table)
 
-  Override `onUpdate` only when you need custom persistence logic.
+  Override `onUpdate` only when you need custom persistence logic. Use [`changes.without()`](/core/change-tracking#excluding-entities) to handle one entity manually and delegate the rest to `super.onUpdate()`.
 </Note>
 
 <Note>

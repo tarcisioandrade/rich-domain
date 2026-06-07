@@ -540,6 +540,8 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
 }
 ```
 
+When overriding, use [`changes.without()`](/core/change-tracking#excluding-entities) to persist one entity manually and pass the remaining changes to `super.onUpdate()`.
+
 ---
 
 ## PrismaBatchExecutor
