@@ -468,11 +468,11 @@ export class ChangeTracker {
 
     // Collect primitive array changes
     for (const [path, arrayState] of rootTracker.trackedArrays) {
-      if (!arrayState.isPrimitiveArray) continue;
       if (path.includes(".")) continue; // Only root-level arrays
 
       const currentArray = this.getValueAtPath(this.target, path);
       if (!Array.isArray(currentArray)) continue;
+      if (!this.shouldTreatArrayAsPrimitive(currentArray, arrayState)) continue;
 
       const originalArray = arrayState.cloned;
 
@@ -521,8 +521,8 @@ export class ChangeTracker {
       const currentArray = this.getValueAtPath(this.target, path);
       if (!Array.isArray(currentArray)) continue;
 
-      // Skip primitive arrays - they are handled as root property changes
-      if (arrayState.isPrimitiveArray) continue;
+      // Skip primitive arrays - they are handled as property changes on the parent entity
+      if (this.shouldTreatArrayAsPrimitive(currentArray, arrayState)) continue;
 
       const { created, updated, deleted } = this.detectArrayChanges(
         arrayState.cloned,
@@ -946,6 +946,8 @@ export class ChangeTracker {
     });
 
     newArray.forEach((item) => {
+      if (this.isPrimitiveValue(item)) return;
+
       const key = this.getItemKey(item);
       if (!key) {
         created.push(item);
@@ -957,6 +959,8 @@ export class ChangeTracker {
     });
 
     oldOriginal.forEach((item) => {
+      if (this.isPrimitiveValue(item)) return;
+
       const key = this.getItemKey(item);
       if (key && !newMap.has(key)) {
         deleted.push(item);
@@ -983,7 +987,20 @@ export class ChangeTracker {
       const origValue = origProps[key];
       const currValue = currProps[key];
 
-      if (Array.isArray(currValue) || currValue instanceof Entity) {
+      if (Array.isArray(currValue)) {
+        const origArray = Array.isArray(origValue) ? origValue : [];
+        if (
+          this.isPrimitiveArray(currValue) ||
+          this.isPrimitiveArray(origArray)
+        ) {
+          if (!this.arraysEqual(origArray, currValue)) {
+            changes[key] = currValue.slice();
+          }
+        }
+        continue;
+      }
+
+      if (currValue instanceof Entity) {
         continue;
       }
 
@@ -1110,10 +1127,30 @@ export class ChangeTracker {
 
   /**
    * Checks if an array contains only primitive values.
+   * Empty arrays are not treated as primitive at capture time since their
+   * element type is not yet known.
    */
   private isPrimitiveArray(arr: any[]): boolean {
-    if (arr.length === 0) return false; // Empty arrays are not treated as primitive arrays
+    if (arr.length === 0) return false;
     return arr.every((item) => this.isPrimitiveValue(item));
+  }
+
+  /**
+   * Determines whether an array should be tracked as a primitive property
+   * during change analysis. Uses current contents when available, otherwise
+   * falls back to the originally captured clone.
+   */
+  private shouldTreatArrayAsPrimitive(
+    currentArray: any[],
+    arrayState: ArrayState
+  ): boolean {
+    if (currentArray.length > 0) {
+      return currentArray.every((item) => this.isPrimitiveValue(item));
+    }
+    if (arrayState.cloned.length > 0) {
+      return arrayState.cloned.every((item) => this.isPrimitiveValue(item));
+    }
+    return false;
   }
 
   private isEqual(a: any, b: any): boolean {

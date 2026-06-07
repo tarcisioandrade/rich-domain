@@ -41,3 +41,10 @@ export function levenshteinDistance(a: string, b: string): number {
 
   return matrix[b.length][a.length];
 }
+
+export function getStaticProperty<T>(
+  instance: any,
+  propertyName: string
+): T | undefined {
+  return instance.constructor[propertyName];
+}

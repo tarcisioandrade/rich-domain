@@ -360,19 +360,19 @@ export class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaCli
     }
   }
 
-  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    // Automatically handles:
-    // - Root updates (User fields)
-    // - Owned entity changes (Post creates/updates/deletes)
-    // - Reference changes (Tag link/unlink in junction table)
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
+
+<Note>
+  **Default `onUpdate` behavior** (via `PrismaBatchExecutor`):
+
+  - Root updates (User fields)
+  - Owned entity changes (Post creates/updates/deletes)
+  - Reference changes (Tag link/unlink in junction table)
+
+  Override `onUpdate` only when you need custom persistence logic. Use [`changes.without()`](/core/change-tracking#excluding-entities) to handle one entity manually and delegate the rest to `super.onUpdate()`.
+</Note>
 
 <Note>
   **Collection Types:**

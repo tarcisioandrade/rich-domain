@@ -1,6 +1,6 @@
 {
   "name": "@woltz/rich-domain",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Rich Domain Library with Standard Schema validation support",
   "homepage": "https://woltz.mintlify.app",
   "main": "./dist/cjs/index.js",
@@ -52,7 +52,8 @@
     "typescript"
   ],
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",

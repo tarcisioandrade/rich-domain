@@ -47,6 +47,11 @@ const registry = new EntitySchemaRegistry()
     field: "authorId",        // FK field name in database
     parentEntity: "User",     // Parent entity name
   },
+
+  // Optional: Database primary key column (defaults to "id").
+  // Persistence only — value always comes from entity.id, not from a domain property.
+  primaryKey: "factoryId",
+
   // Optional: Collection relationships
   collections: {
     posts: { type: "owned", entity: "Post" },
@@ -127,6 +132,30 @@ Entities exist independently. Junction table manages relationships.
 - Adding tag to post → INSERT into junction table
 - Removing tag from post → DELETE from junction table
 - Tag entity itself is NOT deleted
+
+## Custom Primary Keys
+
+When a table uses a column other than `id` as its primary key, set `primaryKey` in the schema.
+
+`primaryKey` is the **database column name**, not a domain property. The identity value always comes from `entity.id`; adapters write and query it under the configured column. For example, `primaryKey: "factoryId"` yields `where: { factoryId: entity.id.value }`, not `{ factoryId: entity.factoryId }`.
+
+```typescript
+.register({
+  entity: "Profile",
+  table: "factoryProfile",
+  primaryKey: "factoryId",
+  parentFk: { field: "factoryId", parentEntity: "Factory" },
+})
+
+// Domain: profile.id.value === factory.id.value
+// DB update: WHERE factoryId = profile.id.value
+```
+
+Registry helpers:
+
+- `getPrimaryKeyField(entity)` — returns `"id"` by default
+- `buildWhereById(entity, id)` — e.g. `{ factoryId: id }` where `id` is `entity.id.value`
+- `buildWhereByIds(entity, ids)` — e.g. `{ factoryId: { in: [...] } }`
 
 ## Field Mappings
 
@@ -216,13 +245,7 @@ const schemaRegistry = new EntitySchemaRegistry()
 class OrderToPersistenceMapper extends PrismaToPersistence<Order> {
   protected readonly registry = schemaRegistry;
 
-  protected async onUpdate(changes: AggregateChanges): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 

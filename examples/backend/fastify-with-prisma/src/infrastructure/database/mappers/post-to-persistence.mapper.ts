@@ -1,9 +1,6 @@
-import { AggregateChanges, EntitySchemaRegistry } from "@woltz/rich-domain";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
 import { Post } from "../../../domain/post/post.entity";
-import {
-  PrismaBatchExecutor,
-  PrismaToPersistence,
-} from "@woltz/rich-domain-prisma";
+import { PrismaToPersistence } from "@woltz/rich-domain-prisma";
 import { PrismaClient } from "@prisma/client";
 
 export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
@@ -54,13 +51,5 @@ export class PrismaPostToPersistenceMapper extends PrismaToPersistence<
         })),
       });
     }
-  }
-
-  protected async onUpdate(changes: AggregateChanges): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
   }
 }

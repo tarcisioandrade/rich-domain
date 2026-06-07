@@ -203,11 +203,13 @@ abstract class PrismaToPersistence<
   // Required: implement creation
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
-  // Required: implement update
-  protected abstract onUpdate(
+  // Optional: override for custom update logic (default uses PrismaBatchExecutor)
+  protected async onUpdate(
     changes: AggregateChanges,
     entity: TDomain
   ): Promise<void>;
+
+  protected getBatchExecutorConfig(): BatchExecutorConfig;
 
   // Available: current context (transaction or prisma)
   protected get context(): PrismaClient | Transaction;
@@ -218,11 +220,8 @@ abstract class PrismaToPersistence<
 
 ```typescript
 import type { PrismaClient } from "@prisma/client";
-import {
-  PrismaToPersistence,
-  PrismaBatchExecutor,
-} from "@woltz/rich-domain-prisma";
-import { EntitySchemaRegistry, AggregateChanges } from "@woltz/rich-domain";
+import { PrismaToPersistence } from "@woltz/rich-domain-prisma";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
 
 const schemaRegistry = new EntitySchemaRegistry()
   .register({
@@ -271,16 +270,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User, PrismaClient> {
     });
   }
 
-  protected async onUpdate(
-    changes: AggregateChanges,
-    user: User
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 
@@ -475,16 +465,7 @@ class OrderToPersistenceMapper extends PrismaToPersistence<
     });
   }
 
-  protected async onUpdate(
-    changes: AggregateChanges,
-    order: Order
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 

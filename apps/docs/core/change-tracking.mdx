@@ -105,6 +105,36 @@ itemChanges.hasDeletes();
 itemChanges.count;
 ```
 
+### Excluding entities
+
+Use `without()` when you need the inverse of `of()` — all changes **except** one or more entity types. It returns a **new** `AggregateChanges` instance; the original is unchanged.
+
+```typescript
+const profileChanges = changes.of("Profile");
+
+if (profileChanges.hasUpdates()) {
+  await this.context.factoryProfile.update({
+    where: { factoryId: factory.id.value },
+    data: this.registry.mapFields("Profile", profileChanges.updates[0].changed),
+  });
+}
+
+const remaining = changes.without("Profile");
+
+if (!remaining.isEmpty()) {
+  await super.onUpdate(remaining, factory);
+}
+```
+
+Pass a single entity name or an array to exclude multiple types:
+
+```typescript
+changes.without("Profile");
+changes.without(["Profile", "Tag"]);
+```
+
+This is useful in custom `onUpdate` implementations when one entity needs manual persistence (nested writes, custom PK, etc.) and the rest should go through `PrismaBatchExecutor`.
+
 ### Clearing Changes
 
 After persisting, mark the aggregate as clean:
@@ -707,6 +737,7 @@ class OrderService {
 | `updates()` | `UpdateOperation[]` | All updates |
 | `deletes()` | `DeleteOperation[]` | All deletes, ordered leaf → root |
 | `of(entity)` | `EntityChanges<T>` | Filter changes by entity name |
+| `without(entity \| entities)` | `AggregateChanges` | New instance excluding the given entity/entities |
 | `toBatchOperations()` | `BatchOperations` | Group changes for bulk operations |
 | `hasCreates()` | `boolean` | Has any creates |
 | `hasUpdates()` | `boolean` | Has any updates |

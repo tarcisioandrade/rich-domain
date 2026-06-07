@@ -482,8 +482,8 @@ abstract class PrismaToPersistence<TDomain, PrismaClient = PrismaClientLike> ext
   // Required: handle entity creation
   protected abstract onCreate(entity: TDomain): Promise<void>;
 
-  // Required: handle entity update with changes
-  protected abstract onUpdate(
+  // Optional: override for custom update logic (default uses PrismaBatchExecutor)
+  protected async onUpdate(
     changes: AggregateChanges,
     entity: TDomain
   ): Promise<void>;
@@ -536,18 +536,11 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(
-    changes: AggregateChanges,
-    user: User
-  ): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
+
+When overriding, use [`changes.without()`](/core/change-tracking#excluding-entities) to persist one entity manually and pass the remaining changes to `super.onUpdate()`.
 
 ---
 
@@ -578,6 +571,8 @@ The executor respects referential integrity:
    - `reference`: Uses `connect`
 
 3. **Updates** - Any order
+
+Batch executors and repositories resolve the correct PK column via `registry.getPrimaryKeyField()` and `registry.buildWhereById()`. Configure `primaryKey` when a table does not use an `id` column (e.g. `factoryProfile.factoryId`). Remember: `primaryKey` names the **database column**; the value always comes from `entity.id`, not from a domain property with the same name.
 
 ### Convenience Function
 
@@ -748,13 +743,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 

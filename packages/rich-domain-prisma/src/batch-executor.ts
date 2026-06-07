@@ -152,7 +152,7 @@ export class PrismaBatchExecutor {
         if (Object.keys(mappedFields).length > 0) {
           try {
             await model.update({
-              where: { id: item.id },
+              where: this.config.registry.buildWhereById(upd.entity, item.id),
               data: mappedFields,
             });
           } catch (error: any) {
@@ -190,7 +190,7 @@ export class PrismaBatchExecutor {
     }
 
     const result = await model.deleteMany({
-      where: { id: { in: ids } },
+      where: this.config.registry.buildWhereByIds(entity, ids),
     });
 
     // Warn if some records were not deleted (optional strict mode)
@@ -301,10 +301,12 @@ export class PrismaBatchExecutor {
           await this.insertIntoJunctionTable(juction, parentId, idsToConnect);
         } else {
           await parentModel.update({
-            where: { id: parentId },
+            where: this.config.registry.buildWhereById(parentEntity, parentId),
             data: {
               [relationName]: {
-                connect: idsToConnect.map((id) => ({ id })),
+                connect: idsToConnect.map((id) =>
+                  this.buildTargetConnectWhere(parentEntity, relationField, id)
+                ),
               },
             },
           });
@@ -379,10 +381,12 @@ export class PrismaBatchExecutor {
         await this.deleteFromJunctionTable(junction, parentId, ids);
       } else {
         await parentModel.update({
-          where: { id: parentId },
+          where: this.config.registry.buildWhereById(parentEntity, parentId),
           data: {
             [relationName]: {
-              disconnect: ids.map((id) => ({ id })),
+              disconnect: ids.map((id) =>
+                this.buildTargetConnectWhere(parentEntity, relationField, id)
+              ),
             },
           },
         });
@@ -447,6 +451,23 @@ export class PrismaBatchExecutor {
     if (typeof item.id === "string") return item.id;
     if (typeof item.id === "number") return String(item.id);
     return undefined;
+  }
+
+  private buildTargetConnectWhere(
+    parentEntity: string,
+    relationField: string,
+    id: string
+  ): Record<string, string> {
+    const targetEntity = this.config.registry.getCollectionConfig(
+      parentEntity,
+      relationField
+    )?.entity;
+
+    if (targetEntity && this.config.registry.has(targetEntity)) {
+      return this.config.registry.buildWhereById(targetEntity, id);
+    }
+
+    return { id };
   }
 
   private getRegisteredTables() {

@@ -15,44 +15,7 @@ import {
 import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
 import { DomainError } from "../exceptions.js";
 import { ChangeTracker, AggregateChanges, Id, ValueObject } from "./index";
-
-function getStaticProperty<T>(
-  instance: any,
-  propertyName: string
-): T | undefined {
-  return instance.constructor[propertyName];
-}
-
-function getValueAtPath(obj: any, path: string): any {
-  if (!path) return obj;
-
-  const parts = path.split(/[.\[\]]+/).filter(Boolean);
-  let current = obj;
-
-  for (const part of parts) {
-    if (current === null || current === undefined) return undefined;
-    current = current[part];
-  }
-
-  return current;
-}
-
-function setValueAtPath(obj: any, path: string, value: any): void {
-  if (!path) return;
-
-  const parts = path.split(/[.\[\]]+/).filter(Boolean);
-  let current = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (current[part] === null || current[part] === undefined) {
-      current[part] = {};
-    }
-    current = current[part];
-  }
-
-  current[parts[parts.length - 1]!] = value;
-}
+import { getStaticProperty } from "../utils/helpers.js";
 
 export abstract class BaseEntity<
   T extends BaseProps,
@@ -297,15 +260,15 @@ export abstract class BaseEntity<
     const self = this;
 
     this.tracker.setOnChangeValidator((path, newValue) => {
-      const originalValue = getValueAtPath(self._props, path);
-      setValueAtPath(self._props, path, newValue);
+      const originalValue = this.getValueAtPath(self._props, path);
+      this.setValueAtPath(self._props, path, newValue);
 
       try {
         if (
           !self.validationConfig.persistInvalidMutations &&
           (self as any)._validationError
         ) {
-          setValueAtPath(self._props, path, originalValue);
+          this.setValueAtPath(self._props, path, originalValue);
           return false;
         }
 
@@ -315,7 +278,7 @@ export abstract class BaseEntity<
             self.snapshot
           );
           if (!shouldContinue) {
-            setValueAtPath(self._props, path, originalValue);
+            this.setValueAtPath(self._props, path, originalValue);
             return false;
           }
         }
@@ -324,12 +287,12 @@ export abstract class BaseEntity<
           const isValid = self.refreshValidationStateFromCurrentProps();
           if (!isValid) {
             if (!self.shouldPersistInvalidMutation()) {
-              setValueAtPath(self._props, path, originalValue);
+              this.setValueAtPath(self._props, path, originalValue);
             }
             return self.shouldPersistInvalidMutation();
           }
 
-          setValueAtPath(self._props, path, originalValue);
+          this.setValueAtPath(self._props, path, originalValue);
           return true;
         }
 
@@ -338,7 +301,7 @@ export abstract class BaseEntity<
           : null;
 
         if (schemaError) {
-          setValueAtPath(self._props, path, originalValue);
+          this.setValueAtPath(self._props, path, originalValue);
           throw schemaError;
         }
 
@@ -348,7 +311,7 @@ export abstract class BaseEntity<
           const collected = [...self.issueCollector.getIssues()];
 
           if (collected.length > 0) {
-            setValueAtPath(self._props, path, originalValue);
+            this.setValueAtPath(self._props, path, originalValue);
             throw ValidationError.fromIssues(collected, {
               entityName: self.constructor.name,
             });
@@ -356,10 +319,10 @@ export abstract class BaseEntity<
         }
 
         self.clearValidationError();
-        setValueAtPath(self._props, path, originalValue);
+        this.setValueAtPath(self._props, path, originalValue);
         return true;
       } catch (error) {
-        setValueAtPath(self._props, path, originalValue);
+        this.setValueAtPath(self._props, path, originalValue);
         throw error;
       }
     });
@@ -554,5 +517,36 @@ export abstract class BaseEntity<
       return result;
     }
     return obj;
+  }
+
+  private setValueAtPath(obj: any, path: string, value: any): void {
+    if (!path) return;
+
+    const parts = path.split(/[.\[\]]+/).filter(Boolean);
+    let current = obj;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      if (current[part] === null || current[part] === undefined) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+
+    current[parts[parts.length - 1]!] = value;
+  }
+
+  private getValueAtPath(obj: any, path: string): any {
+    if (!path) return obj;
+
+    const parts = path.split(/[.\[\]]+/).filter(Boolean);
+    let current = obj;
+
+    for (const part of parts) {
+      if (current === null || current === undefined) return undefined;
+      current = current[part];
+    }
+
+    return current;
   }
 }

@@ -181,14 +181,8 @@ export class UserToDomainMapper extends Mapper<UserSchema, User> {
       {
         path: "src/infra/database/mappers/user-to-persistence.mapper.ts",
         content: `import type { PrismaClient } from "@prisma/client";
-import {
-  type AggregateChanges,
-  EntitySchemaRegistry,
-} from "@woltz/rich-domain";
-import {
-  PrismaBatchExecutor,
-  PrismaToPersistence,
-} from "@woltz/rich-domain-prisma";
+import { EntitySchemaRegistry } from "@woltz/rich-domain";
+import { PrismaToPersistence } from "@woltz/rich-domain-prisma";
 import type { User } from "../../../domain/entities/user.aggregate";
 
 export class UserToPersistenceMapper extends PrismaToPersistence<
@@ -211,13 +205,6 @@ export class UserToPersistenceMapper extends PrismaToPersistence<
         updatedAt: user.updatedAt,
       },
     });
-  }
-
-  protected async onUpdate(changes: AggregateChanges) {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-    await executor.execute(changes);
   }
 }
 `,

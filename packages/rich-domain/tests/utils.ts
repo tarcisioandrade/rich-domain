@@ -30,12 +30,29 @@ export class Address extends Entity<{
   id: Id;
   street: string;
   city: string;
+  residents: string[];
 }> {
   get street() {
     return this.props.street;
   }
   get city() {
     return this.props.city;
+  }
+  get residents() {
+    return this.props.residents;
+  }
+
+  addResident(resident: string) {
+    this.props.residents.push(resident);
+  }
+  removeResidentsByPrefix(prefix: string) {
+    this.props.residents = this.props.residents.filter(
+      (r) => !r.startsWith(prefix)
+    );
+  }
+
+  removeResident(resident: string) {
+    this.props.residents = this.props.residents.filter((r) => r !== resident);
   }
 
   changeStreet(street: string) {

@@ -2,6 +2,7 @@ import {
   Repository as TypeORMRepositoryBase,
   ObjectLiteral,
   FindOptionsWhere,
+  In,
 } from "typeorm";
 import {
   Aggregate,
@@ -160,6 +161,43 @@ export abstract class TypeORMRepository<
     return [];
   }
 
+  protected resolveEntitySchema(): { entity: string; table: string } | null {
+    const tableName = this.typeormRepo.metadata.tableName;
+
+    return (
+      this._toPersistenceMapper
+        .getSchemaRegistry()
+        .getAllSchemas()
+        .find((schema) => schema.table === tableName) ?? null
+    );
+  }
+
+  protected buildWhereById(id: string): FindOptionsWhere<TEntity> {
+    const schema = this.resolveEntitySchema();
+    const registry = this._toPersistenceMapper.getSchemaRegistry();
+
+    if (schema) {
+      return registry.buildWhereById(
+        schema.entity,
+        id
+      ) as FindOptionsWhere<TEntity>;
+    }
+
+    return { id } as unknown as FindOptionsWhere<TEntity>;
+  }
+
+  protected buildWhereByIds(ids: string[]): FindOptionsWhere<TEntity> {
+    const schema = this.resolveEntitySchema();
+    const registry = this._toPersistenceMapper.getSchemaRegistry();
+
+    if (schema) {
+      const pkField = registry.getPrimaryKeyField(schema.entity);
+      return { [pkField]: In(ids) } as FindOptionsWhere<TEntity>;
+    }
+
+    return { id: In(ids) } as unknown as FindOptionsWhere<TEntity>;
+  }
+
   /**
    * Define which fields should be searchable when using Criteria.search().
    *
@@ -271,7 +309,7 @@ export abstract class TypeORMRepository<
 
       const relations = this.getDefaultRelations();
       const entity = await repo.findOne({
-        where: { id } as unknown as FindOptionsWhere<TEntity>,
+        where: this.buildWhereById(id),
         relations: relations.length > 0 ? relations : undefined,
       });
 
@@ -382,7 +420,7 @@ export abstract class TypeORMRepository<
       const relations = this.getDefaultRelations();
 
       const entities = await repo.find({
-        where: { id: { in: ids } } as unknown as FindOptionsWhere<TEntity>,
+        where: this.buildWhereByIds(ids),
         relations: relations.length > 0 ? relations : undefined,
       });
 
@@ -406,7 +444,7 @@ export abstract class TypeORMRepository<
       const repo = em.getRepository(this.typeormRepo.target);
 
       const count = await repo.count({
-        where: { id } as unknown as FindOptionsWhere<TEntity>,
+        where: this.buildWhereById(id),
       });
 
       return count > 0;
@@ -500,7 +538,7 @@ export abstract class TypeORMRepository<
       const em = this.uow.getCurrentEntityManager();
       const repo = em.getRepository(this.typeormRepo.target);
 
-      await repo.delete(id);
+      await repo.delete(this.buildWhereById(id));
     } catch (error: any) {
       throw new TypeORMRepositoryError(
         `Failed to delete ${this.alias} by ID: ${error.message}`,

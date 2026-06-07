@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.9
+
+### Patch Changes
+
+- some fixes
+- Updated dependencies
+  - @woltz/rich-domain@1.9.2
+
 ## 0.7.8
 
 ### Patch Changes

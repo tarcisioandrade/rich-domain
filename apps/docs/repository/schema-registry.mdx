@@ -198,6 +198,33 @@ registry.getParentFk("Comment", "post-456");
 // { post_id: "post-456" }
 ```
 
+## Custom Primary Keys
+
+By default, the registry assumes every table uses an `id` column as the primary key. For tables that use a different PK (common in 1:1 child tables sharing the parent's identity), configure `primaryKey`.
+
+`primaryKey` is the **database column name**, not a domain property. Adapters always read the identity from `entity.id` and map it to that column. Setting `primaryKey: "factoryId"` produces `where: { factoryId: entity.id.value }` — not `{ factoryId: entity.factoryId }`.
+
+```typescript
+registry
+  .register({
+    entity: "Factory",
+    table: "factory",
+  })
+  .register({
+    entity: "Profile",
+    table: "factoryProfile",
+    primaryKey: "factoryId",
+    parentFk: { field: "factoryId", parentEntity: "Factory" },
+  });
+
+// Domain: profile.id.value === factory.id.value
+// DB update: WHERE factoryId = profile.id.value
+```
+
+For 1:1 shared PK, assign `Profile.id` the same value as `Factory.id` when creating the child. Batch executors and repositories use `buildWhereById` / `buildWhereByIds` to resolve the correct column automatically.
+
+Composite primary keys are not supported in v1.
+
 ## Collection Configuration
 
 Configure how collections (1:N and N:N) should be handled:
@@ -433,13 +460,7 @@ class UserToPersistenceMapper extends PrismaToPersistence<User> {
     });
   }
 
-  protected async onUpdate(changes: AggregateChanges, user: User): Promise<void> {
-    const executor = new PrismaBatchExecutor(this.context, {
-      registry: this.registry,
-    });
-
-    await executor.execute(changes);
-  }
+  // onUpdate uses PrismaBatchExecutor by default — override only if needed
 }
 ```
 
@@ -457,6 +478,7 @@ interface EntitySchema {
     parentEntity: string;                   // Parent entity name
   };
   collections?: Record<string, CollectionConfig>;
+  primaryKey?: string;                      // DB PK column (defaults to "id"); value always from entity.id
 }
 
 interface CollectionConfig {
@@ -481,6 +503,9 @@ interface CollectionConfig {
 | `getSchema(entity)` | `EntitySchema` | Get schema (throws if not found) |
 | `tryGetSchema(entity)` | `EntitySchema \| null` | Get schema or null |
 | `getTable(entity)` | `string` | Get table name |
+| `getPrimaryKeyField(entity)` | `string` | Get database PK column (defaults to `"id"`) |
+| `buildWhereById(entity, id)` | `object` | Build ORM where clause for a single ID |
+| `buildWhereByIds(entity, ids)` | `object` | Build ORM where clause for multiple IDs |
 | `getFieldsMap(entity)` | `Record<string, string>` | Get field mappings |
 | `mapFieldName(entity, field)` | `string` | Map single field name |
 | `mapFields(entity, data)` | `object` | Map partial fields |

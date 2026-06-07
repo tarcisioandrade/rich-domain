@@ -74,6 +74,27 @@ export abstract class DrizzleRepository<
     return {};
   }
 
+  protected resolveEntitySchema(): { entity: string; table: string } | null {
+    return (
+      this.toPersistenceMapper
+        .getSchemaRegistry()
+        .getAllSchemas()
+        .find((schema) => schema.table === this.model) ?? null
+    );
+  }
+
+  protected getPrimaryKeyColumn() {
+    const schema = this.resolveEntitySchema();
+    const pkField = schema
+      ? this.toPersistenceMapper
+          .getSchemaRegistry()
+          .getPrimaryKeyField(schema.entity)
+      : "id";
+    const column = this.table[pkField];
+
+    return column ?? this.table.id;
+  }
+
   async find(criteria: Criteria<TDomain>): Promise<PaginatedResult<TDomain>> {
     const { where, orderBy, limit, offset } = DrizzleQueryBuilder.apply(
       criteria,
@@ -134,14 +155,14 @@ export abstract class DrizzleRepository<
 
     if (queryModel) {
       data = await queryModel.findFirst({
-        where: eq(this.table.id, id),
+        where: eq(this.getPrimaryKeyColumn(), id),
         with: this.getDefaultRelations(),
       });
     } else {
       const rows = await this.context
         .select()
         .from(this.table)
-        .where(eq(this.table.id, id))
+        .where(eq(this.getPrimaryKeyColumn(), id))
         .limit(1);
       data = rows[0] ?? null;
     }
@@ -166,14 +187,14 @@ export abstract class DrizzleRepository<
 
     if (queryModel) {
       data = await queryModel.findMany({
-        where: inArray(this.table.id, ids),
+        where: inArray(this.getPrimaryKeyColumn(), ids),
         with: this.getDefaultRelations(),
       });
     } else {
       data = await this.context
         .select()
         .from(this.table)
-        .where(inArray(this.table.id, ids));
+        .where(inArray(this.getPrimaryKeyColumn(), ids));
     }
 
     const toDomain: TDomain[] = data.map((item: any) =>
@@ -207,7 +228,7 @@ export abstract class DrizzleRepository<
     const result = await this.context
       .select({ value: count() })
       .from(this.table)
-      .where(eq(this.table.id, id));
+      .where(eq(this.getPrimaryKeyColumn(), id));
     return Number(result[0]?.value ?? 0) > 0;
   }
 
@@ -257,11 +278,12 @@ export abstract class DrizzleRepository<
 
   async delete(entity: TDomain): Promise<void> {
     const id = entity.id.value;
+    const pkColumn = this.getPrimaryKeyColumn();
     try {
       const result = await this.context
         .delete(this.table)
-        .where(eq(this.table.id, id))
-        .returning({ id: this.table.id });
+        .where(eq(pkColumn, id))
+        .returning({ id: pkColumn });
 
       if (!result || result.length === 0) {
         throw new NoRecordsAffectedError("Delete", this.model, String(id));
@@ -273,11 +295,12 @@ export abstract class DrizzleRepository<
   }
 
   async deleteById(id: string): Promise<void> {
+    const pkColumn = this.getPrimaryKeyColumn();
     try {
       const result = await this.context
         .delete(this.table)
-        .where(eq(this.table.id, id))
-        .returning({ id: this.table.id });
+        .where(eq(pkColumn, id))
+        .returning({ id: pkColumn });
 
       if (!result || result.length === 0) {
         throw new NoRecordsAffectedError("Delete", this.model, id);

@@ -154,15 +154,40 @@ describe("EntitySchemaRegistry", () => {
       });
     });
 
-    it("should ignore arrays", () => {
+    it("should map all fields", () => {
       const data = {
         email: "test@test.com",
-        posts: [{ id: "1" }, { id: "2" }],
+        name: "Test User",
+        age: 25,
       };
 
       const mapped = registry.mapFields("User", data);
 
-      expect(mapped).toEqual({ user_email: "test@test.com" });
+      expect(mapped).toEqual({
+        user_email: "test@test.com",
+        user_name: "Test User",
+        age: 25,
+      });
+    });
+
+    it("shold preserve field when don't have fields mapping", () => {
+      const registry = new EntitySchemaRegistry()
+        .register({
+          entity: "Post",
+          table: "posts",
+        })
+        .register({
+          entity: "User",
+          table: "users",
+        });
+
+      const data = {
+        ids: ["1", "2", "3"],
+      };
+
+      const mapped = registry.mapFields("User", data);
+
+      expect(mapped).toEqual({ ids: ["1", "2", "3"] });
       expect(mapped.posts).toBeUndefined();
     });
 
@@ -176,6 +201,34 @@ describe("EntitySchemaRegistry", () => {
 
       expect(mapped.user_email).toBeNull();
       expect(mapped.user_name).toBeUndefined();
+    });
+
+    it("should map primitive arrays used as scalar columns", () => {
+      registry.register({
+        entity: "Profile",
+        table: "factoryProfile",
+        primaryKey: "factoryId",
+      });
+
+      const mapped = registry.mapFields("Profile", {
+        photoIds: ["photo-1", "photo-2"],
+      });
+
+      expect(mapped).toEqual({
+        photoIds: ["photo-1", "photo-2"],
+      });
+    });
+
+    it("should skip entity collections in partial updates", () => {
+      const mapped = registry.mapFields("User", {
+        name: "Test User",
+        posts: [{ id: { value: "post-1" }, title: "Hello" }],
+      });
+
+      expect(mapped).toEqual({
+        user_name: "Test User",
+      });
+      expect(mapped.posts).toBeUndefined();
     });
   });
 
@@ -209,7 +262,18 @@ describe("EntitySchemaRegistry", () => {
       });
     });
 
-    it("should skip nested entities and arrays", () => {
+    it("should skip nested entities and entity collections", () => {
+      registry.register({
+        entity: "User",
+        table: "users",
+        fields: {
+          email: "user_email",
+        },
+        collections: {
+          posts: { type: "owned", entity: "Post" },
+        },
+      });
+
       const mockEntity = {
         id: { value: "user-123" },
         props: {
@@ -225,6 +289,109 @@ describe("EntitySchemaRegistry", () => {
       expect(mapped.user_email).toBe("test@test.com");
       expect(mapped.posts).toBeUndefined();
       expect(mapped.address).toBeUndefined();
+    });
+
+    it("should map primitive arrays on full entity mapping", () => {
+      registry.register({
+        entity: "Profile",
+        table: "factoryProfile",
+        primaryKey: "factoryId",
+      });
+
+      const mockEntity = {
+        id: { value: "factory-123" },
+        props: {
+          cnpj: "22.222.222/0001-22",
+          photoIds: ["photo-1"],
+        },
+      };
+
+      const mapped = registry.mapEntity("Profile", mockEntity as any);
+
+      expect(mapped).toEqual({
+        factoryId: "factory-123",
+        cnpj: "22.222.222/0001-22",
+        photoIds: ["photo-1"],
+      });
+    });
+  });
+
+  describe("primaryKey", () => {
+    it("should default to id when not configured", () => {
+      registry.register({ entity: "User", table: "users" });
+
+      expect(registry.getPrimaryKeyField("User")).toBe("id");
+      expect(registry.buildWhereById("User", "user-1")).toEqual({
+        id: "user-1",
+      });
+      expect(registry.buildWhereByIds("User", ["a", "b"])).toEqual({
+        id: { in: ["a", "b"] },
+      });
+    });
+
+    it("should use custom primaryKey in mapEntity", () => {
+      registry.register({
+        entity: "Profile",
+        table: "factoryProfile",
+        primaryKey: "factoryId",
+        parentFk: { field: "factoryId", parentEntity: "Factory" },
+      });
+
+      const mockEntity = {
+        id: { value: "factory-123" },
+        props: {
+          cnpj: "22.222.222/0001-22",
+          city: "São Paulo",
+        },
+      };
+
+      const mapped = registry.mapEntity("Profile", mockEntity as any);
+
+      expect(mapped).toEqual({
+        factoryId: "factory-123",
+        cnpj: "22.222.222/0001-22",
+        city: "São Paulo",
+      });
+      expect(mapped.id).toBeUndefined();
+    });
+
+    it("should build where clauses with custom primaryKey", () => {
+      registry.register({
+        entity: "Profile",
+        table: "factoryProfile",
+        primaryKey: "factoryId",
+      });
+
+      expect(registry.buildWhereById("Profile", "factory-123")).toEqual({
+        factoryId: "factory-123",
+      });
+      expect(registry.buildWhereByIds("Profile", ["f1", "f2"])).toEqual({
+        factoryId: { in: ["f1", "f2"] },
+      });
+    });
+
+    it("should merge parentFk with custom primaryKey on create data", () => {
+      registry.register({
+        entity: "Profile",
+        table: "factoryProfile",
+        primaryKey: "factoryId",
+        parentFk: { field: "factoryId", parentEntity: "Factory" },
+      });
+
+      const mockEntity = {
+        id: { value: "factory-123" },
+        props: { cnpj: "22.222.222/0001-22" },
+      };
+
+      const entityData = registry.mapEntity("Profile", mockEntity as any);
+      const fk = registry.getParentFk("Profile", "factory-123");
+      const record = { ...entityData, ...fk };
+
+      expect(record).toEqual({
+        factoryId: "factory-123",
+        cnpj: "22.222.222/0001-22",
+      });
+      expect(record.id).toBeUndefined();
     });
   });
 

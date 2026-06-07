@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.2
+
+### Patch Changes
+
+- Add optional primaryKey to EntitySchemaRegistry (defaults to id) and propagate it through Prisma, Drizzle, and TypeORM batch executors and repositories, enabling entities like 1:1 child tables with shared PK
+- Fix change tracking for primitive arrays and value objects;
+- Add AggregateChanges.without() for filtering operations by entity.
+
 ## 1.9.1
 
 ### Patch Changes

@@ -88,6 +88,30 @@ export interface EntitySchema {
    * ```
    */
   collections?: Record<string, CollectionConfig>;
+  /**
+   * Database primary key **column** name (persistence layer only).
+   * Defaults to `'id'` when omitted.
+   *
+   * This does **not** refer to a domain property. Adapters always take the
+   * identity value from `entity.id` and write/query it under this column name.
+   * For example, `primaryKey: "otherKeyToPk"` produces
+   * `where: { otherKeyToPk: entity.id.value }`, not `{ otherKeyToPk: entity.factoryId }`.
+   *
+   * For 1:1 child tables that share the parent's PK (e.g. `factoryProfile.otherKeyToPk`),
+   * set `Profile.id` to the same value as the parent aggregate (`Factory.id`).
+   *
+   * @example
+   * ```typescript
+   * .register({
+   *   entity: "Profile",
+   *   table: "factoryProfile",
+   *   primaryKey: "otherKeyToPk"
+   * })
+   * // Domain: profile.id.value === factory.id.value
+   * // DB update: WHERE otherKeyToPk = profile.id.value
+   * ```
+   */
+  primaryKey?: string;
 }
 
 /**
@@ -210,6 +234,36 @@ export class EntitySchemaRegistry {
   }
 
   /**
+   * Gets the database primary key column name for an entity.
+   * @param entity - Entity name.
+   * @returns Primary key column name (defaults to `'id'`)
+   */
+  getPrimaryKeyField(entity: string): string {
+    return this.getSchema(entity).primaryKey ?? "id";
+  }
+
+  /**
+   * Builds a Prisma/ORM where clause for a single record by domain ID.
+   * @param entity - Entity name.
+   * @param id - Domain entity ID value.
+   */
+  buildWhereById(entity: string, id: string): Record<string, string> {
+    return { [this.getPrimaryKeyField(entity)]: id };
+  }
+
+  /**
+   * Builds a Prisma/ORM where clause for multiple records by domain IDs.
+   * @param entity - Entity name.
+   * @param ids - Domain entity ID values.
+   */
+  buildWhereByIds(
+    entity: string,
+    ids: string[]
+  ): Record<string, { in: string[] }> {
+    return { [this.getPrimaryKeyField(entity)]: { in: ids } };
+  }
+
+  /**
    * Maps a domain field name to the database field name.
    * @param entity - Entity name.
    * @param fieldName - Domain field name.
@@ -221,7 +275,8 @@ export class EntitySchemaRegistry {
 
   /**
    * Maps fields of a domain object to database field names.
-   * Ignores values that are Entity, ValueObject, or Arrays.
+   * Ignores Entity, ValueObject, and entity collections.
+   * Primitive arrays (e.g. `photoIds: string[]`) are persisted as scalar columns.
    *
    * @param entity - Entity name.
    * @param data - Data to be mapped.
@@ -230,7 +285,7 @@ export class EntitySchemaRegistry {
     const fields = this.getFieldsMap(entity);
     const result: MappedEntityData = {};
     for (const [key, value] of Object.entries(data)) {
-      if (this.isEntityOrCollection(value)) continue;
+      if (this.shouldSkipPartialFieldValue(value)) continue;
       const mappedKey = fields[key] ?? key;
       result[mappedKey] = this.normalizeValue(value);
     }
@@ -253,12 +308,12 @@ export class EntitySchemaRegistry {
     const hasId = (domainEntity as any).id;
     if (hasId) {
       const idValue = hasId.value ?? hasId;
-      result["id"] = idValue;
+      result[this.getPrimaryKeyField(entity)] = idValue;
     }
     const props = (domainEntity as any).props || domainEntity;
     for (const [key, value] of Object.entries(props)) {
       if (key === "id") continue;
-      if (this.isEntityOrCollection(value)) continue;
+      if (this.shouldSkipEntityFieldValue(entity, key, value)) continue;
       const mappedKey = fields[key] ?? key;
       result[mappedKey] = this.normalizeValue(value);
     }
@@ -422,15 +477,34 @@ export class EntitySchemaRegistry {
   }
 
   /**
-   * Checks if a value is Entity, ValueObject, or Array.
+   * Skips values that must not be written as scalar columns during partial updates.
+   * `changedFields` only carries primitive arrays for scalar columns.
    */
-  private isEntityOrCollection(value: any): boolean {
+  private shouldSkipPartialFieldValue(value: any): boolean {
     if (value === null || value === undefined) return false;
-    if (Array.isArray(value)) return true;
+    if (Array.isArray(value)) return !this.isPrimitiveArray(value);
+    return this.isNestedDomainValue(value);
+  }
+
+  /**
+   * Skips nested relations and entity collections during full entity mapping.
+   */
+  private shouldSkipEntityFieldValue(
+    entity: string,
+    key: string,
+    value: any
+  ): boolean {
+    if (this.getCollectionConfig(entity, key)) return true;
     if (value instanceof Entity) return true;
     if (value instanceof ValueObject) return true;
+    if (Array.isArray(value)) return !this.isPrimitiveArray(value);
+    return this.isNestedDomainValue(value);
+  }
+
+  private isNestedDomainValue(value: any): boolean {
     if (
       typeof value === "object" &&
+      value !== null &&
       value.id &&
       typeof value.id === "object" &&
       "value" in value.id
@@ -438,6 +512,23 @@ export class EntitySchemaRegistry {
       return true;
     }
     return false;
+  }
+
+  private isPrimitiveValue(value: any): boolean {
+    if (value === null || value === undefined) return true;
+    const type = typeof value;
+    return (
+      type === "string" ||
+      type === "number" ||
+      type === "boolean" ||
+      type === "symbol" ||
+      type === "bigint"
+    );
+  }
+
+  private isPrimitiveArray(arr: any[]): boolean {
+    if (arr.length === 0) return true;
+    return arr.every((item) => this.isPrimitiveValue(item));
   }
 
   /**

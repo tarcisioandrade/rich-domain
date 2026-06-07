@@ -126,6 +126,37 @@ export abstract class PrismaRepository<
     return models;
   }
 
+  protected resolveEntitySchema(): { entity: string; table: string } | null {
+    return (
+      this.toPersistenceMapper
+        .getSchemaRegistry()
+        .getAllSchemas()
+        .find((schema) => schema.table === this.model) ?? null
+    );
+  }
+
+  protected buildWhereById(id: string): Record<string, string> {
+    const schema = this.resolveEntitySchema();
+    const registry = this.toPersistenceMapper.getSchemaRegistry();
+
+    if (schema) {
+      return registry.buildWhereById(schema.entity, id);
+    }
+
+    return { id };
+  }
+
+  protected buildWhereByIds(ids: string[]): Record<string, { in: string[] }> {
+    const schema = this.resolveEntitySchema();
+    const registry = this.toPersistenceMapper.getSchemaRegistry();
+
+    if (schema) {
+      return registry.buildWhereByIds(schema.entity, ids);
+    }
+
+    return { id: { in: ids } };
+  }
+
   async count(criteria?: Criteria<TDomain>): Promise<number> {
     const args = criteria ? this.applyCriteria(criteria) : {};
     return await this.modelAccessor.count(args);
@@ -153,7 +184,7 @@ export abstract class PrismaRepository<
 
   async findById(id: string): Promise<TDomain | null> {
     const data = await this.modelAccessor.findUnique({
-      where: { id },
+      where: this.buildWhereById(id),
       include: this.includes,
     });
     const result = data ? this.toDomainMapper.build(data) : null;
@@ -167,7 +198,7 @@ export abstract class PrismaRepository<
 
   async findManyByIds(ids: string[]): Promise<TDomain[]> {
     const data = await this.modelAccessor.findMany({
-      where: { id: { in: ids } },
+      where: this.buildWhereByIds(ids),
       include: this.includes,
     });
 
@@ -182,7 +213,7 @@ export abstract class PrismaRepository<
 
   async exists(id: string): Promise<boolean> {
     const count = await this.modelAccessor.count({
-      where: { id },
+      where: this.buildWhereById(id),
     });
     return count > 0;
   }
@@ -190,7 +221,7 @@ export abstract class PrismaRepository<
   async delete(entity: TDomain): Promise<void> {
     try {
       await this.modelAccessor.delete({
-        where: { id: entity.id.value },
+        where: this.buildWhereById(entity.id.value),
       });
     } catch (error: any) {
       // Prisma throws P2025 when record is not found
@@ -209,7 +240,7 @@ export abstract class PrismaRepository<
   async deleteById(id: string): Promise<void> {
     try {
       await this.modelAccessor.delete({
-        where: { id },
+        where: this.buildWhereById(id),
       });
     } catch (error: any) {
       // Prisma throws P2025 when record is not found

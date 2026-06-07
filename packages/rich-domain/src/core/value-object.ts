@@ -12,13 +12,7 @@ import {
 } from "../types/index.js";
 import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
 import { DomainError } from "../exceptions.js";
-
-function getStaticProperty<T>(
-  instance: any,
-  propertyName: string
-): T | undefined {
-  return instance.constructor[propertyName];
-}
+import { getStaticProperty } from "../utils/helpers.js";
 
 export abstract class ValueObject<T extends Primitive> {
   public readonly value!: T;
