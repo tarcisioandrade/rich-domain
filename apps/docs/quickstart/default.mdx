@@ -30,79 +30,117 @@ You can use any database driver:
 - SQLite: `better-sqlite3`
 - Or any other driver
 
-## Define Your Aggregate
+## Define Your Domain
 
-Create your domain model:
+Create an aggregate with a child entity. Only the aggregate root (`Order`) is loaded and saved through the repository — child entities (`OrderItem`) are tracked automatically.
 
 ```typescript
 import { z } from "zod";
-import { Aggregate, EntityValidation, Id } from "@woltz/rich-domain";
+import { Aggregate, Entity, EntityValidation, Id } from "@woltz/rich-domain";
 
-const productSchema = z.object({
+// Child entity (lives inside the Order aggregate)
+const orderItemSchema = z.object({
   id: z.custom<Id>((val) => val instanceof Id),
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  price: z.number().positive("Price must be positive"),
-  stock: z.number().int().min(0, "Stock cannot be negative"),
-  status: z.enum(["active", "inactive"]),
+  productId: z.string().min(1),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().positive(),
 });
 
-type ProductProps = z.infer<typeof productSchema>;
+type OrderItemProps = z.infer<typeof orderItemSchema>;
 
-class Product extends Aggregate<ProductProps> {
-  protected static validation: EntityValidation<ProductProps> = {
-    schema: productSchema,
-    config: {
-      onCreate: true,
-      onUpdate: true,
-      throwOnError: true,
-    },
+class OrderItem extends Entity<OrderItemProps> {
+  protected static validation: EntityValidation<OrderItemProps> = {
+    schema: orderItemSchema,
+    config: { onCreate: true, onUpdate: true, throwOnError: true },
   };
 
-  get name() {
-    return this.props.name;
+  get productId() {
+    return this.props.productId;
   }
 
-  get price() {
-    return this.props.price;
+  get quantity() {
+    return this.props.quantity;
   }
 
-  get stock() {
-    return this.props.stock;
+  get unitPrice() {
+    return this.props.unitPrice;
+  }
+
+  get subtotal() {
+    return this.props.quantity * this.props.unitPrice;
+  }
+
+  updateQuantity(quantity: number) {
+    this.props.quantity = quantity;
+  }
+}
+
+// Aggregate root
+const orderSchema = z.object({
+  id: z.custom<Id>((val) => val instanceof Id),
+  customerId: z.string().min(1),
+  status: z.enum(["draft", "confirmed", "shipped"]),
+  items: z.array(z.custom<OrderItem>((val) => val instanceof OrderItem)),
+  createdAt: z.date(),
+});
+
+type OrderProps = z.infer<typeof orderSchema>;
+
+class Order extends Aggregate<OrderProps> {
+  protected static validation: EntityValidation<OrderProps> = {
+    schema: orderSchema,
+    config: { onCreate: true, onUpdate: true, throwOnError: true },
+  };
+
+  get customerId() {
+    return this.props.customerId;
   }
 
   get status() {
     return this.props.status;
   }
 
-  updatePrice(newPrice: number) {
-    this.props.price = newPrice;
+  get items() {
+    return this.props.items;
   }
 
-  decreaseStock(amount: number) {
-    this.props.stock -= amount;
+  get total() {
+    return this.props.items.reduce((sum, item) => sum + item.subtotal, 0);
   }
 
-  increaseStock(amount: number) {
-    this.props.stock += amount;
+  getTypedChanges() {
+    interface Entities {
+      Order: Order;
+      OrderItem: OrderItem;
+    }
+    return this.getChanges<Entities>();
   }
 
-  activate() {
-    this.props.status = "active";
+  addItem(productId: string, quantity: number, unitPrice: number) {
+    this.props.items.push(new OrderItem({ productId, quantity, unitPrice }));
   }
 
-  deactivate() {
-    this.props.status = "inactive";
+  removeItem(itemId: Id) {
+    this.props.items = this.props.items.filter(
+      (item) => item.id.value !== itemId.value
+    );
+  }
+
+  confirm() {
+    this.props.status = "confirmed";
   }
 }
 ```
 
 ## Implement Repository
 
+Use `getChanges()` and `toBatchOperations()` to persist only what changed — including child entities — in the correct order for foreign keys.
+
 ### PostgreSQL with `pg`
 
 ```typescript
-import { Pool } from "pg";
-import { Repository, Criteria, PaginatedResult } from "@woltz/rich-domain";
+import { Pool, PoolClient } from "pg";
+import { Criteria, PaginatedResult } from "@woltz/rich-domain";
 
 const pool = new Pool({
   host: "localhost",
@@ -112,84 +150,140 @@ const pool = new Pool({
   password: "password",
 });
 
-class PostgresProductRepository implements IProductRepository {
-  async save(product: Product): Promise<void> {
-    const changes = product.getChanges();
+// Map domain field names to SQL column names
+const columns: Record<string, Record<string, string>> = {
+  Order: { customerId: "customer_id", status: "status" },
+  OrderItem: {
+    productId: "product_id",
+    quantity: "quantity",
+    unitPrice: "unit_price",
+  },
+};
 
-    if (product.isNew()) {
-      await pool.query(
-        `INSERT INTO products (id, name, price, stock, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [
-          product.id.value,
-          product.name,
-          product.price,
-          product.stock,
-          product.status,
-        ]
-      );
-    } else if (changes.hasUpdates()) {
-      const updates = changes.getUpdatedFields();
-      const setClauses = updates
-        .map((field, idx) => `${field} = $${idx + 2}`)
-        .join(", ");
-      const values = updates.map((field) => (product as any)[field]);
+class PostgresOrderRepository {
+  async save(order: Order): Promise<void> {
+    const changes = order.getTypedChanges();
 
-      await pool.query(
-        `UPDATE products 
-         SET ${setClauses}, updated_at = NOW() 
-         WHERE id = $1`,
-        [product.id.value, ...values]
-      );
+    if (changes.isEmpty() && !order.isNew()) return;
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      // Insert the aggregate root on first save
+      if (order.isNew()) {
+        await client.query(
+          `INSERT INTO orders (id, customer_id, status, created_at)
+           VALUES ($1, $2, $3, $4)`,
+          [order.id.value, order.customerId, order.status, order.createdAt]
+        );
+      }
+
+      const batch = changes.toBatchOperations();
+
+      // 1. Deletes (children first — leaf → root)
+      for (const del of batch.deletes) {
+        await client.query(
+          `DELETE FROM order_items WHERE id = ANY($1::uuid[])`,
+          [del.ids]
+        );
+      }
+
+      // 2. Creates (parent before children — root → leaf)
+      for (const create of batch.creates) {
+        for (const item of create.items) {
+          const child = item.data as OrderItem;
+          await client.query(
+            `INSERT INTO order_items (id, order_id, product_id, quantity, unit_price)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+              child.id.value,
+              item.parentId,
+              child.productId,
+              child.quantity,
+              child.unitPrice,
+            ]
+          );
+        }
+      }
+
+      // 3. Updates (only changed fields)
+      for (const update of batch.updates) {
+        const table = update.entity === "Order" ? "orders" : "order_items";
+        const columnMap = columns[update.entity];
+
+        for (const item of update.items) {
+          const fields = Object.keys(item.changedFields);
+          const setClauses = fields
+            .map((field, idx) => `${columnMap[field]} = $${idx + 2}`)
+            .join(", ");
+          const values = fields.map((field) => item.changedFields[field]);
+
+          await client.query(
+            `UPDATE ${table} SET ${setClauses} WHERE id = $1`,
+            [item.id, ...values]
+          );
+        }
+      }
+
+      await client.query("COMMIT");
+
+      // Reset change tracking after successful save
+      if (order.isNew()) {
+        order.markAsPersisted();
+      } else {
+        order.markAsClean();
+      }
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-
-    product.markAsClean();
   }
 
-  async findById(id: string): Promise<Product | null> {
-    const result = await pool.query(
-      "SELECT * FROM products WHERE id = $1",
+  async findById(id: string): Promise<Order | null> {
+    const orderResult = await pool.query(
+      "SELECT * FROM orders WHERE id = $1",
       [id]
     );
 
-    if (result.rows.length === 0) return null;
+    if (orderResult.rows.length === 0) return null;
 
-    const row = result.rows[0];
-    return new Product({
-      id: Id.from(row.id),
-      name: row.name,
-      price: parseFloat(row.price),
-      stock: row.stock,
-      status: row.status,
-    });
-  }
+    const row = orderResult.rows[0];
 
-  async findByName(name: string): Promise<Product | null> {
-    const result = await pool.query(
-      "SELECT * FROM products WHERE name = $1",
-      [name]
+    const itemsResult = await pool.query(
+      "SELECT * FROM order_items WHERE order_id = $1",
+      [id]
     );
 
-    if (result.rows.length === 0) return null;
+    const items = itemsResult.rows.map(
+      (item) =>
+        new OrderItem({
+          id: Id.from(item.id),
+          productId: item.product_id,
+          quantity: item.quantity,
+          unitPrice: parseFloat(item.unit_price),
+        })
+    );
 
-    const row = result.rows[0];
-    return new Product({
+    return new Order({
       id: Id.from(row.id),
-      name: row.name,
-      price: parseFloat(row.price),
-      stock: row.stock,
+      customerId: row.customer_id,
       status: row.status,
+      items,
+      createdAt: row.created_at,
     });
   }
 
-  async find(criteria: Criteria<Product>): Promise<PaginatedResult<Product>> {
+  async find(criteria: Criteria<Order>): Promise<PaginatedResult<Order>> {
     const filters = criteria.getFilters();
-    const ordering = criteria.getOrdering();
+    const orders = criteria.getOrders();
     const pagination = criteria.getPagination();
 
-    // Build WHERE clause
     const whereClauses: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     for (const filter of filters) {
@@ -215,40 +309,53 @@ class PostgresProductRepository implements IProductRepository {
     const whereClause =
       whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-    // Build ORDER BY clause
-    const orderClauses = ordering.map(
+    const orderClauses = orders.map(
       (o) => `${o.field} ${o.direction.toUpperCase()}`
     );
     const orderClause =
       orderClauses.length > 0 ? `ORDER BY ${orderClauses.join(", ")}` : "";
 
-    // Get total count
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM products ${whereClause}`,
+      `SELECT COUNT(*) FROM orders ${whereClause}`,
       values
     );
     const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated data
     const offset = (pagination.page - 1) * pagination.limit;
     const dataResult = await pool.query(
-      `SELECT * FROM products ${whereClause} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT * FROM orders ${whereClause} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...values, pagination.limit, offset]
     );
 
-    const products = dataResult.rows.map(
-      (row) =>
-        new Product({
+    const data = await Promise.all(
+      dataResult.rows.map(async (row) => {
+        const itemsResult = await pool.query(
+          "SELECT * FROM order_items WHERE order_id = $1",
+          [row.id]
+        );
+
+        const items = itemsResult.rows.map(
+          (item) =>
+            new OrderItem({
+              id: Id.from(item.id),
+              productId: item.product_id,
+              quantity: item.quantity,
+              unitPrice: parseFloat(item.unit_price),
+            })
+        );
+
+        return new Order({
           id: Id.from(row.id),
-          name: row.name,
-          price: parseFloat(row.price),
-          stock: row.stock,
+          customerId: row.customer_id,
           status: row.status,
-        })
+          items,
+          createdAt: row.created_at,
+        });
+      })
     );
 
     return {
-      data: products,
+      data,
       meta: {
         page: pagination.page,
         limit: pagination.limit,
@@ -261,93 +368,109 @@ class PostgresProductRepository implements IProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await pool.query("DELETE FROM products WHERE id = $1", [id]);
+    await pool.query("DELETE FROM orders WHERE id = $1", [id]);
   }
 }
 ```
+
+<Note>
+`toBatchOperations()` groups changes by entity and orders them to respect foreign keys: deletes run leaf → root, creates run root → leaf, updates run in any order.
+</Note>
 
 ## Create Database Tables
 
 Create your schema manually:
 
 ```sql
-CREATE TABLE products (
+CREATE TABLE orders (
   id UUID PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  price DECIMAL(10, 2) NOT NULL,
-  stock INTEGER NOT NULL,
+  customer_id VARCHAR(255) NOT NULL,
   status VARCHAR(50) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_products_status ON products(status);
-CREATE INDEX idx_products_name ON products(name);
+CREATE TABLE order_items (
+  id UUID PRIMARY KEY,
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id VARCHAR(255) NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10, 2) NOT NULL
+);
+
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 ```
 
 ## Use It
 
 ```typescript
-// In-memory for testing
-const repository = new InMemoryProductRepository();
+const repository = new PostgresOrderRepository();
 
-// Or PostgreSQL for production
-const repository = new PostgresProductRepository();
-
-// Create product
-const product = new Product({
-  name: "Mechanical Keyboard",
-  price: 149.99,
-  stock: 50,
-  status: "active",
+// Create order with items
+const order = new Order({
+  customerId: "cust-123",
+  status: "draft",
+  items: [],
+  createdAt: new Date(),
 });
 
-console.log(product.isNew()); // true
-console.log(product.id.value); // UUID
+order.addItem("prod-keyboard", 2, 149.99);
+order.addItem("prod-mouse", 1, 79.99);
 
-// Save
-await repository.save(product);
+console.log(order.isNew()); // true
+console.log(order.total); // 379.97
 
-// Update
-product.updatePrice(129.99);
-product.decreaseStock(5);
+// First save — inserts order + items
+await repository.save(order);
+console.log(order.isNew()); // false (after markAsPersisted)
 
-// Get changes
-const changes = product.getChanges();
-console.log(changes.hasUpdates()); // true
+// Modify aggregate and children
+order.confirm();
+order.items[0].updateQuantity(3);
+order.addItem("prod-pad", 1, 29.99);
+order.removeItem(order.items[1].id);
 
-// Save changes
-await repository.save(product);
+// Inspect changes before saving
+const changes = order.getTypedChanges();
+console.log(changes.hasUpdates()); // true — status and item quantity changed
+console.log(changes.hasCreates()); // true — new pad item
+console.log(changes.hasDeletes()); // true — mouse item removed
+
+const itemChanges = changes.of("OrderItem");
+console.log(itemChanges.creates.length); // 1
+console.log(itemChanges.updates[0]?.changed); // { quantity: 3 }
+console.log(itemChanges.deleteIds); // ["..."]
+
+// Save only what changed
+await repository.save(order);
 
 // Query with Criteria
-const criteria = Criteria.create<Product>()
-  .where("status", "equals", "active")
-  .where("price", "greaterThan", 100)
-  .orderBy("name", "asc")
+const criteria = Criteria.create<Order>()
+  .where("status", "equals", "confirmed")
+  .orderBy("createdAt", "desc")
   .paginate(1, 10);
 
 const results = await repository.find(criteria);
-console.log(results.data); // Array of products
-console.log(results.meta); // Pagination info
+console.log(results.data);
+console.log(results.meta);
 
-// Simple queries
-const found = await repository.findById(product.id.value);
-console.log(found?.name); // "Mechanical Keyboard"
-
-const byName = await repository.findByName("Mechanical Keyboard");
+// Load by ID (includes child items)
+const found = await repository.findById(order.id.value);
+console.log(found?.items.length);
 ```
 
 ## Transactions
 
-Implement transactions with your database driver:
+Wrap multiple operations in a transaction with your database driver:
 
 ```typescript
-class PostgresProductRepository {
-  async withTransaction<T>(fn: () => Promise<T>): Promise<T> {
+class PostgresOrderRepository {
+  async withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const result = await fn();
+      const result = await fn(client);
       await client.query("COMMIT");
       return result;
     } catch (error) {
@@ -359,38 +482,32 @@ class PostgresProductRepository {
   }
 }
 
-// Usage
+// Usage — confirm order atomically
 await repository.withTransaction(async () => {
-  const from = await repository.findById(fromId);
-  const to = await repository.findById(toId);
+  const order = await repository.findById(orderId);
+  if (!order) throw new Error("Order not found");
 
-  if (!from || !to) throw new Error("Product not found");
+  order.confirm();
+  order.items.forEach((item) => {
+    if (item.quantity > 5) item.updateQuantity(item.quantity - 1);
+  });
 
-  from.decreaseStock(amount);
-  to.increaseStock(amount);
-
-  await repository.save(from);
-  await repository.save(to);
+  await repository.save(order);
 });
 ```
 
 ## Validation
 
-Validation works the same way:
+Validation works the same for aggregates and child entities:
 
 ```typescript
-// Invalid on creation - throws ValidationError
-const invalid = new Product({
-  name: "AB", // too short
-  price: -10, // negative
-  stock: 50,
-  status: "active",
-});
-// ❌ ValidationError: Name must be at least 3 characters, Price must be positive
+// Invalid child on creation — throws ValidationError
+order.addItem("prod-x", 0, 10);
+// ❌ ValidationError: quantity must be positive
 
-// Invalid on update - throws ValidationError
-product.decreaseStock(100); // stock becomes negative
-// ❌ ValidationError: Stock cannot be negative
+// Invalid on update — throws ValidationError
+order.items[0].updateQuantity(-1);
+// ❌ ValidationError: quantity must be positive
 ```
 
 ## Next Steps
