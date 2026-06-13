@@ -240,13 +240,17 @@ export class UserToPersistenceMapper extends TypeORMToPersistence<User> {
     return [
       {
         path: "src/infra/database/repositories/typeorm-user.repository.ts",
-        content: `import { SearchableField, TypeORMRepository, TypeORMUnitOfWork } from "@woltz/rich-domain-typeorm";
+        content: `import {
+  SearchableField,
+  TypeORMRepository,
+  type TypeORMUnitOfWork,
+} from "@woltz/rich-domain-typeorm";
 import { Repository } from "typeorm";
-import { User } from "../../../domain/entities/user.aggregate";
-import { UserRepository } from "../../../domain/repositories/user.repository";
-import { UserEntity } from "../typeorm/entities/User";
+import type { User } from "../../../domain/entities/user.aggregate";
+import type { UserRepository } from "../../../domain/repositories/user.repository";
 import { UserToDomainMapper } from "../mappers/user-to-domain.mapper";
 import { UserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
+import { UserEntity } from "../typeorm/entities/User";
 
 export class TypeORMUserRepository
   extends TypeORMRepository<User, UserEntity>

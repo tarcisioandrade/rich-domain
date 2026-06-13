@@ -124,8 +124,8 @@ model User {
     return [
       {
         path: "src/infra/database/prisma.ts",
-        content: `import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+        content: `import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 import { env } from "../../env";
 
 const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
@@ -145,7 +145,7 @@ export const prisma = new PrismaClient({
     return [
       {
         path: "src/infra/database/schemas/user.schema.ts",
-        content: `import { Prisma } from "@prisma/client";
+        content: `import type { Prisma } from "@prisma/client";
 
 export type UserSchema = Prisma.UserGetPayload<Record<string, never>>;
 `,
@@ -218,13 +218,16 @@ export class UserToPersistenceMapper extends PrismaToPersistence<
     return [
       {
         path: "src/infra/database/repositories/prisma-user.repository.ts",
-        content: `import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaRepository, PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { User } from "../../../domain/entities/user.aggregate";
-import { UserRepository } from "../../../domain/repositories/user.repository";
-import { UserSchema } from "../schemas/user.schema";
+        content: `import type { Prisma, PrismaClient } from "@prisma/client";
+import {
+  PrismaRepository,
+  type PrismaUnitOfWork,
+} from "@woltz/rich-domain-prisma";
+import type { User } from "../../../domain/entities/user.aggregate";
+import type { UserRepository } from "../../../domain/repositories/user.repository";
 import { UserToDomainMapper } from "../mappers/user-to-domain.mapper";
 import { UserToPersistenceMapper } from "../mappers/user-to-persistence.mapper";
+import type { UserSchema } from "../schemas/user.schema";
 
 export class PrismaUserRepository
   extends PrismaRepository<User, UserSchema, PrismaClient>
@@ -238,7 +241,7 @@ export class PrismaUserRepository
       new UserToPersistenceMapper(prisma, uow),
       new UserToDomainMapper(),
       prisma,
-      uow
+      uow,
     );
   }
 
@@ -264,38 +267,44 @@ export class PrismaUserRepository
   protected generateDiContainer(): TemplateFile {
     return {
       path: "src/infra/di/container.ts",
-      content: `import { PrismaClient } from "@prisma/client";
+      content: `import type { PrismaClient } from "@prisma/client";
+import type { IDomainEventBus } from "@woltz/rich-domain";
 import { PrismaUnitOfWork } from "@woltz/rich-domain-prisma";
-import { IDomainEventBus } from "@woltz/rich-domain";
+import { UserService } from "../../application/service/user.service";
 import { prisma } from "../database/prisma";
 import { PrismaUserRepository } from "../database/repositories/prisma-user.repository";
-import { BullMQEventBus } from "../queue/event-bus";
 import { connection } from "../queue/connection";
-import { UserService } from "../../application/service/user.service";
+import { BullMQEventBus } from "../queue/event-bus";
 
 export class Container {
   private static instance: Container;
-  private services = new Map<string, { factory: () => unknown; instance: unknown }>();
+  private services = new Map<
+    string,
+    { factory: () => unknown; instance: unknown }
+  >();
 
   private constructor() {
     this.register("prisma", () => prisma);
-    this.register("unitOfWork", () => new PrismaUnitOfWork(this.resolve<PrismaClient>("prisma")));
+    this.register(
+      "unitOfWork",
+      () => new PrismaUnitOfWork(this.resolve<PrismaClient>("prisma")),
+    );
     this.register("eventBus", () => new BullMQEventBus(connection));
     this.register(
       "userRepository",
       () =>
         new PrismaUserRepository(
           this.resolve<PrismaClient>("prisma"),
-          this.resolve<PrismaUnitOfWork>("unitOfWork")
-        )
+          this.resolve<PrismaUnitOfWork>("unitOfWork"),
+        ),
     );
     this.register(
       "userService",
       () =>
         new UserService(
           this.resolve<PrismaUserRepository>("userRepository"),
-          this.resolve<IDomainEventBus>("eventBus")
-        )
+          this.resolve<IDomainEventBus>("eventBus"),
+        ),
     );
   }
 

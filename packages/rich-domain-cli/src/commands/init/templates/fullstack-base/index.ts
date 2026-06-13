@@ -175,46 +175,48 @@ export abstract class FullstackBaseTemplate extends BaseTemplate {
   }
 
   private generateBiomeConfig(): TemplateFile {
-    const config = {
-      $schema: "https://biomejs.dev/schemas/2.5.0/schema.json",
-      vcs: {
-        enabled: true,
-        clientKind: "git",
-        useIgnoreFile: true,
-      },
-      files: {
-        ignoreUnknown: false,
-        includes: ["src/**/*.ts"],
-      },
-      formatter: {
-        enabled: true,
-        indentStyle: "space",
-        indentWidth: 2,
-        lineWidth: 80,
-      },
-      linter: {
-        enabled: true,
-        rules: {
-          preset: "recommended",
-        },
-      },
-      javascript: {
-        formatter: {
-          quoteStyle: "double",
-          semicolons: "always",
-        },
-      },
-      assist: {
-        enabled: true,
-        actions: {
-          source: {
-            organizeImports: "on",
-          },
-        },
-      },
+    return {
+      path: "biome.json",
+      content: `{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": ["src/**/*.ts"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}
+`,
     };
-
-    return { path: "biome.json", content: JSON.stringify(config, null, 2) };
   }
 
   private generateEnvExample(): TemplateFile {
@@ -438,11 +440,11 @@ import {
 import { registerActionProcessors } from "./application/processor/action.processor";
 import { registerEventProcessors } from "./application/processor/events.processor";
 import { env } from "./env";
-import { generateOpenapi } from "./utils/generate-openpai";
 ${this.getDbImportLines()}import { diPlugin } from "./infra/di/fastify-plugin";
 import { connection } from "./infra/queue/connection";
 import { BullMQDomainEventWorker } from "./infra/queue/event-worker";
 import { userController } from "./presentation/controllers/user.controller";
+import { generateOpenapi } from "./utils/generate-openpai";
 
 const isDev = env.NODE_ENV === "development";
 
@@ -517,12 +519,10 @@ app.setErrorHandler((error, _request, reply) => {
       .send({ error: "Bad Request", message: error.message });
   }
   app.log.error({ err: error }, "Unexpected error");
-  return reply
-    .status(500)
-    .send({
-      error: "Internal Server Error",
-      message: "An unexpected error occurred.",
-    });
+  return reply.status(500).send({
+    error: "Internal Server Error",
+    message: "An unexpected error occurred.",
+  });
 });
 
 app.get("/health", async () => ({
@@ -657,8 +657,8 @@ export class User extends Aggregate<UserProps> {
       },
       {
         path: "src/domain/repositories/user.repository.ts",
-        content: `import { Repository } from "@woltz/rich-domain";
-import { User } from "../entities/user.aggregate";
+        content: `import type { Repository } from "@woltz/rich-domain";
+import type { User } from "../entities/user.aggregate";
 
 export interface UserRepository extends Repository<User> {
   findByEmail(email: string): Promise<User | null>;
@@ -743,9 +743,13 @@ export const connection = new IORedis({
       },
       {
         path: "src/infra/queue/event-bus.ts",
-        content: `import { JobsOptions, Queue } from "bullmq";
-import IORedis from "ioredis";
-import { DomainEventError, IDomainEvent, IDomainEventBus } from "@woltz/rich-domain";
+        content: `import {
+  DomainEventError,
+  type IDomainEvent,
+  type IDomainEventBus,
+} from "@woltz/rich-domain";
+import { type JobsOptions, Queue } from "bullmq";
+import type IORedis from "ioredis";
 import { QUEUES } from "../../constants";
 
 export class BullMQEventBus implements IDomainEventBus {
@@ -758,7 +762,9 @@ export class BullMQEventBus implements IDomainEventBus {
     if (!this.queues.has(queueName)) {
       this.queues.set(
         queueName,
-        new Queue<IDomainEvent>(queueName, { connection: this.connection.options })
+        new Queue<IDomainEvent>(queueName, {
+          connection: this.connection.options,
+        }),
       );
     }
 
@@ -784,7 +790,10 @@ export class BullMQEventBus implements IDomainEventBus {
     });
   }
 
-  async publishAll(events: IDomainEvent[], options?: JobsOptions): Promise<void> {
+  async publishAll(
+    events: IDomainEvent[],
+    options?: JobsOptions,
+  ): Promise<void> {
     await Promise.all(events.map((e) => this.publish(e, options)));
   }
 
@@ -797,7 +806,11 @@ export class BullMQEventBus implements IDomainEventBus {
       {
         path: "src/infra/queue/event-worker.ts",
         content: `import { randomUUID } from "node:crypto";
-import { ConfigurationError, type DomainEvent } from "@woltz/rich-domain";
+import {
+  ConfigurationError,
+  type DomainEvent,
+  DomainEventError,
+} from "@woltz/rich-domain";
 import { type Job, Worker, type WorkerOptions } from "bullmq";
 import type { FastifyInstance } from "fastify";
 import type IORedis from "ioredis";
@@ -830,7 +843,10 @@ export class BullMQDomainEventWorker {
 
   private _app?: FastifyInstance;
 
-  constructor(private readonly connection: IORedis, app?: FastifyInstance) {
+  constructor(
+    private readonly connection: IORedis,
+    app?: FastifyInstance,
+  ) {
     this._app = app;
   }
 
@@ -865,7 +881,9 @@ export class BullMQDomainEventWorker {
           if (!handler) {
             const token = randomUUID();
             await job.moveToFailed(
-              new DomainEventError(\`No handler for event: \${job.data.eventName}\`),
+              new DomainEventError(
+                \`No handler for event: \${job.data.eventName}\`,
+              ),
               token,
             );
             return;
@@ -885,10 +903,10 @@ export class BullMQDomainEventWorker {
       },
       {
         path: "src/infra/queue/queue-publisher.ts",
-        content: `import { DomainEvent, DomainEventError } from "@woltz/rich-domain";
-import { Queue, JobsOptions } from "bullmq";
-import IORedis from "ioredis";
-import { QUEUES } from "../../constants";
+        content: `import { type DomainEvent, DomainEventError } from "@woltz/rich-domain";
+import { type JobsOptions, Queue } from "bullmq";
+import type IORedis from "ioredis";
+import type { QUEUES } from "../../constants";
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
 
@@ -900,7 +918,7 @@ export class QueuePublisher {
   async publish<T extends DomainEvent<unknown>>(
     queueName: QueueName,
     event: T,
-    options?: JobsOptions
+    options?: JobsOptions,
   ): Promise<void> {
     const queue = this.getOrCreate(queueName);
     await queue.add(event.eventName, event, {
@@ -914,9 +932,12 @@ export class QueuePublisher {
 
   private getOrCreate(queueName: QueueName): Queue {
     if (!this.queues.has(queueName)) {
-      this.queues.set(queueName, new Queue(queueName, { connection: this.connection.options }));
+      this.queues.set(
+        queueName,
+        new Queue(queueName, { connection: this.connection.options }),
+      );
     }
-        
+
     const queue = this.queues.get(queueName);
     if (!queue) throw new DomainEventError(\`Queue "\${queueName}" not found\`);
 
@@ -937,9 +958,9 @@ export class QueuePublisher {
   private generateFastifyPlugin(): TemplateFile {
     return {
       path: "src/infra/di/fastify-plugin.ts",
-      content: `import { FastifyPluginAsync } from "fastify";
+      content: `import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { container, Container } from "./container";
+import { type Container, container } from "./container";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -965,9 +986,9 @@ export { diPlugin };
       {
         path: "src/application/processor/events.processor.ts",
         content: `import type { FastifyInstance } from "fastify";
-import { BullMQDomainEventWorker } from "../../infra/queue/event-worker";
-import { UserCreatedEvent } from "../../domain/events/user-created.event";
 import { QUEUES } from "../../constants";
+import { UserCreatedEvent } from "../../domain/events/user-created.event";
+import type { BullMQDomainEventWorker } from "../../infra/queue/event-worker";
 
 /**
  * Observe-only event handlers — NO mutations.
@@ -980,7 +1001,7 @@ export function registerEventProcessors(worker: BullMQDomainEventWorker): void {
     handler: async (event, app: FastifyInstance) => {
       app.log.info(
         { email: event.payload.email },
-        \`[UserCreatedEvent] user created: \${event.payload.email}\`
+        \`[UserCreatedEvent] user created: \${event.payload.email}\`,
       );
     },
   });
@@ -989,7 +1010,7 @@ export function registerEventProcessors(worker: BullMQDomainEventWorker): void {
       },
       {
         path: "src/application/processor/action.processor.ts",
-        content: `import { BullMQDomainEventWorker } from "../../infra/queue/event-worker";
+        content: `import type { BullMQDomainEventWorker } from "../../infra/queue/event-worker";
 
 /**
  * Mutation event handlers — triggered by domain events.
@@ -1005,7 +1026,9 @@ export function registerEventProcessors(worker: BullMQDomainEventWorker): void {
  *     },
  *   });
  */
-export function registerActionProcessors(_worker: BullMQDomainEventWorker): void {
+export function registerActionProcessors(
+  _worker: BullMQDomainEventWorker,
+): void {
   // Register action processors here
 }
 `,
@@ -1016,7 +1039,7 @@ export function registerActionProcessors(_worker: BullMQDomainEventWorker): void
   type Criteria,
   EntityAlreadyExistsError,
   EntityNotFoundError,
-  type IDomainEventBus
+  type IDomainEventBus,
 } from "@woltz/rich-domain";
 import { User } from "../../domain/entities/user.aggregate";
 import type { UserRepository } from "../../domain/repositories/user.repository";
@@ -1032,7 +1055,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly eventBus: IDomainEventBus,
-  ) { }
+  ) {}
 
   async list(criteria: Criteria) {
     return this.userRepository.find(criteria);
@@ -1077,14 +1100,14 @@ export class UserService {
     return [
       {
         path: "src/presentation/controllers/user.controller.ts",
-        content: `import { z } from "zod";
-import { Criteria } from "@woltz/rich-domain";
-import { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+        content: `import { Criteria } from "@woltz/rich-domain";
 import {
   CriteriaQuerySchema,
-  PaginatedResponseSchema,
   defineFilters,
+  PaginatedResponseSchema,
 } from "@woltz/rich-domain-criteria-zod";
+import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { z } from "zod";
 import { CreateUserBodySchema, UserResponseSchema } from "../dto/user/user.dto";
 
 const UserParamsSchema = z.object({ id: z.string().uuid() });
