@@ -23,45 +23,44 @@ export class FullstackDrizzleTemplate extends FullstackBaseTemplate {
     return `await closeDatabase();`;
   }
 
+  protected getRootTsConfigFiles(): string[] {
+    return ["drizzle.config.ts"];
+  }
+
   // ─── Dependencies ─────────────────────────────────────────────────────────
 
   getDependencies(): Record<string, string> {
     return {
       "@fastify/cors": "^11.0.0",
       "@fastify/swagger": "^9.6.0",
-      "@fastify/swagger-ui": "^5.2.0",
-      "@woltz/rich-domain": "^1.8.9",
+      "@fastify/swagger-ui": "^5.2.6",
+      "@woltz/rich-domain": "^1.9.2",
       "@woltz/rich-domain-criteria-zod": "^0.1.5",
-      "@woltz/rich-domain-drizzle": "^0.1.2",
-      dotenv: "^17.4.0",
-      bullmq: "^5.64.0",
+      "@woltz/rich-domain-drizzle": "^0.1.4",
+      dotenv: "^17.4.2",
+      bullmq: "^5.78.0",
       "drizzle-orm": "^0.44.0",
-      fastify: "^5.5.0",
+      fastify: "^5.8.5",
       "fastify-plugin": "^5.1.0",
       "fastify-type-provider-zod": "^6.1.0",
-      ioredis: "^5.6.1",
-      pg: "^8.16.0",
+      ioredis: "^5.11.1",
+      pg: "^8.21.0",
       "pino-pretty": "^13.0.0",
-      zod: "^4.1.5",
+      zod: "^4.4.3",
     };
   }
 
   getDevDependencies(): Record<string, string> {
     return {
-      "@types/node": "^22.10.0",
+      ...this.getBaseDevDependencies(),
       "@types/pg": "^8.11.0",
       "drizzle-kit": "^0.30.0",
-      tsx: "^4.19.0",
-      typescript: "^5.7.0",
     };
   }
 
   protected getScripts(): Record<string, string> {
     return {
-      dev: "tsx watch src/server.ts",
-      build: "tsc",
-      start: "node dist/server.js",
-      lint: "tsc -b --noEmit",
+      ...this.getBaseScripts(),
       "db:generate": "drizzle-kit generate",
       "db:migrate": "drizzle-kit migrate",
       "db:push": "drizzle-kit push",
@@ -311,7 +310,7 @@ import { UserService } from "../../application/service/user.service";
 
 export class Container {
   private static instance: Container;
-  private services = new Map<string, { factory: () => any; instance: any }>();
+  private services = new Map<string, { factory: () => unknown; instance: unknown }>();
 
   private constructor() {
     this.register("unitOfWork", () => new DrizzleUnitOfWork(getDb()));

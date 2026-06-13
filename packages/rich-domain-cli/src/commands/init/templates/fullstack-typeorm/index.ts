@@ -29,72 +29,48 @@ export class FullstackTypeORMTemplate extends FullstackBaseTemplate {
     return {
       "@fastify/cors": "^11.0.0",
       "@fastify/swagger": "^9.6.0",
-      "@fastify/swagger-ui": "^5.2.0",
-      "@woltz/rich-domain": "^1.8.9",
+      "@fastify/swagger-ui": "^5.2.6",
+      "@woltz/rich-domain": "^1.9.2",
       "@woltz/rich-domain-criteria-zod": "^0.1.5",
-      "@woltz/rich-domain-typeorm": "^0.1.5",
-      bullmq: "^5.64.0",
-      fastify: "^5.5.0",
-      dotenv: "^17.4.0",
+      "@woltz/rich-domain-typeorm": "^0.1.7",
+      bullmq: "^5.78.0",
+      fastify: "^5.8.5",
+      dotenv: "^17.4.2",
       "fastify-plugin": "^5.1.0",
       "fastify-type-provider-zod": "^6.1.0",
-      ioredis: "^5.6.1",
-      pg: "^8.16.0",
+      ioredis: "^5.11.1",
+      pg: "^8.21.0",
       "pino-pretty": "^13.0.0",
       "reflect-metadata": "^0.2.2",
       typeorm: "^0.3.28",
-      zod: "^4.1.5",
+      zod: "^4.4.3",
     };
   }
 
   getDevDependencies(): Record<string, string> {
     return {
-      "@types/node": "^22.10.0",
+      ...this.getBaseDevDependencies(),
       "@types/pg": "^8.11.0",
-      tsx: "^4.19.0",
-      typescript: "^5.7.0",
     };
   }
 
   protected getScripts(): Record<string, string> {
     return {
-      dev: "tsx watch src/server.ts",
-      build: "tsc",
-      start: "node dist/server.js",
-      lint: "tsc -b --noEmit",
+      ...this.getBaseScripts(),
       "db:seed": "tsx src/infra/database/seed/index.ts",
       "docker:up": "docker-compose up -d",
       "docker:down": "docker-compose down",
     };
   }
 
-  // ─── tsconfig override (decorators needed for TypeORM) ────────────────────
+  // ─── tsconfig (decorators needed for TypeORM) ─────────────────────────────
 
-  protected generateTsConfig(): TemplateFile {
-    const config = {
-      compilerOptions: {
-        target: "ES2020",
-        module: "ESNext",
-        lib: ["ES2022"],
-        moduleResolution: "bundler",
-        rootDir: "./src",
-        outDir: "./dist",
-        declaration: true,
-        sourceMap: true,
-        esModuleInterop: true,
-        emitDecoratorMetadata: true,
-        experimentalDecorators: true,
-        forceConsistentCasingInFileNames: true,
-        strict: true,
-        skipLibCheck: true,
-        resolveJsonModule: true,
-        noUncheckedIndexedAccess: true,
-        noFallthroughCasesInSwitch: true,
-      },
-      include: ["src/**/*"],
-      exclude: ["node_modules", "dist"],
+  protected getTsConfigCompilerOptions(): Record<string, unknown> {
+    return {
+      ...super.getTsConfigCompilerOptions(),
+      emitDecoratorMetadata: true,
+      experimentalDecorators: true,
     };
-    return { path: "tsconfig.json", content: JSON.stringify(config, null, 2) };
   }
 
   // ─── ORM files ────────────────────────────────────────────────────────────
@@ -319,7 +295,7 @@ import { BullMQEventBus } from "../queue/event-bus";
 
 export class Container {
   private static instance: Container;
-  private services = new Map<string, { factory: () => any; instance: any }>();
+  private services = new Map<string, { factory: () => unknown; instance: unknown }>();
 
   private constructor() {
     this.register("unitOfWork", () => getUoW());

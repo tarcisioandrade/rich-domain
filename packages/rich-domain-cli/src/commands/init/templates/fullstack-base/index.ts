@@ -39,8 +39,34 @@ export abstract class FullstackBaseTemplate extends BaseTemplate {
     return {
       path: ".vscode/settings.json",
       content: `{
-  "typescript.tsdk": "node_modules\\\\typescript\\\\lib"
+  "typescript.tsdk": "node_modules\\\\typescript\\\\lib",
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }`,
+    };
+  }
+
+  protected getBaseScripts(): Record<string, string> {
+    return {
+      dev: "tsx watch src/server.ts",
+      build: "tsc -p tsconfig.build.json",
+      start: "node dist/server.js",
+      check: "tsc --noEmit",
+      lint: "biome check .",
+      "lint:fix": "biome check --write .",
+      format: "biome format --write .",
+    };
+  }
+
+  protected getBaseDevDependencies(): Record<string, string> {
+    return {
+      "@biomejs/biome": "^2.5.0",
+      "@types/node": "^22.10.0",
+      tsx: "^4.19.0",
+      typescript: "^5.7.0",
     };
   }
 
@@ -52,7 +78,9 @@ export abstract class FullstackBaseTemplate extends BaseTemplate {
     // Root
     files.push(this.generatePackageJson(options));
     files.push(this.generateWorkspaceConfig());
+    files.push(this.generateBiomeConfig());
     files.push(this.generateTsConfig());
+    files.push(this.generateTsConfigBuild());
     files.push(this.generateEnvExample());
     files.push(this.generateDockerCompose(options));
     files.push(this.generateGitignore());
@@ -64,6 +92,7 @@ export abstract class FullstackBaseTemplate extends BaseTemplate {
     // src root
     files.push(this.generateConstants());
     files.push(this.generateEnv());
+    files.push(this.generateOpenapiUtil());
     files.push(this.generateServer());
 
     // Domain
@@ -94,34 +123,103 @@ export abstract class FullstackBaseTemplate extends BaseTemplate {
 
   // ─── Root config files ────────────────────────────────────────────────────
 
+  /** Root-level TS config files (e.g. prisma.config.ts) included in type-checking. */
+  protected getRootTsConfigFiles(): string[] {
+    return [];
+  }
+
+  protected getTsConfigCompilerOptions(): Record<string, unknown> {
+    return {
+      target: "ES2020",
+      module: "ESNext",
+      lib: ["ES2022"],
+      moduleResolution: "bundler",
+      esModuleInterop: true,
+      forceConsistentCasingInFileNames: true,
+      strict: true,
+      skipLibCheck: true,
+      resolveJsonModule: true,
+      noUncheckedIndexedAccess: true,
+      noFallthroughCasesInSwitch: true,
+      types: ["node"],
+      noEmit: true,
+    };
+  }
+
   protected generateTsConfig(): TemplateFile {
     const config = {
-      compilerOptions: {
-        target: "ES2020",
-        module: "ESNext",
-        lib: ["ES2022"],
-        moduleResolution: "bundler",
-        rootDir: "./src",
-        outDir: "./dist",
-        declaration: true,
-        sourceMap: true,
-        esModuleInterop: true,
-        forceConsistentCasingInFileNames: true,
-        strict: true,
-        skipLibCheck: true,
-        resolveJsonModule: true,
-        noUncheckedIndexedAccess: true,
-        noFallthroughCasesInSwitch: true,
-      },
-      include: ["src/**/*"],
+      compilerOptions: this.getTsConfigCompilerOptions(),
+      include: ["src/**/*", ...this.getRootTsConfigFiles()],
       exclude: ["node_modules", "dist"],
     };
     return { path: "tsconfig.json", content: JSON.stringify(config, null, 2) };
   }
 
+  protected generateTsConfigBuild(): TemplateFile {
+    const config = {
+      extends: "./tsconfig.json",
+      compilerOptions: {
+        noEmit: false,
+        rootDir: "./src",
+        outDir: "./dist",
+        declaration: true,
+        sourceMap: true,
+      },
+      include: ["src/**/*"],
+      exclude: ["node_modules", "dist"],
+    };
+    return {
+      path: "tsconfig.build.json",
+      content: JSON.stringify(config, null, 2),
+    };
+  }
+
+  private generateBiomeConfig(): TemplateFile {
+    const config = {
+      $schema: "https://biomejs.dev/schemas/2.5.0/schema.json",
+      vcs: {
+        enabled: true,
+        clientKind: "git",
+        useIgnoreFile: true,
+      },
+      files: {
+        ignoreUnknown: false,
+        includes: ["src/**/*.ts"],
+      },
+      formatter: {
+        enabled: true,
+        indentStyle: "space",
+        indentWidth: 2,
+        lineWidth: 80,
+      },
+      linter: {
+        enabled: true,
+        rules: {
+          preset: "recommended",
+        },
+      },
+      javascript: {
+        formatter: {
+          quoteStyle: "double",
+          semicolons: "always",
+        },
+      },
+      assist: {
+        enabled: true,
+        actions: {
+          source: {
+            organizeImports: "on",
+          },
+        },
+      },
+    };
+
+    return { path: "biome.json", content: JSON.stringify(config, null, 2) };
+  }
+
   private generateEnvExample(): TemplateFile {
     return {
-      path: ".env.example",
+      path: ".env",
       content: `# Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/app_db?schema=public"
 
@@ -222,6 +320,10 @@ ${options.packageManager === "npm" ? "npm run" : options.packageManager} dev
 | \`dev\` | Start development server with pino-pretty |
 | \`build\` | Compile TypeScript |
 | \`start\` | Start production server |
+| \`check\` | Type-check with TypeScript |
+| \`lint\` | Lint and format check with Biome |
+| \`lint:fix\` | Lint and apply safe fixes with Biome |
+| \`format\` | Format code with Biome |
 | \`docker:up\` | Start PostgreSQL + Redis via Docker |
 | \`docker:down\` | Stop Docker services |
 
@@ -293,6 +395,25 @@ export const env = configSchema.parse(rawConfig);
     };
   }
 
+  private generateOpenapiUtil(): TemplateFile {
+    return {
+      path: "src/utils/generate-openpai.ts",
+      content: `import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { FastifyInstance } from "fastify";
+
+export function generateOpenapi(app: FastifyInstance) {
+  const spec = app.swagger();
+  const outputPath = resolve(import.meta.dirname, "../../openapi.json");
+
+  writeFileSync(outputPath, JSON.stringify(spec, null, 2));
+
+  app.log.info("OpenAPI spec generated 👌");
+}
+`,
+    };
+  }
+
   protected generateServer(): TemplateFile {
     return {
       path: "src/server.ts",
@@ -317,6 +438,7 @@ import {
 import { registerActionProcessors } from "./application/processor/action.processor";
 import { registerEventProcessors } from "./application/processor/events.processor";
 import { env } from "./env";
+import { generateOpenapi } from "./utils/generate-openpai";
 ${this.getDbImportLines()}import { diPlugin } from "./infra/di/fastify-plugin";
 import { connection } from "./infra/queue/connection";
 import { BullMQDomainEventWorker } from "./infra/queue/event-worker";
@@ -414,6 +536,7 @@ const start = async () => {
     app.log.info("Database connected");
 
     await app.ready();
+    generateOpenapi(app);
 
     const worker = new BullMQDomainEventWorker(connection, app);
     registerEventProcessors(worker);
@@ -622,7 +745,7 @@ export const connection = new IORedis({
         path: "src/infra/queue/event-bus.ts",
         content: `import { JobsOptions, Queue } from "bullmq";
 import IORedis from "ioredis";
-import { IDomainEvent, IDomainEventBus } from "@woltz/rich-domain";
+import { DomainEventError, IDomainEvent, IDomainEventBus } from "@woltz/rich-domain";
 import { QUEUES } from "../../constants";
 
 export class BullMQEventBus implements IDomainEventBus {
@@ -635,10 +758,14 @@ export class BullMQEventBus implements IDomainEventBus {
     if (!this.queues.has(queueName)) {
       this.queues.set(
         queueName,
-        new Queue<IDomainEvent>(queueName, { connection: this.connection })
+        new Queue<IDomainEvent>(queueName, { connection: this.connection.options })
       );
     }
-    return this.queues.get(queueName)!;
+
+    const queue = this.queues.get(queueName);
+    if (!queue) throw new DomainEventError(\`Queue "\${queueName}" not found\`);
+
+    return queue;
   }
 
   private getQueueName(event: IDomainEvent): string {
@@ -677,12 +804,13 @@ import type IORedis from "ioredis";
 import { QUEUES } from "../../constants";
 import type { QueueName } from "./queue-publisher";
 
-type EventHandler<T extends Record<string, any>> = (
+type EventHandler<T extends Record<string, unknown>> = (
   event: DomainEvent<T>,
   app: FastifyInstance,
 ) => Promise<void>;
 
 type QueueWorkerConfig = {
+  // biome-ignore lint/suspicious/noExplicitAny: ignore it
   handlers: Map<string, EventHandler<any>>;
   settings?: Omit<WorkerOptions, "connection">;
 };
@@ -702,16 +830,18 @@ export class BullMQDomainEventWorker {
 
   private _app?: FastifyInstance;
 
-  constructor(
-    private readonly connection: IORedis,
-    app?: FastifyInstance,
-  ) {
+  constructor(private readonly connection: IORedis, app?: FastifyInstance) {
     this._app = app;
   }
 
-  public on<T extends Record<string, any> = Record<string, any>>(props: {
+  public on<
+    T extends Record<string, unknown> = Record<string, unknown>,
+  >(props: {
     queue: QueueName;
-    event: new (...args: any[]) => DomainEvent<T>;
+    event: new (
+      // biome-ignore lint/suspicious/noExplicitAny: ignore it
+      ...args: any[]
+    ) => DomainEvent<T>;
     handler: EventHandler<T>;
   }): void {
     const { queue, event, handler } = props;
@@ -730,19 +860,19 @@ export class BullMQDomainEventWorker {
     for (const [queueName, config] of Object.entries(this.workers)) {
       new Worker(
         queueName,
-        async (job: Job<DomainEvent<any>>) => {
+        async (job: Job<DomainEvent<unknown>>) => {
           const handler = config.handlers.get(job.data.eventName);
           if (!handler) {
             const token = randomUUID();
             await job.moveToFailed(
-              new Error(\`No handler for event: \${job.data.eventName}\`),
+              new DomainEventError(\`No handler for event: \${job.data.eventName}\`),
               token,
             );
             return;
           }
           await handler(job.data, app);
         },
-        { ...config.settings, connection: this.connection },
+        { ...config.settings, connection: this.connection.options },
       );
     }
   }
@@ -755,7 +885,7 @@ export class BullMQDomainEventWorker {
       },
       {
         path: "src/infra/queue/queue-publisher.ts",
-        content: `import { DomainEvent } from "@woltz/rich-domain";
+        content: `import { DomainEvent, DomainEventError } from "@woltz/rich-domain";
 import { Queue, JobsOptions } from "bullmq";
 import IORedis from "ioredis";
 import { QUEUES } from "../../constants";
@@ -767,7 +897,7 @@ export class QueuePublisher {
 
   constructor(private readonly connection: IORedis) {}
 
-  async publish<T extends DomainEvent<any>>(
+  async publish<T extends DomainEvent<unknown>>(
     queueName: QueueName,
     event: T,
     options?: JobsOptions
@@ -784,9 +914,13 @@ export class QueuePublisher {
 
   private getOrCreate(queueName: QueueName): Queue {
     if (!this.queues.has(queueName)) {
-      this.queues.set(queueName, new Queue(queueName, { connection: this.connection }));
+      this.queues.set(queueName, new Queue(queueName, { connection: this.connection.options }));
     }
-    return this.queues.get(queueName)!;
+        
+    const queue = this.queues.get(queueName);
+    if (!queue) throw new DomainEventError(\`Queue "\${queueName}" not found\`);
+
+    return queue;
   }
 
   async close(): Promise<void> {
