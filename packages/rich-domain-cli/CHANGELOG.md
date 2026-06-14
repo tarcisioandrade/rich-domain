@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+### Patch Changes
+
+- biome implementation
+
 ## 0.5.1
 
 ### Patch Changes
