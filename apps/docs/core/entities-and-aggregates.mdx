@@ -33,6 +33,15 @@ The main difference lies in their architectural role:
 | Manages child entities            | ❌     | ✅        |
 | Emits domain events               | ❌     | ✅        |
 | Change tracking for children      | ❌     | ✅        |
+| Can be nested in another object   | Yes    | Yes       |
+
+<Note>
+  Rich Domain tracks nested domain objects by their shared `BaseEntity` behavior,
+  so nested `Entity` and nested `Aggregate` instances can both be detected in the
+  object graph. In DDD terms, aggregate roots are usually referenced by `Id`
+  rather than embedded inside another aggregate. If you choose to embed an
+  aggregate, persistence adapters may treat it as part of the tracked graph.
+</Note>
 
 ## Creating Entities
 
