@@ -1,5 +1,5 @@
 import { Id } from "./id.js";
-import { Entity } from "./entity.js";
+import { BaseEntity } from "./base-entity.js";
 import { ValueObject } from "./value-object.js";
 import { ArrayState, HistoryEntry, TrackedItem } from "../types/index.js";
 import { EntityChangeState } from "../types/change-tracker.js";
@@ -97,7 +97,7 @@ export class ChangeTracker {
 
       if (Array.isArray(value)) {
         this.captureArrayState(value, propPath, depth + 1, id, entityName);
-      } else if (value instanceof Entity) {
+      } else if (value instanceof BaseEntity) {
         const nestedName = this.getEntityName(value);
         this.captureEntityState(
           value,
@@ -137,7 +137,7 @@ export class ChangeTracker {
     // Only track individual items for non-primitive arrays
     if (!isPrimitive) {
       arr.forEach((item, index) => {
-        if (item instanceof Entity) {
+        if (item instanceof BaseEntity) {
           const itemPath = `${path}[${index}]`;
           this.captureEntityState(
             item,
@@ -175,7 +175,7 @@ export class ChangeTracker {
           return this.createArrayProxy(value, currentPath);
         }
 
-        if (value instanceof Entity) {
+        if (value instanceof BaseEntity) {
           const nestedTracker = new ChangeTracker(
             value,
             this.getEntityName(value),
@@ -230,7 +230,10 @@ export class ChangeTracker {
 
         if (Array.isArray(newValue)) {
           this.handleArrayAssignment(currentPath, oldValue);
-        } else if (newValue instanceof Entity || oldValue instanceof Entity) {
+        } else if (
+          (newValue instanceof BaseEntity && !this.isSelfReference(newValue)) ||
+          (oldValue instanceof BaseEntity && !this.isSelfReference(oldValue))
+        ) {
           this.handleEntityChange(currentPath, oldValue, newValue);
         }
 
@@ -277,7 +280,7 @@ export class ChangeTracker {
 
         const result = Reflect.deleteProperty(target, prop);
 
-        if (oldValue instanceof Entity) {
+        if (oldValue instanceof BaseEntity && !this.isSelfReference(oldValue)) {
           this.handleEntityChange(currentPath, oldValue, undefined);
         }
 
@@ -359,7 +362,7 @@ export class ChangeTracker {
           return value.bind(target);
         }
 
-        if (!isNaN(Number(prop)) && value instanceof Entity) {
+        if (!isNaN(Number(prop)) && value instanceof BaseEntity) {
           const nestedPath = `${path}[${String(prop)}]`;
           const nestedTracker = new ChangeTracker(
             value,
@@ -454,7 +457,12 @@ export class ChangeTracker {
 
       // 1:1 entity relations are tracked by analyzeEntityChanges
       if (rootTracker.trackedEntities.has(path)) continue;
-      if (originalValue instanceof Entity || currentValue instanceof Entity) {
+      if (
+        (originalValue instanceof BaseEntity &&
+          !this.isSelfReference(originalValue)) ||
+        (currentValue instanceof BaseEntity &&
+          !this.isSelfReference(currentValue))
+      ) {
         continue;
       }
 
@@ -605,7 +613,7 @@ export class ChangeTracker {
         const relationField = propName;
 
         for (const child of value) {
-          if (child instanceof Entity) {
+          if (child instanceof BaseEntity) {
             const childEntityName = this.getEntityName(child);
             changes.addCreate(
               childEntityName,
@@ -618,7 +626,7 @@ export class ChangeTracker {
             this.markNestedItemsAsCreated(child, parentDepth + 1, changes);
           }
         }
-      } else if (value instanceof Entity) {
+      } else if (value instanceof BaseEntity) {
         const childEntityName = this.getEntityName(value);
         changes.addCreate(
           childEntityName,
@@ -667,8 +675,8 @@ export class ChangeTracker {
               nestedItem,
               parentDepth + 1,
               relationField,
-              parentEntity,
-              parentId
+              parentId,
+              parentEntity
             );
 
             this.markNestedJsonItemAsDeleted(
@@ -753,7 +761,7 @@ export class ChangeTracker {
     originalArray: any[]
   ): string | undefined {
     for (const originalItem of originalArray) {
-      if (originalItem instanceof Entity) {
+      if (originalItem instanceof BaseEntity) {
         const originalJson = this.deepClone(originalItem);
         if (JSON.stringify(originalJson) === JSON.stringify(jsonItem)) {
           const key = this.getItemKey(originalItem);
@@ -783,7 +791,7 @@ export class ChangeTracker {
 
       if (Array.isArray(value)) {
         value.forEach((item, index) => {
-          if (item instanceof Entity) {
+          if (item instanceof BaseEntity) {
             this.collectNestedArrays(
               item,
               `${propPath}[${index}]`,
@@ -792,7 +800,7 @@ export class ChangeTracker {
             );
           }
         });
-      } else if (value instanceof Entity) {
+      } else if (value instanceof BaseEntity) {
         this.collectNestedArrays(value, propPath, allArrays, processedArrays);
       }
     }
@@ -1000,7 +1008,7 @@ export class ChangeTracker {
         continue;
       }
 
-      if (currValue instanceof Entity) {
+      if (currValue instanceof BaseEntity) {
         continue;
       }
 
@@ -1051,6 +1059,12 @@ export class ChangeTracker {
 
   private getRootTracker(): ChangeTracker {
     return this.rootTracker || this;
+  }
+
+  private isSelfReference(value: BaseEntity<any>): boolean {
+    const targetId = this.getEntityId(this.target);
+    const valueId = this.getEntityId(value);
+    return !!targetId && !!valueId && targetId === valueId;
   }
 
   private buildPath(prop: string): string {

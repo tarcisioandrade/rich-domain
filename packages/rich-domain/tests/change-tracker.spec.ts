@@ -471,6 +471,20 @@ describe("ChangeTracker.getChanges()", () => {
       expect(batch.deletes).toHaveLength(3);
       expect(likeIdx).toBeLessThan(commentIdx);
       expect(commentIdx).toBeLessThan(postIdx);
+
+      const likeDelete = batch.deletes.find((d) => d.entity === "Like");
+      const commentDelete = batch.deletes.find((d) => d.entity === "Comment");
+
+      expect(likeDelete).toMatchObject({
+        parentEntity: "Comment",
+        parentId: comment.id.value,
+        relationField: "likes",
+      });
+      expect(commentDelete).toMatchObject({
+        parentEntity: "Post",
+        parentId: post.id.value,
+        relationField: "comments",
+      });
     });
 
     it("should order creates by depth ASC (root → leaf)", () => {
