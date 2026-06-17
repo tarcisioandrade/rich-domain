@@ -1,5 +1,5 @@
-import { IDomainEvent } from "..";
-import UUID from "../utils/crypto";
+import type { IDomainEvent } from "../types/domain-event.js";
+import UUID from "../utils/crypto.js";
 
 /**
  * Base class for domain events

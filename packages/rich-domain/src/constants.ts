@@ -1,4 +1,4 @@
-import {
+import type {
   ArrayOperators,
   BooleanOperators,
   DateOperators,
@@ -6,7 +6,7 @@ import {
   NumberOperators,
   StringOperators,
   ValidationConfig,
-} from ".";
+} from "./types/index.js";
 
 export const DEFAULT_VALIDATION_CONFIG: Required<ValidationConfig> = {
   onCreate: true,

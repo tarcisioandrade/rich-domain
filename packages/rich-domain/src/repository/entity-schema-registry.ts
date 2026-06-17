@@ -1,4 +1,4 @@
-import { Entity, ValueObject, Id } from "../core/index";
+import { Entity, ValueObject, Id } from "../core/index.js";
 import { ConfigurationError } from "../exceptions.js";
 import { levenshteinDistance } from "../utils/helpers.js";
 

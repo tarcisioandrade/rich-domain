@@ -1,4 +1,4 @@
-import { IDomainEvent } from "./domain-event";
+import type { IDomainEvent } from "./domain-event.js";
 
 export interface IDomainEventBus {
   /**
