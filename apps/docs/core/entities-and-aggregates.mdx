@@ -8,44 +8,54 @@ keywords: ["entity","aggregate","aggregate-root","ddd","domain-driven-design","i
 
 Entities and Aggregates are domain objects defined by their **identity**, not by their attributes. Two objects with the same attributes but different IDs are considered distinct objects.
 
-The main difference lies in their architectural role:
+The main difference lies in their architectural role, not in their change
+tracking implementation:
 
-- **Entity**: Domain object with identity that lives **inside** an Aggregate
-- **Aggregate**: Root entity that defines a **consistency boundary** and controls access to all entities within it
+- **Entity**: Domain object with identity that normally lives **inside** an Aggregate
+- **Aggregate**: Root entity that defines a **consistency boundary** and is the entry point for repositories and domain events
 
 <CardGroup cols={2}>
   <Card title="Entity" icon="cube">
     Objects with identity that live inside Aggregates. Not accessed directly through repositories.
   </Card>
   <Card title="Aggregate" icon="cubes">
-    Root of a cluster of related entities. Defines transactional and consistency boundaries.
+    Root of a cluster of related entities. Models the consistency boundary persisted by a repository.
   </Card>
 </CardGroup>
 
 ## Key Differences
 
-| Feature                           | Entity | Aggregate |
-| --------------------------------- | ------ | --------- |
-| Has identity                      | ✅     | ✅        |
-| Can be persisted                  | ✅     | ✅        |
-| Consistency boundary              | ❌     | ✅        |
-| Accessed directly from repository | ❌     | ✅        |
-| Manages child entities            | ❌     | ✅        |
-| Emits domain events               | ❌     | ✅        |
-| Change tracking for children      | ❌     | ✅        |
-| Can be nested in another object   | Yes    | Yes       |
+| Feature                                | Entity | Aggregate |
+| -------------------------------------- | ------ | --------- |
+| Has identity                           | Yes    | Yes       |
+| Participates in persistence            | Yes    | Yes       |
+| Defines a consistency boundary         | No     | Yes       |
+| Repository root in the core API        | No     | Yes       |
+| Can contain and manage child entities  | Yes    | Yes       |
+| Can record domain events               | No     | Yes       |
+| Tracks its own and nested changes      | Yes    | Yes       |
+| Can technically be nested in an object | Yes    | Yes       |
 
 <Note>
-  Rich Domain tracks nested domain objects by their shared `BaseEntity` behavior,
-  so nested `Entity` and nested `Aggregate` instances can both be detected in the
-  object graph. In DDD terms, aggregate roots are usually referenced by `Id`
-  rather than embedded inside another aggregate. If you choose to embed an
-  aggregate, persistence adapters may treat it as part of the tracked graph.
+  `Entity` and `Aggregate` both inherit change tracking from `BaseEntity`.
+  Therefore, either one can technically contain and track nested entities.
+  The distinction is architectural: repositories in the core API operate on
+  aggregate roots, and only `Aggregate` provides domain-event management.
 </Note>
+
+<Warning>
+  Although nesting one `Aggregate` inside another is technically supported by
+  the object graph tracker, it usually crosses aggregate boundaries. Prefer
+  referencing another aggregate root by `Id`. Persistence adapters may treat an
+  embedded aggregate as an owned child unless its relationship is configured as
+  a reference.
+</Warning>
 
 ## Creating Entities
 
-Entities are simpler objects, typically used as part of an Aggregate:
+Entities are identity-bearing domain objects, typically used as part of an
+Aggregate. They have the same validation, serialization, and change tracking
+capabilities inherited from `BaseEntity`, but they do not manage domain events:
 ```typescript
 import { Entity, Id, DomainError } from "@woltz/rich-domain";
 
@@ -194,10 +204,17 @@ item1.equals(Id.from("item-1")); // true - can compare with Id
 
 ## Validation
 
-Both support validation with Zod schemas:
+Both support validation with Standard Schema-compatible validators such as Zod:
 ```typescript
 import { z } from "zod";
-import { EntityValidation, EntityHooks } from "@woltz/rich-domain";
+import {
+  Aggregate,
+  DomainError,
+  Entity,
+  EntityHooks,
+  EntityValidation,
+  Id,
+} from "@woltz/rich-domain";
 
 // Entity validation
 const orderItemSchema = z.object({
@@ -324,20 +341,27 @@ const userWithPassword = new User({
 - Computed identifiers
 - Default configurations
 
-### Consistency Boundaries
+## Consistency Boundaries
 
 <CardGroup cols={2}>
   <Card title="Immediate Consistency" icon="shield">
-    All invariants within an Aggregate are enforced immediately within a single transaction.
+    Model aggregate methods so their invariants are valid before persistence.
   </Card>
   <Card title="Eventual Consistency" icon="arrows-rotate">
-    Changes to other Aggregates happen asynchronously through domain events.
+    Coordinate changes across aggregate boundaries with domain events or application services.
   </Card>
 </CardGroup>
 
-### Change Tracking
+Rich Domain supplies the building blocks, but it does not automatically define
+your invariants or open a database transaction. The application and persistence
+adapter remain responsible for executing a save inside the required
+transactional boundary.
 
-Aggregates automatically track changes to all nested entities and collections:
+## Change Tracking
+
+Both entities and aggregates track changes to their own properties and nested
+`BaseEntity` instances. In normal DDD usage, call `getChanges()` on the aggregate
+root so the result represents the persistence boundary:
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -350,6 +374,12 @@ const order = new Order({
       quantity: 2,
       unitPrice: 29.99,
     }),
+    new OrderItem({
+      id: Id.from("item-2"),
+      productId: "prod-b",
+      quantity: 1,
+      unitPrice: 19.99,
+    }),
   ],
   shippingAddress: new Address({
     street: "123 Main",
@@ -359,10 +389,10 @@ const order = new Order({
   createdAt: new Date(),
 });
 
-// Make changes
-order.addItem("prod-b", 1, 49.99); // Create
+// Make changes after the initial tracking baseline
+order.addItem("prod-c", 1, 49.99); // Create
 order.items[0].updateQuantity(5); // Update
-order.removeItem(Id.from("item-1")); // Delete
+order.removeItem(Id.from("item-2")); // Delete
 
 // Get all changes
 const changes = order.getChanges();
@@ -371,38 +401,34 @@ console.log(changes.hasCreates()); // true
 console.log(changes.hasUpdates()); // true
 console.log(changes.hasDeletes()); // true
 
-// Get batch operations for persistence
+// Group and order operations for a persistence adapter
 const batch = changes.toBatchOperations();
-// {
-//   deletes: [{ entity: "OrderItem", ids: ["item-1"] }],
-//   creates: [{ entity: "OrderItem", items: [...] }],
-//   updates: [{ entity: "OrderItem", items: [...] }]
-// }
+
+console.log(batch.deletes[0].ids); // ["item-2"]
+console.log(batch.creates[0].items[0].parentId); // "order-123"
+console.log(batch.updates[0].items[0].changedFields); // { quantity: 5 }
 ```
 
 <Note>
-  Changes are tracked automatically through proxies. No manual tracking needed.
+  Construction establishes the initial tracking baseline. `getChanges()` reports
+  mutations made after construction or after `markAsClean()`; it does not emit a
+  create operation for the root object itself. Repositories use `isNew()` to
+  decide whether the aggregate root requires an INSERT.
 </Note>
 
-### Domain Events
+## Domain Events
 
 Aggregates can emit domain events for cross-aggregate communication:
 ```typescript
 import { DomainEvent } from "@woltz/rich-domain";
 
-class OrderConfirmedEvent extends DomainEvent {
-  constructor(
-    aggregateId: Id,
-    public readonly customerId: string,
-    public readonly total: number
-  ) {
-    super(aggregateId);
-  }
+type OrderConfirmedPayload = {
+  orderId: string;
+  customerId: string;
+  total: number;
+};
 
-  protected getPayload() {
-    return { customerId: this.customerId, total: this.total };
-  }
-}
+class OrderConfirmedEvent extends DomainEvent<OrderConfirmedPayload> {}
 
 class Order extends Aggregate<OrderProps> {
   confirm() {
@@ -412,17 +438,17 @@ class Order extends Aggregate<OrderProps> {
 
     this.props.status = "confirmed";
 
-    // Emit event
-    this.addDomainEvent(
-      new OrderConfirmedEvent(this.id, this.customerId, this.total)
-    );
+    this.addDomainEvent(new OrderConfirmedEvent({
+      orderId: this.id.value,
+      customerId: this.customerId,
+      total: this.total,
+    }));
   }
 }
 
-// Dispatch events after saving
+// Persist first, then publish. dispatchAll() clears events after publishing.
 await orderRepository.save(order);
 await order.dispatchAll(eventBus);
-order.clearEvents();
 ```
 
 See more in [Domain Events](/core/domain-events)
