@@ -1,4 +1,4 @@
-import type { Aggregate } from "../core/entity.js";
+import type { Aggregate } from "../core/entities.js";
 import type { Criteria } from "../criteria.js";
 import { PaginatedResult } from "./paginated-result.js";
 import { Mapper } from "./mapper.js";

@@ -1,5 +1,5 @@
-import { Aggregate } from "../core/index";
-import { Repository } from "../repository/base-repository.js";
+import type { Aggregate } from "../core/index.js";
+import type { Repository } from "../repository/base-repository.js";
 
 /**
  * Transaction context for Unit of Work

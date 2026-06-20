@@ -14,7 +14,10 @@ import {
 } from "../types/index.js";
 import { DEFAULT_VALIDATION_CONFIG } from "../constants.js";
 import { DomainError } from "../exceptions.js";
-import { ChangeTracker, AggregateChanges, Id, ValueObject } from "./index";
+import { AggregateChanges } from "./aggregate-changes.js";
+import { ChangeTracker } from "./change-tracker.js";
+import { Id } from "./id.js";
+import { ValueObject } from "./value-object.js";
 import { getStaticProperty } from "../utils/helpers.js";
 
 export abstract class BaseEntity<

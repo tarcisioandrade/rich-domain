@@ -1,12 +1,18 @@
 ---
 title: "Change Tracking"
-description: "Automatically track and persist all changes across your aggregate hierarchy"
-keywords: ["change-tracking","proxy","audit","history","state-management","ddd","typescript"]
+description: "Track changes across entities and aggregate object graphs"
+keywords: ["change-tracking","proxy","history","state-management","ddd","typescript"]
 ---
 
 ## What is Change Tracking?
 
-Change Tracking automatically monitors all modifications made to an Aggregate and its nested entities. Instead of manually tracking changes, the library uses JavaScript Proxies to intercept property assignments and maintain a complete history.
+Change tracking is implemented by `BaseEntity`, so it is available to both
+`Entity` and `Aggregate`. JavaScript Proxies observe property assignments and
+collection mutations, while snapshots are used to calculate create, update, and
+delete operations for nested entities.
+
+In normal DDD usage, call `getChanges()` on the aggregate root so the returned
+operations represent a single consistency and persistence boundary.
 ```typescript
 const order = new Order({
   id: Id.from("order-123"),
@@ -30,18 +36,26 @@ console.log(changes.hasCreates()); // true - new item added
 
 <CardGroup cols={2}>
   <Card title="Efficient Persistence" icon="bolt">
-    Only persist what actually changed, not the entire aggregate
+    Persist detected updates instead of rewriting every child
   </Card>
   <Card title="Zero Boilerplate" icon="wand-magic-sparkles">
     Changes tracked automatically - no manual code needed
   </Card>
   <Card title="Correct Ordering" icon="arrow-down-1-9">
-    Operations automatically ordered to respect FK constraints
+    Creates and deletes ordered by object-graph depth
   </Card>
   <Card title="Batch Operations" icon="layer-group">
     Group changes by entity type for optimized database operations
   </Card>
 </CardGroup>
+
+<Note>
+  Construction establishes the initial baseline. `getChanges()` reports
+  mutations made after construction or after the most recent
+  `markAsClean()`/`markAsPersisted()` call. It does not emit a create operation
+  for the root object itself; repositories normally use `isNew()` for that
+  decision.
+</Note>
 
 ## Basic Usage
 
@@ -105,7 +119,19 @@ itemChanges.hasDeletes();
 itemChanges.count;
 ```
 
-### Excluding entities
+### Filtering by Relation
+
+Use `forRelation()` to select operations associated with a property in the
+parent object:
+
+```typescript
+const itemRelationChanges = changes.forRelation("items");
+
+console.log(itemRelationChanges.hasChanges());
+console.log(itemRelationChanges.getAffectedRelations()); // ["items"]
+```
+
+### Excluding Entities
 
 Use `without()` when you need the inverse of `of()` — all changes **except** one or more entity types. It returns a **new** `AggregateChanges` instance; the original is unchanged.
 
@@ -135,13 +161,12 @@ changes.without(["Profile", "Tag"]);
 
 This is useful in custom `onUpdate` implementations when one entity needs manual persistence (nested writes, custom PK, etc.) and the rest should go through `PrismaBatchExecutor`.
 
-### Clearing Changes
+### Resetting the Baseline
 
-After persisting, mark the aggregate as clean:
+The component that successfully persists the object graph should reset its
+tracking baseline:
 ```typescript
-await repository.save(order);
-
-// Clear change history
+await persistChanges(order.getChanges());
 order.markAsClean();
 
 // Now tracking starts fresh
@@ -149,102 +174,116 @@ const changes = order.getChanges();
 console.log(changes.isEmpty()); // true
 ```
 
-<Warning>
-Always call `markAsClean()` after successfully persisting. Otherwise, the same changes will be detected again.
-</Warning>
+`markAsClean()` recursively clears changes in nested entities without changing
+whether their IDs are new.
 
-### After First Save (INSERT)
+<Info>
+  `PrismaRepository.save()` already calls `markAsPersisted()` after its mapper
+  completes successfully. Do not add a second cleanup call when using that
+  repository. For a custom repository or direct batch executor, reset the
+  baseline only after persistence succeeds.
+</Info>
 
-When persisting an entity for the first time, use `markAsPersisted()` instead of `markAsClean()`. This method also marks the Id as not-new, ensuring subsequent saves trigger UPDATE operations instead of INSERT:
+### After First Save
+
+When implementing a custom repository, call `markAsPersisted()` after the first
+successful INSERT. It clears tracking and marks the root and nested IDs as not
+new:
 
 ```typescript
-// First save (INSERT)
-await repository.save(order);
-
-// Mark as persisted - clears changes AND marks Id as not-new
+await insertAggregate(order);
 order.markAsPersisted();
 
-console.log(order.isNew());          // false (was true before)
+console.log(order.isNew()); // false
 console.log(order.getChanges().isEmpty()); // true
 
-// Now future saves will be UPDATEs
 order.updateStatus("confirmed");
-await repository.save(order);  // This triggers an UPDATE, not INSERT
+await updateAggregate(order);
+order.markAsClean();
 ```
 
 <Info>
-`markAsPersisted()` recursively marks all nested entities as persisted too.
-Use `markAsClean()` when you only need to reset change tracking without affecting the Id state (e.g., after UPDATEs).
+  `markAsPersisted()` changes ID state; it does not perform an INSERT by itself.
+  The repository or mapper decides how `isNew()` affects persistence.
 </Info>
 
 ## Batch Operations
 
-For efficient database persistence, use `toBatchOperations()` to group changes by entity:
+Use `toBatchOperations()` to group changes by entity, relation, and parent
+metadata:
 
 <Info>
-Prisma ORM is being used in the example due to our high compatibility.
+  `toBatchOperations()` is a data transformation only. It does not execute a
+  transaction, map domain fields to database columns, or decide whether a
+  relation is owned or referenced. A persistence adapter must handle those
+  concerns.
 </Info>
 
 ```typescript
 const batch = changes.toBatchOperations();
 
-// Deletes (leaf → root, respects FK constraints)
+// Deletes are grouped and ordered leaf → root
 for (const del of batch.deletes) {
-  console.log(`Delete ${del.ids.length} ${del.entity}(s)`);
-  await db[del.entity].deleteMany({
-    where: { id: { in: del.ids } },
+  console.log(del.entity, del.ids, {
+    parentId: del.parentId,
+    parentEntity: del.parentEntity,
+    relationField: del.relationField,
   });
 }
 
-// Creates (root → leaf, respects FK constraints)
+// Creates are grouped and ordered parent → child
 for (const create of batch.creates) {
-  console.log(`Create ${create.items.length} ${create.entity}(s)`);
-  await db[create.entity].createMany({
-    data: create.items.map((item) => ({
-      ...mapToPersistence(item.data),
-      parentId: item.parentId, // FK to parent
-    })),
-  });
+  for (const item of create.items) {
+    console.log(create.entity, item.data, {
+      parentId: item.parentId,
+      parentEntity: item.parentEntity,
+      relationField: item.relationField,
+    });
+  }
 }
 
-// Updates (any order, no FK dependencies)
+// Updates are grouped by entity and are not depth-sorted
 for (const update of batch.updates) {
-  console.log(`Update ${update.items.length} ${update.entity}(s)`);
   for (const item of update.items) {
-    await db[update.entity].update({
-      where: { id: item.id },
-      data: item.changedFields, // Only changed fields
-    });
+    console.log(update.entity, item.id, item.changedFields);
   }
 }
 ```
 
 <Note>
-Operations are automatically ordered to prevent foreign key violations:
+The ordering reflects the tracked object graph:
 - **Deletes**: Children first, then parents
 - **Creates**: Parents first, then children
-- **Updates**: Any order (no FK impact)
+- **Updates**: Grouped by entity without depth ordering
+
+This ordering helps an adapter satisfy foreign keys, but it cannot guarantee
+database correctness by itself. Relationship configuration and transaction
+handling still belong to the adapter.
 </Note>
 
 ## Operation Ordering
 
-The library automatically orders operations to respect foreign key constraints:
+The library orders create and delete operations by their depth in the tracked
+object graph.
+
+Depth `0` is the object on which `getChanges()` is called. The tracker can emit
+an update for that root, but it does not emit a create or delete for the root
+itself.
 
 ### Deletes: Leaf → Root
 
 Children must be deleted before parents to avoid FK violations:
 
 ```typescript
-// Given this structure:
-// Order
-// └── OrderItem
-//     └── ItemDiscount
+// Given changes below an Order root:
+// OrderItem
+// └── ItemDiscount
 
 const deletes = changes.deletes();
 // Returns in order:
 // 1. ItemDiscount (depth: 2)
 // 2. OrderItem (depth: 1)
-// 3. Order (depth: 0)
+// The Order root itself is saved by its repository.
 ```
 
 ### Creates: Root → Leaf
@@ -254,22 +293,25 @@ Parents must be created before children so FKs can reference them:
 ```typescript
 const creates = changes.creates();
 // Returns in order:
-// 1. Order (depth: 0)
-// 2. OrderItem (depth: 1)
-// 3. ItemDiscount (depth: 2)
+// 1. OrderItem (depth: 1)
+// 2. ItemDiscount (depth: 2)
 ```
 
 ### Updates: Any Order
 
-Updates typically don't affect relationships, so order doesn't matter:
+Updates are returned in detection order and grouped by entity in batch output:
 
 ```typescript
 const updates = changes.updates();
-// Order not guaranteed - apply in any order
+// No depth ordering guarantee
 ```
 
 
 ## Working with Collections
+
+Collections of `Entity`/`Aggregate` instances produce item-level create,
+update, and delete operations. Arrays containing only primitive values are
+reported as an update to the property of their owning entity.
 
 ### Adding Items
 ```typescript
@@ -393,7 +435,8 @@ console.log(addressChanges.hasCreates()); // true - new address
 
 ## Deeply Nested Changes
 
-Change tracking works at any depth automatically:
+Change tracking recursively follows nested `BaseEntity` instances and has no
+fixed depth limit:
 ```typescript
 // Structure: User → Post → Comment → Like
 const user = new User({
@@ -426,9 +469,16 @@ console.log(changes.of("Comment").hasUpdates()); // true
 console.log(changes.of("Like").hasCreates());    // true
 ```
 
+<Warning>
+  Circular entity references are rejected during change comparison. Across
+  aggregate boundaries, prefer storing another aggregate's `Id` instead of an
+  object reference.
+</Warning>
+
 ### Cascading Deletes
 
-When you delete a parent entity, all children are automatically tracked as deletes:
+When a parent is removed from the tracked graph, its nested entities are also
+reported as delete operations:
 ```typescript
 const user = new User({
   posts: [
@@ -442,7 +492,7 @@ const user = new User({
   ],
 });
 
-// Delete post (cascades to comments and likes)
+// Remove post from the tracked object graph
 user.removePost(Id.from("post-1"));
 
 const changes = user.getChanges();
@@ -450,14 +500,19 @@ console.log(changes.of("Post").deleteIds);    // ["post-1"]
 console.log(changes.of("Comment").deleteIds); // ["comment-1", "comment-2"]
 console.log(changes.of("Like").deleteIds);    // [...]
 
-// Batch operations handle correct order automatically
+// Batch operations place deeper deletes first
 const batch = changes.toBatchOperations();
 // Order: Like → Comment → Post (leaf to root)
 ```
 
+This is a cascade in the generated change set, not a database-level `ON DELETE
+CASCADE`. The adapter still decides whether a relation is owned and should be
+deleted or is a reference that should only be disconnected.
+
 ### Cascading Creates
 
-When you create a parent with children, all are tracked:
+When a parent with nested entities is added after the baseline, the parent and
+its nested children are reported as creates:
 ```typescript
 user.addPost(new Post({
   title: "New Post",
@@ -477,14 +532,45 @@ console.log(changes.of("Post").creates.length);    // 1
 console.log(changes.of("Comment").creates.length); // 1
 console.log(changes.of("Like").creates.length);    // 2
 
-// Batch operations handle correct order automatically
+// Batch operations place shallower creates first
 const batch = changes.toBatchOperations();
 // Order: Post → Comment → Like (root to leaf)
 ```
 
+Entities already present during construction are part of the baseline and are
+not reported as creates merely because their IDs are new.
+
+## Change History
+
+`getHistory()` returns low-level writes observed by the entity's tracker:
+
+```typescript
+order.updateStatus("confirmed");
+
+const history = order.getHistory();
+console.log(history[0]);
+// {
+//   path: "status",
+//   previousValue: "draft",
+//   currentValue: "confirmed",
+//   timestamp: 1710000000000
+// }
+```
+
+History entries are useful for debugging, but they are not the same as
+`AggregateChanges`: multiple writes may collapse into one update operation,
+and changes reverted back to the baseline may produce no persistence operation.
+
+<Warning>
+  Change history is in-memory diagnostic state, not a durable audit log.
+  Persist explicit domain events or audit records when auditability is required.
+</Warning>
+
 ## Collections with Entities
 
-For tracking changes in collections of complex objects, use Entities instead of ValueObjects:
+Use entities when collection items need independent create, update, and delete
+operations. Value Objects remain appropriate for immutable values that are
+persisted as part of their owner:
 
 ```typescript
 class TagReference extends Entity<{ id: Id; tagId: string; name: string }> {
@@ -512,12 +598,12 @@ const user = new User({
   id: Id.from("user-1"),
   tags: [
     new TagReference({
-      id: new Id(),
+      id: Id.from("tag-ref-1"),
       tagId: "tag-1",
       name: "JavaScript"
     }),
     new TagReference({
-      id: new Id(),
+      id: Id.from("tag-ref-2"),
       tagId: "tag-2",
       name: "TypeScript"
     }),
@@ -580,7 +666,7 @@ type OrderEntities = {
   Order: Order;
   OrderItem: OrderItem;
   ItemDiscount: ItemDiscount;
-  ShippingAddress: Address;
+  Address: Address;
 };
 
 // Get typed changes
@@ -588,7 +674,7 @@ const changes = order.getChanges<OrderEntities>();
 
 // Now 'of' has autocomplete
 const itemChanges = changes.of("OrderItem");
-//                              ^? "Order" | "OrderItem" | "ItemDiscount" | "ShippingAddress"
+//                              ^? "Order" | "OrderItem" | "ItemDiscount" | "Address"
 
 // Returns are properly typed
 itemChanges.creates.forEach((item) => {
@@ -634,100 +720,55 @@ const items = changes.of("OrderItem"); // Autocomplete works!
 ```
 </Tip>
 
-## Complete Example with Prisma
+<Note>
+  Entity-map keys must match the runtime class names stored in operations. For
+  example, an `Address` instance produces the entity name `"Address"`, not the
+  property name `"shippingAddress"`.
+</Note>
+
+## Persistence Example with Prisma
+
+`PrismaToPersistence` uses `PrismaBatchExecutor` for updates by default. The
+executor understands relation metadata, schema mappings, owned collections, and
+reference collections, while `PrismaRepository.save()` resets the aggregate
+with `markAsPersisted()` after persistence:
+
 ```typescript
 class OrderService {
-  constructor(
-    private prisma: PrismaClient,
-    private orderRepo: OrderRepository
-  ) {}
+  constructor(private readonly orderRepo: OrderRepository) {}
 
   async confirmOrder(orderId: string): Promise<void> {
-    // Load order
     const order = await this.orderRepo.findById(orderId);
     if (!order) throw new Error("Order not found");
 
-    // Business logic
     order.confirm();
-    order.items.forEach((item) => {
-      if (item.quantity > 10) {
-        item.applyBulkDiscount(5);
-      }
-    });
 
-    // Get changes
     const changes = order.getTypedChanges();
+    if (changes.isEmpty()) return;
 
-    if (changes.isEmpty()) {
-      return; // Nothing to persist
-    }
+    await this.orderRepo.save(order);
 
-    // Log what's changing
-    console.log("Affected entities:", changes.getAffectedEntities());
-    console.log("Total operations:", changes.count);
-
-    // Persist
-    const batch = changes.toBatchOperations();
-
-    await this.prisma.$transaction(async (tx) => {
-      // Process in correct order
-      await this.processDeletes(tx, batch.deletes);
-      await this.processCreates(tx, batch.creates);
-      await this.processUpdates(tx, batch.updates);
-    });
-
-    // Clear change history
-    order.markAsClean();
-  }
-
-  private async processDeletes(tx: any, deletes: BatchOperations["deletes"]) {
-    for (const del of deletes) {
-      await tx[this.getTableName(del.entity)].deleteMany({
-        where: { id: { in: del.ids } },
-      });
-    }
-  }
-
-  private async processCreates(tx: any, creates: BatchOperations["creates"]) {
-    for (const create of creates) {
-      const table = this.getTableName(create.entity);
-      await tx[table].createMany({
-        data: create.items.map((item) =>
-          this.mapToDatabase(create.entity, item.data, item.parentId)
-        ),
-      });
-    }
-  }
-
-  private async processUpdates(tx: any, updates: BatchOperations["updates"]) {
-    for (const update of updates) {
-      const table = this.getTableName(update.entity);
-      for (const item of update.items) {
-        await tx[table].update({
-          where: { id: item.id },
-          data: item.changedFields,
-        });
-      }
-    }
-  }
-
-  private getTableName(entity: string): string {
-    const map: Record<string, string> = {
-      Order: "order",
-      OrderItem: "orderItem",
-      ItemDiscount: "itemDiscount",
-    };
-    return map[entity];
-  }
-
-  private mapToDatabase(entity: string, data: any, parentId?: string): any {
-    // Map domain entity to database record
-    // ... implementation
+    console.log(order.getChanges().isEmpty()); // true
   }
 }
 ```
 
+Override `PrismaToPersistence.onUpdate()` only when part of the graph needs
+custom persistence. Use `without()` to pass the remaining operations to the
+default executor.
+
 ## API Reference
+
+### BaseEntity Tracking
+
+These methods are available on both `Entity` and `Aggregate`:
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getChanges<TEntityMap>()` | `AggregateChanges<TEntityMap>` | Calculate operations since the current baseline |
+| `getHistory()` | `HistoryEntry[]` | Copy of low-level writes observed by the tracker |
+| `markAsClean()` | `void` | Recursively establish a new baseline |
+| `markAsPersisted()` | `void` | Recursively establish a new baseline and mark IDs as not new |
 
 ### AggregateChanges
 
@@ -737,6 +778,7 @@ class OrderService {
 | `updates()` | `UpdateOperation[]` | All updates |
 | `deletes()` | `DeleteOperation[]` | All deletes, ordered leaf → root |
 | `of(entity)` | `EntityChanges<T>` | Filter changes by entity name |
+| `forRelation(relation)` | `AggregateChanges` | New instance filtered by relation field |
 | `without(entity \| entities)` | `AggregateChanges` | New instance excluding the given entity/entities |
 | `toBatchOperations()` | `BatchOperations` | Group changes for bulk operations |
 | `hasCreates()` | `boolean` | Has any creates |
@@ -745,9 +787,19 @@ class OrderService {
 | `hasChanges()` | `boolean` | Has any operations |
 | `isEmpty()` | `boolean` | No operations |
 | `getAffectedEntities()` | `string[]` | List of entity names with changes |
+| `getAffectedRelations()` | `string[]` | List of relation fields with changes |
 | `operations()` | `Generator` | Iterate all operations in order |
 | `toArray()` | `Operation[]` | All operations as array |
+| `rawOperations` | `Operation[]` | Copy of operations without ordering |
+| `clone()` | `AggregateChanges` | Independent copy of the operation list |
+| `clear()` | `void` | Clear this result object's operations |
 | `count` | `number` | Total number of operations |
+
+<Warning>
+  `AggregateChanges.clear()` only mutates that result object. It does not reset
+  the entity tracker; a later `entity.getChanges()` will calculate the changes
+  again. Use `entity.markAsClean()` to establish a new baseline.
+</Warning>
 
 ### EntityChanges
 
@@ -764,6 +816,7 @@ class OrderService {
 | `hasDeletes()` | `boolean` | Has any deletes |
 | `hasChanges()` | `boolean` | Has any operations |
 | `isEmpty()` | `boolean` | No operations |
+| `rawOperations` | `Operation<T>[]` | Copy of the filtered raw operations |
 | `count` | `number` | Total operations |
 
 ### BatchOperations
@@ -773,14 +826,25 @@ interface BatchOperations {
     entity: string;
     depth: number;
     ids: string[];
+    parentId?: string;
+    parentEntity?: string;
+    relationField?: string;
+    items?: Array<{
+      id: string;
+      relationField?: string;
+    }>;
   }>;
 
   creates: Array<{
     entity: string;
     depth: number;
+    parentEntity?: string;
+    relationField?: string;
     items: Array<{
       data: any;
       parentId?: string;
+      parentEntity?: string;
+      relationField?: string;
     }>;
   }>;
 
